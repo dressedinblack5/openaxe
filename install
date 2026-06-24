@@ -24,7 +24,7 @@ check_cmd bun
 if [ -d "$INSTALL_DIR" ]; then
   if [ -d "$INSTALL_DIR/.git" ]; then
     echo -e "${MUTED}Updating opencode in $INSTALL_DIR...${NC}"
-    git -C "$INSTALL_DIR" fetch origin "$BRANCH"
+    git -C "$INSTALL_DIR" fetch --depth 1 origin "$BRANCH"
     git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH"
   else
     echo -e "${RED}Error: $INSTALL_DIR exists but is not a git repository.${NC}" >&2
@@ -32,7 +32,7 @@ if [ -d "$INSTALL_DIR" ]; then
   fi
 else
   echo -e "${MUTED}Cloning opencode into $INSTALL_DIR...${NC}"
-  git clone --branch "$BRANCH" "https://github.com/$REPO.git" "$INSTALL_DIR"
+  git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" "$INSTALL_DIR"
 fi
 
 echo -e "${MUTED}Installing dependencies...${NC}"
