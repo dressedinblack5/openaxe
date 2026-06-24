@@ -79,6 +79,27 @@ Also removed:
 
 `cli`, `core`, `effect-drizzle-sqlite`, `http-recorder`, `llm`, `opencode`, `plugin`, `schema`, `script`, `sdk`, `server`, `tui`, `ui`
 
+## Performance
+
+| | Upstream | This fork |
+|---|---|---|
+| Packages | 27 | **13** (52% fewer) |
+| `bun install` | ~15-20s | **5.3s** |
+| `turbo typecheck` | ~45-60s | **18.4s** |
+| node_modules | ~2+ GB | **1.1 GB** |
+| CI publish jobs | 3 (npm + electron + docker) | **1** (npm only) |
+
+**What you're not installing:**
+| Heavy dependency | Weight saved | Why removed |
+|---|---|---|
+| Electron | ~400 MB | TUI-only, no desktop GUI |
+| Storybook | ~200 MB | Dev tooling, zero runtime dependents |
+| Astro + Starlight | ~150 MB | Docs site, separate project |
+| SST (3 sub-packages) | ~120 MB | Cloud infra, not TUI/CLI |
+| SolidJS apps (console/enterprise/app) | ~80 MB each | Separate web projects |
+
+**~800 MB–1.2 GB** total dependency savings. One command to run: `bun run --cwd packages/opencode src/index.ts`.
+
 ---
 
 ## Installation
