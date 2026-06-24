@@ -61,6 +61,19 @@ mise use -g opencode               # Any OS
 nix run nixpkgs#opencode           # or github:anomalyco/opencode for latest dev branch
 ```
 
+#### Fork install
+
+```bash
+# YOLO — this fork
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/opencode/dev/install | bash
+
+# Or from source
+git clone https://github.com/dressedinblack5/opencode.git
+cd opencode
+bun install
+bun run --cwd packages/opencode src/index.ts
+```
+
 > [!TIP]
 > Remove versions older than 0.1.x before installing.
 
@@ -126,4 +139,41 @@ If you are working on a project that's related to OpenCode and is using "opencod
 
 ---
 
-**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+## 🔌 Featured Plugins & MCP
+
+Plugins loaded project-wide via `.opencode/opencode.jsonc`:
+
+| Plugin | What it does |
+|---|---|
+| **oh-my-openagent** | Agent personality and behavior customization |
+| **opencode-plugin-selector** | Pick and switch between plugins on the fly |
+| **superpowers** | Skill-based development workflows (brainstorming, TDD, debugging, code review, etc.) |
+| **ponytail** | Lazy senior developer mode — minimal code, no over-engineering |
+| **opencode-vibeguard** | Keeps agents aligned and on track |
+| **@tarquinen/opencode-dcp** | Dynamic context pruning — keeps the conversation window lean |
+| **ecc-universal** | Everything Claude Code — 61 agents, 400+ skills, 76 commands, security scanning, instinct learning, and MCP configs |
+
+MCP servers (Model Context Protocol):
+
+| Server | What it does |
+|---|---|
+| **context7** | Fetches live documentation for any library, framework, or API |
+| **github** | Full GitHub API access — repos, PRs, issues, search |
+
+---
+
+## 🍴 dressedinblack5/opencode
+
+This is my personal fork — the same DNA, my own touch.
+
+I wanted more flexibility, so I forked it and made it mine. Project-level
+config in `.opencode/` bundles my plugins (oh-my-openagent, superpowers,
+ponytail, vibeguard, dcp), MCP servers (context7, github), and preferred
+model defaults so everything Just Works™ whenever I drop into this repo.
+
+Pull upstream changes from `origin/dev`, push features to `fork`.
+If something I built here is useful upstream — I'll send a PR.
+
+---
+
+**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode) | [Fork](https://github.com/dressedinblack5/opencode)
