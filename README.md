@@ -45,6 +45,20 @@ Loaded project-wide via <code>.opencode/opencode.jsonc</code>:
 
 <br>
 
+## Structural Changes
+
+This fork trims upstream bloat:
+
+| Change | What |
+|--------|------|
+| **Removed** | 21 stale README translations (kept only `README.md`) |
+| **Removed** | `packages/storybook` + 65 component story files — unused dev tooling |
+| **Removed** | `packages/effect-sqlite-node` — dead code, nothing imported it |
+
+Upstream package count: 27 → 24. No behavior changes.
+
+<br>
+
 ## Installation
 
 **Quick install**
