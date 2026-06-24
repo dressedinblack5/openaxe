@@ -1,15 +1,26 @@
 <p align="center">
-  <strong><big>OpenCode</big></strong>
+  <a href="https://github.com/dressedinblack5/opencode">
+    <img src="https://img.shields.io/badge/dressedinblack5/opencode-6C47FF?style=for-the-badge&logo=github&logoColor=fff" alt="opencode">
+  </a>
+</p>
+
+<pre align="center">
+ ___                    _      
+/ _ \ _ __   ___   ___ | | ___ 
+| | | | '_ \ / _ \ / _ \| |/ _ \
+| |_| | |_) | (_) | (_) | |  __/
+ \___/| .__/ \___/ \___/|_|\___|
+      |_|                        
+</pre>
+
+<p align="center">
+  <a href="https://github.com/anomalyco/opencode"><img src="https://img.shields.io/github/v/release/anomalyco/opencode?style=flat-square&label=upstream" alt="upstream"></a>
+  <a href="https://github.com/dressedinblack5/opencode/compare"><img src="https://img.shields.io/github/commits-since/anomalyco/opencode/dev?style=flat-square&label=ahead" alt="ahead"></a>
+  <a href="https://github.com/dressedinblack5/opencode"><img src="https://img.shields.io/github/last-commit/dressedinblack5/opencode?style=flat-square&color=brightgreen&label=updated" alt="updated"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/anomalyco/opencode"><img src="https://img.shields.io/github/v/release/anomalyco/opencode?style=flat&label=upstream" alt="upstream"></a>
-  <a href="https://github.com/dressedinblack5/opencode/compare"><img src="https://img.shields.io/github/commits-since/anomalyco/opencode/dev?style=flat&label=commits+ahead" alt="ahead"></a>
-  <a href="https://github.com/dressedinblack5/opencode"><img src="https://img.shields.io/github/last-commit/dressedinblack5/opencode?style=flat&label=updated" alt="updated"></a>
-</p>
-
-<p align="center">
-  Personal fork of <strong>anomalyco/opencode</strong> with project-wide<br>
+  Personal fork of <strong>anomalyco/opencode</strong> — project-wide<br>
   plugin and MCP configuration loaded from <code>.opencode/</code>.<br>
   Pull from <code>origin/dev</code>, push features to <code>fork</code>, send PRs upstream.
 </p>
@@ -24,15 +35,13 @@ These additions are not present in the upstream `anomalyco/opencode`:
 
 Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/opencode/opencode.jsonc` (user):
 
-| Plugin | Version | Capabilities | Mechanism |
-|---|---|---|---|
-| **oh-my-openagent** | 4.13.0 | Configurable agent persona, styled conversation, persistent TUI state | TUI plugin + `experimental.chat.system.transform` |
-| **opencode-plugin-selector** | 1.0.1 | Enable/disable any plugin on the fly from a TUI panel — no config editing | TUI plugin + `config` hook |
-| **superpowers** | 6.0.3 | Injects superpowers bootstrap into every session (skill-awareness, 20+ skill directories); enables brainstorming, TDD, debugging, code review workflows | `config` (registers skills paths) + `experimental.chat.messages.transform` |
-| **ponytail** | — | Lazy senior dev mode: appends YAGNI/stdlib-first/minimal-code ruleset to system prompts; persists `/ponytail off\|full\|lite\|ultra` across restarts | `experimental.chat.system.transform` + `command.execute.before` |
-| **opencode-vibeguard** | 0.1.0 | Prevents agent drift from project conventions and coding standards | System prompt injection, behavior monitoring |
-| **@tarquinen/opencode-dcp** | 3.1.13 | Automatic context management: model-triggered compression (range/message), duplicate tool-call deduplication, errored-tool input pruning, context-limit nudges, `/dcp` panel, prompt overrides | `compress` tool registration + TUI panel + slash commands |
-| **ecc-universal** | 2.0.0 | Claude Code compatibility: 61 agents, 400+ skills, 76 commands, agent orchestration, MCP integration, security rules | Multi-hook, TUI plugin, full lifecycle |
+- **oh-my-openagent** — Configurable agent persona, styled conversation, persistent TUI state
+- **opencode-plugin-selector** — Enable/disable any plugin on the fly from a TUI panel
+- **superpowers** — Skill-awareness, brainstorming, TDD, debugging, code review workflows
+- **ponytail** — Lazy senior dev mode: YAGNI/stdlib-first/minimal-code ruleset
+- **opencode-vibeguard** — Prevents agent drift from project conventions and coding standards
+- **@tarquinen/opencode-dcp** — Automatic context management, compression, slash commands
+- **ecc-universal** — Claude Code compatibility: 61 agents, 400+ skills, MCP integration, security
 
 ### MCP Servers
 
