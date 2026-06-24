@@ -17,6 +17,7 @@ ts-dist
 .serena/
 **/.omo
 .omo/
+.codegraph
 /result
 refs
 Session.vim
