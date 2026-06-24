@@ -1,11 +1,5 @@
 <p align="center">
-  <a href="https://opencode.ai">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img width="320" src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode">
-    </picture>
-  </a>
+  <strong><big>OpenCode</big></strong>
 </p>
 
 <p align="center">
@@ -22,11 +16,15 @@
 
 ---
 
-## Plugins & MCP
+## User-Added Features
 
-Loaded project-wide via <code>.opencode/opencode.jsonc</code>:
+These additions are not present in the upstream `anomalyco/opencode`:
 
-| Plugin | |
+### Plugins & MCP
+
+Loaded project-wide via `.opencode/opencode.jsonc`:
+
+| Plugin | Purpose |
 |---|---|
 | **oh-my-openagent** | Agent personality & behavior customization |
 | **opencode-plugin-selector** | Pick and switch plugins on the fly |
@@ -36,28 +34,52 @@ Loaded project-wide via <code>.opencode/opencode.jsonc</code>:
 | **@tarquinen/opencode-dcp** | Dynamic context pruning — lean conversation window |
 | **ecc-universal** | Everything Claude Code — 61 agents, 400+ skills, 76 commands, security, MCP |
 
-| MCP server | |
+| MCP server | Purpose |
 |---|---|
 | **context7** | Live docs for any library, framework, or API |
 | **github** | Full GitHub API — repos, PRs, issues, search |
 
+### Platform fixes (Arch Linux / KDE)
+
+- **Display backend persistence** — `LinuxDisplayBackend` setting stored in electron-store; `--disable-gpu` / `--use-gl=swiftshader` workaround for flickering/black Electron windows on Wayland
+- **Inotify limit diagnostic** — detects and warns when `fs.inotify.max_user_watches` is too low for file watchers
+
 ---
 
-<br>
+## Structural Changes vs Upstream
 
-## Structural Changes
+Upstream has 27 packages. This fork keeps **13** — everything else is removed for a lean TUI/CLI-only workspace.
 
-This fork trims upstream bloat:
+| Removed | Type | Reason |
+|---------|------|--------|
+| `packages/app` | Web app | Separate project, not TUI/CLI |
+| `packages/console` | Web interface | Separate project, not TUI/CLI |
+| `packages/containers` | Dockerfiles | CI infra, no package.json |
+| `packages/desktop` | Electron app | Desktop GUI, not TUI/CLI |
+| `packages/docs` | Docs staging | Orphaned, no package.json |
+| `packages/effect-sqlite-node` | SQLite driver | Dead code, nothing imported it |
+| `packages/enterprise` | Enterprise portal | Separate project |
+| `packages/function` | SST function | Cloud infra, not TUI/CLI |
+| `packages/identity` | Icon files | Orphaned, no package.json |
+| `packages/session-ui` | Session components | Merged into core already |
+| `packages/slack` | Slack bot | Separate project |
+| `packages/stats` | Analytics dashboard | Separate project |
+| `packages/storybook` | Component playground | Dev-only, zero dependents |
+| `packages/web` | Docs website | Separate project |
 
-| Change | What |
-|--------|------|
-| **Removed** | 21 stale README translations (kept only `README.md`) |
-| **Removed** | `packages/storybook` + 65 component story files — unused dev tooling |
-| **Removed** | `packages/effect-sqlite-node` — dead code, nothing imported it |
+Also removed:
+- **infra/** — SST cloud deployment configs
+- **sdks/vscode/** — VS Code extension
+- **21 stale README translations** (kept only `README.md`)
+- **65 `.stories.*` files** across `ui` and `session-ui`
+- **5 dead GitHub workflows** (storybook, docs-locale-sync, containers, docs-update, stats)
+- **Electron build job** from publish CI
 
-Upstream package count: 27 → 24. No behavior changes.
+### Remaining packages (13)
 
-<br>
+`cli`, `core`, `effect-drizzle-sqlite`, `http-recorder`, `llm`, `opencode`, `plugin`, `schema`, `script`, `sdk`, `server`, `tui`, `ui`
+
+---
 
 ## Installation
 
