@@ -4,14 +4,6 @@
   </a>
 </p>
 
-<pre align="center">
- ___                    _      
-/ _ \ _ __   ___   ___ | | ___ 
-| | | | '_ \ / _ \ / _ \| |/ _ \
-| |_| | |_) | (_) | (_) | |  __/
- \___/| .__/ \___/ \___/|_|\___|
-      |_|                        
-</pre>
 
 <p align="center">
   <a href="https://github.com/anomalyco/opencode"><img src="https://img.shields.io/github/v/release/anomalyco/opencode?style=flat-square&label=upstream" alt="upstream"></a>
