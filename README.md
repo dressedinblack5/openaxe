@@ -69,6 +69,7 @@ Upstream has 27 packages. This fork keeps **13** — everything else is removed 
 
 Also removed:
 - **infra/** — SST cloud deployment configs
+- **sst.config.ts + sst-env.d.ts** — SST root config, dead after infra/ removal
 - **sdks/vscode/** — VS Code extension
 - **21 stale README translations** (kept only `README.md`)
 - **65 `.stories.*` files** across `ui` and `session-ui`
