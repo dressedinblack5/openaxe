@@ -27,13 +27,13 @@ These additions are not present in the upstream `anomalyco/opencode`:
 
 Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/opencode/opencode.jsonc` (user):
 
-- **oh-my-openagent** — Configurable agent persona, styled conversation, persistent TUI state
-- **opencode-plugin-selector** — Enable/disable any plugin on the fly from a TUI panel
-- **superpowers** — Skill-awareness, brainstorming, TDD, debugging, code review workflows
-- **ponytail** — Lazy senior dev mode: YAGNI/stdlib-first/minimal-code ruleset
-- **opencode-vibeguard** — Prevents agent drift from project conventions and coding standards
-- **@tarquinen/opencode-dcp** — Automatic context management, compression, slash commands
-- **ecc-universal** — Claude Code compatibility: 61 agents, 400+ skills, MCP integration, security
+- **[oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent)** — Configurable agent persona, styled conversation, persistent TUI state
+- **[opencode-plugin-selector](https://github.com/illusionaireal/opencode-plugin-selector)** — Enable/disable any plugin on the fly from a TUI panel
+- **[superpowers](https://github.com/obra/superpowers)** — Skill-awareness, brainstorming, TDD, debugging, code review workflows
+- **[ponytail](https://github.com/DietrichGebert/ponytail)** — Lazy senior dev mode: YAGNI/stdlib-first/minimal-code ruleset
+- **[opencode-vibeguard](https://github.com/inkdust2021/opencode-vibeguard)** — Prevents agent drift from project conventions and coding standards
+- **[@tarquinen/opencode-dcp](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning)** — Automatic context management, compression, slash commands
+- **[ecc-universal](https://github.com/affaan-m/ECC)** — Claude Code compatibility: 61 agents, 400+ skills, MCP integration, security
 
 ### MCP Servers
 
