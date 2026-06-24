@@ -46,7 +46,7 @@ Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/opencode/opencode.
 
 **Security Benefits:**
 - **<1.2GB dependencies** (vs 2+GB upstream)
-- **<6s installation** (vs 15-20s upstream) 
+- **<6s installation** (vs 15-20s upstream)
 - **52% fewer packages** (13 vs 27)
 - **No electron/storybook** - Removed desktop/web tooling risks
 - **No SST cloud** - Eliminated infrastructure vulnerabilities
