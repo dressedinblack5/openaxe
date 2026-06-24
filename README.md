@@ -105,34 +105,21 @@ Also removed:
 
 ## Installation
 
-**Quick install**
+Requires [Bun](https://bun.sh) and `git`.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dressedinblack5/opencode/dev/install | bash
 ```
 
-**From source**
+This clones the repo, installs dependencies, and creates a `~/.local/bin/opencode` wrapper.
+
+**From source:**
 
 ```bash
 git clone https://github.com/dressedinblack5/opencode.git
 cd opencode
 bun install
 bun run --cwd packages/opencode src/index.ts
-```
-
-> [!TIP]
-> Remove versions older than 0.1.x before installing.
-
-### Install path priority
-
-1. `$OPENCODE_INSTALL_DIR` — custom directory
-2. `$XDG_BIN_DIR` — XDG compliant path
-3. `$HOME/bin` — user binary directory
-4. `$HOME/.opencode/bin` — default
-
-```bash
-OPENCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/dressedinblack5/opencode/dev/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://raw.githubusercontent.com/dressedinblack5/opencode/dev/install | bash
 ```
 
 <p align="center"><a href="https://github.com/dressedinblack5/opencode">dressedinblack5/opencode</a></p>

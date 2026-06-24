@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO="dressedinblack5/opencode"
+BRANCH="dev"
+INSTALL_DIR="${OPENCODE_INSTALL_DIR:-$HOME/.opencode}"
+BIN_DIR="${XDG_BIN_DIR:-$HOME/.local/bin}"
+WRAPPER="$BIN_DIR/opencode"
+
+MUTED='\033[0;2m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+check_cmd() {
+  if ! command -v "$1" &>/dev/null; then
+    echo -e "${RED}Error: '$1' is required but not installed.${NC}" >&2
+    exit 1
+  fi
+}
+
+check_cmd git
+check_cmd bun
+
+if [ -d "$INSTALL_DIR" ]; then
+  if [ -d "$INSTALL_DIR/.git" ]; then
+    echo -e "${MUTED}Updating opencode in $INSTALL_DIR...${NC}"
+    git -C "$INSTALL_DIR" fetch origin "$BRANCH"
+    git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH"
+  else
+    echo -e "${RED}Error: $INSTALL_DIR exists but is not a git repository.${NC}" >&2
+    exit 1
+  fi
+else
+  echo -e "${MUTED}Cloning opencode into $INSTALL_DIR...${NC}"
+  git clone --branch "$BRANCH" "https://github.com/$REPO.git" "$INSTALL_DIR"
+fi
+
+echo -e "${MUTED}Installing dependencies...${NC}"
+bun install --cwd "$INSTALL_DIR" 2>&1 | sed 's/^/  /'
+
+mkdir -p "$BIN_DIR"
+
+cat > "$WRAPPER" <<SCRIPT
+#!/usr/bin/env bash
+exec bun run --cwd "$INSTALL_DIR/packages/opencode" src/index.ts "\$@"
+SCRIPT
+chmod +x "$WRAPPER"
+
+echo ""
+echo -e "Installed opencode to ${MUTED}$WRAPPER${NC}"
+
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+  shell_config=""
+  case "${SHELL##*/}" in
+    zsh) shell_config="${ZDOTDIR:-$HOME}/.zshrc" ;;
+    bash) shell_config="$HOME/.bashrc" ;;
+    fish) shell_config="$HOME/.config/fish/config.fish" ;;
+  esac
+
+  if [ -n "$shell_config" ] && [ -w "$shell_config" ]; then
+    echo "export PATH=\"\$PATH:$BIN_DIR\"" >> "$shell_config"
+    echo -e "${MUTED}Added $BIN_DIR to PATH in $shell_config${NC}"
+  else
+    echo -e "${MUTED}Add $BIN_DIR to your PATH to use 'opencode' from anywhere.${NC}"
+  fi
+fi
+
+echo ""
+echo -e "Run ${MUTED}opencode${NC} in any project directory to start."
+echo ""
