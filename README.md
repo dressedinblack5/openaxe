@@ -3,71 +3,59 @@
     <picture>
       <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
       <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode logo">
+      <img width="320" src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode">
     </picture>
   </a>
 </p>
-<p align="center">The open source AI coding agent.</p>
+
 <p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/opencode-ai"><img alt="npm" src="https://img.shields.io/npm/v/opencode-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/anomalyco/opencode"><img src="https://img.shields.io/github/v/release/anomalyco/opencode?style=flat&label=upstream" alt="upstream"></a>
+  <a href="https://github.com/dressedinblack5/opencode/compare"><img src="https://img.shields.io/github/commits-since/anomalyco/opencode/dev?style=flat&label=commits+ahead" alt="ahead"></a>
+  <a href="https://github.com/dressedinblack5/opencode"><img src="https://img.shields.io/github/last-commit/dressedinblack5/opencode?style=flat&label=updated" alt="updated"></a>
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
-  <a href="README.zht.md">繁體中文</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.de.md">Deutsch</a> |
-  <a href="README.es.md">Español</a> |
-  <a href="README.fr.md">Français</a> |
-  <a href="README.it.md">Italiano</a> |
-  <a href="README.da.md">Dansk</a> |
-  <a href="README.ja.md">日本語</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.ru.md">Русский</a> |
-  <a href="README.bs.md">Bosanski</a> |
-  <a href="README.ar.md">العربية</a> |
-  <a href="README.no.md">Norsk</a> |
-  <a href="README.br.md">Português (Brasil)</a> |
-  <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a> |
-  <a href="README.uk.md">Українська</a> |
-  <a href="README.bn.md">বাংলা</a> |
-  <a href="README.gr.md">Ελληνικά</a> |
-  <a href="README.vi.md">Tiếng Việt</a>
+  Personal fork of <strong>anomalyco/opencode</strong> with project-wide<br>
+  plugin and MCP configuration loaded from <code>.opencode/</code>.<br>
+  Pull from <code>origin/dev</code>, push features to <code>fork</code>, send PRs upstream.
 </p>
-
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
 
 ---
 
-### Installation
+## Plugins & MCP
+
+Loaded project-wide via <code>.opencode/opencode.jsonc</code>:
+
+| Plugin | |
+|---|---|
+| **oh-my-openagent** | Agent personality & behavior customization |
+| **opencode-plugin-selector** | Pick and switch plugins on the fly |
+| **superpowers** | Skill-based dev workflows — brainstorming, TDD, debugging, code review |
+| **ponytail** | Lazy senior developer mode — minimal code, no over-engineering |
+| **opencode-vibeguard** | Keeps agents aligned and on track |
+| **@tarquinen/opencode-dcp** | Dynamic context pruning — lean conversation window |
+| **ecc-universal** | Everything Claude Code — 61 agents, 400+ skills, 76 commands, security, MCP |
+
+| MCP server | |
+|---|---|
+| **context7** | Live docs for any library, framework, or API |
+| **github** | Full GitHub API — repos, PRs, issues, search |
+
+---
+
+<br>
+
+## Installation
+
+**Quick install**
 
 ```bash
-# YOLO
-curl -fsSL https://opencode.ai/install | bash
-
-# Package managers
-npm i -g opencode-ai@latest        # or bun/pnpm/yarn
-scoop install opencode             # Windows
-choco install opencode             # Windows
-brew install anomalyco/tap/opencode # macOS and Linux (recommended, always up to date)
-brew install opencode              # macOS and Linux (official brew formula, updated less)
-sudo pacman -S opencode            # Arch Linux (Stable)
-paru -S opencode-bin               # Arch Linux (Latest from AUR)
-mise use -g opencode               # Any OS
-nix run nixpkgs#opencode           # or github:anomalyco/opencode for latest dev branch
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/opencode/dev/install | bash
 ```
 
-#### Fork install
+**From source**
 
 ```bash
-# YOLO — this fork
-curl -fsSL https://raw.githubusercontent.com/dressedinblack5/opencode/dev/install | bash
-
-# Or from source
 git clone https://github.com/dressedinblack5/opencode.git
 cd opencode
 bun install
@@ -77,103 +65,16 @@ bun run --cwd packages/opencode src/index.ts
 > [!TIP]
 > Remove versions older than 0.1.x before installing.
 
-### Desktop App (BETA)
+### Install path priority
 
-OpenCode is also available as a desktop application. Download directly from the [releases page](https://github.com/anomalyco/opencode/releases) or [opencode.ai/download](https://opencode.ai/download).
-
-| Platform              | Download                           |
-| --------------------- | ---------------------------------- |
-| macOS (Apple Silicon) | `opencode-desktop-mac-arm64.dmg`   |
-| macOS (Intel)         | `opencode-desktop-mac-x64.dmg`     |
-| Windows               | `opencode-desktop-windows-x64.exe` |
-| Linux                 | `.deb`, `.rpm`, or `.AppImage`     |
+1. `$OPENCODE_INSTALL_DIR` — custom directory
+2. `$XDG_BIN_DIR` — XDG compliant path
+3. `$HOME/bin` — user binary directory
+4. `$HOME/.opencode/bin` — default
 
 ```bash
-# macOS (Homebrew)
-brew install --cask opencode-desktop
-# Windows (Scoop)
-scoop bucket add extras; scoop install extras/opencode-desktop
+OPENCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/dressedinblack5/opencode/dev/install | bash
+XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://raw.githubusercontent.com/dressedinblack5/opencode/dev/install | bash
 ```
 
-#### Installation Directory
-
-The install script respects the following priority order for the installation path:
-
-1. `$OPENCODE_INSTALL_DIR` - Custom installation directory
-2. `$XDG_BIN_DIR` - XDG Base Directory Specification compliant path
-3. `$HOME/bin` - Standard user binary directory (if it exists or can be created)
-4. `$HOME/.opencode/bin` - Default fallback
-
-```bash
-# Examples
-OPENCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://opencode.ai/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://opencode.ai/install | bash
-```
-
-### Agents
-
-OpenCode includes two built-in agents you can switch between with the `Tab` key.
-
-- **build** - Default, full-access agent for development work
-- **plan** - Read-only agent for analysis and code exploration
-  - Denies file edits by default
-  - Asks permission before running bash commands
-  - Ideal for exploring unfamiliar codebases or planning changes
-
-Also included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
-
-Learn more about [agents](https://opencode.ai/docs/agents).
-
-### Documentation
-
-For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/docs).
-
-### Contributing
-
-If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
-
-### Building on OpenCode
-
-If you are working on a project that's related to OpenCode and is using "opencode" as part of its name, for example "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
-
----
-
-## 🔌 Featured Plugins & MCP
-
-Plugins loaded project-wide via `.opencode/opencode.jsonc`:
-
-| Plugin | What it does |
-|---|---|
-| **oh-my-openagent** | Agent personality and behavior customization |
-| **opencode-plugin-selector** | Pick and switch between plugins on the fly |
-| **superpowers** | Skill-based development workflows (brainstorming, TDD, debugging, code review, etc.) |
-| **ponytail** | Lazy senior developer mode — minimal code, no over-engineering |
-| **opencode-vibeguard** | Keeps agents aligned and on track |
-| **@tarquinen/opencode-dcp** | Dynamic context pruning — keeps the conversation window lean |
-| **ecc-universal** | Everything Claude Code — 61 agents, 400+ skills, 76 commands, security scanning, instinct learning, and MCP configs |
-
-MCP servers (Model Context Protocol):
-
-| Server | What it does |
-|---|---|
-| **context7** | Fetches live documentation for any library, framework, or API |
-| **github** | Full GitHub API access — repos, PRs, issues, search |
-
----
-
-## 🍴 dressedinblack5/opencode
-
-This is my personal fork — the same DNA, my own touch.
-
-I wanted more flexibility, so I forked it and made it mine. Project-level
-config in `.opencode/` bundles my plugins (oh-my-openagent, superpowers,
-ponytail, vibeguard, dcp), MCP servers (context7, github), and preferred
-model defaults so everything Just Works™ whenever I drop into this repo.
-
-Pull upstream changes from `origin/dev`, push features to `fork`.
-If something I built here is useful upstream — I'll send a PR.
-
----
-
-**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode) | [Fork](https://github.com/dressedinblack5/opencode)
+<p align="center"><a href="https://github.com/dressedinblack5/opencode">dressedinblack5/opencode</a></p>

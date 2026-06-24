@@ -156,3 +156,20 @@ const table = sqliteTable("session", {
 - Keep delivery vocabulary explicit. Prompts steer by default and promote at the next safe provider-turn boundary while the current drain requires continuation. An explicit `queue` input remains pending until the Session would otherwise become idle; promote one queued input at that boundary, then reevaluate continuation before promoting another. Promoting any new user input resets the selected agent's provider-turn allowance; a batch of steers resets it once.
 - Keep EventV2 replay owner claims separate from clustered Session execution ownership.
 - Keep the System Context algebra, registry, and built-ins in `src/system-context`; keep Context Source producers with their observed domains, and keep Session History selection plus Context Epoch persistence Session-owned.
+
+## Arch Linux / KDE
+
+Required system packages:
+```
+sudo pacman -S base-devel cmake wl-clipboard ripgrep
+```
+
+Inotify limit (prevents file watcher from silently failing on large repos):
+```
+echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/99-inotify.conf
+sudo sysctl --system
+```
+
+Electron on KDE/Wayland: the `LinuxDisplayBackend` setting ("auto"/"wayland") is stored in electron-store. If the window flickers or renders black, launch with `--disable-gpu` or `--use-gl=swiftshader`.
+
+The TUI (primary mode) has no Electron dependencies. Run via `bun dev` from `packages/opencode`.

@@ -34,6 +34,7 @@ import {
   setBackgroundColor,
   setDockIcon,
 } from "./windows"
+import { getStore } from "./store"
 import { createWslServersController } from "./wsl/servers"
 import { registerWslIpcHandlers } from "./wsl/ipc"
 import { spawnWslSidecar } from "./wsl/sidecar"
@@ -256,8 +257,11 @@ const main = Effect.gen(function* () {
     consumeInitialDeepLinks: () => pendingDeepLinks.splice(0),
     getDefaultServerUrl: () => getDefaultServerUrl(),
     setDefaultServerUrl: (url) => setDefaultServerUrl(url),
-    getDisplayBackend: async () => null,
-    setDisplayBackend: async () => undefined,
+    getDisplayBackend: async () => (getStore().get("displayBackend") as string | null) ?? null,
+    setDisplayBackend: async (backend) => {
+      if (backend) getStore().set("displayBackend", backend)
+      else getStore().delete("displayBackend")
+    },
     parseMarkdown: async (markdown) => parseMarkdown(markdown),
     checkAppExists: (appName) => checkAppExists(appName),
     resolveAppPath: async (appName) => resolveAppPath(appName),
