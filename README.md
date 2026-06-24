@@ -44,11 +44,6 @@ Configured via MCP protocol — no hooks, accessible as tools to the LLM:
 | **context7** | Live documentation for any library, framework, or API |
 | **github** | Full GitHub API — repos, PRs, issues, search |
 
-### Platform fixes (Arch Linux / KDE)
-
-- **Display backend persistence** — `LinuxDisplayBackend` setting stored in electron-store; `--disable-gpu` / `--use-gl=swiftshader` workaround for flickering/black Electron windows on Wayland
-- **Inotify limit diagnostic** — detects and warns when `fs.inotify.max_user_watches` is too low for file watchers
-
 ---
 
 ## Structural Changes vs Upstream
