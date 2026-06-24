@@ -20,23 +20,27 @@
 
 These additions are not present in the upstream `anomalyco/opencode`:
 
-### Plugins & MCP
+### Plugins
 
-Loaded project-wide via `.opencode/opencode.jsonc`:
+Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/opencode/opencode.jsonc` (user):
 
-| Plugin | Purpose |
+| Plugin | Version | Capabilities | Mechanism |
+|---|---|---|---|
+| **oh-my-openagent** | 4.13.0 | Configurable agent persona, styled conversation, persistent TUI state | TUI plugin + `experimental.chat.system.transform` |
+| **opencode-plugin-selector** | 1.0.1 | Enable/disable any plugin on the fly from a TUI panel — no config editing | TUI plugin + `config` hook |
+| **superpowers** | 6.0.3 | Injects superpowers bootstrap into every session (skill-awareness, 20+ skill directories); enables brainstorming, TDD, debugging, code review workflows | `config` (registers skills paths) + `experimental.chat.messages.transform` |
+| **ponytail** | — | Lazy senior dev mode: appends YAGNI/stdlib-first/minimal-code ruleset to system prompts; persists `/ponytail off\|full\|lite\|ultra` across restarts | `experimental.chat.system.transform` + `command.execute.before` |
+| **opencode-vibeguard** | 0.1.0 | Prevents agent drift from project conventions and coding standards | System prompt injection, behavior monitoring |
+| **@tarquinen/opencode-dcp** | 3.1.13 | Automatic context management: model-triggered compression (range/message), duplicate tool-call deduplication, errored-tool input pruning, context-limit nudges, `/dcp` panel, prompt overrides | `compress` tool registration + TUI panel + slash commands |
+| **ecc-universal** | 2.0.0 | Claude Code compatibility: 61 agents, 400+ skills, 76 commands, agent orchestration, MCP integration, security rules | Multi-hook, TUI plugin, full lifecycle |
+
+### MCP Servers
+
+Configured via MCP protocol — no hooks, accessible as tools to the LLM:
+
+| Server | Purpose |
 |---|---|
-| **oh-my-openagent** | Agent personality & behavior customization |
-| **opencode-plugin-selector** | Pick and switch plugins on the fly |
-| **superpowers** | Skill-based dev workflows — brainstorming, TDD, debugging, code review |
-| **ponytail** | Lazy senior developer mode — minimal code, no over-engineering |
-| **opencode-vibeguard** | Keeps agents aligned and on track |
-| **@tarquinen/opencode-dcp** | Dynamic context pruning — lean conversation window |
-| **ecc-universal** | Everything Claude Code — 61 agents, 400+ skills, 76 commands, security, MCP |
-
-| MCP server | Purpose |
-|---|---|
-| **context7** | Live docs for any library, framework, or API |
+| **context7** | Live documentation for any library, framework, or API |
 | **github** | Full GitHub API — repos, PRs, issues, search |
 
 ### Platform fixes (Arch Linux / KDE)
