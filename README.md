@@ -96,11 +96,15 @@ Configure via `.openaxe/openaxe.jsonc` in your project root:
 
 ## Security
 
-- TUI/CLI-only — no Electron, no web apps, no cloud infrastructure
-- No web application attack surface (no Astro/Starlight/Storybook/SST Cloud)
-- Plugin sandboxing via permission system
-- All plugins audited for TUI/CLI compliance
-- OpenTelemetry tracing for audit
-- <1.2GB total dependencies
+- **Plugin permission system** — every plugin capability (bash, file I/O, network, MCP) must be declared in config and is enforced at runtime. No plugin can escalate beyond its declared scope.
+- **Zero phone-home** — no telemetry, no crash reporting, no analytics. All LLM calls go directly to your configured provider endpoint with no intermediary.
+- **BYO-key only** — no managed API keys, no cloud billing. Your credentials stay in your local config.
+- **MCP subprocess isolation** — MCP servers run as separate OS processes with no access to the host session database or config.
+- **Session data locality** — all sessions, logs, and artifacts stored in local SQLite. No cloud sync. Full control via `export`/`import`.
+- **Auditable via OpenTelemetry** — optional OTLP tracing for audit trails. Opt-in, never on by default.
+- **Explicit upgrades only** — `openaxe upgrade` is a manual command. No silent background updates.
+- **No network by default** — server binds to `127.0.0.1` with port `0` (random). No daemon unless you start one.
+- **`--pure` mode** — run without any plugins to eliminate all third-party code from the session.
+- **Architecture** — TUI/CLI-only. No Electron, no browser runtime, no cloud SDKs. 52% fewer packages than upstream for a verifiably minimal supply chain.
 
 <p align="center"><a href="https://github.com/dressedinblack5/openaxe">dressedinblack5/openaxe</a></p>
