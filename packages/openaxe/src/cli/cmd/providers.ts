@@ -467,6 +467,13 @@ export const ProvidersLoginCommand = effectCmd({
       yield* Prompt.log.info("Create an api key at https://opencode.ai/auth")
     }
 
+    yield* Prompt.log.warn(
+      "Your API key will be stored in plaintext in ~/.local/share/openaxe/auth.json (permissions 600).\n" +
+        "Consider using environment variables instead for better security:\n" +
+        "  Most providers support e.g. OPENAI_API_KEY, ANTHROPIC_API_KEY.\n" +
+        "  Run `openaxe providers env` to see available environment variables.",
+    )
+
     if (provider === "vercel") {
       yield* Prompt.log.info("You can create an api key at https://vercel.link/ai-gateway-token")
     }

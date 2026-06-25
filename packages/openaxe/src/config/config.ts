@@ -562,6 +562,12 @@ export const layer = Layer.effect(
           result.permission = mergeDeep(perms, result.permission ?? {})
         }
 
+        if (result.permission?.bash === "allow") {
+          yield* Effect.logWarning(
+            '"bash": "allow" is set in permissions. This grants LLM agents full shell access without confirmation prompts. Consider using "ask" instead.',
+          )
+        }
+
         if (!result.username) {
           try {
             result.username = os.userInfo().username || "user"
