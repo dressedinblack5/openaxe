@@ -94,16 +94,6 @@ Configure via `.openaxe/openaxe.jsonc` in your project root:
 }
 ```
 
-## Performance
-
-| Metric | This Fork |
-|---|---|
-| Packages | 13 (52% fewer than upstream) |
-| `bun install` | ~5.3s |
-| `turbo typecheck` | ~18.4s |
-| `node_modules` | ~1.1 GB |
-| Architecture | TUI/CLI only |
-
 ## Security
 
 - TUI/CLI-only — no Electron, no web apps, no cloud infrastructure

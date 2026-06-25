@@ -106,16 +106,6 @@ The monorepo ships 13 packages:
 | `http-recorder` | Record/replay HTTP for testing |
 | `script` | Utility package |
 
-## Performance
-
-| Metric | Value |
-|---|---|
-| `bun install` | ~5.3s |
-| `turbo typecheck` | ~18.4s |
-| `node_modules` | ~1.1 GB |
-| Packages | 13 (52% fewer than upstream) |
-| Architecture | TUI/CLI only — no Electron, no web apps |
-
 ## Security
 
 - No Electron, no browser `dialog.showOpenDialog`, no hybrid components
