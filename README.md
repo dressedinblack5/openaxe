@@ -23,7 +23,6 @@
 
 **Lean TUI/CLI-only fork** of upstream `anomalyco/opencode`:
 
-<<<<<<< HEAD
 ### Plugins
 
 Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/opencode/opencode.jsonc` (user):
@@ -36,52 +35,32 @@ Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/opencode/opencode.
 - **[@tarquinen/opencode-dcp](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning)** — Automatic context management, compression, slash commands
 - **[ecc-universal](https://github.com/affaan-m/ECC)** — Claude Code compatibility: 61 agents, 400+ skills, MCP integration, security
 
-### Security & Maintenance Features
+### Performance
 
-**Security-First Architecture:**
-- **TUI/CLI-only operation** - No web/desktop attack surface
-- **Package audit automation** - `./scripts/audit-deps.sh` runs security scans
-- **Sync protection** - `./scripts/sync-upstream.sh` detects structural changes
-- **Performance dashboard** - `./scripts/tui-lean/performance-dashboard.sh` real-time monitoring
-- **Backup protection** - Automated rollbacks on failures
-
-**Security Benefits:**
-- **<1.2GB dependencies** (vs 2+GB upstream)
-- **<6s installation** (vs 15-20s upstream)
-=======
->>>>>>> 379b1e070c282686362a31aae8c51066b1ae7d2e
-- **52% fewer packages** (13 vs 27)
-- **<1.2GB dependencies** vs 2+GB upstream
-- **Installation**: <6s vs 15-20s upstream
-- **Type checking**: 18.4s vs 45-60s upstream
+| Metric | Upstream | This Fork |
+|---|---|---|
+| Packages | 27 | **13** (52% fewer) |
+| `bun install` | ~15-20s | **5.3s** |
+| `turbo typecheck` | ~45-60s | **18.4s** |
+| node_modules | ~2+ GB | **1.1 GB** |
 
 ### Security-First Architecture
-- **TUI/CLI-only** — No web/desktop attack surface
+- **TUI/CLI-only** — No web/desktop/cloud attack surface (Electron, Storybook, Astro, SST, SolidJS apps removed)
+- **<1.2GB total dependencies** — ~800MB–1.2GB savings vs upstream
 - **Package audit automation** — `./scripts/audit-deps.sh` security scanning
 - **Sync protection** — `./scripts/sync-upstream.sh` conflict detection
 - **Real-time monitoring** — `./scripts/tui-lean/performance-dashboard.sh`
 
-### Key Security Benefits
-- **<1.2GB total dependencies** — ~800MB–1.2GB savings vs upstream
-- **No electron/storybook/SST** — Removed desktop, web, cloud attack vectors
-- **5.3s installation** — 52% faster with shallow clones
-- **Single publish CI job** — No redundant Electron/docker builds
-
 ### Security Commands
 ```bash
-# Secure installation (recommended)
-./scripts/tui-lean/install-lean.sh
-./scripts/tui-lean/verify-lean.sh
-./scripts/tui-lean/performance-dashboard.sh start
-
-# Security audits
-./scripts/audit-deps.sh           # Package security scans
-./scripts/sync-upstream.sh        # Upstream change detection
-./scripts/tui-lean/profile-opencode.sh  # Performance security
+./scripts/tui-lean/install-lean.sh    # Secure installation
+./scripts/tui-lean/verify-lean.sh     # Verify TUI/CLI architecture
+./scripts/audit-deps.sh               # Package security scans
+./scripts/sync-upstream.sh            # Upstream change detection
+./scripts/tui-lean/performance-dashboard.sh start  # Real-time metrics
 ```
 
 ### Runtime
-One command to run:
 ```bash
 bun run --cwd packages/opencode src/index.ts
 ```
