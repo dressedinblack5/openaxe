@@ -20,7 +20,7 @@ jobs:
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
 
-      - name: Install opencode
+      - name: Install openaxe
         run: curl -fsSL https://opencode.ai/install | bash
 
       - name: Triage issue

@@ -223,7 +223,7 @@ log "\n=== Verification Complete ==="
 log "Architecture: Pure TUI/CLI-only operation"
 log "Performance targets: <6s install, <5s startup"
 log "Dependency savings: ~800MB-1.2GB vs upstream"
-log "\nTo start opencode: 'opencode' command in terminal"
+log "\nTo start openaxe: 'openaxe' command in terminal"
 SCRIPT
   
   chmod +x "$INSTALL_DIR/verify-lean.sh"
@@ -244,11 +244,11 @@ log() {
 mkdir -p "$INSTALL_DIR/perf-data"
 
 # Create performance monitoring trigger
-mkdir -p "$INSTALL_DIR/.opencode"
+mkdir -p "$INSTALL_DIR/.openaxe"
 touch "$INSTALL_DIR/perf-enabled"
 
 # Create optimized bash environment
-cat > "$HOME/.opencode-fastrc" << 'ENV'
+cat > "$HOME/.openaxe-fastrc" << 'ENV'
 # Fast shell configuration for TUI/CLI operation
 export PATH="$BIN_DIR:$PATH"
 export NODE_NO_WARNINGS=1
@@ -270,9 +270,9 @@ ENV
 
 # Link to shell config if writable
 if [ -w "$HOME/.bashrc" ] 2>/dev/null; then
-  echo "source $HOME/.opencode-fastrc" >> "$HOME/.bashrc"
+  echo "source $HOME/.openaxe-fastrc" >> "$HOME/.bashrc"
 elif [ -w "$HOME/.zshrc" ] 2>/dev/null; then
-  echo "source $HOME/.opencode-fastrc" >> "$HOME/.zshrc"
+  echo "source $HOME/.openaxe-fastrc" >> "$HOME/.zshrc"
 fi
 
 # Create performance-optimized openaxe script
@@ -283,7 +283,7 @@ cat > "$BIN_PATH" << 'FAST_SCRIPT'
 
 set -euo pipefail
 
-source "$HOME/.opencode-fastrc" 2>/dev/null || true
+source "$HOME/.openaxe-fastrc" 2>/dev/null || true
 
 INSTALL_DIR="$HOME/.openaxe"
 PACKAGE_DIR="$INSTALL_DIR/packages/opencode"
@@ -299,7 +299,7 @@ chmod +x "$BIN_PATH"
 log "Performance optimizations activated"
 log "Created: $BIN_PATH (fast version)"
 log "Profile directory: $INSTALL_DIR/perf-data"
-log "Shell config: $HOME/.opencode-fastrc"
+log "Shell config: $HOME/.openaxe-fastrc"
 SCRIPT
   
   chmod +x "$INSTALL_DIR/setup-performance.sh"
