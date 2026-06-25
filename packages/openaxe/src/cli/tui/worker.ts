@@ -58,9 +58,9 @@ export const rpc = {
   },
   async checkUpgrade(input: { directory: string }) {
     const { InstanceRuntime } = await import("@/project/instance-runtime")
-    const { upgrade } = await import("@/cli/upgrade")
+    const { checkUpgrade } = await import("@/cli/upgrade")
     await InstanceRuntime.load({ directory: input.directory })
-    await upgrade().catch(() => {})
+    await checkUpgrade().catch(() => {})
   },
   async reload() {
     const { AppRuntime } = await import("@/effect/app-runtime")
