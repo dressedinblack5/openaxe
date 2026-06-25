@@ -11,7 +11,7 @@
 - **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, session fork/continue
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Run as a background server with HTTP API and optional web interface
-- **Web interface** — Built-in web UI via `opencode web`
+- **Web interface** — Built-in web UI via `openaxe web`
 - **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
 
 ## Quick Start
@@ -24,37 +24,37 @@ curl -fsSL https://openaxe.dev/install.sh | sh
 git clone https://github.com/dressedinblack5/openaxe.git
 cd openaxe
 bun install
-bun run --cwd packages/opencode src/index.ts
+bun run --cwd packages/openaxe src/index.ts
 ```
 
 ## User Guide
 
-Run `opencode --help` to see all commands:
+Run `openaxe --help` to see all commands:
 
 | Command | Description |
 |---|---|
-| `opencode` [project] | Start the TUI (default) |
-| `opencode run <message>` | Run with a prompt, non-interactive |
-| `opencode serve` | Start headless server |
-| `opencode web` | Start server with web UI |
-| `opencode attach <url>` | Attach to a running server |
-| `opencode mcp` | Manage MCP servers |
-| `opencode acp` | Start ACP server |
-| `opencode providers` | Manage AI providers & credentials |
-| `opencode agent` | Manage agents |
-| `opencode session` | Manage sessions |
-| `opencode github` | GitHub agent |
-| `opencode pr <number>` | Fetch and checkout a PR, then run openaxe |
-| `opencode models` | List available models |
-| `opencode stats` | Session statistics |
-| `opencode export/import` | Session data portability |
-| `opencode plugin` | Install/manage plugins |
-| `opencode upgrade` | Upgrade openaxe |
-| `opencode db` | Database tools |
+| `openaxe` [project] | Start the TUI (default) |
+| `openaxe run <message>` | Run with a prompt, non-interactive |
+| `openaxe serve` | Start headless server |
+| `openaxe web` | Start server with web UI |
+| `openaxe attach <url>` | Attach to a running server |
+| `openaxe mcp` | Manage MCP servers |
+| `openaxe acp` | Start ACP server |
+| `openaxe providers` | Manage AI providers & credentials |
+| `openaxe agent` | Manage agents |
+| `openaxe session` | Manage sessions |
+| `openaxe github` | GitHub agent |
+| `openaxe pr <number>` | Fetch and checkout a PR, then run openaxe |
+| `openaxe models` | List available models |
+| `openaxe stats` | Session statistics |
+| `openaxe export/import` | Session data portability |
+| `openaxe plugin` | Install/manage plugins |
+| `openaxe upgrade` | Upgrade openaxe |
+| `openaxe db` | Database tools |
 
 ## Configuration
 
-Configure via `.opencode/opencode.jsonc` in your project root:
+Configure via `.openaxe/openaxe.jsonc` in your project root:
 
 ```jsonc
 {
@@ -79,7 +79,7 @@ The monorepo ships 13 packages:
 
 | Package | Role |
 |---|---|
-| `opencode` | CLI orchestrator — yargs entry, lazy-loaded commands |
+| `openaxe` | CLI orchestrator — yargs entry, lazy-loaded commands |
 | `core` | Session/agent/project/tool orchestration, DB, permissions |
 | `llm` | LLM integrations — 15+ providers, 6 protocol adapters |
 | `tui` | SolidJS terminal UI via OpenTUI |

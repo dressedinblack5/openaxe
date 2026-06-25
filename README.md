@@ -42,32 +42,32 @@ curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install
 git clone https://github.com/dressedinblack5/openaxe.git
 cd openaxe
 bun install
-bun run --cwd packages/opencode src/index.ts
+bun run --cwd packages/openaxe src/index.ts
 ```
 
 ## CLI Commands
 
-Run `opencode --help` to see all commands. Main ones:
+Run `openaxe --help` to see all commands. Main ones:
 
 | Command | Description |
 |---|---|
-| `opencode` [project] | Start the TUI (default) |
-| `opencode run <message>` | Run with a prompt, non-interactive |
-| `opencode serve` | Start headless server |
-| `opencode web` | Start server with web UI |
-| `opencode attach <url>` | Attach to a running server |
-| `opencode mcp` | Manage MCP servers |
-| `opencode acp` | Start ACP server |
-| `opencode providers` | Manage AI providers & credentials |
-| `opencode session` | Manage sessions |
-| `opencode github` | GitHub agent |
-| `opencode pr <number>` | Fetch and checkout a PR |
-| `opencode plugin` | Install/manage plugins |
-| `opencode upgrade` | Upgrade openaxe |
+| `openaxe` [project] | Start the TUI (default) |
+| `openaxe run <message>` | Run with a prompt, non-interactive |
+| `openaxe serve` | Start headless server |
+| `openaxe web` | Start server with web UI |
+| `openaxe attach <url>` | Attach to a running server |
+| `openaxe mcp` | Manage MCP servers |
+| `openaxe acp` | Start ACP server |
+| `openaxe providers` | Manage AI providers & credentials |
+| `openaxe session` | Manage sessions |
+| `openaxe github` | GitHub agent |
+| `openaxe pr <number>` | Fetch and checkout a PR |
+| `openaxe plugin` | Install/manage plugins |
+| `openaxe upgrade` | Upgrade openaxe |
 
 ## Configuration
 
-Configure via `.opencode/opencode.jsonc` in your project root:
+Configure via `.openaxe/openaxe.jsonc` in your project root:
 
 ```jsonc
 {
