@@ -89,7 +89,20 @@ Plugins are npm packages (or local directories) that declare their entrypoints i
 }
 ```
 
-Write plugins using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK. See the [plugin API docs](/packages/plugin/README.md) for details.
+### Recommended Plugins
+
+These are not preinstalled — add them to your config and run `openaxe plugin`:
+
+| Plugin | Description |
+|---|---|
+| **oh-my-openagent** | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents |
+| **opencode-plugin-selector** | Interactive plugin manager for discovering and installing plugins |
+| **superpowers** | Skill system — pluggable agent capabilities (brainstorming, TDD, debugging, etc.) |
+| **opencode-vibeguard** | Safety guardrails for agent actions |
+| **@tarquinen/opencode-dcp** | Context compression — stay under context limits during long sessions |
+| **ponytail** | Lazy senior dev mode — cuts boilerplate and over-engineering (local file plugin) |
+
+Write your own plugins using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK. See the [plugin API docs](/packages/plugin/README.md) for details.
 
 ## Configuration
 
