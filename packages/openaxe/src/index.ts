@@ -9,7 +9,7 @@ import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { FormatError } from "./cli/error"
 import { GithubCommand } from "./cli/cmd/github"
 import { AttachCommand } from "./cli/cmd/attach"
-import { TuiThreadCommand } from "./cli/cmd/tui"
+import { TuiCommand } from "./cli/cmd/tui"
 import { AcpCommand } from "./cli/cmd/acp"
 import { EOL } from "os"
 import { WebCommand } from "./cli/cmd/web"
@@ -17,7 +17,7 @@ import { PrCommand } from "./cli/cmd/pr"
 import { SessionCommand } from "./cli/cmd/session"
 import { DbCommand } from "./cli/cmd/db"
 import { errorMessage } from "./util/error"
-import { PluginCommand } from "./cli/cmd/plug"
+import { PluginCommand } from "./cli/cmd/plugin"
 import { lazyCommand } from "./cli/lazy-command"
 
 const args = hideBin(process.argv)
@@ -73,7 +73,7 @@ const cli = yargs(args)
   .command(lazyCommand("mcp", "manage MCP (Model Context Protocol) servers", undefined, () =>
     import("./cli/cmd/mcp").then((m) => m.McpCommand),
   ))
-  .command(TuiThreadCommand)
+  .command(TuiCommand)
   .command(AttachCommand)
   .command(lazyCommand("run [message..]", "run openaxe with a message", undefined, () =>
     import("./cli/cmd/run").then((m) => m.RunCommand),

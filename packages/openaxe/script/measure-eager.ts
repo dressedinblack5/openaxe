@@ -27,7 +27,7 @@ async function measure() {
   await time(`@/cli/cmd/pr`, () => import("@/cli/cmd/pr"))
   await time(`@/cli/cmd/session`, () => import("@/cli/cmd/session"))
   await time(`@/cli/cmd/db`, () => import("@/cli/cmd/db"))
-  await time(`@/cli/cmd/plug`, () => import("@/cli/cmd/plug"))
+  await time(`@/cli/cmd/plugin`, () => import("@/cli/cmd/plugin"))
   
   // other eager modules
   await time(`@/cli/error`, () => import("@/cli/error"))
