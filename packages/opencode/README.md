@@ -8,9 +8,9 @@ This is the `opencode` orchestrator package from the **dressedinblack5/opencode*
 
 | Package | Role | Key Dependencies |
 |---|---|---|
-| `opencode` | CLI orchestrator — yargs entry point, command dispatch | `@llm`, `@plugin`, `@schema`, `@tui`, `@server`, `@sdk` |
+| `opencode` | CLI orchestrator — yargs entry point, lazy-loaded command dispatch, startup profiling | `@llm`, `@plugin`, `@schema`, `@tui`, `@server`, `@sdk` |
 | `cli` | Alternative Effect-runtime CLI with subcommand handlers | `@core`, `@sdk`, `@server`, `@tui` |
-| `core` | Hub — session/agent/project/tool orchestration, database, permissions | `@effect-drizzle-sqlite`, `@llm`, `@schema`, `@plugin` |
+| `core` | Hub — session/agent/project/tool orchestration, database, permissions, event store with pruning | `@effect-drizzle-sqlite`, `@llm`, `@schema`, `@plugin` |
 | `llm` | LLM integrations — 15+ providers, 6 protocol adapters | `@schema`, `effect` |
 | `schema` | Data validation schemas (Effect) | `effect` |
 | `plugin` | Plugin system — tool, tui, effect, promise entry points | `@sdk`, `effect` |
