@@ -31,7 +31,7 @@ cli.command({
   handler: () => {}
 })
 
-await cli.parse(["--help"], (err, argv, output) => {})
+await cli.parse(["--help"], (err: unknown, argv: unknown, output: string | undefined) => {})
 process.stderr.write(`heavy builder called: ${heavyBuilderCalled}\n`)
 process.stderr.write(`light builder called: ${lightBuilderCalled}\n`)
 
@@ -51,5 +51,5 @@ cli2.command({
   },
   handler: () => {}
 })
-await cli2.parse(["heavy", "--help"], (err, argv, output) => {})
+await cli2.parse(["heavy", "--help"], (err: unknown, argv: unknown, output: string | undefined) => {})
 process.stderr.write(`\nheavy builder called for 'heavy --help': ${heavyBuilderCalled}\n`)

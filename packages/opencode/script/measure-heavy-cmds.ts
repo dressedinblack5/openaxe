@@ -1,6 +1,6 @@
 import { performance } from "node:perf_hooks"
 
-async function time(label, fn) {
+async function time(label: string, fn: () => Promise<unknown>) {
   const t0 = performance.now()
   await fn()
   console.log(`${label.padEnd(60)} ${(performance.now() - t0).toFixed(0)}ms`)
@@ -12,15 +12,15 @@ async function measure() {
   // run.ts specific imports
   await time(`@opencode-ai/sdk/v2`, () => import("@opencode-ai/sdk/v2"))
   await time(`@/util/filesystem`, () => import("@/util/filesystem"))
-  await time(`../effect-cmd`, () => import("./src/cli/effect-cmd"))
+  await time(`@/cli/effect-cmd`, () => import("@/cli/effect-cmd"))
   
   console.log()
   
   // providers.ts
-  await time(`../../auth (providers)`, () => import("./src/auth"))
-  await time(`../../plugin`, () => import("./src/plugin"))
-  await time(`@/config/config`, () => import("./src/config/config"))
-  await time(`@/util/process`, () => import("./src/util/process"))
+  await time(`@/auth`, () => import("@/auth"))
+  await time(`@/plugin`, () => import("@/plugin"))
+  await time(`@/config/config`, () => import("@/config/config"))
+  await time(`@/util/process`, () => import("@/util/process"))
   
   console.log()
   
@@ -30,16 +30,16 @@ async function measure() {
   console.log()
   
   // mcp.ts specific
-  await time(`@/mcp`, () => import("./src/mcp"))
-  await time(`@/mcp/auth`, () => import("./src/mcp/auth"))
-  await time(`@/mcp/oauth-provider`, () => import("./src/mcp/oauth-provider"))
-  await time(`@/event-v2-bridge`, () => import("./src/event-v2-bridge"))
+  await time(`@/mcp`, () => import("@/mcp"))
+  await time(`@/mcp/auth`, () => import("@/mcp/auth"))
+  await time(`@/mcp/oauth-provider`, () => import("@/mcp/oauth-provider"))
+  await time(`@/event-v2-bridge`, () => import("@/event-v2-bridge"))
   await time(`@modelcontextprotocol/sdk/client/index.js`, () => import("@modelcontextprotocol/sdk/client/index.js"))
   
   console.log()
   
   // account.ts specific
-  await time(`@/account/account`, () => import("./src/account/account"))
+  await time(`@/account/account`, () => import("@/account/account"))
 }
 
 measure()

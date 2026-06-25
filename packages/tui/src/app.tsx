@@ -538,6 +538,18 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
     ),
   )
 
+  createEffect(
+    on(
+      () => sync.status === "complete" && local.model.ready && sync.data.provider.length > 0,
+      (ready, wasReady) => {
+        if (!ready || wasReady) return
+        if (args.model || sync.data.config.model) return
+        if (local.model.recent().length > 0) return
+        dialog.replace(() => <DialogModel />)
+      },
+    ),
+  )
+
   const connected = useConnected()
   const currentWorktreeWorkspace = createMemo(() => {
     const workspaceID = project.workspace.current()

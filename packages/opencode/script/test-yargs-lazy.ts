@@ -3,7 +3,7 @@ const { default: yargs } = await import("yargs")
 let builderCalled = false
 let handlerCalled = false
 
-const cli = yargs(["--help"])
+const cli: any = yargs(["--help"])
   .command({
     command: "test",
     describe: "a test command",

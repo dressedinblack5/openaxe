@@ -619,6 +619,20 @@ export function RunFooterView(props: RunFooterViewProps) {
     })
   })
 
+  // ponytail: auto-open model selector when providers arrive and no model is configured
+  {
+    let autoOpened = false
+    createEffect(() => {
+      if (autoOpened) return
+      const providers = props.providers()
+      const current = props.currentModel()
+      if (providers?.length && !current && route().type === "composer") {
+        autoOpened = true
+        openModel()
+      }
+    })
+  }
+
   return (
     <box
       width="100%"

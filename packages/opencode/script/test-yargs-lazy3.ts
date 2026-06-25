@@ -29,7 +29,7 @@ const cli = yargs(["--help"])
     },
   })
 
-await cli.parse(["--help"], (err, argv, output) => {
+await cli.parse(["--help"], (err: unknown, argv: unknown, output: string | undefined) => {
   out = output ?? ""
 })
 process.stderr.write(`test builder called: ${builderCalled}\n`)

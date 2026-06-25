@@ -1,15 +1,12 @@
-import { Server } from "@/server/server"
-import { InstanceRuntime } from "@/project/instance-runtime"
 import { Rpc } from "@/util/rpc"
-import { upgrade } from "@/cli/upgrade"
-import { Config } from "@/config/config"
 import { GlobalBus } from "@/bus/global"
-import { ServerAuth } from "@/server/auth"
 import { writeHeapSnapshot } from "node:v8"
 import { Heap } from "@/cli/heap"
-import { AppRuntime } from "@/effect/app-runtime"
-import { Effect } from "effect"
-import { disposeAllInstancesAndEmitGlobalDisposed } from "@/server/global-lifecycle"
+
+// ponytail: heavy modules (AppRuntime, Server, etc.) are loaded via dynamic
+// import inside RPC handlers. Module resolution + ManagedRuntime.make(AppLayer)
+// — which loads ~45 service modules — is deferred until the first RPC call that
+// needs them, rather than blocking worker startup.
 
 Heap.start()
 
@@ -25,10 +22,12 @@ GlobalBus.on("event", (event) => {
   Rpc.emit("global.event", event)
 })
 
-let server: Awaited<ReturnType<typeof Server.listen>> | undefined
+let server: { stop(force?: boolean): Promise<void>; url?: URL } | undefined
 
 export const rpc = {
   async fetch(input: { url: string; method: string; headers: Record<string, string>; body?: string }) {
+    const { Server } = await import("@/server/server")
+    const { ServerAuth } = await import("@/server/auth")
     const headers = { ...input.headers }
     const auth = ServerAuth.header()
     if (auth && !headers["authorization"] && !headers["Authorization"]) {
@@ -52,15 +51,22 @@ export const rpc = {
     return result
   },
   async server(input: { port: number; hostname: string; mdns?: boolean; cors?: string[] }) {
+    const { Server } = await import("@/server/server")
     if (server) await server.stop(true)
     server = await Server.listen(input)
-    return { url: server.url.toString() }
+    return { url: server.url!.toString() }
   },
   async checkUpgrade(input: { directory: string }) {
+    const { InstanceRuntime } = await import("@/project/instance-runtime")
+    const { upgrade } = await import("@/cli/upgrade")
     await InstanceRuntime.load({ directory: input.directory })
     await upgrade().catch(() => {})
   },
   async reload() {
+    const { AppRuntime } = await import("@/effect/app-runtime")
+    const { Config } = await import("@/config/config")
+    const { Effect } = await import("effect")
+    const { disposeAllInstancesAndEmitGlobalDisposed } = await import("@/server/global-lifecycle")
     await AppRuntime.runPromise(
       Effect.gen(function* () {
         const cfg = yield* Config.Service
@@ -70,6 +76,8 @@ export const rpc = {
     )
   },
   async shutdown() {
+    const { InstanceRuntime } = await import("@/project/instance-runtime")
+    const { Server } = await import("@/server/server")
     await InstanceRuntime.disposeAllInstances()
     if (server) await server.stop(true)
     process.off("unhandledRejection", onUnhandledRejection)

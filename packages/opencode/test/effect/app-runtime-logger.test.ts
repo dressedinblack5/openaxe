@@ -1,7 +1,7 @@
 import { expect } from "bun:test"
 import { Context, Deferred, Effect, Fiber, Layer, Logger } from "effect"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
-import { AppLayer } from "../../src/effect/app-runtime"
+import { AppLayer } from "../../src/effect/app-layer"
 import { EffectBridge } from "@/effect/bridge"
 import { InstanceRef } from "../../src/effect/instance-ref"
 import * as Observability from "@opencode-ai/core/observability"
