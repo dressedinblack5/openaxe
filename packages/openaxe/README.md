@@ -110,14 +110,15 @@ The monorepo ships 13 packages:
 
 - **Plugin permission system** — every plugin capability (bash, file I/O, network, MCP) must be declared in config and is enforced at runtime. No plugin can escalate beyond its declared scope.
 - **Zero phone-home** — no telemetry, no crash reporting, no analytics. All LLM calls go directly to your configured provider endpoint with no intermediary.
-- **BYO-key only** — no managed API keys, no cloud billing. Your credentials stay in your local config.
-- **MCP subprocess isolation** — MCP servers run as separate OS processes with no access to the host session database or config.
+- **BYO-key only** — no managed API keys, no cloud billing. Credentials stored in plaintext in `~/.local/share/openaxe/auth.json` (permissions 600). Prefer environment variables where available (e.g., `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
+- **MCP subprocess isolation** — MCP servers run as separate OS processes with no access to the session database or config. However they inherit the parent process's user and filesystem access — only add MCP servers you trust.
 - **Session data locality** — all sessions, logs, and artifacts stored in local SQLite. No cloud sync. Full control via `export`/`import`.
 - **Auditable via OpenTelemetry** — optional OTLP tracing for audit trails. Opt-in, never on by default.
 - **Explicit upgrades only** — `openaxe upgrade` is a manual command. No silent background updates.
 - **No network by default** — server binds to `127.0.0.1` with port `0` (random). No daemon unless you start one.
 - **`--pure` mode** — run without any plugins to eliminate all third-party code from the session.
 - **Architecture** — TUI/CLI-only. No Electron, no browser runtime, no cloud SDKs. 52% fewer packages than upstream for a verifiably minimal supply chain.
+- **Supply chain awareness** — native dependencies (e.g., tree-sitter) run `node-gyp rebuild` during install, fetching and compiling code from npm. For defense-in-depth, use `npm install --ignore-scripts` / `bun install --ignore-scripts` and audit with `npm audit` or `bun audit`.
 
 ## Links
 
