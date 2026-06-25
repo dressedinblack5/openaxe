@@ -14,7 +14,7 @@
   node_modules ? callPackage ./node-modules.nix { },
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
-  pname = "opencode";
+  pname = "openaxe";
   inherit (node_modules) version src;
   inherit node_modules;
 
@@ -46,8 +46,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   env.MODELS_DEV_API_JSON = "${models-dev}/dist/_api.json";
   env.OPENCODE_DISABLE_MODELS_FETCH = true;
-  env.OPENCODE_VERSION = finalAttrs.version;
-  env.OPENCODE_CHANNEL = "prod";
+  env.OPENAXE_VERSION = finalAttrs.version;
+  env.OPENAXE_CHANNEL = "prod";
 
   buildPhase = ''
     runHook preBuild
@@ -62,10 +62,10 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-    install -Dm755 dist/opencode-*/bin/opencode $out/bin/opencode
-    install -Dm644 schema.json $out/share/opencode/schema.json
+    install -Dm755 dist/openaxe-*/bin/openaxe $out/bin/openaxe
+    install -Dm644 schema.json $out/share/openaxe/schema.json
 
-    wrapProgram $out/bin/opencode \
+    wrapProgram $out/bin/openaxe \
       --prefix PATH : ${
         lib.makeBinPath (
           [
@@ -81,9 +81,9 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   postInstall = lib.optionalString (stdenvNoCC.buildPlatform.canExecute stdenvNoCC.hostPlatform) ''
     # trick yargs into also generating zsh completions
-    installShellCompletion --cmd opencode \
-      --bash <($out/bin/opencode completion) \
-      --zsh <(SHELL=/bin/zsh $out/bin/opencode completion)
+    installShellCompletion --cmd openaxe \
+      --bash <($out/bin/openaxe completion) \
+      --zsh <(SHELL=/bin/zsh $out/bin/openaxe completion)
   '';
 
   nativeInstallCheckInputs = [
@@ -95,7 +95,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   versionCheckProgramArg = "--version";
 
   passthru = {
-    jsonschema = "${placeholder "out"}/share/opencode/schema.json";
+    jsonschema = "${placeholder "out"}/share/openaxe/schema.json";
     env = finalAttrs.env;
   };
 
@@ -103,7 +103,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     description = "The open source coding agent";
     homepage = "https://opencode.ai";
     license = lib.licenses.mit;
-    mainProgram = "opencode";
+    mainProgram = "openaxe";
     inherit (node_modules.meta) platforms;
   };
 })

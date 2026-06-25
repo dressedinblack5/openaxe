@@ -19,7 +19,7 @@ import { createRunDemo } from "./demo"
 import { resolveModelInfo, resolveRunTuiConfig, resolveSessionInfo } from "./runtime.boot"
 import { createRuntimeLifecycle } from "./runtime.lifecycle"
 import { trace } from "./trace"
-import { cycleVariant, formatModelLabel, resolveSavedVariant, resolveVariant, saveVariant } from "./variant.shared"
+import { cycleVariant, formatModelLabel, resolveSavedModel, resolveSavedVariant, resolveVariant, saveModel, saveVariant } from "./variant.shared"
 import type { LocalReplayAnchor, LocalReplayRow, RunInput, RunPrompt, RunProvider, StreamCommit } from "./types"
 
 /** @internal Exported for testing */
@@ -193,7 +193,13 @@ async function runInteractiveRuntime(input: RunRuntimeInput, deps: RunRuntimeDep
           variant: undefined,
         })
   const savedTask = resolveSavedVariant(ctx.model)
-  const [tuiConfig, session, savedVariant] = await Promise.all([tuiConfigTask, sessionTask, savedTask])
+  const savedModelTask = resolveSavedModel()
+  const [tuiConfig, session, savedVariant, savedModel] = await Promise.all([
+    tuiConfigTask,
+    sessionTask,
+    savedTask,
+    savedModelTask,
+  ])
   const state: RuntimeState = {
     shown: !session.first,
     aborting: false,
@@ -287,6 +293,7 @@ async function runInteractiveRuntime(input: RunRuntimeInput, deps: RunRuntimeDep
       }
 
       state.model = model
+      saveModel(model)
       state.activeVariant = undefined
       state.variants = variantsFor(state.providers, model)
       const switching = resolveSavedVariant(model).then((saved) => {
@@ -429,6 +436,18 @@ async function runInteractiveRuntime(input: RunRuntimeInput, deps: RunRuntimeDep
 
   void modelTask.then((info) => {
     state.providers = info.providers
+
+    // If no model was set via CLI flag, pick up the saved one
+    if (!state.model && savedModel) {
+      const slash = savedModel.indexOf("/")
+      if (slash !== -1) {
+        state.model = {
+          providerID: savedModel.slice(0, slash),
+          modelID: savedModel.slice(slash + 1),
+        }
+      }
+    }
+
     state.variants = variantsFor(state.providers, state.model)
     state.limits = info.limits
 

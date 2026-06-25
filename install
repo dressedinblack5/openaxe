@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="dressedinblack5/opencode"
+REPO="dressedinblack5/openaxe"
 BRANCH="dev"
-INSTALL_DIR="${OPENCODE_INSTALL_DIR:-$HOME/.opencode}"
+INSTALL_DIR="${OPENAXE_INSTALL_DIR:-$HOME/.openaxe}"
 BIN_DIR="${XDG_BIN_DIR:-$HOME/.local/bin}"
-WRAPPER="$BIN_DIR/opencode"
+WRAPPER="$BIN_DIR/openaxe"
 
 MUTED='\033[0;2m'
 RED='\033[0;31m'
@@ -23,7 +23,7 @@ check_cmd bun
 
 if [ -d "$INSTALL_DIR" ]; then
   if [ -d "$INSTALL_DIR/.git" ]; then
-    echo -e "${MUTED}Updating opencode in $INSTALL_DIR...${NC}"
+    echo -e "${MUTED}Updating openaxe in $INSTALL_DIR...${NC}"
     git -C "$INSTALL_DIR" fetch --depth 1 origin "$BRANCH"
     git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH"
   else
@@ -31,7 +31,7 @@ if [ -d "$INSTALL_DIR" ]; then
     exit 1
   fi
 else
-  echo -e "${MUTED}Cloning opencode into $INSTALL_DIR...${NC}"
+  echo -e "${MUTED}Cloning openaxe into $INSTALL_DIR...${NC}"
   git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" "$INSTALL_DIR"
 fi
 
@@ -47,7 +47,7 @@ SCRIPT
 chmod +x "$WRAPPER"
 
 echo ""
-echo -e "Installed opencode to ${MUTED}$WRAPPER${NC}"
+echo -e "Installed openaxe to ${MUTED}$WRAPPER${NC}"
 
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
   shell_config=""
@@ -61,10 +61,10 @@ if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     echo "export PATH=\"\$PATH:$BIN_DIR\"" >> "$shell_config"
     echo -e "${MUTED}Added $BIN_DIR to PATH in $shell_config${NC}"
   else
-    echo -e "${MUTED}Add $BIN_DIR to your PATH to use 'opencode' from anywhere.${NC}"
+    echo -e "${MUTED}Add $BIN_DIR to your PATH to use 'openaxe' from anywhere.${NC}"
   fi
 fi
 
 echo ""
-echo -e "Run ${MUTED}opencode${NC} in any project directory to start."
+echo -e "Run ${MUTED}openaxe${NC} in any project directory to start."
 echo ""

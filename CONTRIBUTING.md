@@ -1,6 +1,6 @@
-# Contributing to OpenCode
+# Contributing to openaxe
 
-We want to make it easy for you to contribute to OpenCode. Here are the most common type of changes that get merged:
+We want to make it easy for you to contribute to openaxe. Here are the most common type of changes that get merged:
 
 - Bug fixes
 - Additional LSPs / Formatters

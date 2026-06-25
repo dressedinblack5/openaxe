@@ -1,6 +1,6 @@
-# OpenCode Session Runtime
+# openaxe Session Runtime
 
-OpenCode sessions preserve durable conversational history while assembling the runtime context an agent needs to act correctly in its current environment.
+openaxe sessions preserve durable conversational history while assembling the runtime context an agent needs to act correctly in its current environment.
 
 ## Language
 

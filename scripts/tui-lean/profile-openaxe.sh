@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# Performance profiling and optimization script for dressedinblack5/opencode
+# Performance profiling and optimization script for dressedinblack5/openaxe
 # Tracks installation times, startup speeds, and memory usage while preserving lean architecture targets
 
 INSTALL_DIR="$HOME/.opencode"
@@ -286,7 +286,7 @@ provide_performance_summary() {
 }
 
 main() {
-  log "Starting performance monitoring for dressedinblack5/opencode fork"
+  log "Starting performance monitoring for dressedinblack5/openaxe fork"
   log "Architecture: TUI/CLI-only, targets: <$TARGET_INSTALL_TIME install, <$TARGET_STARTUP_TIME startup"
   
   if [ -n "$DRY_RUN" ]; then

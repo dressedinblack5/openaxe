@@ -30,7 +30,7 @@ jobs:
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
-          opencode run --agent triage "The following issue was just opened, triage it:
+          openaxe run --agent triage "The following issue was just opened, triage it:
 
           Title: $ISSUE_TITLE
 

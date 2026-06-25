@@ -1,7 +1,6 @@
 import path from "path"
 import { writeHeapSnapshot } from "node:v8"
-import { Flag } from "@opencode-ai/core/flag/flag"
-import { Global } from "@opencode-ai/core/global"
+
 const MINUTE = 60_000
 const LIMIT = 2 * 1024 * 1024 * 1024
 
@@ -9,9 +8,14 @@ let timer: Timer | undefined
 let lock = false
 let armed = true
 
-export function start() {
-  if (!Flag.OPENCODE_AUTO_HEAP_SNAPSHOT) return
+export async function start() {
+  const heapSnapshotsEnabled =
+    process.env["OPENCODE_AUTO_HEAP_SNAPSHOT"]?.toLowerCase() === "true" ||
+    process.env["OPENCODE_AUTO_HEAP_SNAPSHOT"] === "1"
+  if (!heapSnapshotsEnabled) return
   if (timer) return
+
+  const { Global } = await import("@opencode-ai/core/global")
 
   const run = async () => {
     if (lock) return

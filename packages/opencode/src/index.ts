@@ -1,14 +1,11 @@
 import yargs from "yargs"
 import { hideBin } from "yargs/helpers"
 import { GenerateCommand } from "./cli/cmd/generate"
-import { UpgradeCommand } from "./cli/cmd/upgrade"
 import { UninstallCommand } from "./cli/cmd/uninstall"
 import { UI } from "./cli/ui"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { FormatError } from "./cli/error"
-import { ServeCommand } from "./cli/cmd/serve"
 import { GithubCommand } from "./cli/cmd/github"
-import { ExportCommand } from "./cli/cmd/export"
 import { AttachCommand } from "./cli/cmd/attach"
 import { TuiThreadCommand } from "./cli/cmd/tui"
 import { AcpCommand } from "./cli/cmd/acp"
@@ -19,7 +16,6 @@ import { SessionCommand } from "./cli/cmd/session"
 import { DbCommand } from "./cli/cmd/db"
 import { errorMessage } from "./util/error"
 import { PluginCommand } from "./cli/cmd/plug"
-import { Heap } from "./cli/heap"
 import { lazyCommand } from "./cli/lazy-command"
 
 const args = hideBin(process.argv)
@@ -62,7 +58,8 @@ const cli = yargs(args)
       process.env.OPENCODE_PURE = "1"
     }
 
-    Heap.start()
+    const { Heap } = await import("./cli/heap")
+    await Heap.start()
 
     process.env.AGENT = "1"
     process.env.OPENCODE = "1"
@@ -92,9 +89,13 @@ const cli = yargs(args)
   .command(lazyCommand("agent", "manage agents", undefined, () =>
     import("./cli/cmd/agent").then((m) => m.AgentCommand),
   ))
-  .command(UpgradeCommand)
+  .command(lazyCommand("upgrade [target]", "upgrade opencode to the latest or a specific version", undefined, () =>
+    import("./cli/cmd/upgrade").then((m) => m.UpgradeCommand),
+  ))
   .command(UninstallCommand)
-  .command(ServeCommand)
+  .command(lazyCommand("serve", "starts a headless opencode server", undefined, () =>
+    import("./cli/cmd/serve").then((m) => m.ServeCommand),
+  ))
   .command(WebCommand)
   .command(lazyCommand("models [provider]", "list all available models", undefined, () =>
     import("./cli/cmd/models").then((m) => m.ModelsCommand),
@@ -102,7 +103,9 @@ const cli = yargs(args)
   .command(lazyCommand("stats", "show session statistics", undefined, () =>
     import("./cli/cmd/stats").then((m) => m.StatsCommand),
   ))
-  .command(ExportCommand)
+  .command(lazyCommand("export [sessionID]", "export session data as JSON", undefined, () =>
+    import("./cli/cmd/export").then((m) => m.ExportCommand),
+  ))
   .command(lazyCommand("import <file..>", "import session data", undefined, () =>
     import("./cli/cmd/import").then((m) => m.ImportCommand),
   ))
