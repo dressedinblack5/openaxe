@@ -92,7 +92,7 @@ jobs:
       - name: Build
         id: build
         run: |
-          ./packages/opencode/script/build.ts ${{ (github.ref_name == 'beta' && '--sourcemaps') || '' }}
+          ./packages/openaxe/script/build.ts ${{ (github.ref_name == 'beta' && '--sourcemaps') || '' }}
           ./packages/cli/script/build.ts ${{ (github.ref_name == 'beta' && '--sourcemaps') || '' }}
         env:
           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
@@ -104,13 +104,13 @@ jobs:
         with:
           name: opencode-cli
           path: |
-            packages/opencode/dist/opencode-darwin*
-            packages/opencode/dist/opencode-linux*
+            packages/openaxe/dist/opencode-darwin*
+            packages/openaxe/dist/opencode-linux*
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: opencode-cli-windows
-          path: packages/opencode/dist/opencode-windows*
+          path: packages/openaxe/dist/opencode-windows*
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -139,7 +139,7 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: opencode-cli-windows
-          path: packages/opencode/dist
+          path: packages/openaxe/dist
 
       - name: Setup git committer
         id: committer
@@ -161,9 +161,9 @@ jobs:
           signing-account-name: ${{ env.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
           certificate-profile-name: ${{ env.AZURE_TRUSTED_SIGNING_CERTIFICATE_PROFILE }}
           files: |
-            ${{ github.workspace }}\packages\opencode\dist\opencode-windows-arm64\bin\opencode.exe
-            ${{ github.workspace }}\packages\opencode\dist\opencode-windows-x64\bin\opencode.exe
-            ${{ github.workspace }}\packages\opencode\dist\opencode-windows-x64-baseline\bin\opencode.exe
+            ${{ github.workspace }}\packages\openaxe\dist\opencode-windows-arm64\bin\opencode.exe
+            ${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64\bin\opencode.exe
+            ${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64-baseline\bin\opencode.exe
           exclude-environment-credential: true
           exclude-workload-identity-credential: true
           exclude-managed-identity-credential: true
@@ -179,9 +179,9 @@ jobs:
         shell: pwsh
         run: |
           $files = @(
-            "${{ github.workspace }}\packages\opencode\dist\opencode-windows-arm64\bin\opencode.exe",
-            "${{ github.workspace }}\packages\opencode\dist\opencode-windows-x64\bin\opencode.exe",
-            "${{ github.workspace }}\packages\opencode\dist\opencode-windows-x64-baseline\bin\opencode.exe"
+            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-arm64\bin\opencode.exe",
+            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64\bin\opencode.exe",
+            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64-baseline\bin\opencode.exe"
           )
 
           foreach ($file in $files) {
@@ -192,7 +192,7 @@ jobs:
           }
 
       - name: Repack Windows CLI archives
-        working-directory: packages/opencode/dist
+        working-directory: packages/openaxe/dist
         shell: pwsh
         run: |
           Compress-Archive -Path "opencode-windows-arm64\bin\*" -DestinationPath "opencode-windows-arm64.zip" -Force
@@ -206,9 +206,9 @@ jobs:
           GH_TOKEN: ${{ steps.committer.outputs.token }}
         run: |
           gh release upload "v${{ needs.version.outputs.version }}" `
-            "${{ github.workspace }}\packages\opencode\dist\opencode-windows-arm64.zip" `
-            "${{ github.workspace }}\packages\opencode\dist\opencode-windows-x64.zip" `
-            "${{ github.workspace }}\packages\opencode\dist\opencode-windows-x64-baseline.zip" `
+            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-arm64.zip" `
+            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64.zip" `
+            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64-baseline.zip" `
             --clobber `
             --repo "${{ needs.version.outputs.repo }}"
 
@@ -216,9 +216,9 @@ jobs:
         with:
           name: opencode-cli-signed-windows
           path: |
-            packages/opencode/dist/opencode-windows-arm64
-            packages/opencode/dist/opencode-windows-x64
-            packages/opencode/dist/opencode-windows-x64-baseline
+            packages/openaxe/dist/opencode-windows-arm64
+            packages/openaxe/dist/opencode-windows-x64
+            packages/openaxe/dist/opencode-windows-x64-baseline
 
   publish:
     needs:
@@ -253,17 +253,17 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: opencode-cli
-          path: packages/opencode/dist
+          path: packages/openaxe/dist
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: opencode-cli-windows
-          path: packages/opencode/dist
+          path: packages/openaxe/dist
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: opencode-cli-signed-windows
-          path: packages/opencode/dist
+          path: packages/openaxe/dist
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
