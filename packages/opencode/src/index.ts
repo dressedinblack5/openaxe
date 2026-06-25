@@ -1,3 +1,5 @@
+process.title = "openaxe"
+
 import yargs from "yargs"
 import { hideBin } from "yargs/helpers"
 import { GenerateCommand } from "./cli/cmd/generate"
