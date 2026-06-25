@@ -2,6 +2,7 @@ name: triage
 
 on:
   issues:
+    if: vars.OPENCODE_APP_ID != ''
     types: [opened]
 
 jobs:

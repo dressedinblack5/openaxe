@@ -2,6 +2,7 @@ name: review
 
 on:
   issue_comment:
+    if: vars.OPENCODE_APP_ID != ''
     types: [created]
 
 jobs:

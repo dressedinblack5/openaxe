@@ -2,6 +2,7 @@ name: beta
 
 on:
   workflow_dispatch:
+    if: vars.OPENCODE_APP_ID != ''
   schedule:
     - cron: "0 * * * *"
 

@@ -2,6 +2,7 @@ name: duplicate-issues
 
 on:
   issues:
+    if: vars.OPENCODE_APP_ID != ''
     types: [opened, edited]
 
 jobs:
