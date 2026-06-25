@@ -1,6 +1,6 @@
 # Automated Update Workflow
 
-This directory contains scripts for automated maintenance of the dressedinblack5/opencode fork.
+This directory contains scripts for automated maintenance of the dressedinblack5/openaxe fork.
 
 ## Scripts
 

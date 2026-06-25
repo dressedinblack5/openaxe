@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "deepseek/deepseek-v4-flash",
   "provider": {},
   "permission": {},
   "plugin": [

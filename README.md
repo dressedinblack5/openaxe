@@ -1,19 +1,19 @@
 <p align="center">
-  <a href="https://github.com/dressedinblack5/opencode">
-    <img src="https://img.shields.io/badge/dressedinblack5/opencode-6C47FF?style=for-the-badge&logo=github&logoColor=fff" alt="opencode">
+  <a href="https://github.com/dressedinblack5/openaxe">
+    <img src="https://img.shields.io/badge/dressedinblack5/openaxe-6C47FF?style=for-the-badge&logo=github&logoColor=fff" alt="openaxe">
   </a>
 </p>
 
 
 <p align="center">
   <a href="https://github.com/anomalyco/opencode"><img src="https://img.shields.io/github/v/release/anomalyco/opencode?style=flat-square&label=upstream" alt="upstream"></a>
-  <a href="https://github.com/dressedinblack5/opencode/compare"><img src="https://img.shields.io/github/commits-since/anomalyco/opencode/dev?style=flat-square&label=ahead" alt="ahead"></a>
-  <a href="https://github.com/dressedinblack5/opencode"><img src="https://img.shields.io/github/last-commit/dressedinblack5/opencode?style=flat-square&color=brightgreen&label=updated" alt="updated"></a>
+  <a href="https://github.com/dressedinblack5/openaxe/compare"><img src="https://img.shields.io/github/commits-since/anomalyco/opencode/dev?style=flat-square&label=ahead" alt="ahead"></a>
+  <a href="https://github.com/dressedinblack5/openaxe"><img src="https://img.shields.io/github/last-commit/dressedinblack5/openaxe?style=flat-square&color=brightgreen&label=updated" alt="updated"></a>
 </p>
 
 <p align="center">
-  Personal fork of <strong>anomalyco/opencode</strong> — project-wide<br>
-  plugin and MCP configuration loaded from <code>.opencode/</code>.<br>
+  <strong>openaxe</strong> — project-wide plugin and MCP configuration<br>
+  loaded from <code>.opencode/</code>. Fork of <strong>anomalyco/opencode</strong>.<br>
   Pull from <code>origin/dev</code>, push features to <code>fork</code>, send PRs upstream.
 </p>
 
@@ -21,7 +21,7 @@
 
 ## Performance & Security
 
-**Lean TUI/CLI-only fork** of upstream `anomalyco/opencode`:
+**openaxe** — Lean TUI/CLI-only fork of upstream `anomalyco/opencode`:
 
 ### Plugins
 
@@ -65,7 +65,7 @@ Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/opencode/opencode.
 bun run --cwd packages/opencode src/index.ts
 ```
 
-<p align="center"><a href="https://github.com/dressedinblack5/opencode">dressedinblack5/opencode</a></p>
+<p align="center"><a href="https://github.com/dressedinblack5/openaxe">dressedinblack5/openaxe</a></p>
 
 ---
 
@@ -74,16 +74,16 @@ bun run --cwd packages/opencode src/index.ts
 Requires [Bun](https://bun.sh) and `git`.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dressedinblack5/opencode/dev/install | bash
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
 ```
 
-This clones the repo, installs dependencies, and creates a `~/.local/bin/opencode` wrapper.
+This clones the repo, installs dependencies, and creates a `~/.local/bin/openaxe` wrapper.
 
 **From source:**
 
 ```bash
-git clone https://github.com/dressedinblack5/opencode.git
-cd opencode
+git clone https://github.com/dressedinblack5/openaxe.git
+cd openaxe
 bun install
 bun run --cwd packages/opencode src/index.ts
 ```
@@ -108,4 +108,4 @@ bun run --cwd packages/opencode src/index.ts
 - Plugin security verified before installation
 - Performance monitoring tracks security metrics
 
-<p align="center"><a href="https://github.com/dressedinblack5/opencode">dressedinblack5/opencode</a></p>
+<p align="center"><a href="https://github.com/dressedinblack5/openaxe">dressedinblack5/openaxe</a></p>

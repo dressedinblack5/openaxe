@@ -2,7 +2,7 @@
 
 ## Package Overview
 
-This is the `opencode` orchestrator package from the **dressedinblack5/opencode** fork. It assembles the lean TUI/CLI-only architecture — no Electron, no web apps, no cloud infrastructure. The monorepo ships 13 packages (52% fewer than upstream) with security-first design principles and Effect v4 throughout.
+This is the `opencode` orchestrator package from the **dressedinblack5/openaxe** fork. It assembles the lean TUI/CLI-only architecture — no Electron, no web apps, no cloud infrastructure. The monorepo ships 13 packages (52% fewer than upstream) with security-first design principles and Effect v4 throughout.
 
 ## Packages
 
@@ -92,7 +92,7 @@ Loaded via `.opencode/opencode.jsonc`:
 ## Installation
 
 ```bash
-git clone https://github.com/dressedinblack5/opencode.git
+git clone https://github.com/dressedinblack5/openaxe.git
 cd opencode
 bun install
 bun run --cwd packages/opencode src/index.ts
@@ -100,5 +100,5 @@ bun run --cwd packages/opencode src/index.ts
 
 ## Links
 
-- [GitHub Repository](https://github.com/dressedinblack5/opencode)
+- [GitHub Repository](https://github.com/dressedinblack5/openaxe)
 - [Upstream](https://github.com/anomalyco/opencode)

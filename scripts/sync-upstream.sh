@@ -2,10 +2,10 @@
 
 set -euo pipefail
 
-# Automated update workflow for dressedinblack5/opencode fork
+# Automated update workflow for dressedinblack5/openaxe fork
 # Pulls changes from upstream dev, handles conflicts, and creates maintenance PRs
 
-REPO="dressedinblack5/opencode"
+REPO="dressedinblack5/openaxe"
 UPSTREAM_REPO="anomalyco/opencode"
 UPSTREAM_BRANCH="dev"
 INSTALL_DIR="$HOME/.opencode"

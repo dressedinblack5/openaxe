@@ -1,6 +1,6 @@
 # Optimized TUI/CLI Installation and Usage
 
-This directory contains scripts and configurations optimized for TUI/CLI-only operation of the dressedinblack5/opencode fork. This installation eliminates web apps, desktop GUI, and cloud infrastructure to maintain a lean, fast, terminal-focused experience.
+This directory contains scripts and configurations optimized for TUI/CLI-only operation of the dressedinblack5/openaxe fork. This installation eliminates web apps, desktop GUI, and cloud infrastructure to maintain a lean, fast, terminal-focused experience.
 
 ## Scripts
 

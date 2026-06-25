@@ -1,12 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "opencode",
+  "name": "openaxe",
   "description": "AI-powered development tool",
   "private": true,
   "type": "module",
   "packageManager": "bun@1.3.14",
   "scripts": {
-    "dev": "exec -a opencode bun run --cwd packages/opencode src/index.ts",
+    "dev": "exec -a openaxe bun run --cwd packages/opencode src/index.ts",
     "dev:web": "bun --cwd packages/app dev",
     "lint": "oxlint",
     "typecheck": "bun turbo typecheck",
@@ -14,7 +14,7 @@
     "postinstall": "bun run --cwd packages/core fix-node-pty",
     "prepare": "husky",
     "random": "echo 'Random script'",
-    "sso": "aws sso login --sso-session=opencode --no-browser",
+    "sso": "aws sso login --sso-session=openaxe --no-browser",
     "test": "echo 'do not run tests from root' && exit 1"
   },
   "workspaces": {
@@ -109,7 +109,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/anomalyco/opencode"
+    "url": "https://github.com/dressedinblack5/openaxe"
   },
   "license": "MIT",
   "prettier": {

@@ -1,5 +1,4 @@
 import { EOL } from "os"
-import { Schema } from "effect"
 import { logo as glyphs } from "./logo"
 
 const wordmark = [
@@ -9,7 +8,13 @@ const wordmark = [
   `▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀  ▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀`,
 ]
 
-export class CancelledError extends Schema.TaggedErrorClass<CancelledError>()("UICancelledError", {}) {}
+export class CancelledError extends Error {
+  readonly _tag = "UICancelledError"
+  constructor() {
+    super("Operation cancelled")
+    this.name = "UICancelledError"
+  }
+}
 
 export const Style = {
   TEXT_HIGHLIGHT: "\x1b[96m",

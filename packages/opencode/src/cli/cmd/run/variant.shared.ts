@@ -5,7 +5,8 @@
 //
 // The saved variant persists across sessions in ~/.local/state/opencode/model.json
 // so your last-used variant sticks. Cycling (ctrl+t) updates both the active
-// variant and the persisted file.
+// variant and the persisted file. The last-used model is stored in the same
+// file under the "lastModel" key, so switching models also persists.
 import path from "path"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Context, Effect, Layer } from "effect"
@@ -19,14 +20,19 @@ const MODEL_FILE = path.join(Global.Path.state, "model.json")
 
 type ModelState = Record<string, unknown> & {
   variant?: Record<string, string | undefined>
+  lastModel?: string
 }
 type VariantService = {
   readonly resolveSavedVariant: (model: RunInput["model"]) => Effect.Effect<string | undefined>
   readonly saveVariant: (model: RunInput["model"], variant: string | undefined) => Effect.Effect<void>
+  readonly resolveSavedModel: () => Effect.Effect<string | undefined>
+  readonly saveModel: (model: NonNullable<RunInput["model"]>) => Effect.Effect<void>
 }
 type VariantRuntime = {
   resolveSavedVariant(model: RunInput["model"]): Promise<string | undefined>
   saveVariant(model: RunInput["model"], variant: string | undefined): Promise<void>
+  resolveSavedModel(): Promise<string | undefined>
+  saveModel(model: NonNullable<RunInput["model"]>): Promise<void>
 }
 
 class Service extends Context.Service<Service, VariantService>()("@opencode/RunVariant") {}
@@ -186,9 +192,25 @@ function createLayer(fs = FSUtil.defaultLayer) {
             .pipe(Effect.orElseSucceed(() => undefined))
         })
 
+        const resolveSavedModel = Effect.fn("RunVariant.resolveSavedModel")(function* () {
+          return (yield* read()).lastModel
+        })
+
+        const saveModel = Effect.fn("RunVariant.saveModel")(function* (model: NonNullable<RunInput["model"]>) {
+          const current = yield* read()
+          yield* file
+            .writeJson(MODEL_FILE, {
+              ...current,
+              lastModel: modelKey(model.providerID, model.modelID),
+            })
+            .pipe(Effect.orElseSucceed(() => undefined))
+        })
+
         return Service.of({
           resolveSavedVariant,
           saveVariant,
+          resolveSavedModel,
+          saveModel,
         })
       }),
     ).pipe(Layer.provide(fs)),
@@ -201,6 +223,8 @@ export function createVariantRuntime(fs = FSUtil.defaultLayer): VariantRuntime {
   return {
     resolveSavedVariant: (model) => runtime.runPromise((svc) => svc.resolveSavedVariant(model)).catch(() => undefined),
     saveVariant: (model, variant) => runtime.runPromise((svc) => svc.saveVariant(model, variant)).catch(() => {}),
+    resolveSavedModel: () => runtime.runPromise((svc) => svc.resolveSavedModel()).catch(() => undefined),
+    saveModel: (model) => runtime.runPromise((svc) => svc.saveModel(model)).catch(() => {}),
   }
 }
 
@@ -212,4 +236,12 @@ export async function resolveSavedVariant(model: RunInput["model"]): Promise<str
 
 export function saveVariant(model: RunInput["model"], variant: string | undefined): void {
   void runtime.saveVariant(model, variant)
+}
+
+export async function resolveSavedModel(): Promise<string | undefined> {
+  return runtime.resolveSavedModel()
+}
+
+export function saveModel(model: NonNullable<RunInput["model"]>): void {
+  void runtime.saveModel(model)
 }

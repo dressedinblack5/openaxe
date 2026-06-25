@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# Dependency audit and update script for dressedinblack5/opencode fork
+# Dependency audit and update script for dressedinblack5/openaxe fork
 # Scans for security issues and performance updates while preserving lean architecture
 
 INSTALL_DIR="$HOME/.opencode"
@@ -33,7 +33,7 @@ check_cmd jq
 trap 'rm -f "$REPORT_FILE"' EXIT
 
 {
-  echo "=== Dependency Audit Report for dressedinblack5/opencode ==="
+  echo "=== Dependency Audit Report for dressedinblack5/openaxe ==="
   echo "Generated: $(date)"
   echo "Architecture: TUI/CLI-only, 52% fewer packages than upstream"
   echo "Target: Security fixes + performance improvements only"

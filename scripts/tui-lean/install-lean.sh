@@ -2,10 +2,10 @@
 
 set -euo pipefail
 
-# Lean TUI/CLI installation script for dressedinblack5/opencode fork
+# Lean TUI/CLI installation script for dressedinblack5/openaxe fork
 # Minimal installation focusing only on terminal components
 
-REPO="dressedinblack5/opencode"
+REPO="dressedinblack5/openaxe"
 UPSTREAM_REPO="anomalyco/opencode"
 BRANCH="dev"
 INSTALL_DIR="$HOME/.opencode"
@@ -73,7 +73,7 @@ else
   cat > "$BIN_PATH" << 'SCRIPT'
 #!/usr/bin/env bash
 
-# Optimized TUI/CLI wrapper for dressedinblack5/opencode fork
+# Optimized TUI/CLI wrapper for dressedinblack5/openaxe fork
 # Pure terminal operation, no web interfaces
 
 set -euo pipefail
