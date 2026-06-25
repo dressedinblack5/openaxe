@@ -3,7 +3,7 @@ export * as EventV2 from "./event"
 import { Cause, Context, Effect, Layer, Option, PubSub, Schema, Stream } from "effect"
 import { Event } from "@opencode-ai/schema/event"
 import type { Data, Definition, Payload } from "@opencode-ai/schema/event"
-import { and, asc, eq, gt } from "drizzle-orm"
+import { and, asc, eq, gt, lte } from "drizzle-orm"
 import { Database } from "./database/database"
 import { EventSequenceTable, EventTable } from "./event/sql"
 import { Location } from "./location"
@@ -79,6 +79,7 @@ export interface Interface {
     options?: { readonly publish?: boolean; readonly ownerID?: string; readonly strictOwner?: boolean },
   ) => Effect.Effect<string | undefined>
   readonly remove: (aggregateID: string) => Effect.Effect<void>
+  readonly prune: (aggregateID: string, keepLast: number) => Effect.Effect<void>
   readonly claim: (aggregateID: string, ownerID: string) => Effect.Effect<void>
 }
 
@@ -443,6 +444,32 @@ export const layerWith = (options?: LayerOptions) =>
           .pipe(Effect.orDie)
       }
 
+      function prune(aggregateID: string, keepLast: number): Effect.Effect<void> {
+        if (keepLast <= 0) return Effect.void
+        return db
+          .transaction(
+            () =>
+              Effect.gen(function* () {
+                const row = yield* db
+                  .select({ seq: EventSequenceTable.seq })
+                  .from(EventSequenceTable)
+                  .where(eq(EventSequenceTable.aggregate_id, aggregateID))
+                  .get()
+                  .pipe(Effect.orDie)
+                const maxSeq = row?.seq
+                if (maxSeq === undefined || maxSeq < keepLast) return
+                const cutoff = maxSeq - keepLast
+                yield* db
+                  .delete(EventTable)
+                  .where(and(eq(EventTable.aggregate_id, aggregateID), lte(EventTable.seq, cutoff)))
+                  .run()
+                  .pipe(Effect.orDie)
+              }),
+            { behavior: "immediate" },
+          )
+          .pipe(Effect.orDie)
+      }
+
       function claim(aggregateID: string, ownerID: string) {
         return db
           .update(EventSequenceTable)
@@ -563,6 +590,7 @@ export const layerWith = (options?: LayerOptions) =>
         replay,
         replayAll,
         remove,
+        prune,
         claim,
       })
     }),

@@ -1,23 +1,14 @@
 import yargs from "yargs"
 import { hideBin } from "yargs/helpers"
-import { RunCommand } from "./cli/cmd/run"
 import { GenerateCommand } from "./cli/cmd/generate"
-import { ConsoleCommand } from "./cli/cmd/account"
-import { ProvidersCommand } from "./cli/cmd/providers"
-import { AgentCommand } from "./cli/cmd/agent"
 import { UpgradeCommand } from "./cli/cmd/upgrade"
 import { UninstallCommand } from "./cli/cmd/uninstall"
-import { ModelsCommand } from "./cli/cmd/models"
 import { UI } from "./cli/ui"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { FormatError } from "./cli/error"
 import { ServeCommand } from "./cli/cmd/serve"
-import { DebugCommand } from "./cli/cmd/debug"
-import { StatsCommand } from "./cli/cmd/stats"
-import { McpCommand } from "./cli/cmd/mcp"
 import { GithubCommand } from "./cli/cmd/github"
 import { ExportCommand } from "./cli/cmd/export"
-import { ImportCommand } from "./cli/cmd/import"
 import { AttachCommand } from "./cli/cmd/attach"
 import { TuiThreadCommand } from "./cli/cmd/tui"
 import { AcpCommand } from "./cli/cmd/acp"
@@ -29,6 +20,7 @@ import { DbCommand } from "./cli/cmd/db"
 import { errorMessage } from "./util/error"
 import { PluginCommand } from "./cli/cmd/plug"
 import { Heap } from "./cli/heap"
+import { lazyCommand } from "./cli/lazy-command"
 
 const args = hideBin(process.argv)
 
@@ -79,23 +71,41 @@ const cli = yargs(args)
   .usage("")
   .completion("completion", "generate shell completion script")
   .command(AcpCommand)
-  .command(McpCommand)
+  .command(lazyCommand("mcp", "manage MCP (Model Context Protocol) servers", undefined, () =>
+    import("./cli/cmd/mcp").then((m) => m.McpCommand),
+  ))
   .command(TuiThreadCommand)
   .command(AttachCommand)
-  .command(RunCommand)
+  .command(lazyCommand("run [message..]", "run opencode with a message", undefined, () =>
+    import("./cli/cmd/run").then((m) => m.RunCommand),
+  ))
   .command(GenerateCommand)
-  .command(DebugCommand)
-  .command(ConsoleCommand)
-  .command(ProvidersCommand)
-  .command(AgentCommand)
+  .command(lazyCommand("debug", "debugging and troubleshooting tools", undefined, () =>
+    import("./cli/cmd/debug").then((m) => m.DebugCommand),
+  ))
+  .command(lazyCommand("console", false, undefined, () =>
+    import("./cli/cmd/account").then((m) => m.ConsoleCommand),
+  ))
+  .command(lazyCommand("providers", "manage AI providers and credentials", ["auth"], () =>
+    import("./cli/cmd/providers").then((m) => m.ProvidersCommand),
+  ))
+  .command(lazyCommand("agent", "manage agents", undefined, () =>
+    import("./cli/cmd/agent").then((m) => m.AgentCommand),
+  ))
   .command(UpgradeCommand)
   .command(UninstallCommand)
   .command(ServeCommand)
   .command(WebCommand)
-  .command(ModelsCommand)
-  .command(StatsCommand)
+  .command(lazyCommand("models [provider]", "list all available models", undefined, () =>
+    import("./cli/cmd/models").then((m) => m.ModelsCommand),
+  ))
+  .command(lazyCommand("stats", "show session statistics", undefined, () =>
+    import("./cli/cmd/stats").then((m) => m.StatsCommand),
+  ))
   .command(ExportCommand)
-  .command(ImportCommand)
+  .command(lazyCommand("import <file..>", "import session data", undefined, () =>
+    import("./cli/cmd/import").then((m) => m.ImportCommand),
+  ))
   .command(GithubCommand)
   .command(PrCommand)
   .command(SessionCommand)
