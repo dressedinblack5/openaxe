@@ -25,7 +25,7 @@
 
 ### Plugins
 
-Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/opencode/opencode.jsonc` (user):
+Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/openaxe/openaxe.jsonc` (user):
 
 - **[oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent)** — Configurable agent persona, styled conversation, persistent TUI state
 - **[opencode-plugin-selector](https://github.com/illusionaireal/opencode-plugin-selector)** — Enable/disable any plugin on the fly from a TUI panel
