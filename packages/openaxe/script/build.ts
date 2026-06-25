@@ -146,6 +146,31 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
   await $`bun install --os="*" --cpu="*" @ff-labs/fff-bun@${pkg.dependencies["@ff-labs/fff-bun"]}`
 }
+
+function platformSuffix(item: (typeof allTargets)[number]) {
+  const os = item.os === "win32" ? "windows" : item.os
+  return `${os}-${item.arch}${item.abi === "musl" ? "-musl" : ""}`
+}
+function nativeLibName(os: string) {
+  if (os === "win32") return "opentui.dll"
+  if (os === "darwin") return "libopentui.dylib"
+  return "libopentui.so"
+}
+function nativeCopyDir(item: (typeof allTargets)[number]) {
+  const name = [
+    pkg.name,
+    item.os === "win32" ? "windows" : item.os,
+    item.arch,
+    item.avx2 === false ? "baseline" : undefined,
+    item.abi === undefined ? undefined : item.abi,
+  ]
+    .filter(Boolean)
+    .join("-")
+  return `dist/${name}/bin`
+}
+
+  const coreEntry = await import.meta.resolve!("@opentui/core")
+  const coreDir = new URL(".", coreEntry).href
 for (const item of targets) {
   const name = [
     pkg.name,
@@ -213,6 +238,17 @@ for (const item of targets) {
       console.error(`Smoke test failed for ${name}:`, e)
       process.exit(1)
     }
+  }
+
+  try {
+    const platformPkg = `@opentui/core-${platformSuffix(item)}`
+    const pkgEntry = await import.meta.resolve!(platformPkg, coreDir)
+    const pkgRoot = new URL(".", pkgEntry).href
+    const src = new URL(nativeLibName(item.os), pkgRoot)
+    const dst = `${nativeCopyDir(item)}/${nativeLibName(item.os)}`
+    await $`cp ${src.pathname} ${dst}`
+  } catch {
+    console.warn(`  warning: could not copy native lib for ${name}`)
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`

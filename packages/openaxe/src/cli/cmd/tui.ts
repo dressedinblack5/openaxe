@@ -68,6 +68,15 @@ export function resolveThreadDirectory(project?: string, envPWD = process.env.PW
   return Filesystem.resolve(cwd)
 }
 
+async function initOpentuiNativeLib() {
+  const { ensureNativeLib } = await import("@/cli/native-lib")
+  const nativeLibPath = await ensureNativeLib()
+  if (nativeLibPath) {
+    const { setRenderLibPath } = await import("@opentui/core")
+    setRenderLibPath(nativeLibPath)
+  }
+}
+
 export const TuiThreadCommand = cmd({
   command: "$0 [project]",
   describe: "start opencode tui",
@@ -132,6 +141,9 @@ export const TuiThreadCommand = cmd({
       return
     }
     const noReplay = args.replay === false || args.noReplay === true
+
+    // Must run before any TUI code imports @opentui/core (which loads the native lib)
+    await initOpentuiNativeLib()
 
     if (args.mini) {
       const network = ["--port", "--hostname", "--mdns", "--no-mdns", "--mdns-domain", "--cors"].find((option) =>
