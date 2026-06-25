@@ -20,7 +20,7 @@ export const Plugin = define({
           skill: SkillV2.Info.make({
             name: "customize-openaxe",
             description:
-              "Use ONLY when the user is editing or creating openaxe's own configuration: openaxe.json, openaxe.jsonc, files under .opencode/, or files under ~/.config/openaxe/. Also use when creating or fixing openaxe agents, subagents, commands, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring openaxe itself.",
+              "Use ONLY when the user is editing or creating openaxe's own configuration: openaxe.json, openaxe.jsonc, files under .openaxe/, or files under ~/.config/openaxe/. Also use when creating or fixing openaxe agents, subagents, commands, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring openaxe itself.",
             location: AbsolutePath.make("/builtin/customize-openaxe.md"),
             content: CustomizeOpenaxeContent,
           }),
