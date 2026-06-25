@@ -31,7 +31,7 @@ function layer(directory: string, plugins: string[]) {
                 plugin: plugins,
                 plugin_origins: plugins.map((plugin) => ({
                   spec: plugin,
-                  source: path.join(directory, "opencode.json"),
+                  source: path.join(directory, "openaxe.json"),
                   scope: "local" as const,
                 })),
               }),
@@ -50,7 +50,7 @@ describe("plugin.auth-override", () => {
       Effect.gen(function* () {
         const tmp = yield* TestInstance
         const fs = yield* FSUtil.Service
-        const pluginDir = path.join(tmp.directory, ".opencode", "plugin")
+        const pluginDir = path.join(tmp.directory, ".openaxe", "plugin")
 
         yield* fs.writeWithDirs(
           path.join(pluginDir, "custom-copilot-auth.ts"),

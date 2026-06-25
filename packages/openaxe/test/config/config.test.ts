@@ -157,13 +157,13 @@ afterEach(async () => {
 })
 
 const writeManagedSettingsEffect = (settings: object, filename?: string) =>
-  FSUtil.use.writeWithDirs(path.join(managedConfigDir, filename ?? "opencode.json"), JSON.stringify(settings))
+  FSUtil.use.writeWithDirs(path.join(managedConfigDir, filename ?? "openaxe.json"), JSON.stringify(settings))
 
-async function writeConfig(dir: string, config: object, name = "opencode.json") {
+async function writeConfig(dir: string, config: object, name = "openaxe.json") {
   await Filesystem.write(path.join(dir, name), JSON.stringify(config))
 }
 
-const writeConfigEffect = (dir: string, config: object, name = "opencode.json") =>
+const writeConfigEffect = (dir: string, config: object, name = "openaxe.json") =>
   FSUtil.use.writeWithDirs(path.join(dir, name), JSON.stringify(config))
 
 const withInstanceDir = <A, E, R>(dir: string, effect: Effect.Effect<A, E, R>) =>
@@ -212,7 +212,7 @@ const withConfigTree = <A, E, R>(
       [
         input.global ? writeConfigEffect(global, schemaConfig(input.global)) : undefined,
         input.project ? writeConfigEffect(directory, schemaConfig(input.project)) : undefined,
-        input.local ? writeConfigEffect(path.join(directory, ".opencode"), schemaConfig(input.local)) : undefined,
+        input.local ? writeConfigEffect(path.join(directory, ".openaxe"), schemaConfig(input.local)) : undefined,
       ].filter((effect): effect is Effect.Effect<void, FSUtil.Error, FSUtil.Service> => effect !== undefined),
       { concurrency: "unbounded" },
     )
@@ -323,7 +323,7 @@ it.effect("creates global jsonc config with schema when no global configs exist"
     Effect.gen(function* () {
       yield* Config.use.get().pipe(provideInstanceEffect(dir))
 
-      const content = yield* FSUtil.use.readFileString(path.join(dir, "opencode.jsonc"))
+      const content = yield* FSUtil.use.readFileString(path.join(dir, "openaxe.jsonc"))
       expect(content).toContain('"$schema": "https://opencode.ai/config.json"')
     }).pipe(Effect.provide(testInstanceStoreLayer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
   ),
@@ -339,7 +339,7 @@ it.effect("does not create global config when OPENCODE_CONFIG_DIR is set", () =>
         Effect.gen(function* () {
           yield* Config.use.get().pipe(provideInstanceEffect(dir))
 
-          expect(yield* FSUtil.use.existsSafe(path.join(dir, "opencode.jsonc"))).toBe(false)
+          expect(yield* FSUtil.use.existsSafe(path.join(dir, "openaxe.jsonc"))).toBe(false)
         }).pipe(Effect.provide(testInstanceStoreLayer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
       ),
     )
@@ -386,18 +386,18 @@ it.effect("updates global config and omits empty shell key in json", () =>
     Effect.gen(function* () {
       yield* Config.use.updateGlobal({ shell: "" })
 
-      const writtenConfig = yield* FSUtil.use.readJson(path.join(dir, "opencode.json"))
+      const writtenConfig = yield* FSUtil.use.readJson(path.join(dir, "openaxe.json"))
       expect(writtenConfig).not.toHaveProperty("shell")
     }),
   ),
 )
 
 it.effect("updates global config and omits empty shell key in jsonc", () =>
-  withGlobalConfig({ config: { shell: "bash", model: "test/model" }, name: "opencode.jsonc" }, ({ dir }) =>
+  withGlobalConfig({ config: { shell: "bash", model: "test/model" }, name: "openaxe.jsonc" }, ({ dir }) =>
     Effect.gen(function* () {
       yield* Config.use.updateGlobal({ shell: "" })
 
-      const file = path.join(dir, "opencode.jsonc")
+      const file = path.join(dir, "openaxe.jsonc")
       const writtenConfig = yield* FSUtil.use.readFileString(file)
       const parsed = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(writtenConfig, file), file)
       expect(writtenConfig).not.toContain('"shell"')
@@ -442,7 +442,7 @@ test("loads project config from Cygwin paths on Windows", async () => {
   })
 })
 
-it.instance("ignores legacy tui keys in opencode config", () =>
+it.instance("ignores legacy tui keys in openaxe config", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* writeConfigEffect(test.directory, {
@@ -463,7 +463,7 @@ it.instance("loads JSONC config file", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, "opencode.jsonc"),
+      path.join(test.directory, "openaxe.jsonc"),
       `{
         // This is a comment
         "$schema": "https://opencode.ai/config.json",
@@ -487,7 +487,7 @@ it.instance("jsonc overrides json in the same directory", () =>
         model: "base",
         username: "base",
       },
-      "opencode.jsonc",
+      "openaxe.jsonc",
     )
     yield* writeConfigEffect(test.directory, {
       $schema: "https://opencode.ai/config.json",
@@ -523,14 +523,14 @@ it.instance("preserves env variables when adding $schema to config", () =>
       const test = yield* TestInstance
       // Config without $schema - should trigger auto-add
       yield* FSUtil.use.writeWithDirs(
-        path.join(test.directory, "opencode.json"),
+        path.join(test.directory, "openaxe.json"),
         JSON.stringify({ username: "{env:PRESERVE_VAR}" }),
       )
       const config = yield* Config.use.get()
       expect(config.username).toBe("secret_value")
 
       // Read the file to verify the env variable was preserved
-      const content = yield* FSUtil.use.readFileString(path.join(test.directory, "opencode.json"))
+      const content = yield* FSUtil.use.readFileString(path.join(test.directory, "openaxe.json"))
       expect(content).toContain("{env:PRESERVE_VAR}")
       expect(content).not.toContain("secret_value")
       expect(content).toContain("$schema")
@@ -622,7 +622,7 @@ it.instance("validates config schema and throws on invalid fields", () =>
 it.instance("throws error for invalid JSON", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* FSUtil.use.writeWithDirs(path.join(test.directory, "opencode.json"), "{ invalid json }")
+    yield* FSUtil.use.writeWithDirs(path.join(test.directory, "openaxe.json"), "{ invalid json }")
     const exit = yield* Config.use.get().pipe(Effect.exit)
     expect(Exit.isFailure(exit)).toBe(true)
   }),
@@ -754,11 +754,11 @@ it.instance("accepts the deprecated reference field", () =>
   }),
 )
 
-it.instance("loads config from .opencode directory", () =>
+it.instance("loads config from .openaxe directory", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, ".opencode", "agent", "test.md"),
+      path.join(test.directory, ".openaxe", "agent", "test.md"),
       `---
 model: test/model
 ---
@@ -780,7 +780,7 @@ it.instance("agent markdown permission config preserves user key order", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, ".opencode", "agent", "ordered.md"),
+      path.join(test.directory, ".openaxe", "agent", "ordered.md"),
       `---
 permission:
   bash: allow
@@ -795,11 +795,11 @@ Ordered permissions`,
   }),
 )
 
-it.instance("loads agents from .opencode/agents (plural)", () =>
+it.instance("loads agents from .openaxe/agents (plural)", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, ".opencode", "agents", "helper.md"),
+      path.join(test.directory, ".openaxe", "agents", "helper.md"),
       `---
 model: test/model
 mode: subagent
@@ -808,7 +808,7 @@ Helper agent prompt`,
     )
 
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, ".opencode", "agents", "nested", "child.md"),
+      path.join(test.directory, ".openaxe", "agents", "nested", "child.md"),
       `---
 model: test/model
 mode: subagent
@@ -834,11 +834,11 @@ Nested agent prompt`,
   }),
 )
 
-it.instance("loads commands from .opencode/command (singular)", () =>
+it.instance("loads commands from .openaxe/command (singular)", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, ".opencode", "command", "hello.md"),
+      path.join(test.directory, ".openaxe", "command", "hello.md"),
       `---
 description: Test command
 ---
@@ -846,7 +846,7 @@ Hello from singular command`,
     )
 
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, ".opencode", "command", "nested", "child.md"),
+      path.join(test.directory, ".openaxe", "command", "nested", "child.md"),
       `---
 description: Nested command
 ---
@@ -867,11 +867,11 @@ Nested command template`,
   }),
 )
 
-it.instance("loads commands from .opencode/commands (plural)", () =>
+it.instance("loads commands from .openaxe/commands (plural)", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, ".opencode", "commands", "hello.md"),
+      path.join(test.directory, ".openaxe", "commands", "hello.md"),
       `---
 description: Test command
 ---
@@ -879,7 +879,7 @@ Hello from plural commands`,
     )
 
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, ".opencode", "commands", "nested", "child.md"),
+      path.join(test.directory, ".openaxe", "commands", "nested", "child.md"),
       `---
 description: Nested command
 ---
@@ -1026,7 +1026,7 @@ it.instance("does not error when only custom agent is a subagent", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* FSUtil.use.writeWithDirs(
-      path.join(test.directory, ".opencode", "agent", "helper.md"),
+      path.join(test.directory, ".openaxe", "agent", "helper.md"),
       `---
 model: test/model
 mode: subagent
@@ -1203,7 +1203,7 @@ it.instance(
 it.instance("managed jsonc settings override managed json settings", () =>
   Effect.gen(function* () {
     yield* writeManagedSettingsEffect({ model: "managed/json" })
-    yield* writeManagedSettingsEffect({ model: "managed/jsonc" }, "opencode.jsonc")
+    yield* writeManagedSettingsEffect({ model: "managed/jsonc" }, "openaxe.jsonc")
 
     const config = yield* Config.use.get()
     expect(config.model).toBe("managed/jsonc")
@@ -1373,7 +1373,7 @@ it.instance("project config can override MCP server enabled status", () =>
           },
         },
       },
-      "opencode.jsonc",
+      "openaxe.jsonc",
     )
 
     const config = yield* Config.use.get()
@@ -1418,7 +1418,7 @@ it.instance("MCP config deep merges preserving base config properties", () =>
           },
         },
       },
-      "opencode.jsonc",
+      "openaxe.jsonc",
     )
 
     const config = yield* Config.use.get()
@@ -1433,7 +1433,7 @@ it.instance("MCP config deep merges preserving base config properties", () =>
   }),
 )
 
-it.instance("local .opencode config can override MCP from project config", () =>
+it.instance("local .openaxe config can override MCP from project config", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* writeConfigEffect(test.directory, {
@@ -1446,9 +1446,9 @@ it.instance("local .opencode config can override MCP from project config", () =>
         },
       },
     })
-    yield* FSUtil.use.ensureDir(path.join(test.directory, ".opencode"))
+    yield* FSUtil.use.ensureDir(path.join(test.directory, ".openaxe"))
     yield* writeConfigEffect(
-      path.join(test.directory, ".opencode"),
+      path.join(test.directory, ".openaxe"),
       {
         $schema: "https://opencode.ai/config.json",
         mcp: {
@@ -1459,7 +1459,7 @@ it.instance("local .opencode config can override MCP from project config", () =>
           },
         },
       },
-      "opencode.json",
+      "openaxe.json",
     )
 
     const config = yield* Config.use.get()
@@ -1555,7 +1555,7 @@ test("remote well-known config can use FetchHttpClient layer", async () => {
 
 const templatedHeaderWellKnown = wellKnown({
   remoteConfig: {
-    url: "https://config.example.com/opencode.json",
+    url: "https://config.example.com/openaxe.json",
     headers: { Authorization: "Bearer {env:TEST_TOKEN}" },
   },
   remote: {
@@ -1567,7 +1567,7 @@ templatedHeaderWellKnown.it.instance("wellknown remote_config supports templated
   Effect.gen(function* () {
     const config = yield* Config.use.get()
     expect(templatedHeaderWellKnown.seen.wellKnown).toBe("https://example.com/.well-known/opencode")
-    expect(templatedHeaderWellKnown.seen.remote).toBe("https://config.example.com/opencode.json")
+    expect(templatedHeaderWellKnown.seen.remote).toBe("https://config.example.com/openaxe.json")
     expect(templatedHeaderWellKnown.seen.authorization).toBe("Bearer test-token")
     expect(config.mcp?.confluence?.enabled).toBe(true)
   }),
@@ -1577,7 +1577,7 @@ const remotePrecedenceWellKnown = wellKnown({
   config: {
     mcp: { confluence: { type: "remote", url: "https://confluence.example.com/mcp", enabled: false } },
   },
-  remoteConfig: { url: "https://config.example.com/{env:TEST_TOKEN}/opencode.json" },
+  remoteConfig: { url: "https://config.example.com/{env:TEST_TOKEN}/openaxe.json" },
   remote: {
     config: { mcp: { confluence: { type: "remote", url: "https://confluence.example.com/mcp", enabled: true } } },
   },
@@ -1588,14 +1588,14 @@ remotePrecedenceWellKnown.it.instance(
   () =>
     Effect.gen(function* () {
       const config = yield* Config.use.get()
-      expect(remotePrecedenceWellKnown.seen.remote).toBe("https://config.example.com/test-token/opencode.json")
+      expect(remotePrecedenceWellKnown.seen.remote).toBe("https://config.example.com/test-token/openaxe.json")
       expect(config.mcp?.confluence?.enabled).toBe(true)
     }),
 )
 
 const envIsolationWellKnown = wellKnown({
   remoteConfig: {
-    url: "https://config.example.com/opencode.json",
+    url: "https://config.example.com/openaxe.json",
     headers: { Authorization: "Bearer {env:TEST_TOKEN}" },
   },
   remote: {
@@ -1619,7 +1619,7 @@ envIsolationWellKnown.it.instance(
 const nullConfigWellKnown = wellKnown({
   wellKnown: {
     config: null,
-    remote_config: { url: "https://config.example.com/opencode.json" },
+    remote_config: { url: "https://config.example.com/openaxe.json" },
   },
   remote: {
     mcp: { confluence: { type: "remote", url: "https://confluence.example.com/mcp", enabled: true } },
@@ -1629,26 +1629,26 @@ const nullConfigWellKnown = wellKnown({
 nullConfigWellKnown.it.instance("wellknown config null is treated as absent", () =>
   Effect.gen(function* () {
     const config = yield* Config.use.get()
-    expect(nullConfigWellKnown.seen.remote).toBe("https://config.example.com/opencode.json")
+    expect(nullConfigWellKnown.seen.remote).toBe("https://config.example.com/openaxe.json")
     expect(config.mcp?.confluence?.enabled).toBe(true)
   }),
 )
 
 const invalidRemoteWellKnown = wellKnown({
-  remoteConfig: { url: "https://config.example.com/opencode.json" },
+  remoteConfig: { url: "https://config.example.com/openaxe.json" },
   remote: "not an object",
 })
 
 invalidRemoteWellKnown.it.instance("wellknown remote_config rejects non-object config responses", () =>
   Effect.gen(function* () {
     const exit = yield* Config.use.get().pipe(Effect.exit)
-    expect(invalidRemoteWellKnown.seen.remote).toBe("https://config.example.com/opencode.json")
+    expect(invalidRemoteWellKnown.seen.remote).toBe("https://config.example.com/openaxe.json")
     expect(Exit.isFailure(exit)).toBe(true)
   }),
 )
 
 const loginPageWellKnown = wellKnown({
-  remoteConfig: { url: "https://config.example.com/opencode.json" },
+  remoteConfig: { url: "https://config.example.com/openaxe.json" },
   remoteHtml: "<!DOCTYPE html><html><head><title>Sign in</title></head><body>Login required</body></html>",
 })
 
@@ -1657,7 +1657,7 @@ loginPageWellKnown.it.instance(
   () =>
     Effect.gen(function* () {
       const exit = yield* Config.use.get().pipe(Effect.exit)
-      expect(loginPageWellKnown.seen.remote).toBe("https://config.example.com/opencode.json")
+      expect(loginPageWellKnown.seen.remote).toBe("https://config.example.com/openaxe.json")
       expect(Exit.isFailure(exit)).toBe(true)
       const error = Exit.isFailure(exit) ? Cause.squash(exit.cause) : undefined
       expect(NamedError.hasName(error, "ConfigRemoteAuthError")).toBe(true)
@@ -1668,7 +1668,7 @@ loginPageWellKnown.it.instance(
 describe("resolvePluginSpec", () => {
   test("keeps package specs unchanged", async () => {
     await using tmp = await tmpdir()
-    const file = path.join(tmp.path, "opencode.json")
+    const file = path.join(tmp.path, "openaxe.json")
     expect(await ConfigPlugin.resolvePluginSpec("oh-my-opencode@2.4.3", file)).toBe("oh-my-opencode@2.4.3")
     expect(await ConfigPlugin.resolvePluginSpec("@scope/pkg", file)).toBe("@scope/pkg")
   })
@@ -1684,7 +1684,7 @@ describe("resolvePluginSpec", () => {
       },
     })
 
-    const file = path.join(tmp.path, "opencode.json")
+    const file = path.join(tmp.path, "openaxe.json")
     const hit = await ConfigPlugin.resolvePluginSpec(".\\plugin", file)
     expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(tmp.path, "plugin", "index.ts")).href)
   })
@@ -1696,7 +1696,7 @@ describe("resolvePluginSpec", () => {
       },
     })
 
-    const file = path.join(tmp.path, "opencode.json")
+    const file = path.join(tmp.path, "openaxe.json")
     const hit = await ConfigPlugin.resolvePluginSpec("./plugin.ts", file)
     expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(tmp.path, "plugin.ts")).href)
   })
@@ -1715,7 +1715,7 @@ describe("resolvePluginSpec", () => {
       },
     })
 
-    const file = path.join(tmp.path, "opencode.json")
+    const file = path.join(tmp.path, "openaxe.json")
     const hit = await ConfigPlugin.resolvePluginSpec("./plugin", file)
     expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(tmp.path, "plugin")).href)
   })
@@ -1729,7 +1729,7 @@ describe("resolvePluginSpec", () => {
       },
     })
 
-    const file = path.join(tmp.path, "opencode.json")
+    const file = path.join(tmp.path, "openaxe.json")
     const hit = await ConfigPlugin.resolvePluginSpec("./plugin", file)
     expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(tmp.path, "plugin", "index.ts")).href)
   })
@@ -1758,7 +1758,7 @@ describe("deduplicatePluginOrigins", () => {
   })
 
   test("keeps path plugins separate from package plugins", () => {
-    const plugins = ["oh-my-opencode@2.4.3", "file:///project/.opencode/plugin/oh-my-opencode.js"]
+    const plugins = ["oh-my-opencode@2.4.3", "file:///project/.openaxe/plugin/oh-my-opencode.js"]
 
     const result = dedupe(plugins)
 
@@ -1766,11 +1766,11 @@ describe("deduplicatePluginOrigins", () => {
   })
 
   test("deduplicates direct path plugins by exact spec", () => {
-    const plugins = ["file:///project/.opencode/plugin/demo.ts", "file:///project/.opencode/plugin/demo.ts"]
+    const plugins = ["file:///project/.openaxe/plugin/demo.ts", "file:///project/.openaxe/plugin/demo.ts"]
 
     const result = dedupe(plugins)
 
-    expect(result).toEqual(["file:///project/.opencode/plugin/demo.ts"])
+    expect(result).toEqual(["file:///project/.openaxe/plugin/demo.ts"])
   })
 
   test("preserves order of remaining plugins", () => {
@@ -1787,7 +1787,7 @@ describe("deduplicatePluginOrigins", () => {
       Effect.gen(function* () {
         const test = yield* TestInstance
         yield* FSUtil.use.writeWithDirs(
-          path.join(test.directory, ".opencode", "plugin", "my-plugin.js"),
+          path.join(test.directory, ".openaxe", "plugin", "my-plugin.js"),
           "export default {}",
         )
 
@@ -1815,14 +1815,14 @@ describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
     { config: { model: "project/model", username: "project-user" } },
   )
 
-  it.instance("skips project .opencode/ directories when flag is set", () =>
+  it.instance("skips project .openaxe/ directories when flag is set", () =>
     withProcessEnv(
       "OPENCODE_DISABLE_PROJECT_CONFIG",
       "true",
       Effect.gen(function* () {
         const test = yield* TestInstance
         yield* FSUtil.use.writeWithDirs(
-          path.join(test.directory, ".opencode", "command", "test-cmd.md"),
+          path.join(test.directory, ".openaxe", "command", "test-cmd.md"),
           "# Test Command\nThis is a test command.",
         )
         const directories = yield* Config.use.directories()
