@@ -4,7 +4,6 @@
   </a>
 </p>
 
-
 <p align="center">
   <a href="https://github.com/anomalyco/opencode"><img src="https://img.shields.io/github/v/release/anomalyco/opencode?style=flat-square&label=upstream" alt="upstream"></a>
   <a href="https://github.com/dressedinblack5/openaxe/compare"><img src="https://img.shields.io/github/commits-since/anomalyco/opencode/dev?style=flat-square&label=ahead" alt="ahead"></a>
@@ -12,72 +11,30 @@
 </p>
 
 <p align="center">
-  <strong>openaxe</strong> — project-wide plugin and MCP configuration<br>
-  loaded from <code>.opencode/</code>. Fork of <strong>anomalyco/opencode</strong>.<br>
-  Pull from <code>origin/dev</code>, push features to <code>fork</code>, send PRs upstream.
+  <strong>openaxe</strong> — lean TUI/CLI AI coding assistant.<br>
+  Effect v4, security-first, 52% fewer packages than upstream.<br>
 </p>
 
 ---
 
-## Performance & Security
+## Features
 
-**openaxe** — Lean TUI/CLI-only fork of upstream `anomalyco/opencode`:
+- **Multi-provider LLM support** — 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, and more)
+- **Rich TUI** — SolidJS terminal UI with session management, conversation history, keyboard-driven workflow
+- **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
+- **Plugin system** — Extend behavior with plugins from npm, local paths, or git URLs
+- **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, fork/continue
+- **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
+- **Headless server** — Run as background server with HTTP API and optional web UI
+- **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
 
-### Plugins
-
-Loaded from `.opencode/opencode.jsonc` (project) + `~/.config/openaxe/openaxe.jsonc` (user):
-
-- **[oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent)** — Configurable agent persona, styled conversation, persistent TUI state
-- **[opencode-plugin-selector](https://github.com/illusionaireal/opencode-plugin-selector)** — Enable/disable any plugin on the fly from a TUI panel
-- **[superpowers](https://github.com/obra/superpowers)** — Skill-awareness, brainstorming, TDD, debugging, code review workflows
-- **[ponytail](https://github.com/DietrichGebert/ponytail)** — Lazy senior dev mode: YAGNI/stdlib-first/minimal-code ruleset
-- **[opencode-vibeguard](https://github.com/inkdust2021/opencode-vibeguard)** — Prevents agent drift from project conventions and coding standards
-- **[@tarquinen/opencode-dcp](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning)** — Automatic context management, compression, slash commands
-- **[ecc-universal](https://github.com/affaan-m/ECC)** — Claude Code compatibility: 61 agents, 400+ skills, MCP integration, security
-
-### Performance
-
-| Metric | Upstream | This Fork |
-|---|---|---|
-| Packages | 27 | **13** (52% fewer) |
-| `bun install` | ~15-20s | **5.3s** |
-| `turbo typecheck` | ~45-60s | **18.4s** |
-| node_modules | ~2+ GB | **1.1 GB** |
-
-### Security-First Architecture
-- **TUI/CLI-only** — No web/desktop/cloud attack surface (Electron, Storybook, Astro, SST, SolidJS apps removed)
-- **<1.2GB total dependencies** — ~800MB–1.2GB savings vs upstream
-- **Package audit automation** — `./scripts/audit-deps.sh` security scanning
-- **Sync protection** — `./scripts/sync-upstream.sh` conflict detection
-- **Real-time monitoring** — `./scripts/tui-lean/performance-dashboard.sh`
-
-### Security Commands
-```bash
-./scripts/tui-lean/install-lean.sh    # Secure installation
-./scripts/tui-lean/verify-lean.sh     # Verify TUI/CLI architecture
-./scripts/audit-deps.sh               # Package security scans
-./scripts/sync-upstream.sh            # Upstream change detection
-./scripts/tui-lean/performance-dashboard.sh start  # Real-time metrics
-```
-
-### Runtime
-```bash
-bun run --cwd packages/opencode src/index.ts
-```
-
-<p align="center"><a href="https://github.com/dressedinblack5/openaxe">dressedinblack5/openaxe</a></p>
-
----
-
-## Installation
+## Quick Start
 
 Requires [Bun](https://bun.sh) and `git`.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
 ```
-
-This clones the repo, installs dependencies, and creates a `~/.local/bin/openaxe` wrapper.
 
 **From source:**
 
@@ -88,24 +45,58 @@ bun install
 bun run --cwd packages/opencode src/index.ts
 ```
 
-### Security-First Installation
+## CLI Commands
 
-**For maximum security and performance:**
-```bash
-# Install lean TUI/CLI version (sub-second startup)
-./scripts/tui-lean/install-lean.sh
+Run `opencode --help` to see all commands. Main ones:
 
-# Verify pure TUI/CLI architecture after installation
-./scripts/tui-lean/verify-lean.sh
+| Command | Description |
+|---|---|
+| `opencode` [project] | Start the TUI (default) |
+| `opencode run <message>` | Run with a prompt, non-interactive |
+| `opencode serve` | Start headless server |
+| `opencode web` | Start server with web UI |
+| `opencode attach <url>` | Attach to a running server |
+| `opencode mcp` | Manage MCP servers |
+| `opencode acp` | Start ACP server |
+| `opencode providers` | Manage AI providers & credentials |
+| `opencode session` | Manage sessions |
+| `opencode github` | GitHub agent |
+| `opencode pr <number>` | Fetch and checkout a PR |
+| `opencode plugin` | Install/manage plugins |
+| `opencode upgrade` | Upgrade openaxe |
 
-# Setup performance monitoring
-./scripts/tui-lean/performance-dashboard.sh start
+## Configuration
+
+Configure via `.opencode/opencode.jsonc` in your project root:
+
+```jsonc
+{
+  "model": "provider/model-name",
+  "plugin": ["plugin-name"],
+  "mcp": {
+    "my-server": { "type": "local", "command": "npx", "args": ["-y", "@org/mcp-server"] }
+  },
+  "permission": { "bash": "allow" }
+}
 ```
 
-**Why this installation is more secure:**
-- Shallow clones reduce repository exposure
-- TUI-only prevents web application vulnerabilities
-- Plugin security verified before installation
-- Performance monitoring tracks security metrics
+## Performance
+
+| Metric | This Fork |
+|---|---|
+| Packages | 13 (52% fewer than upstream) |
+| `bun install` | ~5.3s |
+| `turbo typecheck` | ~18.4s |
+| `node_modules` | ~1.1 GB |
+| Architecture | TUI/CLI only |
+
+## Security
+
+- TUI/CLI-only — no Electron, no web apps, no cloud infrastructure
+- No web application attack surface (no Astro/Starlight/Storybook/SST Cloud)
+- Plugin sandboxing via permission system
+- All plugins audited for TUI/CLI compliance
+- OpenTelemetry tracing for audit
+- <1.2GB total dependencies
 
 <p align="center"><a href="https://github.com/dressedinblack5/openaxe">dressedinblack5/openaxe</a></p>
