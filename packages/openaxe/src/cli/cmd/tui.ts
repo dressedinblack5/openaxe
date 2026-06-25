@@ -77,7 +77,7 @@ async function initOpentuiNativeLib() {
   }
 }
 
-export const TuiThreadCommand = cmd({
+export const TuiCommand = cmd({
   command: "$0 [project]",
   describe: "start opencode tui",
   builder: (yargs) =>

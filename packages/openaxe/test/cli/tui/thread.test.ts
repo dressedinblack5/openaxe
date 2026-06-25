@@ -4,7 +4,7 @@ import fs from "fs/promises"
 import path from "path"
 import yargs from "yargs"
 import { tmpdir } from "../../fixture/fixture"
-import { TuiThreadCommand, resolveThreadDirectory } from "../../../src/cli/cmd/tui"
+import { TuiCommand, resolveThreadDirectory } from "../../../src/cli/cmd/tui"
 import { cliIt } from "../../lib/cli-process"
 
 describe("tui thread", () => {
@@ -48,7 +48,7 @@ describe("tui thread", () => {
   test("parses supported --no-replay forms", async () => {
     for (const option of ["--no-replay", "--no-replay=true", "--noReplay"]) {
       const args = await yargs([])
-        .command({ ...TuiThreadCommand, handler: () => {} })
+        .command({ ...TuiCommand, handler: () => {} })
         .exitProcess(false)
         .parse(["--mini", option, "--replay-limit", "10"])
 
@@ -59,7 +59,7 @@ describe("tui thread", () => {
 
   test("preserves boolean negation for existing options", async () => {
     const args = await yargs([])
-      .command({ ...TuiThreadCommand, handler: () => {} })
+      .command({ ...TuiCommand, handler: () => {} })
       .exitProcess(false)
       .parse(["--mdns", "--no-mdns"])
 
