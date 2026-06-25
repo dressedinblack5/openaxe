@@ -1,125 +1,95 @@
-# opencode (Package README)
+# opencode
 
 ## Package Overview
 
-This is the main `opencode` package from the dressedinblack5/opencode fork. This fork maintains a **lean TUI/CLI-only architecture** with security-first design principles and optimized performance.
+This is the `opencode` orchestrator package from the **dressedinblack5/opencode** fork. It assembles the lean TUI/CLI-only architecture — no Electron, no web apps, no cloud infrastructure. The monorepo ships 13 packages (52% fewer than upstream) with security-first design principles and Effect v4 throughout.
 
-## Key Features
+## Packages
 
-### Security-First Architecture
-- **TUI/CLI-only operation** — No web applications, desktop GUI, or cloud infrastructure attack surface
-- **Minimal dependency footprint** — 52% fewer packages reduces vulnerability exposure
-- **Package audit automation** — `./scripts/audit-deps.sh` scans for security issues
-- **Real-time monitoring** — `./scripts/tui-lean/performance-dashboard.sh` tracks security metrics
+| Package | Role | Key Dependencies |
+|---|---|---|
+| `opencode` | CLI orchestrator — yargs entry point, command dispatch | `@llm`, `@plugin`, `@schema`, `@tui`, `@server`, `@sdk` |
+| `cli` | Alternative Effect-runtime CLI with subcommand handlers | `@core`, `@sdk`, `@server`, `@tui` |
+| `core` | Hub — session/agent/project/tool orchestration, database, permissions | `@effect-drizzle-sqlite`, `@llm`, `@schema`, `@plugin` |
+| `llm` | LLM integrations — 15+ providers, 6 protocol adapters | `@schema`, `effect` |
+| `schema` | Data validation schemas (Effect) | `effect` |
+| `plugin` | Plugin system — tool, tui, effect, promise entry points | `@sdk`, `effect` |
+| `tui` | SolidJS terminal UI via OpenTUI framework | `@core`, `@plugin`, `@ui`, `@opentui/*` |
+| `ui` | SolidJS component library (shared, consumed by TUI) | `@kobalte/core`, `solid-js`, various libraries |
+| `server` | Server functionality | `@core`, `effect` |
+| `sdk` | Generated JS SDK (standalone) | — |
+| `script` | Utility package (semver) | — |
+| `effect-drizzle-sqlite` | SQLite database layer — Drizzle ORM + Effect | `drizzle-orm`, `effect` |
+| `http-recorder` | Record/replay HTTP traffic for testing | `@effect/platform-node` |
 
-### Architecture Changes
-- **Upstream:** 27 packages (including Electron, web apps, cloud infra)
-- **This fork:** **13 packages** — Removed web/desktop/cloud tooling risks
-- **Removed:** Electron (desktop), Storybook (dev tooling), Astro/Starlight (docs), SST cloud, SolidJS apps (web applications)
+## Dependency Flow
 
-### Security Benefits
-- **<1.2GB dependencies** (vs 2+GB upstream) - **<6s installation** (vs 15-20s upstream)
-- **<br/>52% fewer packages** (13 vs 27)
-- **No electron/storybook** — Removed desktop/web tooling risks
-- **No SST cloud** — Eliminated infrastructure vulnerabilities
+```
+@schema ──┐
+           ├──> @llm ──┐
+@script ──┘            │
+@effect-drizzle-sqlite ─┤
+@http-recorder ─────────┤
+                        ├──> @core ──> @server
+@plugin ────────────────┤
+@ui ──> @tui ───────────┤
+                        └──> @opencode (CLI entry)
+```
 
-## Key Features
+## Plugins
 
-### Security-First Architecture
-- **TUI/CLI-only operation** — No web applications, desktop GUI, or cloud infrastructure attack surface
-- **Minimal dependency footprint** — 52% fewer packages reduces vulnerability exposure
-- **Package audit automation** — `./scripts/audit-deps.sh` scans for security issues
-- **Real-time monitoring** — `./scripts/tui-lean/performance-dashboard.sh` tracks security metrics
+Loaded via `.opencode/opencode.jsonc`:
 
-### Architecture Changes
-- **Upstream:** 27 packages (including Electron, web apps, cloud infra)
-- **This fork:** **13 packages** — Removed web/desktop/cloud tooling risks
-- **Removed:** Electron (desktop), Storybook (dev tooling), Astro/Starlight (docs), SST cloud, SolidJS apps (web applications)
+- **opencode-vibeguard** — Prevents agent drift from project conventions
+- **ponytail** — Lazy senior dev mode (YAGNI/stdlib-first/minimal-code)
+- **oh-my-openagent** — Configurable agent persona, styled conversation
+- **opencode-plugin-selector** — Enable/disable plugins from TUI
+- **superpowers** — Skill-awareness, TDD, debugging, code review
+- **@tarquinen/opencode-dcp** — Automatic context pruning
+- **ecc-universal** — Claude Code compatibility
 
-### Security Benefits
-- **<1.2GB dependencies** (vs 2+GB upstream) - **<6s installation** (vs 15-20s upstream)
-- **<br/>52% fewer packages** (13 vs 27)
-- **No electron/storybook** — Removed desktop/web tooling risks
-- **No SST cloud** — Eliminated infrastructure vulnerabilities
-
-## Structure
-
-### Core Packages
-- `cli` — Command-line interface
-- `core` — Core application logic and database
-- `effect-drizzle-sqlite` — SQLite database layer with Drizzle ORM
-- `http-recorder` — HTTP recording capabilities
-- `llm` — LLM integration and providers
-- `opencode` — Application core (this package)
-- `plugin` — Plugin system
-- `schema` — Data validation schemas
-- `script` — Script execution and management
-- `sdk` — SDK exports
-- `server` — Server functionality
-- `tui` — Terminal user interface
-- `ui` — UI components
-
-### Plugins Loaded via `.opencode/opencode.jsonc`
-
-**Security plugins:**
-- **[opencode-vibeguard](https://github.com/inkdust2021/opencode-vibeguard)** — Prevents agent drift from project conventions
-- **[ponytail](https://github.com/DietrichGebert/ponytail)** — Lazy senior dev mode: YAGNI/stdlib-first/minimal-code
-
-**Advanced plugins:**
-- **[oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent)** — Configurable agent persona, styled conversation
-- **[opencode-plugin-selector](https://github.com/illusionaireal/opencode-plugin-selector)** — Enable/disable plugins from TUI
-- **[superpowers](https://github.com/obra/superpowers)** — Skill-awareness, TDD, debugging, code review workflows
-- **[@tarquinen/opencode-dcp](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning)** — Automatic context management
-- **[ecc-universal](https://github.com/affaan-m/ECC)** — Claude Code compatibility
-
-### MCP Servers
-
-**context7** — Live documentation for any library, framework, or API  
-**github** — Full GitHub API — repos, PRs, issues, search
+**MCP Servers:** `context7` (live docs), `github` (full GitHub API)
 
 ## Performance
 
 | Metric | Upstream | This Fork |
-|--------|----------|-----------|
+|---|---|---|
 | Packages | 27 | **13** (52% fewer) |
 | `bun install` | ~15-20s | **5.3s** |
 | `turbo typecheck` | ~45-60s | **18.4s** |
 | node_modules | ~2+ GB | **1.1 GB** |
 
-## Maintenance Scripts
+## Security
 
-### Critical Security Commands
+### Removed Attack Surface
+- **Electron** — Desktop spoofing and privilege escalation
+- **Storybook** — Component discovery and XSS vectors
+- **Astro/Starlight** — Documentation injection attacks
+- **SST Cloud** — Infrastructure compromise vectors
+- **SolidJS web apps** — Web application attack surface
+
+### Prohibited
+- No `*.astro`, `*.vue`, `*.svelte`, `*.html` files
+- No `BrowserWindow`, `dialog.showOpenDialog` usage
+- No hybrid components or electron references
+- All plugins audited for TUI/CLI compliance
+
+## Maintenance
 
 ```bash
-# Install lean TUI/CLI version (sub-second startup)
+# Install lean TUI/CLI version
 ./scripts/tui-lean/install-lean.sh
-
-# Verify pure TUI/CLI architecture after installation
+# Verify pure TUI/CLI architecture
 ./scripts/tui-lean/verify-lean.sh
-
-# Setup performance monitoring
+# Performance monitoring
 ./scripts/tui-lean/performance-dashboard.sh start
-
-# Performance security profiling
-./scripts/tui-lean/profile-opencode.sh
-
-# Optimized startup with security settings
-./scripts/tui-lean/lean-startup.sh
-```
-
-### Automated Security Workflows
-
-```bash
-# Safe upstream sync with conflict detection
-./scripts/sync-upstream.sh
-
-# Security vulnerability and performance audits
+# Security & vulnerability audit
 ./scripts/audit-deps.sh
+# Safe upstream sync
+./scripts/sync-upstream.sh
 ```
 
 ## Installation
-
-### Standard Installation
 
 ```bash
 git clone https://github.com/dressedinblack5/opencode.git
@@ -127,31 +97,6 @@ cd opencode
 bun install
 bun run --cwd packages/opencode src/index.ts
 ```
-
-### Security-First Lean Installation
-
-```bash
-./scripts/tui-lean/install-lean.sh
-```
-
-## Security Architecture
-
-### File Types Prohibited
-- ✅ **No web server vulnerabilities** — No `*.astro`, `*.vue`, `*.svelte`, `*.html` files
-- ✅ **No desktop API access** — No `BrowserWindow`, `dialog.showOpenDialog` usage
-- ✅ **No hybrid components** — No server files, electron references
-- ✅ **Plugin security** — All custom plugins audited for TUI/CLI compliance
-
-### Security-First Decisions
-
-**Component Removal Rationale:**
-- **Electron** → Removes desktop spoofing and privilege escalation risks
-- **Storybook** → Eliminates component discovery and XSS vectors
-- **Astro/Starlight** → Prevents documentation injection attacks
-- **SST Cloud** → Avoids infrastructure compromise vectors
-- **SolidJS apps** → Removes web application attack surface
-
-**All removals serve security:** Every component eliminated was a potential attack vector that could compromise the lean terminal-only experience.
 
 ## Links
 
