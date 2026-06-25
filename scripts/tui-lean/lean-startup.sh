@@ -5,7 +5,7 @@ set -euo pipefail
 # Optimized startup script for pure TUI/CLI operation
 # Maximum performance with minimal overhead
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 PACKAGE_DIR="$INSTALL_DIR/packages/opencode"
 
 log() {
@@ -40,7 +40,7 @@ cd "$PACKAGE_DIR" || {
   exit 1
 }
 
-log "Starting opencode in optimized TUI/CLI mode..."
+log "Starting openaxe in optimized TUI/CLI mode..."
 log "Performance settings activated:"\n"
 
 # Check active plugins
@@ -54,7 +54,7 @@ if command -v free >/dev/null 2>&1; then
   available_memory=$(free -m | awk 'NR==2{print $4}')
   if [ "$available_memory" -lt 512 ]; then
     log "WARNING: Low memory ($available_memory MB available)"
-    log "Consider: 'pkill -f opencode && free -h' to check process memory"
+    log "Consider: 'pkill -f openaxe && free -h' to check process memory"
   fi
 fi
 
@@ -70,7 +70,7 @@ log ""
   export BUN_INSTALL=1
   export BUN_BUILD="release"
   
-  # Execute opencode with performance monitoring
+  # Execute openaxe with performance monitoring
   if command -v time >/dev/null 2>&1 && [ -n "$MEASURE_PERFORMANCE" ]; then
     time timeout 3600 bun run src/index.ts "$@"
   else

@@ -40,4 +40,4 @@ All maintenance operations respect project-specific constraints:
 - Performance threshold monitoring
 - Automated rollback on critical failures
 
-This system ensures the lean opencode fork stays current without breaking its optimized architecture.
+This system ensures the lean openaxe fork stays current without breaking its optimized architecture.

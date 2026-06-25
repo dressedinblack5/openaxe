@@ -5,7 +5,7 @@ set -euo pipefail
 # Dependency audit and update script for dressedinblack5/openaxe fork
 # Scans for security issues and performance updates while preserving lean architecture
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 DRY_RUN="${1:-}"
 REPORT_FILE="${2:-dep-audit-$(date +%Y%m%d).txt}"
 SECURITY_THRESHOLD="high"

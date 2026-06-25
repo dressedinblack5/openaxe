@@ -5,13 +5,13 @@ set -euo pipefail
 # Performance profiling and optimization script for dressedinblack5/openaxe
 # Tracks installation times, startup speeds, and memory usage while preserving lean architecture targets
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 PERF_DATA_DIR="$INSTALL_DIR/perf-data"
 DRY_RUN="${1:-}"
 MEASUREMENT_DURATION="${2:-300}"  # seconds
 
 log() {
-  echo "[profile-opencode] $*"
+  echo "[profile-openaxe] $*"
 }
 
 error() {
@@ -114,14 +114,14 @@ check_plugin_startup() {
   # Start the command to measure initialization time
   local start_time=$(date +%s)
   
-  # Run opencode with --help to avoid full startup
+  # Run openaxe with --help to avoid full startup
   if [ -n "$DRY_RUN" ]; then
     log "(DRY RUN) Would measure startup time for: cd $INSTALL_DIR/packages/opencode && bun src/index.ts --help"
     echo "Startup performance not measured in DRY RUN"
     return
   fi
   
-  # Measure opencode startup
+  # Measure openaxe startup
   (
     timeout 30 bun run --cwd "$INSTALL_DIR/packages/opencode" src/index.ts --help 2>&1 | head -5
   ) &
@@ -211,7 +211,7 @@ check_security_scan() {
   "scan_type": "basic_dependency_scan",
   "vulnerabilities_found": $critical_vulnerable,
   "severity": "low",
-  "components": "critical_opencode_deps"
+  "components": "critical_openaxe_deps"
 }
 EOF
     

@@ -5,7 +5,7 @@ set -euo pipefail
 # Verification script for pure TUI/CLI installation
 # Ensures no web components, desktop components, or hybrid architectures
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 PACKAGE_DIR="$INSTALL_DIR/packages/opencode"
 
 log() {
@@ -86,7 +86,7 @@ fi
 # Check 6: Pure TUI/CLI startup
 log "=== Testing TUI/CLI startup ==="
 
-# Test that opencode command runs in terminal mode
+# Test that openaxe command runs in terminal mode
 if [ -x "$INSTALL_DIR/packages/opencode/src/index.ts" ]; then
   log "✓ Opencode source available"
   

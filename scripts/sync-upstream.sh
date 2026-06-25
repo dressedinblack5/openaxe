@@ -8,7 +8,7 @@ set -euo pipefail
 REPO="dressedinblack5/openaxe"
 UPSTREAM_REPO="anomalyco/opencode"
 UPSTREAM_BRANCH="dev"
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 DRY_RUN="${1:-}"
 BACKUP_DIR="$INSTALL_DIR.backup.$(date +%Y%m%d_%H%M%S)"
 

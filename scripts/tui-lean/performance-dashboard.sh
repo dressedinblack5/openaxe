@@ -6,7 +6,7 @@ set -euo pipefail
 # Real-time performance tracking for dressedinblack5/openaxe fork
 # Optimized for TUI/CLI-only operation with lean architecture targets
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 PERF_DATA_DIR="$INSTALL_DIR/perf-data"
 DASHBOARD_FILE="$INSTALL_DIR/performance-dashboard.html"
 DASHBOARD_DIR="$INSTALL_DIR/performance-dashboard"

@@ -7,7 +7,7 @@ This directory contains scripts and configurations optimized for TUI/CLI-only op
 ### install-lean.sh
 Minimal installation focusing only on TUI/CLI components
 
-### profile-opencode.sh
+### profile-openaxe.sh
 Performance profiling and optimization for terminal operation
 
 ### verify-lean.sh
@@ -28,7 +28,7 @@ Optimized startup for maximum performance
 ./scripts/install-lean.sh
 
 # Profile for optimization
-./scripts/profile-opencode.sh --measure
+./scripts/profile-openaxe.sh --measure
 
 # Verify pure TUI/CLI operation
 ./scripts/verify-lean.sh

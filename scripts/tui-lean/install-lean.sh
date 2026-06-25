@@ -8,7 +8,7 @@ set -euo pipefail
 REPO="dressedinblack5/openaxe"
 UPSTREAM_REPO="anomalyco/opencode"
 BRANCH="dev"
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 PACKAGE_PREFIX="packages/opencode"
 DRY_RUN="${1:-}"
 
@@ -39,7 +39,7 @@ log "Target: Pure terminal operation, no web/apps, <6s install time"
 
 # Backup critical configuration
 if [ -n "$DRY_RUN" ]; then
-  log "(DRY RUN) Would backup existing ~/.opencode to ~/.opencode-backup.$(date +%Y%m%d)"
+  log "(DRY RUN) Would backup existing ~/.opencode to ~/.openaxe-backup.$(date +%Y%m%d)"
 else
   if [ -d "$INSTALL_DIR" ]; then
     log "Creating backup of existing installation..."
@@ -66,10 +66,10 @@ else
   
   log "Creating lean TUI/CLI wrapper scripts..."
   
-  # Create optimized opencode command
+  # Create optimized openaxe command
   mkdir -p "$HOME/.local/bin" 2>/dev/null || mkdir -p "$HOME/.bin" || mkdir -p "/usr/local/bin"
   
-  BIN_PATH="${XDG_BIN_DIR:-$HOME/.local/bin}/opencode"
+  BIN_PATH="${XDG_BIN_DIR:-$HOME/.local/bin}/openaxe"
   cat > "$BIN_PATH" << 'SCRIPT'
 #!/usr/bin/env bash
 
@@ -78,7 +78,7 @@ else
 
 set -euo pipefail
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 PACKAGE_DIR="$INSTALL_DIR/packages/opencode"
 
 # Profile for performance
@@ -109,13 +109,13 @@ SCRIPT
 #!/bin/bash
 # Performance profiling script for lean installation
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 PROFILE_DIR="$INSTALL_DIR/profile-data"
 mkdir -p "$PROFILE_DIR"
 
 cd "$INSTALL_DIR/packages/opencode"
 
-echo "Profiling opencode startup..."
+echo "Profiling openaxe startup..."
 start_time=$(date +%s.%N)
 
 # Run with strace if available
@@ -141,7 +141,7 @@ SCRIPT
 #!/bin/bash
 # Verify pure TUI/CLI installation
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 PACKAGE_DIR="$INSTALL_DIR/packages/opencode"
 
 log() {
@@ -233,7 +233,7 @@ SCRIPT
 #!/bin/bash
 # Setup performance optimizations for lean installation
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 BIN_DIR="${XDG_BIN_DIR:-$HOME/.local/bin}"
 
 log() {
@@ -275,8 +275,8 @@ elif [ -w "$HOME/.zshrc" ] 2>/dev/null; then
   echo "source $HOME/.opencode-fastrc" >> "$HOME/.zshrc"
 fi
 
-# Create performance-optimized opencode script
-BIN_PATH="${XDG_BIN_DIR:-$HOME/.local/bin}/opencode-fast"
+# Create performance-optimized openaxe script
+BIN_PATH="${XDG_BIN_DIR:-$HOME/.local/bin}/openaxe-fast"
 cat > "$BIN_PATH" << 'FAST_SCRIPT'
 #!/usr/bin/env bash
 # Ultra-optimized TUI/CLI wrapper
@@ -285,7 +285,7 @@ set -euo pipefail
 
 source "$HOME/.opencode-fastrc" 2>/dev/null || true
 
-INSTALL_DIR="$HOME/.opencode"
+INSTALL_DIR="$HOME/.openaxe"
 PACKAGE_DIR="$INSTALL_DIR/packages/opencode"
 
 # Fast startup - minimal error handling for speed
@@ -313,7 +313,7 @@ SCRIPT
   
   echo ""
   echo "=== Quick Start ==="
-  echo "To start opencode: 'opencode'"
+  echo "To start openaxe: .openaxe."
   echo "To verify installation: './.opencode/verify-lean.sh'"
   echo "To profile performance: './.opencode/profile-speed.sh'"
   echo "To setup optimizations: './.opencode/setup-performance.sh'"
