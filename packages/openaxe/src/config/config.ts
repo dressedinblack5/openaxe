@@ -251,7 +251,23 @@ export const layer = Layer.effect(
         const file = globalConfigFile()
         if (!existsSync(file)) {
           yield* fs
-            .writeWithDirs(file, JSON.stringify({ $schema: "https://opencode.ai/config.json" }, null, 2))
+            .writeWithDirs(
+              file,
+              JSON.stringify(
+                {
+                  $schema: "https://opencode.ai/config.json",
+                  plugin: [
+                    "oh-my-openagent",
+                    "opencode-plugin-selector",
+                    "superpowers",
+                    "opencode-vibeguard",
+                    "@tarquinen/opencode-dcp",
+                  ],
+                },
+                null,
+                2,
+              ),
+            )
             .pipe(Effect.catch(() => Effect.void))
         }
       }
