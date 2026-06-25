@@ -29,11 +29,35 @@ const configLayer = Config.layer.pipe(
   Layer.provide(NpmTest.noop),
   Layer.provide(FetchHttpClient.layer),
 )
+
+// Wraps the real Config service to filter plugin_origins to only local (instance-level)
+// plugins. Prevents global plugins (ponytail, etc.) from interfering with the test's
+// expected hook output.
+const filteredConfig = Layer.effect(
+  Config.Service,
+  Effect.gen(function* () {
+    const original = yield* Config.Service
+    return Config.Service.of({
+      ...original,
+      get: () =>
+        Effect.gen(function* () {
+          const info = yield* original.get()
+          return {
+            ...info,
+            plugin_origins: info.plugin_origins?.filter(
+              (p) => p.scope === "local",
+            ),
+          }
+        }),
+    })
+  }),
+).pipe(Layer.provide(configLayer))
+
 const it = testEffect(
   Layer.mergeAll(
     Plugin.layer.pipe(
       Layer.provide(EventV2Bridge.defaultLayer),
-      Layer.provide(configLayer),
+      Layer.provide(filteredConfig),
       Layer.provide(RuntimeFlags.layer({ disableDefaultPlugins: true })),
     ),
     CrossSpawnSpawner.defaultLayer,
