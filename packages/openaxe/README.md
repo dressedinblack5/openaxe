@@ -52,6 +52,25 @@ Run `openaxe --help` to see all commands:
 | `openaxe upgrade` | Upgrade openaxe |
 | `openaxe db` | Database tools |
 
+## Preinstalled Plugins
+
+openaxe ships with auth plugins for these providers — no npm install needed, just run `openaxe providers`:
+
+| Plugin | Provider |
+|---|---|
+| **Codex** | OpenAI Codex (o1, o3, GPT) |
+| **GitHub Copilot** | GitHub Copilot chat models |
+| **GitLab** | GitLab Duo Agent Platform |
+| **Poe** | Poe by Quora |
+| **Cloudflare Workers AI** | Cloudflare Workers AI inference |
+| **Cloudflare AI Gateway** | Cloudflare AI Gateway (multi-provider proxy) |
+| **Azure** | Azure OpenAI Service |
+| **DigitalOcean** | DigitalOcean GPU Droplets / Paperspace |
+| **Snowflake Cortex** | Snowflake Cortex AI |
+| **xAI** | xAI Grok models |
+
+Run `openaxe providers login <provider>` to authenticate any of these.
+
 ## Configuration
 
 Configure via `.openaxe/openaxe.jsonc` in your project root:
