@@ -12,7 +12,8 @@
 
 <p align="center">
   <strong>openaxe</strong> — lean TUI/CLI AI coding assistant.<br>
-  Effect v4, security-first, 52% fewer packages than upstream.<br>
+  A fork of OpenCode that strips the bloat, keeps the power.<br>
+  Effect v4, security-first, 52% fewer packages.<br>
 </p>
 
 ---
@@ -27,6 +28,19 @@
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Run as background server with HTTP API and optional web UI
 - **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
+
+## Advantages Over Official OpenCode
+
+| | openaxe | official opencode |
+|---|---|---|
+| **Monorepo size** | 13 packages | 27 |
+| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
+| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
+| **Effects** | Effect v4 throughout | Mixed patterns |
+| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
+| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
+| **Startup** | Lazy-loaded CLI commands | Eager imports |
+| **Identity** | Renamed project-wide (`openaxe`) | N/A |
 
 ## Quick Start
 

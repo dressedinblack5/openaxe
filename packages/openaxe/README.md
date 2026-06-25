@@ -1,6 +1,6 @@
 # openaxe
 
-**openaxe** is a lean TUI/CLI AI coding assistant — a fork of [anomalyco/opencode](https://github.com/anomalyco/opencode) with Effect v4 throughout, security-first architecture, and 52% fewer packages. Runs in your terminal, no Electron, no cloud dependency.
+**openaxe** is a lean TUI/CLI AI coding assistant — a fork of [anomalyco/opencode](https://github.com/anomalyco/opencode) that strips the bloat and keeps the power. Effect v4 throughout, security-first architecture, 52% fewer packages. Runs in your terminal, no Electron, no cloud dependency.
 
 ## Features
 
@@ -72,6 +72,19 @@ Configure via `.openaxe/openaxe.jsonc` in your project root:
   }
 }
 ```
+
+## Advantages Over Official OpenCode
+
+| | openaxe | official opencode |
+|---|---|---|
+| **Monorepo size** | 13 packages | 27 |
+| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
+| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
+| **Effects** | Effect v4 throughout | Mixed patterns |
+| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
+| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
+| **Startup** | Lazy-loaded CLI commands | Eager imports |
+| **Identity** | Renamed project-wide (`openaxe`) | N/A |
 
 ## Architecture
 
