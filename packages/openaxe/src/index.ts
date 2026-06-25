@@ -24,7 +24,7 @@ const args = hideBin(process.argv)
 
 function show(out: string) {
   const text = out.trimStart()
-  if (!text.startsWith("opencode ")) {
+  if (!text.startsWith("openaxe ")) {
     process.stderr.write(UI.logo() + EOL + EOL)
     process.stderr.write(text + EOL)
     return
@@ -34,7 +34,7 @@ function show(out: string) {
 
 const cli = yargs(args)
   .parserConfiguration({ "populate--": true })
-  .scriptName("opencode")
+  .scriptName("openaxe")
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")
@@ -75,7 +75,7 @@ const cli = yargs(args)
   ))
   .command(TuiThreadCommand)
   .command(AttachCommand)
-  .command(lazyCommand("run [message..]", "run opencode with a message", undefined, () =>
+  .command(lazyCommand("run [message..]", "run openaxe with a message", undefined, () =>
     import("./cli/cmd/run").then((m) => m.RunCommand),
   ))
   .command(GenerateCommand)
@@ -91,11 +91,11 @@ const cli = yargs(args)
   .command(lazyCommand("agent", "manage agents", undefined, () =>
     import("./cli/cmd/agent").then((m) => m.AgentCommand),
   ))
-  .command(lazyCommand("upgrade [target]", "upgrade opencode to the latest or a specific version", undefined, () =>
+  .command(lazyCommand("upgrade [target]", "upgrade openaxe to the latest or a specific version", undefined, () =>
     import("./cli/cmd/upgrade").then((m) => m.UpgradeCommand),
   ))
   .command(UninstallCommand)
-  .command(lazyCommand("serve", "starts a headless opencode server", undefined, () =>
+  .command(lazyCommand("serve", "starts a headless openaxe server", undefined, () =>
     import("./cli/cmd/serve").then((m) => m.ServeCommand),
   ))
   .command(WebCommand)

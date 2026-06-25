@@ -31,7 +31,7 @@ const SKILL_PATTERN = "**/SKILL.md"
 // actual schemas instead of guesses.
 const CUSTOMIZE_OPENAXE_SKILL_NAME = "customize-openaxe"
 const CUSTOMIZE_OPENAXE_SKILL_DESCRIPTION =
-  "Use ONLY when the user is editing or creating openaxe's own configuration: openaxe.json, openaxe.jsonc, files under .opencode/, or files under ~/.config/openaxe/. Also use when creating or fixing openaxe agents, subagents, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring openaxe itself."
+  "Use ONLY when the user is editing or creating openaxe's own configuration: openaxe.json, openaxe.jsonc, files under .openaxe/, or files under ~/.config/openaxe/. Also use when creating or fixing openaxe agents, subagents, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring openaxe itself."
 const CUSTOMIZE_OPENAXE_SKILL_BODY = SkillPlugin.CustomizeOpenaxeContent
 
 export const Info = Schema.Struct({

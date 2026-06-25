@@ -6,7 +6,7 @@
   "type": "module",
   "packageManager": "bun@1.3.14",
   "scripts": {
-    "dev": "exec -a openaxe bun run --cwd packages/opencode src/index.ts",
+    "dev": "exec -a openaxe bun run --cwd packages/openaxe src/index.ts",
     "dev:web": "bun --cwd packages/app dev",
     "lint": "oxlint",
     "typecheck": "bun turbo typecheck",
