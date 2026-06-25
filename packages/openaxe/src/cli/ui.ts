@@ -1,5 +1,5 @@
 import { EOL } from "os"
-import { logo as glyphs } from "./logo"
+import { logo as glyphs } from "@opencode-ai/tui/logo"
 
 const wordmark = [
   `⠀                          ▄      `,
