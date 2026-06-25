@@ -78,6 +78,26 @@ openaxe ships with auth plugins for these providers — no npm install needed, j
 
 Run `openaxe providers login <provider>` to authenticate any of these.
 
+## External Plugins
+
+Extend openaxe with custom tools, providers, TUI themes, or workspace adapters from npm.
+
+```bash
+openaxe plugin my-plugin          # from npm
+openaxe plugin ./path/to/pkg      # from local file
+openaxe plugin user/pkg           # from git
+```
+
+Plugins are npm packages (or local directories) that declare their entrypoints in `package.json` under `exports["./server"]` or `exports["./tui"]`. Add them to `openaxe.jsonc`:
+
+```jsonc
+{
+  "plugin": ["my-plugin"]
+}
+```
+
+Write plugins using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK. See the [plugin API docs](/packages/plugin/README.md) for details.
+
 ## CLI Commands
 
 Run `openaxe --help` to see all commands. Main ones:
