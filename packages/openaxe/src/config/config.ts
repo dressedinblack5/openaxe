@@ -1,6 +1,7 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { httpClient } from "@opencode-ai/core/effect/layer-node-platform"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
+import { existsSync } from "fs"
 import path from "path"
 import { pathToFileURL } from "url"
 import os from "os"
@@ -136,7 +137,13 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/Co
 export const use = serviceUse(Service)
 
 function globalConfigFile() {
-  return path.join(Global.Path.config, "openaxe.jsonc")
+  const candidates = ["openaxe.jsonc", "openaxe.json", "config.json"].map((file) =>
+    path.join(Global.Path.config, file),
+  )
+  for (const file of candidates) {
+    if (existsSync(file)) return file
+  }
+  return candidates[0]
 }
 
 function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
