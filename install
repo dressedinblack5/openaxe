@@ -46,6 +46,13 @@ exec bun run --cwd "$INSTALL_DIR/packages/openaxe" src/index.ts "\$@"
 SCRIPT
 chmod +x "$WRAPPER"
 
+# ponytail: symlink codegraph into ~/.local/bin so it's on PATH after install
+CODEGRAPH_SRC="$HOME/.omo/codegraph/bin/codegraph"
+CODEGRAPH_LINK="$BIN_DIR/codegraph"
+if [ -x "$CODEGRAPH_SRC" ] && [ ! -e "$CODEGRAPH_LINK" ]; then
+  ln -sf "$CODEGRAPH_SRC" "$CODEGRAPH_LINK"
+fi
+
 echo ""
 echo -e "Installed openaxe to ${MUTED}$WRAPPER${NC}"
 
