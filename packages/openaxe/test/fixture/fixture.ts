@@ -71,6 +71,27 @@ async function stop(dir: string) {
   await $`git fsmonitor--daemon stop`.cwd(dir).quiet().nothrow()
 }
 
+// ponytail: one-shot purge of stale test temp dirs at process start
+let staleCleaned = false
+async function cleanStaleTmpDirs() {
+  if (staleCleaned) return
+  staleCleaned = true
+  const tmp = os.tmpdir()
+  const entries = await fs.readdir(tmp)
+  const cutoff = Date.now() - 60 * 60 * 1000
+  await Promise.allSettled(
+    entries
+      .filter((e) => e.startsWith("opencode-test-"))
+      .map(async (e) => {
+        const p = path.join(tmp, e)
+        try {
+          const stat = await fs.stat(p)
+          if (stat.mtimeMs < cutoff) await clean(p)
+        } catch {}
+      }),
+  )
+}
+
 type TmpDirOptions<T> = {
   git?: boolean
   config?: Partial<ConfigV1.Info>
@@ -78,6 +99,7 @@ type TmpDirOptions<T> = {
   dispose?: (dir: string) => Promise<T>
 }
 export async function tmpdir<T>(options?: TmpDirOptions<T>) {
+  await cleanStaleTmpDirs()
   const dirpath = sanitizePath(path.join(os.tmpdir(), "opencode-test-" + Math.random().toString(36).slice(2)))
   await fs.mkdir(dirpath, { recursive: true })
   if (options?.git) {
@@ -121,6 +143,7 @@ export function tmpdirScoped<E = never, R = never>(options?: {
   init?: (directory: string) => Effect.Effect<void, E, R>
 }) {
   return Effect.gen(function* () {
+    yield* Effect.promise(() => cleanStaleTmpDirs())
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner
     const dirpath = sanitizePath(path.join(os.tmpdir(), "opencode-test-" + Math.random().toString(36).slice(2)))
     yield* Effect.promise(() => fs.mkdir(dirpath, { recursive: true }))
