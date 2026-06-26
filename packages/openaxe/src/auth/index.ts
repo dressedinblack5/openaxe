@@ -55,7 +55,7 @@ export const layer = Layer.effect(
     const fsys = yield* FSUtil.Service
     const decode = Schema.decodeUnknownOption(Info)
 
-    const all = Effect.fn("Auth.all")(function* () {
+    const readAuth = Effect.fn("Auth.all")(function* () {
       if (process.env.OPENCODE_AUTH_CONTENT) {
         try {
           return JSON.parse(process.env.OPENCODE_AUTH_CONTENT)
@@ -66,13 +66,16 @@ export const layer = Layer.effect(
       return Record.filterMap(data, (value) => Result.fromOption(decode(value), () => undefined))
     })
 
+    const allCached = yield* Effect.cached(readAuth())
+    const all = () => allCached
+
     const get = Effect.fn("Auth.get")(function* (providerID: string) {
       return (yield* all())[providerID]
     })
 
     const set = Effect.fn("Auth.set")(function* (key: string, info: Info) {
       const norm = key.replace(/\/+$/, "")
-      const data = yield* all()
+      const data = yield* readAuth()
       if (norm !== key) delete data[key]
       delete data[norm + "/"]
       yield* fsys
@@ -82,7 +85,7 @@ export const layer = Layer.effect(
 
     const remove = Effect.fn("Auth.remove")(function* (key: string) {
       const norm = key.replace(/\/+$/, "")
-      const data = yield* all()
+      const data = yield* readAuth()
       delete data[key]
       delete data[norm]
       yield* fsys.writeJson(file, data, 0o600).pipe(Effect.mapError(fail("Failed to write auth data")))

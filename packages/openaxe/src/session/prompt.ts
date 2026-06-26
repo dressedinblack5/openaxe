@@ -1041,15 +1041,18 @@ export const layer = Layer.effect(
         { message: info, parts: resolvedParts },
       )
 
-      const parts = yield* Effect.forEach(resolvedParts, (part) =>
-        part.type === "file" && part.mime.startsWith("image/")
-          ? image.normalize(part).pipe(
-              Effect.catchIf(
-                (error) => error instanceof Image.ResizerUnavailableError,
-                () => Effect.succeed(part),
-              ),
-            )
-          : Effect.succeed(part),
+      const parts = yield* Effect.forEach(
+        resolvedParts,
+        (part) =>
+          part.type === "file" && part.mime.startsWith("image/")
+            ? image.normalize(part).pipe(
+                Effect.catchIf(
+                  (error) => error instanceof Image.ResizerUnavailableError,
+                  () => Effect.succeed(part),
+                ),
+              )
+            : Effect.succeed(part),
+        { concurrency: "unbounded" },
       )
 
       const parsed = decodeMessageInfo(info, { errors: "all", propertyOrder: "original" })
