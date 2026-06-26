@@ -223,7 +223,8 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/v2
 
 const attemptLifetime = Duration.toMillis(Duration.minutes(10))
 const terminalRetention = Duration.toMillis(Duration.minutes(1))
-const scrubInterval = Duration.seconds(30)
+const scrubIntervalMs = parseInt(process.env.OPENCODE_INTEGRATION_SCRUB_INTERVAL ?? "30000", 10)
+const scrubInterval = Duration.millis(scrubIntervalMs)
 
 type AttemptTime = { created: number; expires: number }
 type PendingAttempt = {
