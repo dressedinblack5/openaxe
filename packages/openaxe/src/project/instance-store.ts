@@ -77,7 +77,7 @@ export const layer: Layer.Layer<Service, never, Project.Service | InstanceBootst
       })
 
     const emitDisposed = (input: { directory: string; project?: string }) =>
-      Effect.sync(() =>
+      Effect.sync(() => {
         GlobalBus.emit("event", {
           directory: input.directory,
           project: input.project,
@@ -88,13 +88,15 @@ export const layer: Layer.Layer<Service, never, Project.Service | InstanceBootst
               directory: input.directory,
             },
           },
-        }),
-      )
+        })
+      })
 
     const disposeContext = Effect.fn("InstanceStore.disposeContext")(function* (ctx: InstanceContext) {
       yield* Effect.logInfo("disposing instance", { directory: ctx.directory })
-      yield* Effect.promise(() => runDisposers(ctx.directory))
+      // Emit disposed event before running disposers so listeners don't wait
+      // for potentially slow async cleanup (PTY connections, cache invalidation).
       yield* emitDisposed({ directory: ctx.directory, project: ctx.project.id })
+      yield* Effect.promise(() => runDisposers(ctx.directory))
     })
 
     const disposeEntry = Effect.fnUntraced(function* (directory: string, entry: Entry, ctx: InstanceContext) {

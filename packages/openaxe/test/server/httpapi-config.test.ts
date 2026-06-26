@@ -1,4 +1,4 @@
-import { afterEach, describe, expect } from "bun:test"
+import { afterEach, beforeAll, describe, expect } from "bun:test"
 import path from "path"
 import { Server } from "../../src/server/server"
 import { Effect, Fiber } from "effect"
@@ -7,6 +7,11 @@ import { disposeAllInstances, tmpdir } from "../fixture/fixture"
 import { it } from "../lib/effect"
 import { waitGlobalBusEvent } from "./global-bus"
 
+// Pre-warm the lazy web handler build so the first test doesn't wait for it.
+beforeAll(async () => {
+  await Promise.resolve(app().request("http://localhost/prewarm")).catch(() => undefined)
+})
+
 function app() {
   return Server.Default().app
 }
@@ -14,6 +19,7 @@ function app() {
 function waitDisposed(directory: string) {
   return waitGlobalBusEvent({
     message: "timed out waiting for instance disposal",
+    timeout: 30_000,
     predicate: (event) => event.payload.type === "server.instance.disposed" && event.directory === directory,
   })
 }

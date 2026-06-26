@@ -23,13 +23,8 @@ const mark = (ctx: InstanceContext) =>
 export const markInstanceForDisposal = (ctx: InstanceContext) =>
   Effect.gen(function* () {
     const marked = yield* mark(ctx)
-    return yield* HttpEffect.appendPreResponseHandler((request, response) =>
-      Effect.sync(() => {
-        // The response is sent before disposeMiddleware performs the teardown.
-        disposeAfterResponse.set(request.source, marked)
-        return response
-      }),
-    )
+    const request = yield* HttpServerRequest.HttpServerRequest
+    disposeAfterResponse.set(request.source, marked)
   })
 
 export const markInstanceForReload = (ctx: InstanceContext, next: InstanceStore.LoadInput) =>

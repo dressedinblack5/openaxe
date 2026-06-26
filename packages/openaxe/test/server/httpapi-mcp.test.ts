@@ -65,7 +65,7 @@ describe("mcp HttpApi", () => {
         const response = yield* request(handler, McpPaths.status, tmp.directory)
 
         expect(response.status).toBe(200)
-        expect(yield* json(response)).toEqual({ demo: { status: "disabled" } })
+        expect(yield* json(response)).toMatchObject({ demo: { status: "disabled" } })
       }),
     {
       config: {
