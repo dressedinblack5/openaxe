@@ -2,7 +2,7 @@
 
 ## Overview
 
-SolidJS + OpenTUI terminal rendering layer for the openaxe TUI. 148 source files, private package, consumed only by `@opencode-ai/openaxe`.
+SolidJS + OpenTUI terminal rendering layer for the openaxe TUI. 148 source files, private package, consumed only by `openaxe`.
 
 ## Structure
 
