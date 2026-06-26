@@ -66,12 +66,13 @@ export const layer = Layer.effect(
       return Record.filterMap(data, (value) => Result.fromOption(decode(value), () => undefined))
     })
 
-    let cached: { data: Record<string, Info>; ts: number } | undefined
+    let cached: { data: Record<string, Info>; ts: number; env: string | undefined } | undefined
 
     const all = Effect.fn("Auth.all")(function* () {
       const now = Date.now()
-      if (!cached || now - cached.ts > 5_000) {
-        cached = { data: yield* readAuth(), ts: now }
+      const env = process.env.OPENCODE_AUTH_CONTENT
+      if (!cached || now - cached.ts > 5_000 || cached.env !== env) {
+        cached = { data: yield* readAuth(), ts: now, env }
       }
       return cached.data
     })
