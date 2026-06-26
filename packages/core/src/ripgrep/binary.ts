@@ -56,17 +56,21 @@ export namespace RipgrepBinary {
         const dir = yield* fs.makeTempDirectoryScoped({ directory: Global.Path.bin, prefix: "ripgrep-" })
 
         if (config.extension === "zip") {
-          const shell = (yield* Effect.sync(() => which("powershell.exe") ?? which("pwsh.exe"))) ?? "powershell.exe"
-          const result = yield* run(shell, [
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            `$global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force`,
-          ])
-          if (result.code !== 0)
-            throw new Error(
-              result.stderr.trim() || result.stdout.trim() || `ripgrep extraction failed with code ${result.code}`,
-            )
+          // ponytail: tar handles zip on all platforms (Windows 10+ has tar.exe via libarchive)
+          const result = yield* run("tar", ["-xf", archive, "-C", dir])
+          if (result.code !== 0) {
+            // ponytail: PowerShell fallback if tar fails; add 7z/bsdtar when throughput matters
+            const shell = (yield* Effect.sync(() => which("powershell.exe") ?? which("pwsh.exe"))) ?? "powershell.exe"
+            const ps = yield* run(shell, [
+              "-NoProfile", "-NonInteractive", "-Command",
+              `Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force`,
+            ])
+            if (ps.code !== 0) {
+              throw new Error(
+                ps.stderr.trim() || ps.stdout.trim() || `ripgrep extraction failed with code ${ps.code}`,
+              )
+            }
+          }
         }
 
         if (config.extension === "tar.gz") {

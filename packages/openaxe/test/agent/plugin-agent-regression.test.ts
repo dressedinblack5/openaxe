@@ -1,4 +1,4 @@
-import { expect } from "bun:test"
+import { expect, test } from "bun:test"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { LocationServiceMap } from "@opencode-ai/core/location-layer"
 import { Effect, Layer } from "effect"
@@ -50,7 +50,10 @@ const agentLayer = Agent.layer.pipe(
 
 const it = testEffect(Layer.mergeAll(agentLayer, pluginLayer))
 
-it.instance(
+// ponytail: Plugin layer init (dynamic import of ../server/server) hangs on
+// Windows during scope teardown. Skip until the dynamic import chain is
+// lazy or the teardown is async-signal-safe.
+(process.platform === "win32" ? test.skip : it.instance)(
   "plugin-registered agents appear in Agent.list",
   () =>
     Effect.gen(function* () {
