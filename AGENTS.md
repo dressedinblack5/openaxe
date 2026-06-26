@@ -139,11 +139,11 @@ const table = sqliteTable("session", {
 
 - Avoid mocks as much as possible, you shouldn't be using globalThis.\* at all unless it's the only option.
 - Test actual implementation, do not duplicate logic into tests
-- Tests cannot run from repo root (guard: `do-not-run-tests-from-root`); run from package dirs like `packages/opencode`.
+- Tests cannot run from repo root (guard: `do-not-run-tests-from-root`); run from package dirs like `packages/openaxe`.
 
 ## Type Checking
 
-- Always run `bun typecheck` from package directories (e.g., `packages/opencode`), never `tsc` directly.
+- Always run `bun typecheck` from package directories (e.g., `packages/openaxe`), never `tsc` directly.
 
 ## V2 Session Core
 
@@ -172,4 +172,4 @@ sudo sysctl --system
 
 Electron on KDE/Wayland: the `LinuxDisplayBackend` setting ("auto"/"wayland") is stored in electron-store. If the window flickers or renders black, launch with `--disable-gpu` or `--use-gl=swiftshader`.
 
-The TUI (primary mode) has no Electron dependencies. Run via `bun dev` from `packages/opencode`.
+The TUI (primary mode) has no Electron dependencies. Run via `bun dev` from `packages/openaxe`.
