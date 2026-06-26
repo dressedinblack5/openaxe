@@ -198,13 +198,34 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
   // 4. `.openaxe` directories (and OPENCODE_CONFIG_DIR) discovered while
   // walking up the tree. Also returned below so callers can install plugin
   // dependencies from each location.
-  const dirs = unique(directories).filter((dir) => dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR)
+  const dirs = unique(directories).filter(
+    (dir) => dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR,
+  )
 
-  for (const dir of dirs) {
-    if (!dir.endsWith(".openaxe") && dir !== Flag.OPENCODE_CONFIG_DIR) continue
-    for (const file of ConfigPaths.fileInDirectory(dir, "tui")) {
-      yield* mergeFile(acc, file)
+  // Parallel read across all .openaxe dirs, then sequential merge
+  const fileEntries: { file: string; data: Info }[] = yield* Effect.forEach(
+    dirs,
+    (dir) =>
+      Effect.forEach(ConfigPaths.fileInDirectory(dir, "tui"), (file) =>
+        loadFile(file).pipe(Effect.map((data) => ({ file, data }))),
+      ),
+    { concurrency: "unbounded" },
+  ).pipe(Effect.map((groups) => groups.flat()))
+
+  for (const { file, data } of fileEntries) {
+    if (Object.keys(data).length) {
+      appliedOrder += 1
+      yield* Effect.logInfo("applying tui config", { path: file, order: appliedOrder })
     }
+    acc.result = mergeDeep(acc.result, data)
+    if (!data.plugin?.length) continue
+    const scope = pluginScope(file, ctx)
+    const plugins = ConfigPlugin.deduplicatePluginOrigins([
+      ...acc.plugin_origins,
+      ...data.plugin.map((spec) => ({ spec: spec as ConfigPlugin.Origin["spec"], scope, source: file })),
+    ])
+    acc.result = { ...acc.result, plugin: plugins.map((item) => item.spec) }
+    acc.plugin_origins = plugins
   }
 
   const result = TuiConfig.resolve(

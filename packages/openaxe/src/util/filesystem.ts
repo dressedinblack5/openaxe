@@ -8,14 +8,19 @@ import { Glob } from "@opencode-ai/core/util/glob"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { fileURLToPath } from "url"
 
-// Fast sync version for metadata checks
 export async function exists(p: string): Promise<boolean> {
-  return existsSync(p)
+  try {
+    await statFile(p)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function isDir(p: string): Promise<boolean> {
   try {
-    return statSync(p).isDirectory()
+    const s = await statFile(p)
+    return s.isDirectory()
   } catch {
     return false
   }
@@ -33,8 +38,13 @@ export async function statAsync(p: string): Promise<ReturnType<typeof statSync> 
 }
 
 export async function size(p: string): Promise<number> {
-  const s = stat(p)?.size ?? 0
-  return typeof s === "bigint" ? Number(s) : s
+  try {
+    const s = await statFile(p)
+    const sz = s.size
+    return typeof sz === "bigint" ? Number(sz) : sz
+  } catch {
+    return 0
+  }
 }
 
 export async function readText(p: string): Promise<string> {
@@ -89,7 +99,9 @@ export async function writeStream(
   mode?: number,
 ): Promise<void> {
   const dir = dirname(p)
-  if (!existsSync(dir)) {
+  try {
+    await statFile(dir)
+  } catch {
     await mkdir(dir, { recursive: true })
   }
 

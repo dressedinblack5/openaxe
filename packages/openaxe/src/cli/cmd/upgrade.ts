@@ -43,7 +43,19 @@ export const UpgradeCommand = {
       }
     }
     prompts.log.info("Using method: " + method)
-    const target = args.target ? args.target.replace(/^v/, "") : await Installation.latest()
+    const target = args.target
+      ? args.target.replace(/^v/, "")
+      : await Installation.latest().catch((err) => {
+          const msg = String(err)
+          if (msg.includes("404")) {
+            prompts.log.error("No releases found on GitHub — nothing to upgrade to yet")
+          } else {
+            prompts.log.error(`Failed to check latest version: ${msg}`)
+          }
+          prompts.outro("Done")
+          return
+        })
+    if (!target) return
 
     if (InstallationVersion === target) {
       prompts.log.warn(`opencode upgrade skipped: ${target} is already installed`)

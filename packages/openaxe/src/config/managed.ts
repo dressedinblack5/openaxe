@@ -1,6 +1,6 @@
 export * as ConfigManaged from "./managed"
 
-import { existsSync } from "fs"
+import { access } from "fs/promises"
 import os from "os"
 import path from "path"
 import { Process } from "@/util/process"
@@ -56,7 +56,8 @@ export async function readManagedPreferences() {
   ]
 
   for (const plist of paths) {
-    if (!existsSync(plist)) continue
+    const exists = await access(plist).then(() => true).catch(() => false)
+    if (!exists) continue
     const result = await Process.run(["plutil", "-convert", "json", "-o", "-", plist], { nothrow: true })
     if (result.code !== 0) continue
     return {

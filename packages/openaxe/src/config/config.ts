@@ -12,7 +12,6 @@ import { Auth } from "../auth"
 import { Env } from "../env"
 import { applyEdits, modify } from "jsonc-parser"
 import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/installation/version"
-import { existsSync } from "fs"
 import { Account } from "@/account/account"
 import { isRecord } from "@/util/record"
 import type { ConsoleState } from "@opencode-ai/core/v1/config/console-state"
@@ -137,13 +136,7 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/Co
 export const use = serviceUse(Service)
 
 function globalConfigFile() {
-  const candidates = ["openaxe.jsonc", "openaxe.json", "config.json"].map((file) =>
-    path.join(Global.Path.config, file),
-  )
-  for (const file of candidates) {
-    if (existsSync(file)) return file
-  }
-  return candidates[0]
+  return path.join(Global.Path.config, "openaxe.jsonc")
 }
 
 function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
@@ -249,7 +242,7 @@ export const layer = Layer.effect(
       // explicitly routes config through env-provided paths or content.
       if (!Flag.OPENCODE_CONFIG && !Flag.OPENCODE_CONFIG_DIR && !Flag.OPENCODE_CONFIG_CONTENT) {
         const file = globalConfigFile()
-        if (!existsSync(file)) {
+        if (!(yield* fs.existsSafe(file))) {
           yield* fs
             .writeWithDirs(
               file,
@@ -276,7 +269,7 @@ export const layer = Layer.effect(
       result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "openaxe.jsonc"), env))
 
       const legacy = path.join(Global.Path.config, "config")
-      if (existsSync(legacy)) {
+      if (yield* fs.existsSafe(legacy)) {
         yield* Effect.promise(() =>
           import(pathToFileURL(legacy).href, { with: { type: "toml" } })
             .then(async (mod) => {
@@ -529,7 +522,7 @@ export const layer = Layer.effect(
         }
 
         const managedDir = ConfigManaged.managedConfigDir()
-        if (existsSync(managedDir)) {
+        if (yield* fs.existsSafe(managedDir)) {
           for (const file of ["openaxe.json", "openaxe.jsonc"]) {
             const source = path.join(managedDir, file)
             yield* merge(source, yield* loadFile(source), "global")
