@@ -12,7 +12,7 @@
 
 <p align="center">
   <strong>openaxe</strong> — lean TUI/CLI AI coding assistant.<br>
-  A fork of OpenCode that strips the bloat, keeps the power.<br>
+  A fork of OpenCode that strips the bloat, crystalizes the power and embrace security.<br>
   Effect v4, security-first, 52% fewer packages.<br>
 </p>
 
