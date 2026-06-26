@@ -7,10 +7,10 @@
     "oh-my-openagent",
     "opencode-plugin-selector",
     "superpowers@git+https://github.com/obra/superpowers.git",
-    "/home/dressedinblack/ponytail/.opencode/plugins/ponytail.mjs",
     "opencode-vibeguard",
     "@tarquinen/opencode-dcp@latest",
-    "ecc-universal"
+    "ecc-universal",
+    "DietrichGebert/ponytail"
   ],
   "references": {
     "effect": {
