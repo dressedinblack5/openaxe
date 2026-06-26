@@ -260,6 +260,19 @@ const modelsFixture = Filesystem.readJson<Record<string, ModelsDev.Provider>>(
   path.join(import.meta.dir, "../tool/fixtures/models-api.json"),
 )
 
+// Noop Plugin service that skips all hook execution — prevents external plugins from
+// injecting system prompt text via experimental.chat.system.transform or similar hooks.
+const testPluginLayer = Layer.effect(
+  Plugin.Service,
+  Effect.succeed(
+    Plugin.Service.of({
+      trigger: <Name, Input, Output>(_name: Name, _input: Input, output: Output) => Effect.succeed(output),
+      list: () => Effect.succeed([] as never[]),
+      init: () => Effect.void,
+    }),
+  ),
+)
+
 function recordedNativeLLMLayer(scenario: RecordedScenario) {
   const auth = authLayer(scenario)
   const provider = Provider.layer.pipe(
@@ -267,9 +280,9 @@ function recordedNativeLLMLayer(scenario: RecordedScenario) {
     Layer.provide(Env.defaultLayer),
     Layer.provide(Config.defaultLayer),
     Layer.provide(auth),
-    Layer.provide(Plugin.defaultLayer),
+    Layer.provide(testPluginLayer),
     Layer.provide(ModelsDev.defaultLayer),
-    Layer.provide(RuntimeFlags.defaultLayer),
+    Layer.provide(RuntimeFlags.layer({ pure: true, disableDefaultPlugins: true })),
   )
   // Only the HTTP client is recorded; RequestExecutor and the opencode LLM stack remain real.
   const metadata = {
@@ -300,9 +313,9 @@ function recordedNativeLLMLayer(scenario: RecordedScenario) {
       Layer.provide(auth),
       Layer.provide(Config.defaultLayer),
       Layer.provide(provider),
-      Layer.provide(Plugin.defaultLayer),
+      Layer.provide(testPluginLayer),
       Layer.provide(recordedClient),
-      Layer.provide(RuntimeFlags.layer({ experimentalNativeLlm: true })),
+      Layer.provide(RuntimeFlags.layer({ experimentalNativeLlm: true, pure: true, disableDefaultPlugins: true })),
     ),
   )
 }

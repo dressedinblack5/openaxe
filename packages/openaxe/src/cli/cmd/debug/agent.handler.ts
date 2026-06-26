@@ -10,7 +10,6 @@ import type { MessageV2 } from "../../../session/message-v2"
 import { MessageID, PartID } from "../../../session/schema"
 import { ToolRegistry } from "@/tool/registry"
 import { Permission } from "../../../permission"
-import { iife } from "../../../util/iife"
 import { fail } from "../../effect-cmd"
 import { InstanceRef } from "@/effect/instance-ref"
 import type { InstanceContext } from "@/project/instance-context"
@@ -102,20 +101,7 @@ function parseToolParams(input?: string) {
   const trimmed = input.trim()
   if (trimmed.length === 0) return {}
 
-  const parsed = iife(() => {
-    try {
-      return JSON.parse(trimmed)
-    } catch (jsonError) {
-      try {
-        return new Function(`return (${trimmed})`)()
-      } catch (evalError) {
-        throw new Error(
-          `Failed to parse --params. Use JSON or a JS object literal. JSON error: ${jsonError}. Eval error: ${evalError}.`,
-          { cause: evalError },
-        )
-      }
-    }
-  })
+  const parsed = JSON.parse(trimmed)
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Tool params must be an object.")

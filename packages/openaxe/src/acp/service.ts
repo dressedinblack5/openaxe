@@ -92,16 +92,16 @@ export function make(input: {
     const started = performance.now()
     const authMethod: AuthMethod = {
       description: "Run `opencode auth login` in the terminal",
-      name: "Login with opencode",
+      name: "Login with openaxe",
       id: AuthMethodID,
     }
 
     if (params.clientCapabilities?._meta?.["terminal-auth"] === true) {
       authMethod._meta = {
         "terminal-auth": {
-          command: "opencode",
+          command: "openaxe",
           args: ["auth", "login"],
-          label: "OpenCode Login",
+          label: "OpenAxe Login",
         },
       }
     }

@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import * as path from "path"
+import { resolve } from "path"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import * as Bom from "../util/bom"
 
@@ -595,11 +595,11 @@ export const maybeParseApplyPatchVerified = Effect.fn("Patch.maybeParseApplyPatc
     case MaybeApplyPatch.Body: {
       const fs = yield* FSUtil.Service
       const args = result.args
-      const effectiveCwd = args.workdir ? path.resolve(cwd, args.workdir) : cwd
+      const effectiveCwd = args.workdir ? resolve(cwd, args.workdir) : cwd
       const changes = new Map<string, ApplyPatchFileChange>()
 
       for (const hunk of args.hunks) {
-        const resolvedPath = path.resolve(
+        const resolvedPath = resolve(
           effectiveCwd,
           hunk.type === "update" && hunk.move_path ? hunk.move_path : hunk.path,
         )
@@ -613,7 +613,7 @@ export const maybeParseApplyPatchVerified = Effect.fn("Patch.maybeParseApplyPatc
             break
 
           case "delete": {
-            const deletePath = path.resolve(effectiveCwd, hunk.path)
+            const deletePath = resolve(effectiveCwd, hunk.path)
             const content = yield* fs.readFileString(deletePath).pipe(Effect.catch(() => Effect.succeed(undefined)))
             if (content === undefined) {
               return {
@@ -629,7 +629,7 @@ export const maybeParseApplyPatchVerified = Effect.fn("Patch.maybeParseApplyPatc
           }
 
           case "update": {
-            const updatePath = path.resolve(effectiveCwd, hunk.path)
+            const updatePath = resolve(effectiveCwd, hunk.path)
             const originalText = yield* fs
               .readFileString(updatePath)
               .pipe(
@@ -648,7 +648,7 @@ export const maybeParseApplyPatchVerified = Effect.fn("Patch.maybeParseApplyPatc
               changes.set(resolvedPath, {
                 type: "update",
                 unified_diff: fileUpdate.unified_diff,
-                move_path: hunk.move_path ? path.resolve(effectiveCwd, hunk.move_path) : undefined,
+                move_path: hunk.move_path ? resolve(effectiveCwd, hunk.move_path) : undefined,
                 new_content: fileUpdate.content,
               })
             } catch (error) {

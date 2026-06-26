@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import * as path from "path"
+import { isAbsolute, join, relative } from "path"
 import { Effect } from "effect"
 import * as Tool from "./tool"
 import { LSP } from "@/lsp/lsp"
@@ -38,9 +38,9 @@ export const WriteTool = Tool.define(
       execute: (params: { content: string; filePath: string }, ctx: Tool.Context) =>
         Effect.gen(function* () {
           const instance = yield* InstanceState.context
-          const filepath = path.isAbsolute(params.filePath)
+          const filepath = isAbsolute(params.filePath)
             ? params.filePath
-            : path.join(instance.directory, params.filePath)
+            : join(instance.directory, params.filePath)
           yield* assertExternalDirectoryEffect(ctx, filepath)
 
           const exists = yield* fs.existsSafe(filepath)
@@ -53,7 +53,7 @@ export const WriteTool = Tool.define(
           const diff = trimDiff(createTwoFilesPatch(filepath, filepath, contentOld, contentNew))
           yield* ctx.ask({
             permission: "edit",
-            patterns: [path.relative(instance.worktree, filepath)],
+            patterns: [relative(instance.worktree, filepath)],
             always: ["*"],
             metadata: {
               filepath,
@@ -90,7 +90,7 @@ export const WriteTool = Tool.define(
           }
 
           return {
-            title: path.relative(instance.worktree, filepath),
+            title: relative(instance.worktree, filepath),
             metadata: {
               diagnostics,
               filepath,

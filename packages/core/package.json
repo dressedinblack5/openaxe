@@ -12,9 +12,7 @@
     "test": "bun test --only-failures",
     "typecheck": "tsgo --noEmit"
   },
-  "bin": {
-    "opencode": "./bin/opencode"
-  },
+  "bin": {},
   "exports": {
     "./public": "./src/public/index.ts",
     "./session/runner": "./src/session/runner/index.ts",

@@ -11,9 +11,10 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (base branch only — never PR code for pull_request_target)
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 1
 
       - name: Check team membership

@@ -70,16 +70,18 @@ export const layer = Layer.effect(
       )
     })
 
+    const sanitize = Effect.mapError(() => new Error("MCP auth operation failed"))
+
     const all = Effect.fn("McpAuth.all")(function* () {
-      return yield* read().pipe(flock.withLock(lockKey), Effect.orDie)
+      return yield* read().pipe(flock.withLock(lockKey), sanitize, Effect.orDie)
     })
 
     const mutate = Effect.fn("McpAuth.mutate")(function* (update: (data: AuthData) => AuthData | undefined) {
       yield* Effect.gen(function* () {
         const next = update(yield* read())
         if (!next) return
-        yield* fs.writeJson(filepath, next, 0o600).pipe(Effect.orDie)
-      }).pipe(flock.withLock(lockKey), Effect.orDie)
+        yield* fs.writeJson(filepath, next, 0o600).pipe(sanitize, Effect.orDie)
+      }).pipe(flock.withLock(lockKey), sanitize, Effect.orDie)
     })
 
     const get = Effect.fn("McpAuth.get")(function* (mcpName: string) {

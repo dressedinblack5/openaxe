@@ -76,7 +76,9 @@ export const load = Effect.fn("SessionHistory.load")(function* (db: DatabaseServ
     ],
     { concurrency: "unbounded" },
   )
-  return yield* Effect.forEach(yield* messageRows(db, sessionID, compaction, epoch?.baselineSeq), decodeMessageRow)
+  return yield* Effect.forEach(yield* messageRows(db, sessionID, compaction, epoch?.baselineSeq), decodeMessageRow, {
+    concurrency: "unbounded",
+  })
 })
 
 export const loadForRunner = Effect.fn("SessionHistory.loadForRunner")(function* (
@@ -94,7 +96,7 @@ export const entriesForRunner = Effect.fn("SessionHistory.entriesForRunner")(fun
 ) {
   const rows = yield* messageRows(db, sessionID, yield* latestCompaction(db, sessionID), baselineSeq)
   return yield* Effect.forEach(rows, (row) =>
-    decodeMessageRow(row).pipe(Effect.map((message) => ({ seq: row.seq, message }))),
+    decodeMessageRow(row).pipe(Effect.map((message) => ({ seq: row.seq, message }))), { concurrency: "unbounded" },
   )
 })
 
