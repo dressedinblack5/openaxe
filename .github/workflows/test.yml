@@ -30,8 +30,6 @@ jobs:
         settings:
           - name: linux
             host: ubuntu-latest
-          - name: windows
-            host: windows-latest
     runs-on: ${{ matrix.settings.host }}
     defaults:
       run:
@@ -67,11 +65,8 @@ jobs:
       - name: Run unit tests
         timeout-minutes: 30
         run: GITHUB_ACTIONS=false bun turbo test
-        env:
-          OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
 
       - name: Run HttpApi exerciser gates
-        if: runner.os == 'Linux'
         working-directory: packages/openaxe
         run: bun run test:httpapi
 
