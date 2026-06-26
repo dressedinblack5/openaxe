@@ -317,7 +317,7 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
             yield* Effect.logError("prompt_async failed", { sessionID: ctx.params.sessionID, cause })
             yield* events.publish(Session.Event.Error, {
               sessionID: ctx.params.sessionID,
-              error: new NamedError.Unknown({ message: Cause.pretty(cause) }).toObject(),
+              error: new NamedError.Unknown({ message: "An unexpected error occurred" }).toObject(),
             })
           }),
         ),
