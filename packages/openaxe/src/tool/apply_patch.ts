@@ -1,4 +1,4 @@
-import * as path from "path"
+import { relative, resolve } from "path"
 import { Effect, Schema } from "effect"
 import * as Tool from "./tool"
 import { EventV2Bridge } from "@/event-v2-bridge"
@@ -70,7 +70,7 @@ export const ApplyPatchTool = Tool.define(
       let totalDiff = ""
 
       for (const hunk of hunks) {
-        const filePath = path.resolve(instance.directory, hunk.path)
+        const filePath = resolve(instance.directory, hunk.path)
         yield* assertExternalDirectoryEffect(ctx, filePath)
 
         switch (hunk.type) {
@@ -139,7 +139,7 @@ export const ApplyPatchTool = Tool.define(
               if (change.removed) deletions += change.count || 0
             }
 
-            const movePath = hunk.move_path ? path.resolve(instance.directory, hunk.move_path) : undefined
+            const movePath = hunk.move_path ? resolve(instance.directory, hunk.move_path) : undefined
             yield* assertExternalDirectoryEffect(ctx, movePath)
 
             fileChanges.push({
@@ -193,7 +193,7 @@ export const ApplyPatchTool = Tool.define(
       // Build per-file metadata for UI rendering (used for both permission and result)
       const files = fileChanges.map((change) => ({
         filePath: change.filePath,
-        relativePath: path.relative(instance.worktree, change.movePath ?? change.filePath).replaceAll("\\", "/"),
+        relativePath: relative(instance.worktree, change.movePath ?? change.filePath).replaceAll("\\", "/"),
         type: change.type,
         patch: change.diff,
         additions: change.additions,
@@ -202,7 +202,7 @@ export const ApplyPatchTool = Tool.define(
       }))
 
       // Check permissions if needed
-      const relativePaths = fileChanges.map((c) => path.relative(instance.worktree, c.filePath).replaceAll("\\", "/"))
+      const relativePaths = fileChanges.map((c) => relative(instance.worktree, c.filePath).replaceAll("\\", "/"))
       yield* ctx.ask({
         permission: "edit",
         patterns: relativePaths,
@@ -273,13 +273,13 @@ export const ApplyPatchTool = Tool.define(
       // Generate output summary
       const summaryLines = fileChanges.map((change) => {
         if (change.type === "add") {
-          return `A ${path.relative(instance.worktree, change.filePath).replaceAll("\\", "/")}`
+          return `A ${relative(instance.worktree, change.filePath).replaceAll("\\", "/")}`
         }
         if (change.type === "delete") {
-          return `D ${path.relative(instance.worktree, change.filePath).replaceAll("\\", "/")}`
+          return `D ${relative(instance.worktree, change.filePath).replaceAll("\\", "/")}`
         }
         const target = change.movePath ?? change.filePath
-        return `M ${path.relative(instance.worktree, target).replaceAll("\\", "/")}`
+        return `M ${relative(instance.worktree, target).replaceAll("\\", "/")}`
       })
       let output = `Success. Updated the following files:\n${summaryLines.join("\n")}`
 
@@ -288,7 +288,7 @@ export const ApplyPatchTool = Tool.define(
         const target = change.movePath ?? change.filePath
         const block = LSP.Diagnostic.report(target, diagnostics[FSUtil.normalizePath(target)] ?? [])
         if (!block) continue
-        const rel = path.relative(instance.worktree, target).replaceAll("\\", "/")
+        const rel = relative(instance.worktree, target).replaceAll("\\", "/")
         output += `\n\nLSP errors detected in ${rel}, please fix:\n${block}`
       }
 

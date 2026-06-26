@@ -1,6 +1,6 @@
 import { Effect, Option, Schema, Scope, Stream } from "effect"
 import { NonNegativeInt } from "@opencode-ai/core/schema"
-import * as path from "path"
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "path"
 import * as Tool from "./tool"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { LSP } from "@/lsp/lsp"
@@ -74,8 +74,8 @@ export const ReadTool = Tool.define<
     const scope = yield* Scope.Scope
 
     const miss = Effect.fn("ReadTool.miss")(function* (filepath: string) {
-      const dir = path.dirname(filepath)
-      const base = path.basename(filepath)
+      const dir = dirname(filepath)
+      const base = basename(filepath)
       const items = yield* fs.readDirectory(dir).pipe(
         Effect.map((items) =>
           items
@@ -83,7 +83,7 @@ export const ReadTool = Tool.define<
               (item) =>
                 item.toLowerCase().includes(base.toLowerCase()) || base.toLowerCase().includes(item.toLowerCase()),
             )
-            .map((item) => path.join(dir, item))
+            .map((item) => join(dir, item))
             .slice(0, 3),
         ),
         Effect.catch(() => Effect.succeed([] as string[])),
@@ -106,7 +106,7 @@ export const ReadTool = Tool.define<
           if (item.type === "directory") return item.name + "/"
           if (item.type !== "symlink") return item.name
 
-          const target = yield* fs.stat(path.join(filepath, item.name)).pipe(Effect.catch(() => Effect.void))
+          const target = yield* fs.stat(join(filepath, item.name)).pipe(Effect.catch(() => Effect.void))
           if (target?.type === "Directory") return item.name + "/"
           return item.name
         }),
@@ -180,7 +180,7 @@ export const ReadTool = Tool.define<
     })
 
     const isBinaryFile = (filepath: string, bytes: Uint8Array) => {
-      const ext = path.extname(filepath).toLowerCase()
+      const ext = extname(filepath).toLowerCase()
       switch (ext) {
         case ".zip":
         case ".tar":
@@ -232,13 +232,13 @@ export const ReadTool = Tool.define<
     ) {
       const instance = yield* InstanceState.context
       let filepath = params.filePath
-      if (!path.isAbsolute(filepath)) {
-        filepath = path.resolve(instance.directory, filepath)
+      if (!isAbsolute(filepath)) {
+        filepath = resolve(instance.directory, filepath)
       }
       if (process.platform === "win32") {
         filepath = FSUtil.normalizePath(filepath)
       }
-      const title = path.relative(instance.worktree, filepath)
+      const title = relative(instance.worktree, filepath)
 
       const stat = yield* fs.stat(filepath).pipe(
         Effect.catchIf(
@@ -254,7 +254,7 @@ export const ReadTool = Tool.define<
 
       yield* ctx.ask({
         permission: "read",
-        patterns: [path.relative(instance.worktree, filepath)],
+        patterns: [relative(instance.worktree, filepath)],
         always: ["*"],
         metadata: {},
       })
