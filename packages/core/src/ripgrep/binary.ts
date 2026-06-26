@@ -1,3 +1,5 @@
+import { exec } from "child_process"
+import { promisify } from "util"
 import path from "path"
 import { Context, Effect, Layer, Stream } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http"
@@ -9,6 +11,8 @@ import { httpClient } from "../effect/layer-node-platform"
 import { FSUtil } from "../fs-util"
 import { Global } from "../global"
 import { which } from "../util/which"
+
+const execAsync = promisify(exec)
 
 export namespace RipgrepBinary {
   const VERSION = "15.1.0"
@@ -56,20 +60,22 @@ export namespace RipgrepBinary {
         const dir = yield* fs.makeTempDirectoryScoped({ directory: Global.Path.bin, prefix: "ripgrep-" })
 
         if (config.extension === "zip") {
-          // ponytail: tar handles zip on all platforms (Windows 10+ has tar.exe via libarchive)
-          const result = yield* run("tar", ["-xf", archive, "-C", dir])
-          if (result.code !== 0) {
-            // ponytail: PowerShell fallback if tar fails; add 7z/bsdtar when throughput matters
-            const shell = (yield* Effect.sync(() => which("powershell.exe") ?? which("pwsh.exe"))) ?? "powershell.exe"
-            const ps = yield* run(shell, [
-              "-NoProfile", "-NonInteractive", "-Command",
-              `Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force`,
-            ])
-            if (ps.code !== 0) {
-              throw new Error(
-                ps.stderr.trim() || ps.stdout.trim() || `ripgrep extraction failed with code ${ps.code}`,
-              )
-            }
+          // Use Node.js exec with shell for reliable PATHEXT resolution on Windows
+          const tarCmd = `tar -xf "${archive.replaceAll('"', '\\"')}" -C "${dir.replaceAll('"', '\\"')}"`
+          const tarResult = yield* Effect.tryPromise({
+            try: () => execAsync(tarCmd, { shell: true }),
+            catch: () => undefined as void | undefined,
+          })
+          if (tarResult === undefined) {
+            const shell = which("powershell.exe") ?? which("pwsh.exe") ?? "powershell.exe"
+            const psCmd = `& { $global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force }`
+            yield* Effect.tryPromise({
+              try: () => execAsync(`"${shell}" -NoProfile -NonInteractive -Command "${psCmd.replaceAll('"', '\\"')}"`, { shell: true }),
+              catch: (cause: unknown) => {
+                const msg = cause instanceof Error ? cause.message : String(cause)
+                throw new Error(`ripgrep extraction failed: ${msg}`)
+              },
+            })
           }
         }
 
