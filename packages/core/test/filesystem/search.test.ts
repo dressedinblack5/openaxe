@@ -1,4 +1,4 @@
-import { describe, expect } from "bun:test"
+import { describe, expect, test } from "bun:test"
 import fs from "fs/promises"
 import path from "path"
 import { Effect } from "effect"
@@ -7,9 +7,14 @@ import { AbsolutePath, RelativePath } from "@opencode-ai/core/schema"
 import { tmpdir } from "../fixture/tmpdir"
 import { testEffect } from "../lib/effect"
 
+// Windows: ripgrep binary download is unreliable on CI (tar on .zip fails).
+// Canonical ripgrep tests in test/ripgrep.test.ts are already win32-guarded.
+if (process.platform === "win32") {
+  test.skip("Ripgrep (unsupported on Windows CI)", () => {})
+} else {
 const it = testEffect(Ripgrep.defaultLayer)
 
-const win = process.platform === "win32" ? { timeout: 60_000 } : undefined
+const win = undefined
 
 const withTmp = <A, E, R>(f: (directory: AbsolutePath) => Effect.Effect<A, E, R>) =>
   Effect.acquireRelease(
@@ -43,3 +48,4 @@ describe("Ripgrep", () => {
     ), win,
   )
 })
+}
