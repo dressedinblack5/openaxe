@@ -66,11 +66,14 @@ export const layer = Layer.effect(
       return Record.filterMap(data, (value) => Result.fromOption(decode(value), () => undefined))
     })
 
-    let cached: Record<string, Info> | undefined
+    let cached: { data: Record<string, Info>; ts: number } | undefined
 
     const all = Effect.fn("Auth.all")(function* () {
-      if (!cached) cached = yield* readAuth()
-      return cached!
+      const now = Date.now()
+      if (!cached || now - cached.ts > 5_000) {
+        cached = { data: yield* readAuth(), ts: now }
+      }
+      return cached.data
     })
 
     const get = Effect.fn("Auth.get")(function* (providerID: string) {
