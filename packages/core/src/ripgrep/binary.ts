@@ -64,7 +64,10 @@ export namespace RipgrepBinary {
         if (config.extension === "zip") {
           // Use Node.js exec with shell for reliable PATHEXT resolution on Windows
           const tarCmd = `tar -xf "${archive.replaceAll('"', '\\"')}" -C "${dir.replaceAll('"', '\\"')}"`
-          const tarOk = yield* Effect.tryPromise({ try: () => execAsync(tarCmd, { shell: true }) }).pipe(Effect.isSuccess)
+          const tarOk = yield* Effect.tryPromise({
+            try: () => execAsync(tarCmd, { shell: true }),
+            catch: () => { throw new Error("skip") },
+          }).pipe(Effect.isSuccess)
           if (!tarOk) {
             const shell = which("powershell.exe") ?? which("pwsh.exe") ?? "powershell.exe"
             const psCmd = `& { $global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force }`
