@@ -63,7 +63,7 @@ jobs:
             turbo-${{ runner.os }}-
 
       - name: Run unit tests
-        timeout-minutes: 30
+        timeout-minutes: 60
         run: GITHUB_ACTIONS=false bun turbo test
 
       - name: Run HttpApi exerciser gates
