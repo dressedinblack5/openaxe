@@ -35,6 +35,19 @@ import { ConfigPlugin } from "./plugin"
 import { ConfigVariable } from "./variable"
 import { Npm } from "@opencode-ai/core/npm"
 import { withTransientReadRetry } from "@/util/effect-http-client"
+import { parsePluginSpecifier } from "@/plugin/shared"
+
+// Default plugins that ship with every openaxe install. They are injected into the
+// loaded config so existing users' stale global configs still pick up new defaults.
+const BUNDLED_PLUGINS = [
+  "oh-my-openagent",
+  "opencode-plugin-selector",
+  "superpowers",
+  "opencode-vibeguard",
+  "@tarquinen/opencode-dcp",
+  "ecc-universal",
+  "DietrichGebert/ponytail",
+] as const
 
 // Custom merge function that concatenates array fields instead of replacing them
 // Keep remeda's deep conditional merge type out of hot config-loading paths; TS profiling showed it dominates here.
@@ -256,15 +269,7 @@ export const layer = Layer.effect(
               JSON.stringify(
                 {
                   $schema: "https://opencode.ai/config.json",
-                  plugin: [
-                    "oh-my-openagent",
-                    "opencode-plugin-selector",
-                    "superpowers",
-                    "opencode-vibeguard",
-                    "@tarquinen/opencode-dcp",
-                    "ecc-universal",
-                    "DietrichGebert/ponytail",
-                  ],
+                  plugin: [...BUNDLED_PLUGINS],
                 },
                 null,
                 2,
@@ -291,6 +296,14 @@ export const layer = Layer.effect(
             })
             .catch(() => {}),
         )
+      }
+
+      // Ensure bundled plugins are always present, even if the config file was
+      // written before a newer openaxe release added them as defaults.
+      const seen = new Set((result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg))
+      const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
+      if (add.length) {
+        result.plugin = [...(result.plugin ?? []), ...add]
       }
 
       return result
