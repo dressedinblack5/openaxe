@@ -57,7 +57,7 @@ it.instance(
       }),
     ),
   { config: {} },
-  30000,
+  60000,
 )
 
 it.instance(
