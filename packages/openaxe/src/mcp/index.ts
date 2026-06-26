@@ -354,6 +354,7 @@ export const layer = Layer.effect(
         })),
         Effect.catch((error): Effect.Effect<{ client: MCPClient | undefined; status: Status }> => {
           const msg = error instanceof Error ? error.message : String(error)
+          Effect.logError("MCP connectLocal failed", { key, type: mcp.type, error: msg }).pipe(Effect.runFork)
           return Effect.succeed({ client: undefined, status: { status: "failed", error: msg } })
         }),
       )
