@@ -9,6 +9,9 @@ import { testEffect } from "./lib/effect"
 
 const it = testEffect(Ripgrep.defaultLayer)
 
+// Windows: needs more time for downloading + PowerShell Expand-Archive
+const win = process.platform === "win32" ? { timeout: 60_000 } : undefined
+
 describe("Ripgrep", () => {
   it.live("keeps ignored files out of catch-all find results", () =>
     Effect.acquireUseRelease(
@@ -27,7 +30,7 @@ describe("Ripgrep", () => {
           expect(files.map((item) => item.path)).not.toContain(RelativePath.make("node_modules/pkg/index.js"))
         }),
       (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
-    ),
+    ), win,
   )
 
   it.live("never includes git metadata", () =>
@@ -59,6 +62,6 @@ describe("Ripgrep", () => {
           expect(matches.map((item) => item.entry.path)).not.toContain(RelativePath.make(".git/config"))
         }),
       (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
-    ),
+    ), win,
   )
 })

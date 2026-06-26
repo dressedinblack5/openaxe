@@ -9,6 +9,8 @@ import { testEffect } from "../lib/effect"
 
 const it = testEffect(Ripgrep.defaultLayer)
 
+const win = process.platform === "win32" ? { timeout: 60_000 } : undefined
+
 const withTmp = <A, E, R>(f: (directory: AbsolutePath) => Effect.Effect<A, E, R>) =>
   Effect.acquireRelease(
     Effect.promise(() => tmpdir()),
@@ -24,7 +26,7 @@ describe("Ripgrep", () => {
         const result = yield* (yield* Ripgrep.Service).glob({ cwd, pattern: "**/*.ts", limit: 10 })
         expect(result.map((item) => item.path)).toEqual([RelativePath.make("src/match.ts")])
       }),
-    ),
+    ), win,
   )
 
   it.live("greps files with include filtering", () =>
@@ -38,6 +40,6 @@ describe("Ripgrep", () => {
         expect(result[0]?.entry.path).toBe(RelativePath.make("src/match.ts"))
         expect(result[0]?.submatches[0]?.text).toBe("needle")
       }),
-    ),
+    ), win,
   )
 })
