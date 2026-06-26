@@ -1,4 +1,5 @@
 import path from "node:path"
+import { createRequire } from "node:module"
 import { pathToFileURL } from "node:url"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { type Tool } from "ai"
@@ -483,6 +484,23 @@ export const layer = Layer.effect(
         const cfg = yield* cfgSvc.get()
         const bridge = yield* EffectBridge.make()
         const config = cfg.mcp ?? {}
+
+        // ponytail: inject CodeGraph as built-in MCP when installed; user config overrides
+        if (!config.codegraph) {
+          const tryResolve = Option.liftThrowable(() =>
+            createRequire(import.meta.url).resolve(
+              `@colbymchenry/codegraph-${process.platform}-${process.arch}/bin/codegraph`,
+            ),
+          )
+          const codegraphBin = tryResolve()
+          if (Option.isSome(codegraphBin)) {
+            config.codegraph = {
+              type: "local",
+              command: [codegraphBin.value, "serve", "--mcp"],
+            } satisfies ConfigMCPV1.Info
+          }
+        }
+
         const s: State = {
           config: {},
           status: {},
