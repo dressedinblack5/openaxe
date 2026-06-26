@@ -16,6 +16,10 @@
   Effect v4, security-first, 52% fewer packages.<br>
 </p>
 
+<p align="center">
+  <img src="screenshots/openaxe-preview.png" alt="openaxe preview" width="720">
+</p>
+
 ---
 
 ## Features
