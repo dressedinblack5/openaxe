@@ -262,6 +262,8 @@ export const layer = Layer.effect(
                     "superpowers",
                     "opencode-vibeguard",
                     "@tarquinen/opencode-dcp",
+                    "ecc-universal",
+                    "DietrichGebert/ponytail",
                   ],
                 },
                 null,
