@@ -12,7 +12,9 @@ import { FSUtil } from "../fs-util"
 import { Global } from "../global"
 import { which } from "../util/which"
 
-const execAsync = promisify(exec)
+// ponytail: promisify exec — shell resolves PATHEXT on Windows where
+// ChildProcessSpawner doesn't.
+const execAsync = promisify(exec) as (cmd: string, opts?: { shell?: string | boolean }) => Promise<{ stdout: string; stderr: string }>
 
 export namespace RipgrepBinary {
   const VERSION = "15.1.0"
@@ -62,11 +64,8 @@ export namespace RipgrepBinary {
         if (config.extension === "zip") {
           // Use Node.js exec with shell for reliable PATHEXT resolution on Windows
           const tarCmd = `tar -xf "${archive.replaceAll('"', '\\"')}" -C "${dir.replaceAll('"', '\\"')}"`
-          const tarResult = yield* Effect.tryPromise({
-            try: () => execAsync(tarCmd, { shell: true }),
-            catch: () => undefined as void | undefined,
-          })
-          if (tarResult === undefined) {
+          const tarOk = yield* Effect.tryPromise({ try: () => execAsync(tarCmd, { shell: true }) }).pipe(Effect.isSuccess)
+          if (!tarOk) {
             const shell = which("powershell.exe") ?? which("pwsh.exe") ?? "powershell.exe"
             const psCmd = `& { $global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force }`
             yield* Effect.tryPromise({
