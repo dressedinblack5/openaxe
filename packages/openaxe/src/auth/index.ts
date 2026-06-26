@@ -66,8 +66,12 @@ export const layer = Layer.effect(
       return Record.filterMap(data, (value) => Result.fromOption(decode(value), () => undefined))
     })
 
-    const allCached = yield* Effect.cached(readAuth())
-    const all = () => allCached
+    let cached: Record<string, Info> | undefined
+
+    const all = Effect.fn("Auth.all")(function* () {
+      if (!cached) cached = yield* readAuth()
+      return cached!
+    })
 
     const get = Effect.fn("Auth.get")(function* (providerID: string) {
       return (yield* all())[providerID]
@@ -76,6 +80,7 @@ export const layer = Layer.effect(
     const set = Effect.fn("Auth.set")(function* (key: string, info: Info) {
       const norm = key.replace(/\/+$/, "")
       const data = yield* readAuth()
+      cached = undefined
       if (norm !== key) delete data[key]
       delete data[norm + "/"]
       yield* fsys
@@ -86,6 +91,7 @@ export const layer = Layer.effect(
     const remove = Effect.fn("Auth.remove")(function* (key: string) {
       const norm = key.replace(/\/+$/, "")
       const data = yield* readAuth()
+      cached = undefined
       delete data[key]
       delete data[norm]
       yield* fsys.writeJson(file, data, 0o600).pipe(Effect.mapError(fail("Failed to write auth data")))
