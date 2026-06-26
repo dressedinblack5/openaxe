@@ -66,7 +66,7 @@ export namespace RipgrepBinary {
           const tarCmd = `tar -xf "${archive.replaceAll('"', '\\"')}" -C "${dir.replaceAll('"', '\\"')}"`
           const tarOk = yield* Effect.tryPromise({
             try: () => execAsync(tarCmd, { shell: true }),
-            catch: () => { throw new Error("skip") },
+            catch: (cause) => { throw cause instanceof Error ? cause : new Error(String(cause)) },
           }).pipe(Effect.isSuccess)
           if (!tarOk) {
             const shell = which("powershell.exe") ?? which("pwsh.exe") ?? "powershell.exe"
