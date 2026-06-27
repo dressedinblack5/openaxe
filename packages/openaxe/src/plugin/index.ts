@@ -283,6 +283,11 @@ export const layer = Layer.effect(
       Output = Parameters<Required<Hooks>[Name]>[1],
     >(name: Name, input: Input, output: Output) {
       if (!name) return output
+      // Don't trigger lazy init — same rationale as list(): plugin bootstrap
+      // involves dynamic server imports and may be called from within other
+      // InstanceState inits. No-op until the service is fully booted.
+      const ready = yield* InstanceState.has(state)
+      if (!ready) return output
       const s = yield* InstanceState.get(state)
       for (const hook of s.hooks) {
         const fn = hook[name] as any
@@ -293,6 +298,13 @@ export const layer = Layer.effect(
     })
 
     const list = Effect.fn("Plugin.list")(function* () {
+      // Don't trigger lazy init — plugin bootstrap can be expensive (dynamic
+      // server imports, internal plugin loading) and may deadlock when called
+      // from another InstanceState init (e.g. Provider -> plugin.list).
+      // Return empty when not yet initialized; callers that need plugins will
+      // get them once the Plugin service is fully booted.
+      const ready = yield* InstanceState.has(state)
+      if (!ready) return []
       const s = yield* InstanceState.get(state)
       return s.hooks
     })
