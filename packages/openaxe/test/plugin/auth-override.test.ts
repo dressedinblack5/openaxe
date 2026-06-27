@@ -17,29 +17,32 @@ import { ProviderV2 } from "@opencode-ai/core/provider"
 
 const it = testEffect(Layer.mergeAll(CrossSpawnSpawner.defaultLayer, FSUtil.defaultLayer))
 
-function layer(directory: string, plugins: string[]) {
-  return ProviderAuth.layer.pipe(
-    Layer.provide(Auth.defaultLayer),
+function pluginLayer(directory: string, plugins: string[]) {
+  return Plugin.layer.pipe(
+    Layer.provide(EventV2Bridge.defaultLayer),
+    Layer.provide(RuntimeFlags.layer()),
     Layer.provide(
-      Plugin.layer.pipe(
-        Layer.provide(EventV2Bridge.defaultLayer),
-        Layer.provide(RuntimeFlags.layer()),
-        Layer.provide(
-          TestConfig.layer({
-            get: () =>
-              Effect.succeed({
-                plugin: plugins,
-                plugin_origins: plugins.map((plugin) => ({
-                  spec: plugin,
-                  source: path.join(directory, "openaxe.json"),
-                  scope: "local" as const,
-                })),
-              }),
-            directories: () => Effect.succeed([directory]),
+      TestConfig.layer({
+        get: () =>
+          Effect.succeed({
+            plugin: plugins,
+            plugin_origins: plugins.map((plugin) => ({
+              spec: plugin,
+              source: path.join(directory, "openaxe.json"),
+              scope: "local" as const,
+            })),
           }),
-        ),
-      ),
+        directories: () => Effect.succeed([directory]),
+      }),
     ),
+  )
+}
+
+function layer(directory: string, plugins: string[]) {
+  const pl = pluginLayer(directory, plugins)
+  return Layer.mergeAll(
+    ProviderAuth.layer.pipe(Layer.provide(Auth.defaultLayer), Layer.provide(pl)),
+    pl,
   )
 }
 
@@ -73,10 +76,16 @@ describe("plugin.auth-override", () => {
 
         const plain = yield* tmpdirScoped({ git: true })
         const plugin = pathToFileURL(path.join(pluginDir, "custom-copilot-auth.ts")).href
-        const methods = yield* ProviderAuth.use.methods().pipe(Effect.provide(layer(tmp.directory, [plugin])))
-        const plainMethods = yield* ProviderAuth.use
-          .methods()
-          .pipe(Effect.provide(layer(plain, [])), provideInstance(plain))
+        const methods = yield* Effect.gen(function* () {
+          const p = yield* Plugin.Service
+          yield* p.init()
+          return yield* ProviderAuth.use.methods()
+        }).pipe(Effect.provide(layer(tmp.directory, [plugin])))
+        const plainMethods = yield* Effect.gen(function* () {
+          const p = yield* Plugin.Service
+          yield* p.init()
+          return yield* ProviderAuth.use.methods()
+        }).pipe(Effect.provide(layer(plain, [])), provideInstance(plain))
 
         const copilot = methods[ProviderV2.ID.make("github-copilot")]
         expect(copilot).toBeDefined()

@@ -94,6 +94,7 @@ function withProject<A, E, R>(source: string, self: Effect.Effect<A, E, R>) {
 
 const triggerSystemTransform = Effect.fn("PluginTriggerTest.triggerSystemTransform")(function* () {
   const plugin = yield* Plugin.Service
+  yield* plugin.init()
   const out = { system: [] as string[] }
   yield* plugin.trigger(
     systemHook,

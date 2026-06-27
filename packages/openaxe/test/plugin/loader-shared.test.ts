@@ -42,6 +42,7 @@ function load(dir: string, flags?: Parameters<typeof RuntimeFlags.layer>[0]) {
     const plugins = config.plugin ?? []
     return yield* Effect.gen(function* () {
       const plugin = yield* Plugin.Service
+      yield* plugin.init()
       yield* plugin.list()
     }).pipe(
       Effect.provide(
