@@ -184,7 +184,13 @@ export const TuiCommand = cmd({
 
     const unguard = win32InstallCtrlCGuard()
     try {
-      const { TuiConfig } = await import("@/config/tui")
+      // Kick off all heavy module imports in parallel
+      const configMod = import("@/config/tui")
+      const effectMod = import("effect")
+      const layerMod = import("../tui/layer")
+      const pluginMod = import("@/plugin/tui/runtime")
+
+      const { TuiConfig } = await configMod
       if (args.fork && !args.continue && !args.session) {
         UI.error("--fork requires --continue or --session")
         process.exitCode = 1
@@ -261,9 +267,9 @@ export const TuiCommand = cmd({
       }, 1000).unref?.()
 
       try {
-        const { Effect } = await import("effect")
-        const { run } = await import("../tui/layer")
-        const { createLegacyTuiPluginHost } = await import("@/plugin/tui/runtime")
+        const { Effect } = await effectMod
+        const { run } = await layerMod
+        const { createLegacyTuiPluginHost } = await pluginMod
         await Effect.runPromise(
           run({
             url: transport.url,

@@ -4,7 +4,6 @@ import yargs from "yargs"
 import { hideBin } from "yargs/helpers"
 import { UI } from "./cli/ui"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
-import { TuiCommand } from "./cli/cmd/tui"
 import { EOL } from "os"
 import { lazyCommand } from "./cli/lazy-command"
 
@@ -63,7 +62,9 @@ const cli = yargs(args)
   .command(lazyCommand("mcp", "manage MCP (Model Context Protocol) servers", undefined, () =>
     import("./cli/cmd/mcp").then((m) => m.McpCommand),
   ))
-  .command(TuiCommand)
+  .command(lazyCommand("$0 [project]", "start opencode tui", undefined, () =>
+    import("./cli/cmd/tui").then((m) => m.TuiCommand),
+  ))
   .command(lazyCommand("attach <url>", "attach to a running opencode server", undefined, () =>
     import("./cli/cmd/attach").then((m) => m.AttachCommand),
   ))
