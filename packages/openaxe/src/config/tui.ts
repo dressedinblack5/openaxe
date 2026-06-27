@@ -12,7 +12,9 @@ import { isRecord } from "@opencode-ai/tui/util/record"
 import { Global } from "@opencode-ai/core/global"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { CurrentWorkingDirectory } from "./tui-cwd"
+import { BUNDLED_PLUGINS } from "@/config/config"
 import { ConfigPlugin } from "@/config/plugin"
+import { parsePluginSpecifier } from "@/plugin/shared"
 import { TuiKeybind } from "@opencode-ai/tui/config/keybind"
 import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { makeRuntime } from "@opencode-ai/core/effect/runtime"
@@ -226,6 +228,21 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
     ])
     acc.result = { ...acc.result, plugin: plugins.map((item) => item.spec) }
     acc.plugin_origins = plugins
+  }
+
+  // Ensure bundled plugins are always present, even if the config file was
+  // written before a newer openaxe release added them as defaults.
+  const seen = new Set((acc.result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg))
+  const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
+  if (add.length) {
+    acc.result = {
+      ...acc.result,
+      plugin: [...(acc.result.plugin ?? []), ...add],
+    }
+    acc.plugin_origins = [
+      ...acc.plugin_origins,
+      ...add.map((spec) => ({ spec, scope: "global" as const, source: "bundle" })),
+    ]
   }
 
   const result = TuiConfig.resolve(
