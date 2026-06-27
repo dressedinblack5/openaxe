@@ -2,6 +2,9 @@ import { Rpc } from "@/util/rpc"
 import { GlobalBus } from "@/bus/global"
 import { writeHeapSnapshot } from "node:v8"
 import { Heap } from "@/cli/heap"
+import { mark } from "@/cli/startup-timing"
+
+mark("worker-start")
 
 // ponytail: heavy modules (AppRuntime, Server, etc.) are loaded via dynamic
 // import inside RPC handlers. Module resolution + ManagedRuntime.make(AppLayer)
@@ -51,9 +54,11 @@ export const rpc = {
     return result
   },
   async server(input: { port: number; hostname: string; mdns?: boolean; cors?: string[] }) {
+    mark("server-handler-start")
     const { Server } = await import("@/server/server")
     if (server) await server.stop(true)
     server = await Server.listen(input)
+    mark("server-url-ready")
     return { url: server.url!.toString() }
   },
   async checkUpgrade(input: { directory: string }) {
@@ -86,3 +91,4 @@ export const rpc = {
 }
 
 Rpc.listen(rpc)
+mark("rpc-ready")

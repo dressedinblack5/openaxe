@@ -2,6 +2,7 @@ import { Effect, Layer, ManagedRuntime } from "effect"
 import type { Exit } from "effect/Exit"
 import { attach } from "./run-service"
 import { memoMap } from "@opencode-ai/core/effect/memo-map"
+import { mark } from "@/cli/startup-timing"
 
 // Type-only import — never evaluates ./app-layer at module scope
 import type { AppServices } from "./app-layer"
@@ -15,7 +16,9 @@ export type { AppServices }
  */
 const AppLayer = Layer.unwrap(
   Effect.promise(async () => {
+    mark("app-layer-import-start")
     const { AppLayer: RealLayer } = await import("./app-layer")
+    mark("app-layer-import-done")
     return RealLayer
   }),
 )
@@ -23,6 +26,7 @@ const AppLayer = Layer.unwrap(
 let _rt: ManagedRuntime.ManagedRuntime<any, any> | undefined
 const getRuntime = () => {
   if (_rt) return _rt
+  mark("managed-runtime-make")
   _rt = ManagedRuntime.make(AppLayer, { memoMap })
   return _rt
 }
