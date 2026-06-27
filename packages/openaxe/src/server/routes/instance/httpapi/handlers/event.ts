@@ -26,18 +26,23 @@ function eventResponse(events: EventV2.Interface) {
   return Effect.gen(function* () {
     const instance = yield* InstanceState.context
     const workspaceID = yield* InstanceState.workspaceID
-    // Listener registration is eager, so events published after this point cannot
-    // be lost while the HTTP body fiber is starting or emitting server.connected.
     const queue = yield* Queue.unbounded<EventV2.Payload>()
-    const unsubscribe = yield* events.listen((event) => Effect.sync(() => Queue.offerUnsafe(queue, event)))
-    yield* Effect.addFinalizer(() => unsubscribe)
-    const stream = Stream.fromQueue(queue).pipe(
-      Stream.filter(
-        (event) =>
-          event.location?.directory === instance.directory &&
-          (event.location.workspaceID === undefined || event.location.workspaceID === workspaceID),
+    // Listener is acquired lazily (first pull) and released when the
+    // HTTP body stops being consumed — not when the handler returns.
+    const eventStream = Stream.fromEffect(
+      events.listen((event) => Effect.sync(() => Queue.offerUnsafe(queue, event))),
+    ).pipe(
+      Stream.flatMap((unsubscribe: EventV2.Unsubscribe) =>
+        Stream.fromQueue(queue).pipe(
+          Stream.ensuring(unsubscribe),
+          Stream.filter(
+            (event) =>
+              event.location?.directory === instance.directory &&
+              (event.location.workspaceID === undefined || event.location.workspaceID === workspaceID),
+          ),
+          Stream.map((event) => ({ id: event.id, type: event.type, properties: event.data })),
+        ),
       ),
-      Stream.map((event) => ({ id: event.id, type: event.type, properties: event.data })),
     )
     const disposed = Stream.callback<{ id: string; type: string; properties: unknown }>((queue) => {
       const listener = (event: {
@@ -56,7 +61,7 @@ function eventResponse(events: EventV2.Interface) {
         () => Effect.sync(() => GlobalBus.off("event", listener)),
       )
     })
-    const output = stream.pipe(
+    const output = eventStream.pipe(
       Stream.merge(disposed, { haltStrategy: "left" }),
       Stream.takeUntil((event) => event.type === "server.instance.disposed"),
     )
