@@ -261,41 +261,42 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
   }
 })
 
-export const layer = Layer.effect(
-  Service,
-  Effect.gen(function* () {
-    const directory = yield* CurrentWorkingDirectory
-    const npm = yield* Npm.Service
-    const data = yield* loadState({ directory })
-    const deps = yield* Effect.forEach(
-      data.dirs,
-      (dir) =>
-        npm
-          .install(dir, {
-            add: [
-              {
-                name: "@opencode-ai/plugin",
-                version: InstallationLocal ? undefined : InstallationVersion,
-              },
-            ],
-          })
-          .pipe(Effect.forkScoped),
-      {
-        concurrency: "unbounded",
-      },
-    )
+export const layer = (directory?: string) =>
+  Layer.effect(
+    Service,
+    Effect.gen(function* () {
+      const dir = directory ?? (yield* CurrentWorkingDirectory)
+      const npm = yield* Npm.Service
+      const data = yield* loadState({ directory: dir })
+      const deps = yield* Effect.forEach(
+        data.dirs,
+        (dir) =>
+          npm
+            .install(dir, {
+              add: [
+                {
+                  name: "@opencode-ai/plugin",
+                  version: InstallationLocal ? undefined : InstallationVersion,
+                },
+              ],
+            })
+            .pipe(Effect.forkScoped),
+        {
+          concurrency: "unbounded",
+        },
+      )
 
-    const get = Effect.fn("TuiConfig.get")(() => Effect.succeed(data.config))
-    const pluginOrigins = Effect.fn("TuiConfig.pluginOrigins")(() => Effect.succeed(data.pluginOrigins))
+      const get = Effect.fn("TuiConfig.get")(() => Effect.succeed(data.config))
+      const pluginOrigins = Effect.fn("TuiConfig.pluginOrigins")(() => Effect.succeed(data.pluginOrigins))
 
-    const waitForDependencies = Effect.fn("TuiConfig.waitForDependencies")(() =>
-      Effect.forEach(deps, Fiber.join, { concurrency: "unbounded" }).pipe(Effect.ignore(), Effect.asVoid),
-    )
-    return Service.of({ get, pluginOrigins, waitForDependencies })
+      const waitForDependencies = Effect.fn("TuiConfig.waitForDependencies")(() =>
+        Effect.forEach(deps, Fiber.join, { concurrency: "unbounded" }).pipe(Effect.ignore(), Effect.asVoid),
+      )
+      return Service.of({ get, pluginOrigins, waitForDependencies })
   }).pipe(Effect.withSpan("TuiConfig.layer")),
 )
 
-export const defaultLayer = layer.pipe(Layer.provide(Npm.defaultLayer), Layer.provide(FSUtil.defaultLayer))
+export const defaultLayer = layer().pipe(Layer.provide(Npm.defaultLayer), Layer.provide(FSUtil.defaultLayer))
 
 const { runPromise } = makeRuntime(Service, defaultLayer)
 
@@ -303,8 +304,11 @@ export async function waitForDependencies() {
   await runPromise((svc) => svc.waitForDependencies())
 }
 
-export async function get() {
-  return runPromise((svc) => svc.get())
+export async function get(directory?: string) {
+  if (!directory) return runPromise((svc) => svc.get())
+  const dirLayer = layer(directory).pipe(Layer.provide(Npm.defaultLayer), Layer.provide(FSUtil.defaultLayer))
+  const { runPromise: runWithDir } = makeRuntime(Service, dirLayer)
+  return runWithDir((svc) => svc.get())
 }
 
 export async function pluginOrigins() {

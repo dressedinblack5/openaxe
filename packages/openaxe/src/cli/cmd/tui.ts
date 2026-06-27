@@ -13,6 +13,7 @@ import type { EventSource } from "@opencode-ai/tui/context/sdk"
 import { writeHeapSnapshot } from "v8"
 import { validateSession } from "../tui/validate-session"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
+import { mark, report } from "@/cli/startup-timing"
 
 declare global {
   const OPENCODE_WORKER_PATH: string
@@ -135,6 +136,7 @@ export const TuiCommand = cmd({
         hidden: true,
       }),
   handler: async (args) => {
+    mark("handler-start")
     if (args.replay === true) {
       UI.error("--replay is not supported; replay is enabled by default")
       process.exitCode = 1
@@ -144,6 +146,7 @@ export const TuiCommand = cmd({
 
     // Must run before any TUI code imports @opentui/core (which loads the native lib)
     await initOpentuiNativeLib()
+    mark("native-lib")
 
     if (args.mini) {
       const network = ["--port", "--hostname", "--mdns", "--no-mdns", "--mdns-domain", "--cors"].find((option) =>
@@ -191,6 +194,7 @@ export const TuiCommand = cmd({
       const pluginMod = import("@/plugin/tui/runtime")
 
       const { TuiConfig } = await configMod
+      mark("parallel-imports")
       if (args.fork && !args.continue && !args.session) {
         UI.error("--fork requires --continue or --session")
         process.exitCode = 1
@@ -200,6 +204,12 @@ export const TuiCommand = cmd({
       // Resolve relative --project paths from PWD, then use the real cwd after
       // chdir so the thread and worker share the same directory key.
       const next = resolveThreadDirectory(args.project)
+
+      // Kick off config loading before chdir (pass directory explicitly to
+      // avoid CurrentWorkingDirectory CWD race). ~1s of file I/O overlaps with
+      // Worker compilation, saving wall-clock time.
+      const configPromise = TuiConfig.get(next)
+
       const file = await target()
       try {
         process.chdir(next)
@@ -211,6 +221,7 @@ export const TuiCommand = cmd({
 
       const worker = new Worker(file)
       const client = Rpc.client<typeof rpc>(worker)
+      mark("worker-created")
       const reload = () => {
         client.call("reload", undefined).catch(() => {})
       }
@@ -226,7 +237,7 @@ export const TuiCommand = cmd({
       }
 
       const prompt = await input(args.prompt)
-      const config = await TuiConfig.get()
+      const config = await configPromise
 
       const network = resolveNetworkOptionsNoConfig(args)
       const external =
@@ -239,7 +250,12 @@ export const TuiCommand = cmd({
 
       const transport = external
         ? {
-            url: (await client.call("server", network)).url,
+            url: (
+              await client.call("server", network).then((r) => {
+                mark("server-url")
+                return r
+              })
+            ).url,
             fetch: undefined,
             events: undefined,
           }
@@ -249,6 +265,7 @@ export const TuiCommand = cmd({
             events: createEventSource(client),
           }
 
+      if (!external) mark("server-url") // internal transport, no server RPC needed
       try {
         await validateSession({
           url: transport.url,
@@ -261,6 +278,7 @@ export const TuiCommand = cmd({
         process.exitCode = 1
         return
       }
+      mark("validate-session")
 
       setTimeout(() => {
         client.call("checkUpgrade", { directory: cwd }).catch(() => {})
@@ -270,6 +288,7 @@ export const TuiCommand = cmd({
         const { Effect } = await effectMod
         const { run } = await layerMod
         const { createLegacyTuiPluginHost } = await pluginMod
+        mark("run-start")
         await Effect.runPromise(
           run({
             url: transport.url,
@@ -293,6 +312,8 @@ export const TuiCommand = cmd({
             },
           }),
         )
+        mark("run-complete")
+        report()
       } finally {
         await stop()
       }
