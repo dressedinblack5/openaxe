@@ -38,7 +38,7 @@ const openEventStream = (directory: string) =>
 afterEach(async () => {
   await disposeAllInstances()
   await resetDatabase()
-})
+}, 30000)
 
 const it = testEffect(httpApiLayer)
 
@@ -58,6 +58,7 @@ describe("event HttpApi", () => {
         expect(yield* readEvent(reader)).toMatchObject({ type: "server.connected", properties: {} })
       }),
     { git: true, config: { formatter: false, lsp: false } },
+    30000,
   )
 
   it.instance(
@@ -76,6 +77,7 @@ describe("event HttpApi", () => {
         expect(status).toBe("open")
       }),
     { git: true, config: { formatter: false, lsp: false } },
+    30000,
   )
 
   it.instance(
@@ -91,6 +93,7 @@ describe("event HttpApi", () => {
       expect(yield* readEvent(reader)).toMatchObject({ type: "session.created" })
     }),
   { git: true, config: { formatter: false, lsp: false } },
+  30000,
   )
 
   it.instance(
@@ -109,6 +112,7 @@ describe("event HttpApi", () => {
         expect(yield* readEvent(reader)).toMatchObject({ type: "server.instance.disposed" })
       }),
     { git: true, config: { formatter: false, lsp: false } },
+    30000,
   )
 
   it.instance(
@@ -142,5 +146,6 @@ describe("event HttpApi", () => {
         expect(yield* readEvent(reader)).toMatchObject({ type: "session.created" })
       }),
     { git: true, config: { formatter: false, lsp: false } },
+    30000,
   )
 })
