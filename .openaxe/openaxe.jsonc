@@ -10,7 +10,8 @@
     "opencode-vibeguard",
     "@tarquinen/opencode-dcp@latest",
     "ecc-universal",
-    "DietrichGebert/ponytail"
+    "DietrichGebert/ponytail",
+    "ls"
   ],
   "references": {
     "effect": {
