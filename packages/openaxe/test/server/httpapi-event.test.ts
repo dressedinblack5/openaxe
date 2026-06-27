@@ -1,5 +1,6 @@
 import { afterEach, describe, expect } from "bun:test"
 import { Effect, Layer, Queue, Schema, Stream } from "effect"
+import { GlobalBus } from "@/bus/global"
 import { EventPaths } from "../../src/server/routes/instance/httpapi/groups/event"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, TestInstance } from "../fixture/fixture"
@@ -87,7 +88,25 @@ describe("event HttpApi", () => {
 
         const created = yield* requestInDirectory("/session", directory, { method: "POST" })
         expect(created.status).toBe(200)
-        expect(yield* readEvent(reader)).toMatchObject({ type: "session.created" })
+      expect(yield* readEvent(reader)).toMatchObject({ type: "session.created" })
+    }),
+  { git: true, config: { formatter: false, lsp: false } },
+  )
+
+  it.instance(
+    "terminates the event stream when the instance is disposed",
+    () =>
+      Effect.gen(function* () {
+        const { directory } = yield* TestInstance
+        const { reader } = yield* openEventStream(directory)
+        expect(yield* readEvent(reader)).toMatchObject({ type: "server.connected", properties: {} })
+
+        GlobalBus.emit("event", {
+          directory,
+          payload: { id: "evt_disposed", type: "server.instance.disposed", properties: {} },
+        })
+
+        expect(yield* readEvent(reader)).toMatchObject({ type: "server.instance.disposed" })
       }),
     { git: true, config: { formatter: false, lsp: false } },
   )

@@ -27,20 +27,24 @@ function eventResponse(events: EventV2.Interface) {
     const instance = yield* InstanceState.context
     const workspaceID = yield* InstanceState.workspaceID
     const queue = yield* Queue.unbounded<EventV2.Payload>()
-    // Listener is acquired lazily (first pull) and released when the
-    // HTTP body stops being consumed — not when the handler returns.
+    // Listener is acquired lazily (first pull), but server.connected is emitted
+    // AFTER the listener is registered, so no events are lost at startup.
     const eventStream = Stream.fromEffect(
       events.listen((event) => Effect.sync(() => Queue.offerUnsafe(queue, event))),
     ).pipe(
       Stream.flatMap((unsubscribe: EventV2.Unsubscribe) =>
-        Stream.fromQueue(queue).pipe(
-          Stream.ensuring(unsubscribe),
-          Stream.filter(
-            (event) =>
-              event.location?.directory === instance.directory &&
-              (event.location.workspaceID === undefined || event.location.workspaceID === workspaceID),
+        Stream.make({ id: eventID(), type: "server.connected", properties: {} }).pipe(
+          Stream.concat(
+            Stream.fromQueue(queue).pipe(
+              Stream.ensuring(unsubscribe),
+              Stream.filter(
+                (event) =>
+                  event.location?.directory === instance.directory &&
+                  (event.location.workspaceID === undefined || event.location.workspaceID === workspaceID),
+              ),
+              Stream.map((event) => ({ id: event.id, type: event.type, properties: event.data })),
+            ),
           ),
-          Stream.map((event) => ({ id: event.id, type: event.type, properties: event.data })),
         ),
       ),
     )
@@ -72,8 +76,8 @@ function eventResponse(events: EventV2.Interface) {
 
     yield* Effect.logInfo("event connected")
     return HttpServerResponse.stream(
-      Stream.make({ id: eventID(), type: "server.connected", properties: {} }).pipe(
-        Stream.concat(output.pipe(Stream.merge(heartbeat, { haltStrategy: "left" }))),
+      output.pipe(
+        Stream.merge(heartbeat, { haltStrategy: "left" }),
         Stream.map(eventData),
         Stream.pipeThroughChannel(Sse.encode()),
         Stream.encodeText,
