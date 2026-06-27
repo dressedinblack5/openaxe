@@ -39,7 +39,7 @@ import { parsePluginSpecifier } from "@/plugin/shared"
 
 // Default plugins that ship with every openaxe install. They are injected into the
 // loaded config so existing users' stale global configs still pick up new defaults.
-const BUNDLED_PLUGINS = [
+export const BUNDLED_PLUGINS = [
   "oh-my-openagent",
   "opencode-plugin-selector",
   "superpowers",

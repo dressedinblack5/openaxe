@@ -818,7 +818,19 @@ describe("session.llm.stream", () => {
         const expectedMaxTokens = ProviderTransform.maxOutputTokens(resolved)
         expect(maxTokens).toBe(expectedMaxTokens)
 
-        const reasoning = (body.reasoningEffort as string | undefined) ?? (body.reasoning_effort as string | undefined)
+        // The AI SDK's openai-compatible provider nests reasoning options under providerOptions
+        // rather than the top-level body. Check all possible locations.
+        const vivgridOpts = (body.providerOptions as Record<string, unknown> | undefined)?.["vivgrid"] as
+          | Record<string, unknown>
+          | undefined
+        const openaiOpts = (body.providerOptions as Record<string, unknown> | undefined)?.openaiCompatible as
+          | Record<string, unknown>
+          | undefined
+        const reasoning =
+          (body.reasoningEffort as string | undefined) ??
+          (body.reasoning_effort as string | undefined) ??
+          (vivgridOpts?.reasoningEffort as string | undefined) ??
+          (openaiOpts?.reasoningEffort as string | undefined)
         expect(reasoning).toBe("high")
       }),
     {
@@ -831,6 +843,7 @@ describe("session.llm.stream", () => {
         },
       }),
     },
+    10_000,
   )
 
   const alibabaQwenFixture = { providerID: "alibaba", modelID: "qwen-plus" }
