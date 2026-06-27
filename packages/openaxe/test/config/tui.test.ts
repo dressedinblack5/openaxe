@@ -13,6 +13,7 @@ import { testEffect } from "../lib/effect"
 
 const it = testEffect(Layer.mergeAll(Config.defaultLayer, FSUtil.defaultLayer))
 const winIt = process.platform === "win32" ? it.instance : it.instance.skip
+const expectedBundledOrigins = BUNDLED_PLUGINS.map((spec) => ({ spec, scope: "global" as const, source: "bundle" as const }))
 
 const globalConfigFiles = ["openaxe.json", "openaxe.jsonc", "tui.json", "tui.jsonc"].map((file) =>
   path.join(Global.Path.config, file),
@@ -757,11 +758,14 @@ it.instance("supports tuple plugin specs with options in tui.json", () =>
       const config = yield* getTuiConfig(test.directory)
       const origins = yield* getTuiPluginOrigins(test.directory)
       expect(config.plugin).toEqual([["acme-plugin@1.2.3", { enabled: true, label: "demo" }], ...BUNDLED_PLUGINS])
-      expect(origins).toContainEqual({
-        spec: ["acme-plugin@1.2.3", { enabled: true, label: "demo" }],
-        scope: "local",
-        source: path.join(test.directory, "tui.json"),
-      })
+      expect(origins).toEqual([
+        {
+          spec: ["acme-plugin@1.2.3", { enabled: true, label: "demo" }],
+          scope: "local",
+          source: path.join(test.directory, "tui.json"),
+        },
+        ...expectedBundledOrigins,
+      ])
     }),
   ),
 )
@@ -788,16 +792,19 @@ it.instance("deduplicates tuple plugin specs by name with higher precedence winn
         ["second-plugin@3.0.0", { source: "project" }],
         ...BUNDLED_PLUGINS,
       ])
-      expect(origins).toContainEqual({
-        spec: ["acme-plugin@2.0.0", { source: "project" }],
-        scope: "local",
-        source: path.join(test.directory, "tui.json"),
-      })
-      expect(origins).toContainEqual({
-        spec: ["second-plugin@3.0.0", { source: "project" }],
-        scope: "local",
-        source: path.join(test.directory, "tui.json"),
-      })
+      expect(origins).toEqual([
+        {
+          spec: ["acme-plugin@2.0.0", { source: "project" }],
+          scope: "local",
+          source: path.join(test.directory, "tui.json"),
+        },
+        {
+          spec: ["second-plugin@3.0.0", { source: "project" }],
+          scope: "local",
+          source: path.join(test.directory, "tui.json"),
+        },
+        ...expectedBundledOrigins,
+      ])
     }),
   ),
 )
@@ -813,16 +820,19 @@ it.instance("tracks global and local plugin metadata in merged tui config", () =
       const config = yield* getTuiConfig(test.directory)
       const origins = yield* getTuiPluginOrigins(test.directory)
       expect(config.plugin).toEqual(["global-plugin@1.0.0", "local-plugin@2.0.0", ...BUNDLED_PLUGINS])
-      expect(origins).toContainEqual({
-        spec: "global-plugin@1.0.0",
-        scope: "global",
-        source: path.join(Global.Path.config, "tui.json"),
-      })
-      expect(origins).toContainEqual({
-        spec: "local-plugin@2.0.0",
-        scope: "local",
-        source: path.join(test.directory, "tui.json"),
-      })
+      expect(origins).toEqual([
+        {
+          spec: "global-plugin@1.0.0",
+          scope: "global",
+          source: path.join(Global.Path.config, "tui.json"),
+        },
+        {
+          spec: "local-plugin@2.0.0",
+          scope: "local",
+          source: path.join(test.directory, "tui.json"),
+        },
+        ...expectedBundledOrigins,
+      ])
     }),
   ),
 )
