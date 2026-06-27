@@ -35,7 +35,7 @@ Example:
     "notifications": true,
     "sound": true,
     "volume": 0.4,
-    "sound_pack": "opencode.default",
+    "sound_pack": "openaxe.default",
     "sounds": {
       "error": "/Users/me/sounds/error.mp3"
     }

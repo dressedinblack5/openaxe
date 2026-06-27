@@ -179,7 +179,15 @@ describe("experimental HttpApi", () => {
         expect(yield* json(worktrees)).toEqual([])
 
         expect(resources.status).toBe(200)
-        expect(yield* json(resources)).toEqual({})
+        const resourcesBody = yield* json<Record<string, unknown>>(resources)
+        // Built-in MCP resources (context7, grep_app, websearch) are always present.
+        expect(resourcesBody).toEqual(
+          expect.objectContaining({
+            "context7:docs://readme": expect.objectContaining({ client: expect.any(String), name: expect.any(String) }),
+            "grep_app:docs://readme": expect.objectContaining({ client: expect.any(String), name: expect.any(String) }),
+            "websearch:docs://readme": expect.objectContaining({ client: expect.any(String), name: expect.any(String) }),
+          }),
+        )
       }),
     {
       config: {

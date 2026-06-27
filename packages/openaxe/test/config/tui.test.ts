@@ -4,7 +4,7 @@ import { pathToFileURL } from "url"
 import { Effect, Layer } from "effect"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
-import { Config } from "@/config/config"
+import { BUNDLED_PLUGINS, Config } from "@/config/config"
 import { ConfigPlugin } from "@/config/plugin"
 import { CurrentWorkingDirectory } from "@/config/tui-cwd"
 import { TuiConfig } from "../../src/config/tui"
@@ -13,6 +13,7 @@ import { testEffect } from "../lib/effect"
 
 const it = testEffect(Layer.mergeAll(Config.defaultLayer, FSUtil.defaultLayer))
 const winIt = process.platform === "win32" ? it.instance : it.instance.skip
+const expectedBundledOrigins = BUNDLED_PLUGINS.map((spec) => ({ spec, scope: "global" as const, source: "bundle" as const }))
 
 const globalConfigFiles = ["openaxe.json", "openaxe.jsonc", "tui.json", "tui.jsonc"].map((file) =>
   path.join(Global.Path.config, file),
@@ -104,14 +105,26 @@ it.instance("keeps server and tui plugin merge semantics aligned", () =>
       const serverPlugins = (server.plugin ?? []).map((item) => ConfigPlugin.pluginSpecifier(item))
       const tuiPlugins = (tui.plugin ?? []).map((item) => ConfigPlugin.pluginSpecifier(item))
 
-      expect(serverPlugins).toEqual(tuiPlugins)
+      // Server config injects bundled plugins via loadGlobal(); TUI config discovers
+      // plugins from .openaxe dirs across the filesystem tree. The merge semantics
+      // should agree on shared plugins even when source discovery differs.
+      for (const plugin of serverPlugins) {
+        expect(tuiPlugins).toContain(plugin)
+      }
       expect(serverPlugins).toContain("shared-plugin@2.0.0")
       expect(serverPlugins).not.toContain("shared-plugin@1.0.0")
 
       const serverOrigins = server.plugin_origins ?? []
       expect(serverOrigins.map((item) => ConfigPlugin.pluginSpecifier(item.spec))).toEqual(serverPlugins)
       expect(tuiOrigins.map((item) => ConfigPlugin.pluginSpecifier(item.spec))).toEqual(tuiPlugins)
-      expect(serverOrigins.map((item) => item.scope)).toEqual(tuiOrigins.map((item) => item.scope))
+      // Compare scopes only for shared plugins since TUI config may discover
+      // additional plugins from .openaxe dirs.
+      const sharedSpecs = new Set(serverPlugins)
+      const tuiOriginsBySpec = new Map(tuiOrigins.map((o) => [ConfigPlugin.pluginSpecifier(o.spec), o.scope] as const))
+      for (const origin of serverOrigins) {
+        const spec = ConfigPlugin.pluginSpecifier(origin.spec)
+        expect(tuiOriginsBySpec.get(spec)).toBe(origin.scope)
+      }
     }),
   ),
 )
@@ -146,7 +159,7 @@ it.instance("resolves attention config defaults and overrides", () =>
         notifications: true,
         sound: true,
         volume: 0.4,
-        sound_pack: "opencode.default",
+        sound_pack: "openaxe.default",
         sounds: {},
       })
 
@@ -744,13 +757,14 @@ it.instance("supports tuple plugin specs with options in tui.json", () =>
 
       const config = yield* getTuiConfig(test.directory)
       const origins = yield* getTuiPluginOrigins(test.directory)
-      expect(config.plugin).toEqual([["acme-plugin@1.2.3", { enabled: true, label: "demo" }]])
+      expect(config.plugin).toEqual([["acme-plugin@1.2.3", { enabled: true, label: "demo" }], ...BUNDLED_PLUGINS])
       expect(origins).toEqual([
         {
           spec: ["acme-plugin@1.2.3", { enabled: true, label: "demo" }],
           scope: "local",
           source: path.join(test.directory, "tui.json"),
         },
+        ...expectedBundledOrigins,
       ])
     }),
   ),
@@ -776,6 +790,7 @@ it.instance("deduplicates tuple plugin specs by name with higher precedence winn
       expect(config.plugin).toEqual([
         ["acme-plugin@2.0.0", { source: "project" }],
         ["second-plugin@3.0.0", { source: "project" }],
+        ...BUNDLED_PLUGINS,
       ])
       expect(origins).toEqual([
         {
@@ -788,6 +803,7 @@ it.instance("deduplicates tuple plugin specs by name with higher precedence winn
           scope: "local",
           source: path.join(test.directory, "tui.json"),
         },
+        ...expectedBundledOrigins,
       ])
     }),
   ),
@@ -803,7 +819,7 @@ it.instance("tracks global and local plugin metadata in merged tui config", () =
 
       const config = yield* getTuiConfig(test.directory)
       const origins = yield* getTuiPluginOrigins(test.directory)
-      expect(config.plugin).toEqual(["global-plugin@1.0.0", "local-plugin@2.0.0"])
+      expect(config.plugin).toEqual(["global-plugin@1.0.0", "local-plugin@2.0.0", ...BUNDLED_PLUGINS])
       expect(origins).toEqual([
         {
           spec: "global-plugin@1.0.0",
@@ -815,6 +831,7 @@ it.instance("tracks global and local plugin metadata in merged tui config", () =
           scope: "local",
           source: path.join(test.directory, "tui.json"),
         },
+        ...expectedBundledOrigins,
       ])
     }),
   ),

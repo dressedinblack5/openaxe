@@ -192,6 +192,21 @@ export function withCliFixture<A, E>(
     const fs = yield* FSUtil.Service
     const appProc = yield* AppProcess.Service
 
+    // Ensure the test server is actually listening on the port before we spawn
+    // subprocesses that need to reach it. Effect's server.serve() may resolve
+    // before the underlying Node HTTP server is fully ready.
+    yield* Effect.retry(
+      Effect.tryPromise({
+        try: async () => {
+          // GET to root returns 404 (no matching route), but confirms the
+          // server is reachable and not in a half-open state.
+          await fetch(llm.url.replace(/\/v1$/, ""), { signal: AbortSignal.timeout(200) })
+        },
+        catch: () => undefined,
+      }),
+      { times: 30, delay: "100 millis" },
+    ).pipe(Effect.timeoutOrElse({ duration: "10 seconds", orElse: () => Effect.fail(new Error("test LLM server never became ready")) }))
+
     const home = yield* fs.makeTempDirectory({ prefix: "oc-cli-" })
     yield* Effect.addFinalizer(() =>
       fs

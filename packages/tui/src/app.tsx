@@ -113,7 +113,7 @@ const appBindingCommands = [
   "variant.list",
   "provider.connect",
   "console.org.switch",
-  "opencode.status",
+  "openaxe.status",
   "theme.switch",
   "theme.switch_mode",
   "theme.mode.lock",
@@ -763,7 +763,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
           ]
         : []),
       {
-        name: "opencode.status",
+        name: "openaxe.status",
         title: "View status",
         slashName: "status",
         run: () => {

@@ -1,8 +1,9 @@
 import { afterEach, describe, expect } from "bun:test"
 import { Effect, Layer, Queue, Schema, Stream } from "effect"
+import { GlobalBus } from "@/bus/global"
 import { EventPaths } from "../../src/server/routes/instance/httpapi/groups/event"
 import { resetDatabase } from "../fixture/db"
-import { disposeAllInstances, TestInstance } from "../fixture/fixture"
+import { disposeAllInstances, TestInstance, tmpdirScoped } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 import { httpApiLayer, requestInDirectory } from "./httpapi-layer"
 
@@ -87,6 +88,57 @@ describe("event HttpApi", () => {
 
         const created = yield* requestInDirectory("/session", directory, { method: "POST" })
         expect(created.status).toBe(200)
+      expect(yield* readEvent(reader)).toMatchObject({ type: "session.created" })
+    }),
+  { git: true, config: { formatter: false, lsp: false } },
+  )
+
+  it.instance(
+    "terminates the event stream when the instance is disposed",
+    () =>
+      Effect.gen(function* () {
+        const { directory } = yield* TestInstance
+        const { reader } = yield* openEventStream(directory)
+        expect(yield* readEvent(reader)).toMatchObject({ type: "server.connected", properties: {} })
+
+        GlobalBus.emit("event", {
+          directory,
+          payload: { id: "evt_disposed", type: "server.instance.disposed", properties: {} },
+        })
+
+        expect(yield* readEvent(reader)).toMatchObject({ type: "server.instance.disposed" })
+      }),
+    { git: true, config: { formatter: false, lsp: false } },
+  )
+
+  it.instance(
+    "filters out events from other directories",
+    () =>
+      Effect.gen(function* () {
+        const { directory } = yield* TestInstance
+        const { reader } = yield* openEventStream(directory)
+        expect(yield* readEvent(reader)).toMatchObject({ type: "server.connected", properties: {} })
+
+        const session1 = yield* requestInDirectory("/session", directory, { method: "POST" })
+        expect(session1.status).toBe(200)
+        expect(yield* readEvent(reader)).toMatchObject({ type: "session.created" })
+
+        const otherDir = yield* tmpdirScoped({ git: true })
+
+        const session2 = yield* requestInDirectory("/session", otherDir, { method: "POST" })
+        expect(session2.status).toBe(200)
+
+        const nonEvent = yield* Queue.take(reader).pipe(
+          Effect.as("event" as const),
+          Effect.timeoutOrElse({
+            duration: "500 millis",
+            orElse: () => Effect.succeed("no-event" as const),
+          }),
+        )
+        expect(nonEvent).toBe("no-event")
+
+        const session3 = yield* requestInDirectory("/session", directory, { method: "POST" })
+        expect(session3.status).toBe(200)
         expect(yield* readEvent(reader)).toMatchObject({ type: "session.created" })
       }),
     { git: true, config: { formatter: false, lsp: false } },

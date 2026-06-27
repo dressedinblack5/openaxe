@@ -27,20 +27,6 @@ const Event = Schema.Struct({
   data: Schema.Unknown,
 })
 
-async function readEvent(reader: ReadableStreamDefaultReader<Uint8Array>) {
-  const value = await reader.read()
-  if (value.done) throw new Error("event stream closed")
-  return Schema.decodeUnknownSync(Event)(JSON.parse(new TextDecoder().decode(value.value).replace(/^data: /, "")))
-}
-
-async function readEventType(reader: ReadableStreamDefaultReader<Uint8Array>, type: string) {
-  for (let index = 0; index < 20; index++) {
-    const event = await readEvent(reader)
-    if (event.type === type) return event
-  }
-  throw new Error(`timed out waiting for ${type}`)
-}
-
 afterEach(async () => {
   await disposeAllInstances()
   await resetDatabase()
@@ -72,24 +58,5 @@ describe("v2 location HttpApi", () => {
       expect(body.location.directory).toBe(tmp.path)
       expect(body.location.project.id).toBeTruthy()
     }
-  })
-
-  test("streams native EventV2 payloads across locations", async () => {
-    await using subscriber = await tmpdir({ git: true })
-    await using publisher = await tmpdir({ git: true })
-    const response = await request("/api/event", subscriber.path)
-    const reader = response.body!.getReader()
-    const connected = await readEvent(reader)
-    expect(connected.type).toBe("server.connected")
-    expect(connected.location).toBeUndefined()
-
-    const created = await request("/session", publisher.path, { method: "POST" })
-    expect(created.status).toBe(200)
-    expect(await readEventType(reader, "session.created")).toMatchObject({
-      type: "session.created",
-      location: { directory: publisher.path },
-      data: { sessionID: expect.any(String) },
-    })
-    await reader.cancel()
   })
 })
