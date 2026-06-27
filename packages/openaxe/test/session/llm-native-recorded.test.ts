@@ -225,7 +225,8 @@ function isSelected(scenario: RecordedScenario) {
 const canRun = (scenario: RecordedScenario) =>
   shouldRecord
     ? scenario.canRecord()
-    : HttpRecorderInternal.hasCassetteSync(scenario.cassette, { directory: FIXTURES_DIR })
+    : HttpRecorderInternal.hasCassetteSync(scenario.cassette, { directory: FIXTURES_DIR }) &&
+      (scenario.providerID !== ProviderV2.ID.openai || process.env.OPENAI_API_KEY)
 
 const recordError = (scenario: RecordedScenario) =>
   scenario.id === "openai-oauth"

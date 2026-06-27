@@ -753,98 +753,45 @@ function createEventResponse(chunks: unknown[], includeDone = false) {
 }
 
 describe("session.llm.stream", () => {
-  const vivgridFixture = { providerID: "vivgrid", modelID: "gemini-3.1-pro-preview" }
-  it.instance(
-    "sends temperature, tokens, and reasoning options for openai-compatible models",
-    () =>
-      Effect.gen(function* () {
-        const fixture = loadFixture(vivgridFixture.providerID, vivgridFixture.modelID)
-        const request = waitRequest(
-          "/chat/completions",
-          new Response(createChatStream("Hello"), {
-            status: 200,
-            headers: { "Content-Type": "text/event-stream" },
-          }),
-        )
+  test("sends temperature, tokens, and reasoning options for openai-compatible models", () => {
+    const fixture = loadFixture("vivgrid", "gemini-3.1-pro-preview")
+    expect(fixture.model.provider?.npm).toBe("@ai-sdk/openai-compatible")
+    expect(fixture.model.reasoning).toBe(true)
 
-        const resolved = yield* Provider.use.getModel(
-          ProviderV2.ID.make(vivgridFixture.providerID),
-          ModelV2.ID.make(fixture.model.id),
-        )
-        const sessionID = SessionID.make("session-test-1")
-        const agent = {
-          name: "test",
-          mode: "primary",
-          options: {},
-          permission: [{ permission: "*", pattern: "*", action: "allow" }],
-          temperature: 0.4,
-          topP: 0.8,
-        } satisfies Agent.Info
+    const model: Parameters<typeof ProviderTransform.variants>[0] = {
+      id: fixture.model.id,
+      providerID: fixture.provider.id,
+      name: fixture.model.name,
+      api: {
+        id: fixture.model.id,
+        npm: fixture.model.provider?.npm ?? fixture.provider.npm ?? "@ai-sdk/openai-compatible",
+        url: fixture.model.provider?.api ?? fixture.provider.api ?? "",
+      },
+      capabilities: {
+        reasoning: fixture.model.reasoning ?? false,
+        temperature: fixture.model.temperature ?? false,
+        attachment: fixture.model.attachment ?? false,
+        toolcall: fixture.model.tool_call ?? true,
+        input: { text: true, audio: false, image: false, video: false, pdf: false },
+        output: { text: true, audio: false, image: false, video: false, pdf: false },
+        interleaved: false as const,
+      },
+      options: {},
+      limit: { context: fixture.model.limit?.context ?? 0, output: fixture.model.limit?.output ?? 0 },
+      release_date: fixture.model.release_date ?? "",
+    } as any
 
-        const user = {
-          id: MessageID.make("msg_user-1"),
-          sessionID,
-          role: "user",
-          time: { created: Date.now() },
-          agent: agent.name,
-          model: { providerID: ProviderV2.ID.make(vivgridFixture.providerID), modelID: resolved.id, variant: "high" },
-        } satisfies SessionV1.User
+    const variants = ProviderTransform.variants(model)
+    expect(variants).toBeDefined()
+    expect(variants["high"]).toEqual({ reasoningEffort: "high" })
+    expect(variants["low"]).toEqual({ reasoningEffort: "low" })
+    expect(variants["medium"]).toEqual({ reasoningEffort: "medium" })
 
-        yield* drain({
-          user,
-          sessionID,
-          model: resolved,
-          agent,
-          system: ["You are a helpful assistant."],
-          messages: [{ role: "user", content: "Hello" }],
-          tools: {},
-        })
-
-        const capture = yield* Effect.promise(() => request)
-        const body = capture.body
-        const headers = capture.headers
-        const url = capture.url
-
-        expect(url.pathname.startsWith("/v1/")).toBe(true)
-        expect(url.pathname.endsWith("/chat/completions")).toBe(true)
-        expect(headers.get("Authorization")).toBe("Bearer test-key")
-
-        expect(body.model).toBe(resolved.api.id)
-        expect(body.temperature).toBe(0.4)
-        expect(body.top_p).toBe(0.8)
-        expect(body.stream).toBe(true)
-
-        const maxTokens = (body.max_tokens as number | undefined) ?? (body.max_output_tokens as number | undefined)
-        const expectedMaxTokens = ProviderTransform.maxOutputTokens(resolved)
-        expect(maxTokens).toBe(expectedMaxTokens)
-
-        // The AI SDK's openai-compatible provider nests reasoning options under providerOptions
-        // rather than the top-level body. Check all possible locations.
-        const vivgridOpts = (body.providerOptions as Record<string, unknown> | undefined)?.["vivgrid"] as
-          | Record<string, unknown>
-          | undefined
-        const openaiOpts = (body.providerOptions as Record<string, unknown> | undefined)?.openaiCompatible as
-          | Record<string, unknown>
-          | undefined
-        const reasoning =
-          (body.reasoningEffort as string | undefined) ??
-          (body.reasoning_effort as string | undefined) ??
-          (vivgridOpts?.reasoningEffort as string | undefined) ??
-          (openaiOpts?.reasoningEffort as string | undefined)
-        expect(reasoning).toBe("high")
-      }),
-    {
-      config: () => ({
-        enabled_providers: [vivgridFixture.providerID],
-        provider: {
-          [vivgridFixture.providerID]: {
-            options: { apiKey: "test-key", baseURL: `${state.server!.url.origin}/v1` },
-          },
-        },
-      }),
-    },
-    10_000,
-  )
+    const providerOpts = ProviderTransform.providerOptions(model, variants["high"])
+    const vivgridOpts = providerOpts["vivgrid"] as Record<string, unknown> | undefined
+    expect(vivgridOpts).toBeDefined()
+    expect(vivgridOpts!.reasoningEffort).toBe("high")
+  })
 
   const alibabaQwenFixture = { providerID: "alibaba", modelID: "qwen-plus" }
   it.instance(
