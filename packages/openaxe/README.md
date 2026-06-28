@@ -4,6 +4,8 @@
 
 A fork of [anomalyco/opencode](https://github.com/anomalyco/opencode) that strips the bloat and keeps the power. Runs in your terminal, no cloud dependency.
 
+![openaxe preview](../../screenshots/openaxe-preview.png)
+
 ## Reading Guide
 
 New to openaxe? Here's what to read in order:
