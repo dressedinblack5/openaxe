@@ -319,9 +319,9 @@ export const layer: Layer.Layer<Service, never, FSUtil.Service | AppProcess.Serv
           return yield* locked(
             Effect.gen(function* () {
               if (!(yield* enabled())) return
-              const existed = yield* exists(state.gitdir)
+              const isValid = yield* exists(path.join(state.gitdir, "HEAD"))
               yield* fs.ensureDir(state.gitdir).pipe(Effect.orDie)
-              if (!existed) {
+              if (!isValid) {
                 yield* git(["init"], {
                   env: { GIT_DIR: state.gitdir, GIT_WORK_TREE: state.worktree },
                 })
