@@ -131,6 +131,7 @@
     "mime-types": "3.0.2",
     "minimatch": "10.0.3",
     "npm-package-arg": "13.0.2",
+    "oh-my-openagent": "4.13.0",
     "open": "10.1.2",
     "opencode-gitlab-auth": "2.1.0",
     "opencode-poe-auth": "0.0.1",
