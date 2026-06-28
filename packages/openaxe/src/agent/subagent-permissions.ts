@@ -1,4 +1,5 @@
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
+import { Wildcard } from "@opencode-ai/core/util/wildcard"
 import type { Agent } from "./agent"
 
 /**
@@ -15,8 +16,8 @@ export function deriveSubagentSessionPermission(input: {
   parentSessionPermission: PermissionV1.Ruleset
   subagent: Agent.Info
 }): PermissionV1.Ruleset {
-  const canTask = input.subagent.permission.some((rule) => rule.permission === "task")
-  const canTodo = input.subagent.permission.some((rule) => rule.permission === "todowrite")
+  const canTask = input.subagent.permission.some((rule) => Wildcard.match("task", rule.permission))
+  const canTodo = input.subagent.permission.some((rule) => Wildcard.match("todowrite", rule.permission))
   return [
     ...input.parentSessionPermission.filter(
       (rule) => rule.permission === "external_directory" || rule.action === "deny",

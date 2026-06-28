@@ -137,7 +137,6 @@ const generation = (input: RequestInput) => {
     temperature: input.temperature,
     topP: input.topP,
     topK: input.topK,
-    maxTokens: input.maxOutputTokens,
   }
   return Object.values(result).some((value) => value !== undefined) ? result : undefined
 }

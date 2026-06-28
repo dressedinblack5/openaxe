@@ -1351,6 +1351,7 @@ export const layer = Layer.effect(
         }
 
         // load plugins first so config() hook runs before reading cfg.provider
+        yield* plugin.init()
         const plugins = yield* plugin.list()
 
         // now read config providers - includes any modifications from plugin config() hook

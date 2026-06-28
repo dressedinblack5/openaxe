@@ -317,7 +317,8 @@ const live: Layer.Layer<
           activeTools: Object.keys(prepared.tools).filter((x) => x !== "invalid"),
           tools: prepared.tools,
           toolChoice: input.toolChoice,
-          maxOutputTokens: prepared.params.maxOutputTokens,
+          // ponytail: skip max_output_tokens for OpenAI to match Codex CLI
+          maxOutputTokens: input.model.providerID === "openai" ? undefined : prepared.params.maxOutputTokens,
           abortSignal: input.abort,
           headers: prepared.headers,
           maxRetries: input.retries ?? 0,
