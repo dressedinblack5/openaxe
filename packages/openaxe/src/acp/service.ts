@@ -271,7 +271,7 @@ export function make(input: {
           updatedAt: item.createdAt.toISOString(),
         }),
       )
-    const sorted = [...liveEntries, ...serverEntries].toSorted(
+    const sorted = [...liveEntries, ...serverEntries].sort(
       (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime(),
     )
     const filtered =
@@ -766,7 +766,7 @@ async function loadDirectorySnapshot(sdk: OpencodeClient, directory: string) {
       providers,
       modes,
       defaultModeID: agents.find((agent) => agent.mode === "primary" && agent.hidden !== true)?.name ?? "build",
-      commands: commands.toSorted((a, b) => a.name.localeCompare(b.name)),
+      commands: commands.sort((a, b) => a.name.localeCompare(b.name)),
       ...(defaultModel ? { defaultModel } : {}),
     })
   })

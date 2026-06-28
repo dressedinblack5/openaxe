@@ -130,7 +130,7 @@ export const loaderLayer = Layer.effect(
                 ...(item.description ? { description: item.description } : {}),
               })),
             defaultModeID: defaultAgent.name,
-            commands: commands.toSorted((a, b) => a.name.localeCompare(b.name)),
+            commands: commands.sort((a, b) => a.name.localeCompare(b.name)),
             ...(defaultModel._tag === "Some" ? { defaultModel: defaultModel.value } : {}),
           })
         }).pipe(Effect.provideService(InstanceRef, ctx))

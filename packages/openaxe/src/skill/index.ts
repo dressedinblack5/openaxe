@@ -295,7 +295,7 @@ export const layer = Layer.effect(
       const s = yield* InstanceState.get(state)
       const info = s.skills[name]
       if (info) return info
-      return yield* new NotFoundError({ name, available: Object.keys(s.skills).toSorted() })
+      return yield* new NotFoundError({ name, available: Object.keys(s.skills).sort() })
     })
 
     const all = Effect.fn("Skill.all")(function* () {
@@ -309,7 +309,7 @@ export const layer = Layer.effect(
 
     const available = Effect.fn("Skill.available")(function* (agent?: Agent.Info) {
       const s = yield* InstanceState.get(state)
-      const list = Object.values(s.skills).toSorted((a, b) => a.name.localeCompare(b.name))
+      const list = Object.values(s.skills).sort((a, b) => a.name.localeCompare(b.name))
       if (!agent) return list
       return list.filter((skill) => Permission.evaluate("skill", skill.name, agent.permission).action !== "deny")
     })
@@ -334,7 +334,7 @@ export function fmt(list: Info[], opts: { verbose: boolean }) {
     return [
       "<available_skills>",
       ...described
-        .toSorted((a, b) => a.name.localeCompare(b.name))
+        .sort((a, b) => a.name.localeCompare(b.name))
         .flatMap((skill) => [
           "  <skill>",
           `    <name>${skill.name}</name>`,
@@ -349,7 +349,7 @@ export function fmt(list: Info[], opts: { verbose: boolean }) {
   return [
     "## Available Skills",
     ...described
-      .toSorted((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => a.name.localeCompare(b.name))
       .map((skill) => `- **${skill.name}**: ${skill.description}`),
   ].join("\n")
 }

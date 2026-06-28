@@ -172,7 +172,7 @@ export const layer = Layer.effect(
         return [...(yield* Ref.get(sessions)).values()]
           .filter((session) => !cwd || session.cwd === cwd)
           .map(snapshot)
-          .toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       }),
       get,
       tryGet,
