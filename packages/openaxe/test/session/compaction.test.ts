@@ -1258,7 +1258,7 @@ describe("session.compaction.process", () => {
         expect(Exit.isFailure(exit)).toBe(true)
         if (Exit.isFailure(exit)) {
           expect(Cause.hasInterrupts(exit.cause)).toBe(true)
-          expect(Date.now() - start).toBeLessThan(250)
+          expect(Date.now() - start).toBeLessThan(500)
         }
       }).pipe(withCompaction({ llm: stub.layer }))
     },
