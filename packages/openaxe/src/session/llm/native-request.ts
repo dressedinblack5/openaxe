@@ -133,11 +133,12 @@ const tools = (input: Record<string, ToolInput> | undefined): ToolDefinition[] =
   )
 
 const generation = (input: RequestInput) => {
-  const result = {
+  const result: Record<string, unknown> = {
     temperature: input.temperature,
     topP: input.topP,
     topK: input.topK,
   }
+  if (input.maxOutputTokens !== undefined) result.maxTokens = input.maxOutputTokens
   return Object.values(result).some((value) => value !== undefined) ? result : undefined
 }
 
