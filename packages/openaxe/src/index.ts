@@ -62,10 +62,10 @@ const cli = yargs(args)
   .command(lazyCommand("mcp", "manage MCP (Model Context Protocol) servers", undefined, () =>
     import("./cli/cmd/mcp").then((m) => m.McpCommand),
   ))
-  .command(lazyCommand("$0 [project]", "start opencode tui", undefined, () =>
+  .command(lazyCommand("$0 [project]", "start openaxe tui", undefined, () =>
     import("./cli/cmd/tui").then((m) => m.TuiCommand),
   ))
-  .command(lazyCommand("attach <url>", "attach to a running opencode server", undefined, () =>
+  .command(lazyCommand("attach <url>", "attach to a running openaxe server", undefined, () =>
     import("./cli/cmd/attach").then((m) => m.AttachCommand),
   ))
   .command(lazyCommand("run [message..]", "run openaxe with a message", undefined, () =>
@@ -95,7 +95,7 @@ const cli = yargs(args)
   .command(lazyCommand("serve", "starts a headless openaxe server", undefined, () =>
     import("./cli/cmd/serve").then((m) => m.ServeCommand),
   ))
-  .command(lazyCommand("web", "start opencode server and open web interface", undefined, () =>
+  .command(lazyCommand("web", "start openaxe server and open web interface", undefined, () =>
     import("./cli/cmd/web").then((m) => m.WebCommand),
   ))
   .command(lazyCommand("models [provider]", "list all available models", undefined, () =>
@@ -113,7 +113,7 @@ const cli = yargs(args)
   .command(lazyCommand("github", "manage GitHub agent", undefined, () =>
     import("./cli/cmd/github").then((m) => m.GithubCommand),
   ))
-  .command(lazyCommand("pr <number>", "fetch and checkout a GitHub PR branch, then run opencode", undefined, () =>
+  .command(lazyCommand("pr <number>", "fetch and checkout a GitHub PR branch, then run openaxe", undefined, () =>
     import("./cli/cmd/pr").then((m) => m.PrCommand),
   ))
   .command(lazyCommand("session", "manage sessions", undefined, () =>

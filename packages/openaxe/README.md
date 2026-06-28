@@ -40,6 +40,7 @@ Run `openaxe --help` to see all commands:
 | `openaxe attach <url>` | Attach to a running server |
 | `openaxe mcp` | Manage MCP servers |
 | `openaxe acp` | Start ACP server |
+| `openaxe debug` | Debugging and troubleshooting |
 | `openaxe providers` | Manage AI providers & credentials |
 | `openaxe agent` | Manage agents |
 | `openaxe session` | Manage sessions |
@@ -50,6 +51,7 @@ Run `openaxe --help` to see all commands:
 | `openaxe export/import` | Session data portability |
 | `openaxe plugin` | Install/manage plugins |
 | `openaxe upgrade` | Upgrade openaxe |
+| `openaxe uninstall` | Uninstall openaxe and remove all related files |
 | `openaxe db` | Database tools |
 
 ## Preinstalled Plugins

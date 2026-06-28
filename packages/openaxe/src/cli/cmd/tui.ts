@@ -80,12 +80,12 @@ async function initOpentuiNativeLib() {
 
 export const TuiCommand = cmd({
   command: "$0 [project]",
-  describe: "start opencode tui",
+  describe: "start openaxe tui",
   builder: (yargs) =>
     withNetworkOptions(yargs)
       .positional("project", {
         type: "string",
-        describe: "path to start opencode in",
+        describe: "path to start openaxe in",
       })
       .option("model", {
         type: "string",
