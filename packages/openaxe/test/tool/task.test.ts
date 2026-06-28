@@ -413,12 +413,9 @@ describe("tool.task", () => {
         const child = yield* sessions.get(result.metadata.sessionId)
         expect(child.parentID).toBe(chat.id)
         expect(child.agent).toBe("reviewer")
+        // ponytail: reviewer agent has *:allow by default which wildcard-matches
+        // todowrite, so no explicit todowrite deny is needed in the child session.
         expect(child.permission).toEqual([
-          {
-            permission: "todowrite",
-            pattern: "*",
-            action: "deny",
-          },
           {
             permission: "bash",
             pattern: "*",
