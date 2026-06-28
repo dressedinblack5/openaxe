@@ -148,8 +148,8 @@ if (!skipInstall) {
 }
 
 function platformSuffix(item: (typeof allTargets)[number]) {
-  const os = item.os === "win32" ? "windows" : item.os
-  return `${os}-${item.arch}${item.abi === "musl" ? "-musl" : ""}`
+  // npm packages use "win32", not "windows" — keep the npm platform name
+  return `${item.os}-${item.arch}${item.abi === "musl" ? "-musl" : ""}`
 }
 function nativeLibName(os: string) {
   if (os === "win32") return "opentui.dll"
