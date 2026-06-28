@@ -20,9 +20,6 @@ jobs:
 
       - uses: ./.github/actions/setup-bun
 
-      - name: Install openaxe
-        run: curl -fsSL https://opencode.ai/install | bash
-
       - name: Check duplicates and compliance
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -36,7 +33,7 @@ jobs:
               "webfetch": "deny"
             }
         run: |
-          openaxe run -m opencode/claude-sonnet-4-6 "A new issue has been created:
+          bun run --cwd packages/openaxe src/index.ts run -m opencode/claude-sonnet-4-6 "A new issue has been created:
 
           Issue number: ${{ github.event.issue.number }}
 
@@ -132,9 +129,6 @@ jobs:
 
       - uses: ./.github/actions/setup-bun
 
-      - name: Install openaxe
-        run: curl -fsSL https://opencode.ai/install | bash
-
       - name: Recheck compliance
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -148,7 +142,7 @@ jobs:
               "webfetch": "deny"
             }
         run: |
-          openaxe run -m opencode/claude-sonnet-4-6 "Issue #${{ github.event.issue.number }} was previously flagged as non-compliant and has been edited.
+          bun run --cwd packages/openaxe src/index.ts run -m opencode/claude-sonnet-4-6 "Issue #${{ github.event.issue.number }} was previously flagged as non-compliant and has been edited.
 
           Lookup this issue with gh issue view ${{ github.event.issue.number }}.
 
