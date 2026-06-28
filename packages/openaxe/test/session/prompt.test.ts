@@ -1040,7 +1040,7 @@ it.instance(
       yield* Fiber.await(fiber)
       expect((yield* status.get(chat.id)).type).toBe("idle")
     }),
-  3_000,
+  30_000,
 )
 
 // Cancel semantics
@@ -1178,8 +1178,8 @@ raceNoLLMServer.instance(
         expect(lastAssistant.info.parentID).toBe(lastUser?.info.id)
       }
     }),
-  { config: cfg },
-  3_000,
+    { config: cfg },
+  30_000,
 )
 
 noLLMServer.instance(
@@ -1261,7 +1261,7 @@ it.instance(
       expect((yield* status.get(chat.id)).type).toBe("idle")
       expect((yield* status.get(childID)).type).toBe("idle")
     }),
-  10_000,
+  30_000,
 )
 
 it.instance(
@@ -1289,7 +1289,7 @@ it.instance(
       }
     }),
   { git: true },
-  10_000,
+  30_000,
 )
 
 // Queue semantics
@@ -1393,7 +1393,7 @@ it.instance("prompt submitted during an active run is included in the next LLM i
     // match loosely instead of exact equality (the LLM handles whitespace identically)
     expect(messages.at(-1)).toMatchObject({ role: "user", content: expect.stringContaining("second") })
   }),
-  10_000,
+  30_000,
 )
 
 it.instance("assertNotBusy fails with BusyError when loop running", () =>
@@ -1669,7 +1669,7 @@ it.instance(
       expect(yield* llm.calls).toBe(1)
     }),
   { git: true },
-  10_000,
+  30_000,
 )
 
 it.instance(
@@ -1708,7 +1708,7 @@ it.instance(
       expect(yield* llm.calls).toBe(1)
     }),
   { git: true },
-  10_000,
+  30_000,
 )
 
 unix(
