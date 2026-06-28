@@ -22,33 +22,27 @@
 
 ---
 
-## Features
+## Reading Guide
 
-- **Multi-provider LLM support** — 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, and more)
-- **Rich TUI** — SolidJS terminal UI with session management, conversation history, keyboard-driven workflow
-- **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
-- **Plugin system** — Extend behavior with plugins from npm, local paths, or git URLs
-- **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, fork/continue
-- **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
-- **Headless server** — Run as background server with HTTP API and optional web UI
-- **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
+New here? Jump to the right section:
 
-## Advantages Over Official OpenCode
-
-| | openaxe | official opencode |
-|---|---|---|
-| **Monorepo size** | 13 packages | 27 |
-| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
-| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
-| **Effects** | Effect v4 throughout | Mixed patterns |
-| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
-| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
-| **Startup** | Lazy-loaded CLI commands | Eager imports |
-| **Identity** | Renamed project-wide (`openaxe`) | N/A |
+| Goal | Start with |
+|---|---|
+| Install and try openaxe | [Quick Start](#quick-start) |
+| Understand the project | [Features](#features) → [Architecture](packages/openaxe/README.md#architecture) → [Security](#security) |
+| Browse available commands | [CLI Commands](#cli-commands) |
+| Set up providers | [Preinstalled Plugins](#preinstalled-plugins) |
+| Extend openaxe | [External Plugins](#external-plugins) |
+| See how it differs from upstream | [Advantages](#advantages-over-official-opencode) |
 
 ## Quick Start
 
-Requires [Bun](https://bun.sh) and `git`.
+### Prerequisites
+
+- **Bun** 1.2+ — `curl -fsSL https://bun.sh/install | bash`
+- **Git** 2.30+
+
+### Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
@@ -63,9 +57,49 @@ bun install
 bun run --cwd packages/openaxe src/index.ts
 ```
 
+### First Run
+
+```bash
+cd my-project
+openaxe                  # launch TUI
+openaxe run "summarize this codebase"  # non-interactive
+```
+
+## Features
+
+- **Multi-provider LLM support** — 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, and more)
+- **Rich TUI** — SolidJS terminal UI with session management, conversation history, keyboard-driven workflow
+- **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
+- **Plugin system** — Extend behavior with plugins from npm, local paths, or git URLs
+- **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, fork/continue
+- **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
+- **Headless server** — Run as background server with HTTP API and optional web UI
+- **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
+
+## CLI Commands
+
+Run `openaxe --help` to see all commands.
+
+| Category | Command | Description |
+|---|---|---|
+| **Core** | `openaxe` [project] | Start the TUI |
+| | `openaxe run <message>` | Run with a prompt, non-interactive |
+| | `openaxe serve` | Start headless server |
+| | `openaxe web` | Start server with web UI |
+| | `openaxe attach <url>` | Attach to a running server |
+| **Providers** | `openaxe providers` | Manage AI providers & credentials |
+| | `openaxe models` | List available models |
+| **Sessions** | `openaxe session` | Manage sessions |
+| | `openaxe pr <number>` | Fetch and checkout a PR |
+| **Extensions** | `openaxe mcp` | Manage MCP servers |
+| | `openaxe acp` | Start ACP server |
+| | `openaxe plugin` | Install/manage plugins |
+| | `openaxe github` | GitHub agent |
+| **System** | `openaxe upgrade` | Upgrade openaxe |
+
 ## Preinstalled Plugins
 
-openaxe ships with auth plugins for these providers — no npm install needed, just run `openaxe providers`:
+openaxe ships with auth plugins for these providers — no npm install needed, just run `openaxe providers login <provider>`:
 
 | Plugin | Provider |
 |---|---|
@@ -80,8 +114,6 @@ openaxe ships with auth plugins for these providers — no npm install needed, j
 | **Snowflake Cortex** | Snowflake Cortex AI |
 | **xAI** | xAI Grok models |
 
-Run `openaxe providers login <provider>` to authenticate any of these.
-
 ## External Plugins
 
 Extend openaxe with custom tools, providers, TUI themes, or workspace adapters from npm.
@@ -92,17 +124,15 @@ openaxe plugin ./path/to/pkg      # from local file
 openaxe plugin user/pkg           # from git
 ```
 
-Plugins are npm packages (or local directories) that declare their entrypoints in `package.json` under `exports["./server"]` or `exports["./tui"]`. Add them to `openaxe.jsonc`:
+Plugins are npm packages that declare entrypoints in `package.json` under `exports["./server"]` or `exports["./tui"]`:
 
 ```jsonc
-{
-  "plugin": ["my-plugin"]
-}
+{ "plugin": ["my-plugin"] }
 ```
 
 ### Recommended Plugins
 
-These are pre-configured in the auto-generated first-run config. They auto-install on the first `openaxe` command after init:
+Auto-configured on first run. They auto-install the first time you run `openaxe`:
 
 | Plugin | Description |
 |---|---|
@@ -113,31 +143,9 @@ These are pre-configured in the auto-generated first-run config. They auto-insta
 | **@tarquinen/opencode-dcp** | Context compression — stay under context limits during long sessions |
 | **ponytail** | Lazy senior dev mode — cuts boilerplate and over-engineering (local file plugin; manual install) |
 
-Write your own plugins using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK. See the [plugin API docs](/packages/plugin/README.md) for details.
-
-## CLI Commands
-
-Run `openaxe --help` to see all commands. Main ones:
-
-| Command | Description |
-|---|---|
-| `openaxe` [project] | Start the TUI (default) |
-| `openaxe run <message>` | Run with a prompt, non-interactive |
-| `openaxe serve` | Start headless server |
-| `openaxe web` | Start server with web UI |
-| `openaxe attach <url>` | Attach to a running server |
-| `openaxe mcp` | Manage MCP servers |
-| `openaxe acp` | Start ACP server |
-| `openaxe providers` | Manage AI providers & credentials |
-| `openaxe session` | Manage sessions |
-| `openaxe github` | GitHub agent |
-| `openaxe pr <number>` | Fetch and checkout a PR |
-| `openaxe plugin` | Install/manage plugins |
-| `openaxe upgrade` | Upgrade openaxe |
+Write your own using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK.
 
 ## Configuration
-
-Configure via `.openaxe/openaxe.jsonc` in your project root:
 
 ```jsonc
 {
@@ -150,18 +158,32 @@ Configure via `.openaxe/openaxe.jsonc` in your project root:
 }
 ```
 
+Configure via `.openaxe/openaxe.jsonc` in your project root. See the [full guide](packages/openaxe/README.md#configuration) for details.
+
+## Advantages Over Official OpenCode
+
+| | openaxe | official opencode |
+|---|---|---|
+| **Monorepo size** | 13 packages | 27 |
+| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
+| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
+| **Effects** | Effect v4 throughout | Mixed patterns |
+| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
+| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
+| **Startup** | Lazy-loaded CLI commands | Eager imports |
+| **Identity** | Renamed project-wide (`openaxe`) | N/A |
+
 ## Security
 
-- **Plugin permission system** — every plugin capability (bash, file I/O, network, MCP) must be declared in config and is enforced at runtime. No plugin can escalate beyond its declared scope.
-- **Zero phone-home** — no telemetry, no crash reporting, no analytics. All LLM calls go directly to your configured provider endpoint with no intermediary.
-- **BYO-key only** — no managed API keys, no cloud billing. Credentials stored in plaintext in `~/.local/share/openaxe/auth.json` (permissions 600). Prefer environment variables where available (e.g., `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
-- **MCP subprocess isolation** — MCP servers run as separate OS processes with no access to the session database or config. However they inherit the parent process's user and filesystem access — only add MCP servers you trust.
-- **Session data locality** — all sessions, logs, and artifacts stored in local SQLite. No cloud sync. Full control via `export`/`import`.
-- **Auditable via OpenTelemetry** — optional OTLP tracing for audit trails. Opt-in, never on by default.
-- **Explicit upgrades only** — `openaxe upgrade` is a manual command. No silent background updates.
-- **No network by default** — server binds to `127.0.0.1` with port `0` (random). No daemon unless you start one.
-- **`--pure` mode** — run without any plugins to eliminate all third-party code from the session.
-- **Architecture** — TUI/CLI-only. No Electron, no browser runtime, no cloud SDKs. 52% fewer packages than upstream for a verifiably minimal supply chain.
-- **Supply chain awareness** — native dependencies (e.g., tree-sitter) run `node-gyp rebuild` during install, fetching and compiling code from npm. For defense-in-depth, use `npm install --ignore-scripts` / `bun install --ignore-scripts` and audit with `npm audit` or `bun audit`.
+- **Plugin permission system** — every capability (bash, file I/O, network, MCP) declared in config and enforced at runtime. No escalation beyond declared scope.
+- **Zero phone-home** — no telemetry, no crash reporting, no analytics. LLM calls go directly to your configured provider endpoint.
+- **BYO-key only** — no managed API keys. Credentials in `~/.local/share/openaxe/auth.json` (permissions 600). Prefer env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
+- **MCP subprocess isolation** — MCP servers run as separate OS processes with no access to session database or config.
+- **Session data locality** — all data in local SQLite. No cloud sync. Full export/import control.
+- **OpenTelemetry** — optional OTLP tracing for audit trails. Opt-in, never on by default.
+- **Explicit upgrades** — `openaxe upgrade` is manual. No silent background updates.
+- **No network by default** — server binds to `127.0.0.1:0` (random port). No daemon unless started.
+- **`--pure` mode** — run without plugins to eliminate all third-party code.
+- **Supply chain** — native deps use `node-gyp rebuild` during install. For defense-in-depth: `bun install --ignore-scripts` + `bun audit`.
 
 <p align="center"><a href="https://github.com/dressedinblack5/openaxe">dressedinblack5/openaxe</a></p>
