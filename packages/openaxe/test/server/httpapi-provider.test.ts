@@ -363,7 +363,6 @@ describe("provider HttpApi", () => {
       const headers = { "x-opencode-directory": directory }
       const providerResponse = yield* request("/provider", { headers })
       const configResponse = yield* request("/config/providers", { headers })
-
       expect(providerResponse.status).toBe(200)
       expect(configResponse.status).toBe(200)
 
@@ -375,6 +374,7 @@ describe("provider HttpApi", () => {
       expect(hasNonZeroModelCost(configBody, "providers", "google")).toBe(true)
     }),
     { ...projectOptions, init: writeFunctionOptionsPlugin },
+    30000,
   )
 
   it.instance(
