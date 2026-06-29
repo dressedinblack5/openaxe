@@ -30,6 +30,8 @@ export type Options = {
   scenarioTimeout: Duration.Duration
   progress: boolean
   trace: boolean
+  passthroughLogs: boolean
+  fromScenario: string | undefined
 }
 
 export type RequestSpec = {
@@ -115,7 +117,7 @@ export type TodoScenario = {
 
 export type Result =
   | { status: "pass"; scenario: ActiveScenario }
-  | { status: "fail"; scenario: ActiveScenario; message: string }
+  | { status: "fail"; scenario: ActiveScenario; message: string; logs: string }
   | { status: "skip"; scenario: TodoScenario }
 
 export type SessionInfo = { id: SessionID; title: string; parentID?: SessionID }

@@ -1675,6 +1675,22 @@ const main = Effect.gen(function* () {
     global: exerciseGlobalRoot,
   })
 
+  if (options.fromScenario) {
+    const name = options.fromScenario
+    const exact = selected.find(
+      (s) => s.name === name || `${s.method} ${s.path}` === name,
+    )
+    if (exact) {
+      console.log(
+        `${color.cyan}--from-scenario: running "${exact.name}" (${exact.method} ${exact.path})${color.reset}`,
+      )
+    } else {
+      console.log(
+        `${color.yellow}--from-scenario: no exact match for "${name}", running ${selected.length} matched scenario(s)${color.reset}`,
+      )
+    }
+  }
+
   const results =
     options.mode === "coverage"
       ? selected.map(coverageResult)

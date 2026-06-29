@@ -42,16 +42,19 @@ export function coverageResult(scenario: Scenario): Result {
 export function parseOptions(args: string[]): Options {
   const mode = option(args, "--mode") ?? "effect"
   if (mode !== "effect" && mode !== "coverage" && mode !== "auth") throw new Error(`invalid --mode ${mode}`)
+  const fromScenario = option(args, "--from-scenario")
   return {
     mode,
-    include: option(args, "--include"),
+    include: fromScenario ?? option(args, "--include"),
     startAt: option(args, "--start-at"),
     stopAt: option(args, "--stop-at"),
     failOnMissing: args.includes("--fail-on-missing"),
     failOnSkip: args.includes("--fail-on-skip"),
     scenarioTimeout: parseScenarioTimeout(option(args, "--scenario-timeout") ?? "30 seconds"),
     progress: args.includes("--progress"),
-    trace: args.includes("--trace"),
+    trace: args.includes("--trace") || !!fromScenario,
+    passthroughLogs: args.includes("--passthrough-logs") || !!fromScenario,
+    fromScenario,
   }
 }
 

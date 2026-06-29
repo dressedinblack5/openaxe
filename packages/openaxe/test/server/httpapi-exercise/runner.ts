@@ -1,12 +1,13 @@
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
-import { Cause, Duration, Effect, Layer, Scope } from "effect"
+import { Cause, Duration, Effect, Layer, Logger, Scope } from "effect"
 import { TestLLMServer } from "../../lib/llm-server"
 import type { Config } from "../../../src/config/config"
 
 import type { MessageV2 } from "../../../src/session/message-v2"
 import { MessageID, PartID } from "../../../src/session/schema"
+import { InstanceBootstrap } from "../../../src/project/bootstrap-service"
 import { call, callAuthProbe, disposeApps } from "./backend"
 import { original } from "./environment"
 import { runtime } from "./runtime"
@@ -14,18 +15,38 @@ import type { ActiveScenario, Options, ProjectOptions, Result, Scenario, Scenari
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
 
+// Build HttpApiApp.routes once into an unsafe scope so the Database
+// connection (from Database.node) stays alive across all scenarios.
+// The same memoMap is used by backend.ts's toWebHandler, so both the
+// web handler and the effect context share one service graph — no
+// duplicate Database connections or WAL conflicts.
+let cachedApp: any
+
 export function runScenario(options: Options) {
-  return (scenario: Scenario) => {
+  return (scenario: Scenario): Effect.Effect<Result> => {
     if (scenario.kind === "todo") return Effect.succeed({ status: "skip", scenario } as Result)
+
+    const lines: string[] = []
+    const captureLogger: Logger.Logger<unknown, void> = Logger.make<unknown, void>((options) => {
+      lines.push(`[${options.logLevel}] ${String(options.message)}`)
+    })
+    const logLayer = Logger.layer([
+      captureLogger,
+      ...(options.passthroughLogs ? ([Logger.defaultLogger] as const) : []),
+    ])
+
     return runActive(options, scenario).pipe(
       Effect.timeoutOrElse({
         duration: options.scenarioTimeout,
         orElse: () => Effect.die(new Error(`scenario timed out after ${Duration.format(options.scenarioTimeout)}`)),
       }),
       Effect.as({ status: "pass", scenario } as Result),
-      Effect.catchCause((cause) => Effect.succeed({ status: "fail" as const, scenario, message: Cause.pretty(cause) })),
+      Effect.catchCause((cause) =>
+        Effect.sync(() => ({ status: "fail" as const, scenario, message: Cause.pretty(cause), logs: lines.join("\n") }) as Result),
+      ),
+      Effect.provide(logLayer),
       Effect.scoped,
-    )
+    ) as Effect.Effect<Result>
   }
 }
 
@@ -64,7 +85,7 @@ function withContext<A, E>(
   scenario: ActiveScenario,
   label: string,
   use: (ctx: SeededContext<unknown>) => Effect.Effect<A, E>,
-) {
+): Effect.Effect<A, E> {
   return Effect.acquireRelease(
     Effect.gen(function* () {
       yield* trace(options, scenario, `${label} context acquire start`)
@@ -89,9 +110,29 @@ function withContext<A, E>(
       Effect.gen(function* () {
         yield* trace(options, scenario, `${label} runtime start`)
         const modules = yield* Effect.promise(() => runtime())
-        const scope = yield* Scope.Scope
-        const app = yield* Layer.buildWithMemoMap(modules.AppLayer, modules.memoMap, scope)
         yield* trace(options, scenario, `${label} runtime done`)
+        // Build the full service context once into an unsafe scope so the
+        // service graph (InstanceStore, Session, Database, etc.) stays alive
+        // across all scenarios. The same memoMap is shared with backend.ts's
+        // toWebHandler, so both the web handler and the effect context share
+        // one service graph — no duplicate Database connections or WAL conflicts.
+        if (!cachedApp) {
+          const scope = Scope.makeUnsafe()
+          // ponytail: noop InstanceBootstrap — production bootstrap.run hangs in test tmpdirs
+          const noopBootstrap = Layer.succeed(
+            InstanceBootstrap.Service,
+            InstanceBootstrap.Service.of({ run: Effect.void }),
+          )
+          const testInstanceLayer = modules.InstanceStore.defaultLayer.pipe(
+            Layer.provide(noopBootstrap),
+          )
+          cachedApp = yield* Layer.buildWithMemoMap(
+            Layer.mergeAll(modules.AppLayer, testInstanceLayer),
+            modules.memoMap,
+            scope,
+          )
+        }
+        const app = cachedApp
         const path = context.dir?.path
         const instance = path
           ? yield* trace(options, scenario, `${label} instance load start`).pipe(
@@ -113,8 +154,11 @@ function withContext<A, E>(
               Effect.tap(() => trace(options, scenario, `${label} instance load done`)),
             )
           : undefined
-        const run = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-          effect.pipe(Effect.provideService(modules.InstanceRef, instance), Effect.provide(app))
+        const run = <A, E>(effect: Effect.Effect<A, E, any>) =>
+          effect.pipe(
+            Effect.provideService(modules.InstanceRef, instance),
+            Effect.provide(app),
+          ) as unknown as Effect.Effect<A, E>
         const directory = () => {
           if (!context.dir?.path) throw new Error("scenario needs a project directory")
           return context.dir.path
@@ -194,7 +238,7 @@ function withContext<A, E>(
       }).pipe(Effect.ensuring(context.llm ? context.llm.reset : Effect.void)),
     ),
     Effect.ensuring(scenario.reset ? resetState : Effect.void),
-  )
+  ) as unknown as Effect.Effect<A, E>
 }
 
 function trace(options: Options, scenario: ActiveScenario, phase: string) {
@@ -262,6 +306,5 @@ const resetState = Effect.promise(async () => {
   Flag.OPENCODE_SERVER_USERNAME = original.OPENCODE_SERVER_USERNAME
   await disposeApps()
   await modules.disposeAllInstances()
-  await modules.resetDatabase()
   await Bun.sleep(25)
 })

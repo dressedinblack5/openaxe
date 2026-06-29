@@ -45,6 +45,11 @@ export function printResults(results: Result[], missing: string[], extra: Scenar
     console.log(
       `${color.red}FAIL${color.reset} ${pad(result.scenario.method, 6)} ${pad(result.scenario.path, 48)} ${result.scenario.name}`,
     )
+    if (result.logs) {
+      console.log(`${color.dim}┌─ logs ─────────────────────────────${color.reset}`)
+      console.log(result.logs)
+      console.log(`${color.dim}└────────────────────────────────────${color.reset}`)
+    }
     console.log(`${color.red}${indent(result.message)}${color.reset}`)
   }
   if (missing.length > 0) {

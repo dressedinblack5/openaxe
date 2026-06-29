@@ -36,7 +36,7 @@ export function runtime() {
       PublicApi: publicApi.PublicApi,
       HttpApiApp: httpApiServer.HttpApiApp,
       AppLayer: appRuntime.AppLayer,
-      memoMap: Layer.makeMemoMapUnsafe(),
+      memoMap: (await import("@opencode-ai/core/effect/memo-map")).memoMap,
       InstanceRef: instanceRef.InstanceRef,
       InstanceStore: instanceStore.InstanceStore,
       Session: session.Session,
