@@ -24,8 +24,6 @@
 
 ## Reading Guide
 
-New here? Jump to the right section:
-
 | Goal | Start with |
 |---|---|
 | Install and try openaxe | [Quick Start](#quick-start) |
@@ -75,10 +73,6 @@ openaxe run "summarize this codebase"  # non-interactive
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Run as background server with HTTP API and optional web UI
 - **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
-
-## CLI Commands
-
-Run `openaxe --help` to see all commands.
 
 | Category | Command | Description |
 |---|---|---|
@@ -171,7 +165,6 @@ Configure via `.openaxe/openaxe.jsonc` in your project root. See the [full guide
 | **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
 | **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
 | **Startup** | Lazy-loaded CLI commands | Eager imports |
-| **Identity** | Renamed project-wide (`openaxe`) | N/A |
 
 ## Security
 
