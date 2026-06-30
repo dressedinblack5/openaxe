@@ -30,6 +30,7 @@ class ScenarioBuilder<S = undefined> {
       capture: "full",
       mutates: false,
       reset: true,
+      skipEffect: false,
       auth,
     }
   }
@@ -60,6 +61,10 @@ class ScenarioBuilder<S = undefined> {
 
   preserveDatabase() {
     return this.clone({ reset: false })
+  }
+
+  skipEffect() {
+    return this.clone({ skipEffect: true })
   }
 
   stream() {
@@ -167,6 +172,7 @@ class ScenarioBuilder<S = undefined> {
       mutates: state.mutates,
       reset: state.reset,
       auth: state.auth,
+      skipEffect: state.skipEffect,
     }
   }
 }

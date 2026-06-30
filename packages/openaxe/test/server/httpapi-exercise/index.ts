@@ -161,7 +161,7 @@ const scenarios: Scenario[] = [
     .patch("/config", "config.update.invalid")
     .at((ctx) => ({ path: "/config", headers: ctx.headers(), body: { username: 1 } }))
     .status(400),
-  http.protected.get("/config/providers", "config.providers").json(),
+  http.protected.get("/config/providers", "config.providers").skipEffect().json(),
   http.protected.get("/project", "project.list").json(200, array, "status"),
   http.protected.get("/project/current", "project.current").json(
     200,
@@ -261,7 +261,7 @@ const scenarios: Scenario[] = [
       headers: ctx.headers(),
     }))
     .status(204, undefined, "status"),
-  http.protected.get("/provider", "provider.list").json(),
+  http.protected.get("/provider", "provider.list").skipEffect().json(),
   http.protected.get("/provider/auth", "provider.auth").json(),
   http.protected
     .post("/provider/{providerID}/oauth/authorize", "provider.oauth.authorize")
@@ -1308,6 +1308,7 @@ const scenarios: Scenario[] = [
     }),
   http.protected
     .post("/session/{sessionID}/init", "session.init")
+    .skipEffect()
     .preserveDatabase()
     .withLlm()
     .seeded((ctx) =>
@@ -1332,6 +1333,7 @@ const scenarios: Scenario[] = [
     ),
   http.protected
     .post("/session/{sessionID}/message", "session.prompt")
+    .skipEffect()
     .preserveDatabase()
     .withLlm()
     .seeded((ctx) =>
@@ -1367,6 +1369,7 @@ const scenarios: Scenario[] = [
     ),
   http.protected
     .post("/session/{sessionID}/prompt_async", "session.prompt_async")
+    .skipEffect()
     .preserveDatabase()
     .withLlm()
     .seeded((ctx) =>
@@ -1393,6 +1396,7 @@ const scenarios: Scenario[] = [
     ),
   http.protected
     .post("/session/{sessionID}/command", "session.command")
+    .skipEffect()
     .preserveDatabase()
     .withLlm()
     .seeded((ctx) =>
@@ -1442,6 +1446,7 @@ const scenarios: Scenario[] = [
     ),
   http.protected
     .post("/session/{sessionID}/summarize", "session.summarize")
+    .skipEffect()
     .preserveDatabase()
     .withLlm()
     .seeded((ctx) =>

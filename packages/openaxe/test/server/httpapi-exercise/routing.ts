@@ -69,13 +69,20 @@ export function matches(options: Options, scenario: Scenario) {
 
 export function selectedScenarios(options: Options, scenarios: Scenario[]) {
   const included = scenarios.filter((scenario) => matches(options, scenario))
-  const start = options.startAt ? included.findIndex((scenario) => matchesName(options.startAt!, scenario)) : 0
+  const candidates = options.mode === "effect"
+    ? included.map((s) =>
+        s.kind === "active" && s.skipEffect
+          ? { kind: "todo" as const, method: s.method, path: s.path, name: s.name, reason: "Skipped in effect mode" }
+          : s,
+      )
+    : included
+  const start = options.startAt ? candidates.findIndex((scenario) => matchesName(options.startAt!, scenario)) : 0
   const end = options.stopAt
-    ? included.findIndex((scenario) => matchesName(options.stopAt!, scenario))
-    : included.length - 1
+    ? candidates.findIndex((scenario) => matchesName(options.stopAt!, scenario))
+    : candidates.length - 1
   if (start === -1) throw new Error(`--start-at matched no scenario: ${options.startAt}`)
   if (end === -1) throw new Error(`--stop-at matched no scenario: ${options.stopAt}`)
-  return included.slice(start, end + 1)
+  return candidates.slice(start, end + 1)
 }
 
 function matchesName(value: string, scenario: Scenario) {
