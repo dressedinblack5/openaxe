@@ -31,7 +31,7 @@ New to openaxe? Here's what to read in order:
 
 ```bash
 # Preferred — one-liner
-curl -fsSL https://openaxe.dev/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
 
 # Or from source
 git clone https://github.com/dressedinblack5/openaxe.git

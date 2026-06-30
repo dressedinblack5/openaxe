@@ -52,7 +52,12 @@ curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install
 git clone https://github.com/dressedinblack5/openaxe.git
 cd openaxe
 bun install
-bun run --cwd packages/openaxe src/index.ts
+
+# Run via binary wrapper (auto-detects compiled binary or falls back to bun)
+bun packages/openaxe/bin/openaxe
+
+# Or install the openaxe command for system-wide use
+./install
 ```
 
 ### First Run
