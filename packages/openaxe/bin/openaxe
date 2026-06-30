@@ -186,14 +186,37 @@ function findBinary(startDir) {
   }
 }
 
-const resolved = envPath || (fs.existsSync(cached) ? cached : findBinary(scriptDir))
-if (!resolved) {
-  console.error(
-    "It seems that your package manager failed to install the right version of the openaxe CLI for your platform. You can try manually installing " +
-      names.map((n) => `\"${n}\"`).join(" or ") +
-      " package",
-  )
-  process.exit(1)
+// Check dist/ for a locally built binary (dev workflow, after `bun run build`)
+function findLocalBinary(pkgDir) {
+  for (const name of names) {
+    const candidate = path.join(pkgDir, "dist", name, "bin", binary)
+    if (fs.existsSync(candidate)) return candidate
+  }
 }
 
-run(resolved)
+function runSource(pkgDir) {
+  const bun = process.env.BUN_PATH || "bun"
+  const entry = path.join(pkgDir, "src/index.ts")
+  const child = childProcess.spawn(bun, ["run", "--cwd", pkgDir, entry, ...process.argv.slice(2)], {
+    stdio: "inherit",
+  })
+  // ponytail: no signal forwarding needed — bun forwards them to the child
+  child.on("error", (err) => {
+    console.error(`Failed to start openaxe from source: ${err.message}`)
+    console.error(`Try running 'bun run build' in ${pkgDir} to compile a binary, or ensure bun is on PATH`)
+    process.exit(1)
+  })
+  child.on("exit", (code, signal) => {
+    if (signal) process.kill(process.pid, signal)
+    else process.exit(typeof code === "number" ? code : 0)
+  })
+}
+
+const pkgDir = path.resolve(scriptDir, "..")
+const resolved = envPath || (fs.existsSync(cached) ? fs.readFileSync(cached, "utf8").trim() : findBinary(scriptDir) || findLocalBinary(pkgDir))
+
+if (resolved && fs.existsSync(resolved)) {
+  run(resolved)
+} else {
+  runSource(pkgDir)
+}

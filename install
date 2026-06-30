@@ -42,7 +42,7 @@ mkdir -p "$BIN_DIR"
 
 cat > "$WRAPPER" <<SCRIPT
 #!/usr/bin/env bash
-exec bun run --cwd "$INSTALL_DIR/packages/openaxe" src/index.ts "\$@"
+exec bun "$INSTALL_DIR/packages/openaxe/bin/openaxe" "\$@"
 SCRIPT
 chmod +x "$WRAPPER"
 
