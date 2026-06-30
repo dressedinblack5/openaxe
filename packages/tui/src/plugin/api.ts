@@ -40,13 +40,55 @@ export function createPluginRoutes() {
 export type PluginRoutes = ReturnType<typeof createPluginRoutes>
 
 export function createTuiApi(input: Omit<TuiPluginApi, "lifecycle">): TuiPluginApi {
+  if (input.renderer === null || input.renderer === undefined) {
+    console.warn(
+      "[tui.plugin] Invalid renderer provided to TuiPluginApi - renderer is null/undefined. " +
+      "Creating safe wrapper to prevent TypeError."
+    )
+    return {
+      ...input,
+      renderer: {
+        requestRender: () => {
+          console.warn(
+            "[tui.plugin] renderer.requestRender called on null/undefined renderer. " +
+            "Plugin is not properly initialized with a valid renderer."
+          )
+        },
+      } as unknown as TuiPluginApi["renderer"],
+      lifecycle: createLifecycle(),
+    }
+  }
+  
+  if (typeof input.renderer !== "object" || !("requestRender" in input.renderer)) {
+    console.warn(
+      "[tui.plugin] Invalid renderer provided to TuiPluginApi - renderer is not a CliRenderer instance. " +
+      "Expected renderer with requestRender() method, got " + typeof input.renderer
+    )
+    return {
+      ...input,
+      renderer: {
+        requestRender: () => {
+          console.warn(
+            "[tui.plugin] renderer.requestRender called on invalid renderer. " +
+            "This plugin may not work correctly without proper renderer initialization."
+          )
+        },
+      } as unknown as TuiPluginApi["renderer"],
+      lifecycle: createLifecycle(),
+    }
+  }
+  
   return {
     ...input,
-    lifecycle: {
-      signal: new AbortController().signal,
-      onDispose() {
-        return () => {}
-      },
+    lifecycle: createLifecycle(),
+  }
+}
+
+function createLifecycle() {
+  return {
+    signal: new AbortController().signal,
+    onDispose() {
+      return () => {}
     },
   }
 }
