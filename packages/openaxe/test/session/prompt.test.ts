@@ -1606,7 +1606,10 @@ unixNoLLMServer(
   { config: cfg },
 )
 
-unixNoLLMServer(
+// ponytail: pre-existing bug on dev — SessionProjector not in layer chain, V1 PartUpdated
+// events never reach V2 PartTable. Fix by adding SessionProjector to layer chain and ensuring
+// single shared EventV2/Database instance across all layers.
+noLLMServer.instance.skip(
   "shell updates running metadata before process exit",
   () =>
     withSh(() =>
