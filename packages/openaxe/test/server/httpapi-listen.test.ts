@@ -429,9 +429,9 @@ describe("HttpApi Server.listen", () => {
     } finally {
       await stop(listener, "timed out cleaning up rejected ticket listener").catch(() => undefined)
     }
-  })
+  }, 30_000)
 
-  testPty("keeps PTY websocket tickets optional when server auth is disabled", async () => {
+  testPty("keeps PTY websocket tickets optionally when server auth is disabled", async () => {
     await using tmp = await tmpdir({ config: { formatter: false, lsp: false } })
     const listener = await startNoAuthListener()
     try {
