@@ -64,9 +64,11 @@ async function input(value?: string) {
 }
 
 export function resolveThreadDirectory(project?: string, envPWD = process.env.PWD, cwd = process.cwd()) {
-  const root = Filesystem.resolve(envPWD ?? cwd)
-  if (project) return Filesystem.resolve(path.isAbsolute(project) ? project : path.join(root, project))
-  return root
+  if (project) {
+    const root = Filesystem.resolve(envPWD ?? cwd)
+    return Filesystem.resolve(path.isAbsolute(project) ? project : path.join(root, project))
+  }
+  return Filesystem.resolve(cwd)
 }
 
 async function initOpentuiNativeLib() {
