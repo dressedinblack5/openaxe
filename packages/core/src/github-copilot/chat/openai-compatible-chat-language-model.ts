@@ -30,6 +30,40 @@ import { defaultOpenAICompatibleErrorStructure, type ProviderErrorStructure } fr
 import type { MetadataExtractor } from "./openai-compatible-metadata-extractor"
 import { prepareTools } from "./openai-compatible-prepare-tools"
 
+type OpenAICompatibleChunk = {
+  id: string | null | undefined
+  created: number | null | undefined
+  model: string | null | undefined
+  choices: Array<{
+    delta: {
+      role: "assistant" | null | undefined
+      content: string | null | undefined
+      reasoning_text: string | null | undefined
+      reasoning_opaque: string | null | undefined
+      tool_calls: Array<{
+        index: number
+        id: string | null | undefined
+        function: {
+          name: string | null | undefined
+          arguments: string | null | undefined
+        }
+      }> | null | undefined
+    } | null | undefined
+    finish_reason: string | null | undefined
+  }> | null | undefined
+  usage: {
+    prompt_tokens: number | null | undefined
+    completion_tokens: number | null | undefined
+    total_tokens: number | null | undefined
+    prompt_tokens_details?: { cached_tokens: number | null | undefined }
+    completion_tokens_details?: { reasoning_tokens: number | null | undefined; accepted_prediction_tokens: number | null | undefined; rejected_prediction_tokens: number | null | undefined }
+  } | null | undefined
+}
+
+type OpenAICompatibleChunkError = { error: { message: string } }
+
+type ChunkSchema = z.ZodUnion<[z.ZodType<OpenAICompatibleChunk>, z.ZodType<OpenAICompatibleChunkError>]>
+
 export type OpenAICompatibleChatConfig = {
   provider: string
   headers: () => Record<string, string | undefined>
@@ -58,7 +92,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   readonly modelId: OpenAICompatibleChatModelId
   private readonly config: OpenAICompatibleChatConfig
   private readonly failedResponseHandler: ResponseHandler<APICallError>
-  private readonly chunkSchema // type inferred via constructor
+  private readonly chunkSchema = createOpenAICompatibleChatChunkSchema(defaultOpenAICompatibleErrorStructure.errorSchema)
 
   constructor(modelId: OpenAICompatibleChatModelId, config: OpenAICompatibleChatConfig) {
     this.modelId = modelId
@@ -66,7 +100,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
     // initialize error handling:
     const errorStructure = config.errorStructure ?? defaultOpenAICompatibleErrorStructure
-    this.chunkSchema = createOpenAICompatibleChatChunkSchema(errorStructure.errorSchema)
+    // Override with instance-specific error schema if provided
+    if (config.errorStructure) {
+      Object.assign(this, { chunkSchema: createOpenAICompatibleChatChunkSchema(config.errorStructure.errorSchema) })
+    }
     this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure)
 
     this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false
@@ -376,14 +413,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     let isActiveText = false
     let reasoningOpaque: string | undefined
 
+    // Capture chunkSchema for type-safe access in transform closure
+    const chunkSchema = this.chunkSchema
+
     return {
       stream: response.pipeThrough(
-        new TransformStream<ParseResult<z.infer<typeof this.chunkSchema>>, LanguageModelV3StreamPart>({
+        new TransformStream<ParseResult<z.infer<typeof chunkSchema>>, LanguageModelV3StreamPart>({
           start(controller) {
             controller.enqueue({ type: "stream-start", warnings })
           },
 
-          // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
           transform(chunk, controller) {
             // Emit raw chunk if requested (before anything else)
             if (options.includeRawChunks) {
@@ -399,7 +438,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: "error", error: chunk.error })
               return
             }
-            const value = chunk.value
+
+            // Type-safe access: successful parse gives us the chunk branch (not error branch)
+            const value = chunk.value as OpenAICompatibleChunk | OpenAICompatibleChunkError
 
             metadataExtractor?.processChunk(chunk.rawValue)
 
@@ -450,7 +491,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               }
             }
 
-            const choice = value.choices[0]
+            const choice = value.choices?.[0]
 
             if (choice?.finish_reason != null) {
               finishReason = {
