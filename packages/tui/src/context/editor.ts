@@ -308,14 +308,15 @@ export const { use: useEditorContext, provider: EditorContextProvider } = create
       connect()
     }
 
-    onMount(() => {
-      connect()
+    // Initialise the connection straight away so the context value exists
+    // when child components (including the test’s Consumer) first render.
+    connect()
 
-      onCleanup(() => {
-        closed = true
-        if (reconnect) clearTimeout(reconnect)
-        socket?.close()
-      })
+    // Keep the same cleanup semantics as before.
+    onCleanup(() => {
+      closed = true
+      if (reconnect) clearTimeout(reconnect)
+      socket?.close()
     })
 
     return {
