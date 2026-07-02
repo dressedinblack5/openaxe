@@ -158,7 +158,7 @@ export const layer = Layer.effect(
       },
       finalize: Effect.fn("CatalogV2.finalize")(function* (catalog) {
         if (policy.hasStatements()) {
-          for (const record of [...catalog.provider.list()]) {
+          for (const record of catalog.provider.list()) {
             if ((yield* policy.evaluate("provider.use", record.provider.id, "allow")) === "deny") {
               catalog.provider.remove(record.provider.id)
             }

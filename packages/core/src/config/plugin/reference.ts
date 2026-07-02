@@ -53,7 +53,7 @@ export const Plugin = define({
 })
 
 function validAlias(name: string) {
-  return name.length > 0 && !/[\/\s`,]/.test(name)
+  return name.length > 0 && !/[\s`,]/.test(name)
 }
 
 function local(entry: ConfigReference.Entry): entry is string | ConfigReference.Local {
