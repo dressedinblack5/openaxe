@@ -1,3 +1,63 @@
+# PROJECT KNOWLEDGE BASE
+
+**Generated:** 2026-07-01 20:01 UTC
+**Commit:** `e05112e`
+**Branch:** `dev`
+
+## OVERVIEW
+
+Monorepo for **openaxe** — a lean TUI/CLI AI coding assistant built on Effect v4, with 13 packages, ~3,900 files, and 371K lines of TypeScript. Security-first, zero Electron, 52% fewer packages than upstream.
+
+**Core stack:** TypeScript (Bun), Effect v4, OpenTUI (SolidJS), Drizzle ORM + SQLite.
+
+## STRUCTURE
+
+```
+./
+├── packages/
+│   ├── openaxe/           CLI orchestrator — yargs entry, lazy-loaded commands [AGENTS.md]
+│   ├── core/              Session/agent/project/tool orchestration, DB, permissions [AGENTS.md]
+│   ├── llm/               LLM integrations — 15+ providers, 6 protocol adapters [AGENTS.md]
+│   ├── tui/               SolidJS terminal UI via OpenTUI [AGENTS.md]
+│   ├── ui/                Shared SolidJS component library (1558 files)
+│   ├── server/            HTTP server and API
+│   ├── plugin/            Plugin system — tool, TUI, effect, promise entry points
+│   ├── schema/            Data validation schemas (Effect)
+│   ├── sdk/               Generated JS SDK
+│   ├── cli/               Alternative Effect-runtime CLI
+│   ├── effect-drizzle-sqlite/  SQLite layer — Drizzle ORM + Effect [AGENTS.md]
+│   ├── http-recorder/     Record/replay HTTP for testing
+│   └── script/            Utility package
+└── AGENTS.md / AGENTS.md (package-level per subdir)
+
+## WHERE TO LOOK
+| Task | Location | Notes |
+|------|----------|-------|
+| Style guide / branch rules | `./AGENTS.md` (this file) | Coding conventions, commit messages |
+| V2 Session architecture | `./AGENTS.md` (V2 Session Core section) | Durable prompts, drains, EventV2 |
+| CLI commands | `packages/openaxe/src/cli/cmd/` | Yargs lazy-loaded commands |
+| Session orchestration | `packages/openaxe/src/session/` | LLM runtime, execution, store |
+| Core engine | `packages/core/src/` | DB, tools, permissions, config, plugins |
+| LLM provider routes | `packages/llm/src/protocols/` | 15+ provider adapters |
+| TUI rendering | `packages/tui/src/` | SolidJS + OpenTUI components |
+| Shared UI components | `packages/ui/src/components/` | Icons, app icons, provider icons |
+| HTTP API | `packages/server/src/handlers/` | HttpApi groups and handlers |
+| Plugin system | `packages/plugin/src/` | Plugin resolution, loading, runtime |
+| Database migrations | `packages/core/src/database/migration/` | Drizzle SQLite migrations |
+| Test fixtures | `packages/openaxe/test/` | tmpdir, testEffect, LLM server |
+
+## CODE MAP
+
+| Symbol | Type | Location | Role |
+|--------|------|----------|------|
+| OpenCode | class | `packages/core/src/public/opencode.ts` | Public API facade |
+| SessionV2 | module | `packages/core/src/session/runner/` | Durable session runner |
+| LLM | namespace | `packages/llm/src/llm.ts` | Request constructors |
+| LLMClient | service | `packages/llm/src/route/client.ts` | Execute LLM requests |
+| Route | type | `packages/llm/src/route/` | Protocol + endpoint + auth + framing |
+| ToolRegistry | service | `packages/core/src/tool/registry.ts` | Tool registration/lookup |
+| TuiApp | component | `packages/tui/src/app.tsx` | Root TUI App component |
+
 - To regenerate the JavaScript SDK, run `./packages/sdk/js/script/build.ts`.
 - The default branch in this repo is `dev`.
 - Local `main` ref may not exist; use `dev` or `origin/dev` for diffs.

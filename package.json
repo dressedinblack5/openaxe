@@ -100,6 +100,8 @@
     "turbo": "2.8.13"
   },
   "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "@aws-sdk/client-s3": "3.933.0",
     "@opencode-ai/plugin": "workspace:*",
     "@opencode-ai/script": "workspace:*",
@@ -127,6 +129,7 @@
     "electron"
   ],
   "overrides": {
+    "gitlab-ai-provider": "^6.9.5",
     "@opentui/core": "catalog:",
     "@opentui/keymap": "catalog:",
     "@opentui/solid": "catalog:",
