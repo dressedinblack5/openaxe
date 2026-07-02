@@ -166,8 +166,6 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
       await installGitHubApp()
 
       const providers = await Effect.runPromise(modelsDev.get()).then((p) => {
-        // TODO: add guide for copilot, for now just hide it
-        delete p["github-copilot"]
         return p
       })
 
@@ -183,6 +181,12 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
         if (provider === "amazon-bedrock") {
           step2 =
             "Configure OIDC in AWS - https://docs.github.com/en/actions/how-tos/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services"
+        } else if (provider === "github-copilot") {
+          step2 = [
+            `    2. Authenticate with GitHub Copilot:`,
+            `       Run \`openaxe providers login github-copilot\` to authenticate via device code flow`,
+            `       This will give you a \`GITHUB_TOKEN\` to use with the GitHub agent`,
+          ].join("\n")
         } else {
           step2 = [
             `    2. Add the following secrets in org or repo (${app.owner}/${app.repo}) settings`,
