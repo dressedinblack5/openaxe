@@ -1,412 +1,210 @@
-export {}
-// TODO: UNCOMMENT WHEN GITLAB SUPPORT IS COMPLETED
-//
-//
-//
-// import { test, expect, describe } from "bun:test"
-// import path from "path"
+import { expect, describe } from "bun:test"
+import { Provider } from "../../src/provider/provider"
 
-// import { ProviderV2 } from "@opencode-ai/core/provider"
-// import { tmpdir, withTestInstance } from "../fixture/fixture"
-// import { Provider } from "@/provider/provider"
-// import { Env } from "../../src/env"
-// import { Global } from "@opencode-ai/core/global"
-// import { GitLabWorkflowLanguageModel } from "gitlab-ai-provider"
+import { Effect } from "effect"
+import { testEffect } from "../lib/effect"
+import { ProviderV2 } from "@opencode-ai/core/provider"
+import { ModelV2 } from "@opencode-ai/core/model"
+import { GitLabWorkflowLanguageModel } from "gitlab-ai-provider"
 
-// test("GitLab Duo: loads provider with API key from environment", async () => {
-//   await using tmp = await tmpdir({
-//     init: async (dir) => {
-//       await Bun.write(
-//         path.join(dir, "openaxe.json"),
-//         JSON.stringify({
-//           $schema: "https://opencode.ai/config.json",
-//         }),
-//       )
-//     },
-//   })
-//   await withTestInstance({
-//     directory: tmp.path,
-//     init: async () => {
-//       Env.set("GITLAB_TOKEN", "test-gitlab-token")
-//     },
-//     fn: async () => {
-//       const providers = await list()
-//       expect(providers[ProviderID.gitlab]).toBeDefined()
-//       expect(providers[ProviderID.gitlab].key).toBe("test-gitlab-token")
-//     },
-//   })
-// })
+const GITLAB = ProviderV2.ID.make("gitlab")
+const it = testEffect(Provider.defaultLayer)
 
-// test("GitLab Duo: config instanceUrl option sets baseURL", async () => {
-//   await using tmp = await tmpdir({
-//     init: async (dir) => {
-//       await Bun.write(
-//         path.join(dir, "openaxe.json"),
-//         JSON.stringify({
-//           $schema: "https://opencode.ai/config.json",
-//           provider: {
-//             gitlab: {
-//               options: {
-//                 instanceUrl: "https://gitlab.example.com",
-//               },
-//             },
-//           },
-//         }),
-//       )
-//     },
-//   })
-//   await withTestInstance({
-//     directory: tmp.path,
-//     init: async () => {
-//       Env.set("GITLAB_TOKEN", "test-token")
-//       Env.set("GITLAB_INSTANCE_URL", "https://gitlab.example.com")
-//     },
-//     fn: async () => {
-//       const providers = await list()
-//       expect(providers[ProviderID.gitlab]).toBeDefined()
-//       expect(providers[ProviderID.gitlab].options?.instanceUrl).toBe("https://gitlab.example.com")
-//     },
-//   })
-// })
+const withEnv = <A, E, R>(values: Record<string, string>, effect: Effect.Effect<A, E, R>) =>
+  Effect.acquireUseRelease(
+    Effect.sync(() => {
+      const previous = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]] as const))
+      Object.assign(process.env, values)
+      return previous
+    }),
+    () => effect,
+    (previous) =>
+      Effect.sync(() => {
+        for (const [key, value] of Object.entries(previous)) {
+          if (value === undefined) delete process.env[key]
+          else process.env[key] = value
+        }
+      }),
+  )
 
-// test("GitLab Duo: loads with OAuth token from auth.json", async () => {
-//   await using tmp = await tmpdir({
-//     init: async (dir) => {
-//       await Bun.write(
-//         path.join(dir, "openaxe.json"),
-//         JSON.stringify({
-//           $schema: "https://opencode.ai/config.json",
-//         }),
-//       )
-//     },
-//   })
+describe("GitLab Duo", () => {
+  it.instance(
+    "loads provider with API key from environment",
+    () =>
+      withEnv(
+        { GITLAB_TOKEN: "test-gitlab-token" },
+        Effect.gen(function* () {
+          const provider = yield* Provider.Service
+          const providers = yield* provider.list()
+          expect(providers[GITLAB]).toBeDefined()
+          expect(providers[GITLAB].key).toBe("test-gitlab-token")
+        }),
+      ),
+    { config: {} },
+    60000,
+  )
 
-//   const authPath = path.join(Global.Path.data, "auth.json")
-//   await Bun.write(
-//     authPath,
-//     JSON.stringify({
-//       gitlab: {
-//         type: "oauth",
-//         access: "test-access-token",
-//         refresh: "test-refresh-token",
-//         expires: Date.now() + 3600000,
-//       },
-//     }),
-//   )
+  it.instance(
+    "config instanceUrl option sets baseURL",
+    () =>
+      withEnv(
+        { GITLAB_TOKEN: "test-token", GITLAB_INSTANCE_URL: "https://gitlab.example.com" },
+        Effect.gen(function* () {
+          const provider = yield* Provider.Service
+          const providers = yield* provider.list()
+          expect(providers[GITLAB]).toBeDefined()
+          expect(providers[GITLAB].options?.instanceUrl).toBe("https://gitlab.example.com")
+        }),
+      ),
+    { config: { provider: { gitlab: { options: { instanceUrl: "https://gitlab.example.com" } } } } },
+    60000,
+  )
 
-//   await withTestInstance({
-//     directory: tmp.path,
-//     init: async () => {
-//       Env.set("GITLAB_TOKEN", "")
-//     },
-//     fn: async () => {
-//       const providers = await list()
-//       expect(providers[ProviderID.gitlab]).toBeDefined()
-//     },
-//   })
-// })
+  it.instance(
+    "includes context-1m beta header in aiGatewayHeaders",
+    () =>
+      withEnv(
+        { GITLAB_TOKEN: "test-token" },
+        Effect.gen(function* () {
+          const provider = yield* Provider.Service
+          const providers = yield* provider.list()
+          expect(providers[GITLAB]).toBeDefined()
+          expect(providers[GITLAB].options?.aiGatewayHeaders?.["anthropic-beta"]).toContain(
+            "context-1m-2025-08-07",
+          )
+        }),
+      ),
+    { config: {} },
+    60000,
+  )
 
-// test("GitLab Duo: loads with Personal Access Token from auth.json", async () => {
-//   await using tmp = await tmpdir({
-//     init: async (dir) => {
-//       await Bun.write(
-//         path.join(dir, "openaxe.json"),
-//         JSON.stringify({
-//           $schema: "https://opencode.ai/config.json",
-//         }),
-//       )
-//     },
-//   })
+  it.instance(
+    "supports feature flags configuration",
+    () =>
+      withEnv(
+        { GITLAB_TOKEN: "test-token" },
+        Effect.gen(function* () {
+          const provider = yield* Provider.Service
+          const providers = yield* provider.list()
+          expect(providers[GITLAB]).toBeDefined()
+          expect(providers[GITLAB].options?.featureFlags).toBeDefined()
+          expect(providers[GITLAB].options?.featureFlags?.duo_agent_platform_agentic_chat).toBe(true)
+        }),
+      ),
+    { config: { provider: { gitlab: { options: { featureFlags: { duo_agent_platform_agentic_chat: true, duo_agent_platform: true } } } } } },
+    60000,
+  )
+})
 
-//   const authPath2 = path.join(Global.Path.data, "auth.json")
-//   await Bun.write(
-//     authPath2,
-//     JSON.stringify({
-//       gitlab: {
-//         type: "api",
-//         key: "glpat-test-pat-token",
-//       },
-//     }),
-//   )
+describe("GitLab Duo: workflow model routing", () => {
+  it.instance(
+    "duo-workflow-* model routes through workflowChat",
+    () =>
+      withEnv(
+        { GITLAB_TOKEN: "test-token" },
+        Effect.gen(function* () {
+          const provider = yield* Provider.Service
+          const providers = yield* provider.list()
+          const gitlab = providers[GITLAB]
+          expect(gitlab).toBeDefined()
 
-//   await withTestInstance({
-//     directory: tmp.path,
-//     init: async () => {
-//       Env.set("GITLAB_TOKEN", "")
-//     },
-//     fn: async () => {
-//       const providers = await list()
-//       expect(providers[ProviderID.gitlab]).toBeDefined()
-//       expect(providers[ProviderID.gitlab].key).toBe("glpat-test-pat-token")
-//     },
-//   })
-// })
+          const modelID = ModelV2.ID.make("duo-workflow-sonnet-4-6")
+          gitlab.models["duo-workflow-sonnet-4-6"] = {
+            id: modelID,
+            providerID: GITLAB,
+            name: "Agent Platform (Claude Sonnet 4.6)",
+            family: "",
+            api: { id: "duo-workflow-sonnet-4-6", url: "https://gitlab.com", npm: "gitlab-ai-provider" },
+            status: "active",
+            headers: {},
+            options: { workflowRef: "claude_sonnet_4_6" },
+            cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+            limit: { context: 200000, output: 64000 },
+            capabilities: {
+              temperature: false,
+              reasoning: true,
+              attachment: true,
+              toolcall: true,
+              input: { text: true, audio: false, image: true, video: false, pdf: true },
+              output: { text: true, audio: false, image: false, video: false, pdf: false },
+              interleaved: false,
+            },
+            release_date: "",
+            variants: {},
+          }
 
-// test("GitLab Duo: supports self-hosted instance configuration", async () => {
-//   await using tmp = await tmpdir({
-//     init: async (dir) => {
-//       await Bun.write(
-//         path.join(dir, "openaxe.json"),
-//         JSON.stringify({
-//           $schema: "https://opencode.ai/config.json",
-//           provider: {
-//             gitlab: {
-//               options: {
-//                 instanceUrl: "https://gitlab.company.internal",
-//                 apiKey: "glpat-internal-token",
-//               },
-//             },
-//           },
-//         }),
-//       )
-//     },
-//   })
-//   await withTestInstance({
-//     directory: tmp.path,
-//     init: async () => {
-//       Env.set("GITLAB_INSTANCE_URL", "https://gitlab.company.internal")
-//     },
-//     fn: async () => {
-//       const providers = await list()
-//       expect(providers[ProviderID.gitlab]).toBeDefined()
-//       expect(providers[ProviderID.gitlab].options?.instanceUrl).toBe("https://gitlab.company.internal")
-//     },
-//   })
-// })
+          const model = yield* provider.getModel(GITLAB, modelID)
+          expect(model).toBeDefined()
+          expect(model.options?.workflowRef).toBe("claude_sonnet_4_6")
 
-// test("GitLab Duo: config apiKey takes precedence over environment variable", async () => {
-//   await using tmp = await tmpdir({
-//     init: async (dir) => {
-//       await Bun.write(
-//         path.join(dir, "openaxe.json"),
-//         JSON.stringify({
-//           $schema: "https://opencode.ai/config.json",
-//           provider: {
-//             gitlab: {
-//               options: {
-//                 apiKey: "config-token",
-//               },
-//             },
-//           },
-//         }),
-//       )
-//     },
-//   })
-//   await withTestInstance({
-//     directory: tmp.path,
-//     init: async () => {
-//       Env.set("GITLAB_TOKEN", "env-token")
-//     },
-//     fn: async () => {
-//       const providers = await list()
-//       expect(providers[ProviderID.gitlab]).toBeDefined()
-//     },
-//   })
-// })
+          const language = yield* provider.getLanguage(model)
+          expect(language).toBeDefined()
+          expect(language).toBeInstanceOf(GitLabWorkflowLanguageModel)
+        }),
+      ),
+    { config: {} },
+    60000,
+  )
 
-// test("GitLab Duo: includes context-1m beta header in aiGatewayHeaders", async () => {
-//   await using tmp = await tmpdir({
-//     init: async (dir) => {
-//       await Bun.write(
-//         path.join(dir, "openaxe.json"),
-//         JSON.stringify({
-//           $schema: "https://opencode.ai/config.json",
-//         }),
-//       )
-//     },
-//   })
-//   await withTestInstance({
-//     directory: tmp.path,
-//     init: async () => {
-//       Env.set("GITLAB_TOKEN", "test-token")
-//     },
-//     fn: async () => {
-//       const providers = await list()
-//       expect(providers[ProviderID.gitlab]).toBeDefined()
-//       expect(providers[ProviderID.gitlab].options?.aiGatewayHeaders?.["anthropic-beta"]).toContain(
-//         "context-1m-2025-08-07",
-//       )
-//     },
-//   })
-// })
+  it.instance(
+    "duo-chat-* model routes through agenticChat (not workflow)",
+    () =>
+      withEnv(
+        { GITLAB_TOKEN: "test-token" },
+        Effect.gen(function* () {
+          const provider = yield* Provider.Service
+          const providers = yield* provider.list()
+          expect(providers[GITLAB]).toBeDefined()
 
-// test("GitLab Duo: supports feature flags configuration", async () => {
-//   await using tmp = await tmpdir({
-//     init: async (dir) => {
-//       await Bun.write(
-//         path.join(dir, "openaxe.json"),
-//         JSON.stringify({
-//           $schema: "https://opencode.ai/config.json",
-//           provider: {
-//             gitlab: {
-//               options: {
-//                 featureFlags: {
-//                   duo_agent_platform_agentic_chat: true,
-//                   duo_agent_platform: true,
-//                 },
-//               },
-//             },
-//           },
-//         }),
-//       )
-//     },
-//   })
-//   await withTestInstance({
-//     directory: tmp.path,
-//     init: async () => {
-//       Env.set("GITLAB_TOKEN", "test-token")
-//     },
-//     fn: async () => {
-//       const providers = await list()
-//       expect(providers[ProviderID.gitlab]).toBeDefined()
-//       expect(providers[ProviderID.gitlab].options?.featureFlags).toBeDefined()
-//       expect(providers[ProviderID.gitlab].options?.featureFlags?.duo_agent_platform_agentic_chat).toBe(true)
-//     },
-//   })
-// })
+          const model = yield* provider.getModel(GITLAB, ModelV2.ID.make("duo-chat-sonnet-4-5"))
+          expect(model).toBeDefined()
 
-// test("GitLab Duo: has multiple agentic chat models available", async () => {
-//   await using tmp = await tmpdir({
-//     init: async (dir) => {
-//       await Bun.write(
-//         path.join(dir, "openaxe.json"),
-//         JSON.stringify({
-//           $schema: "https://opencode.ai/config.json",
-//         }),
-//       )
-//     },
-//   })
-//   await withTestInstance({
-//     directory: tmp.path,
-//     init: async () => {
-//       Env.set("GITLAB_TOKEN", "test-token")
-//     },
-//     fn: async () => {
-//       const providers = await list()
-//       expect(providers[ProviderID.gitlab]).toBeDefined()
-//       const models = Object.keys(providers[ProviderID.gitlab].models)
-//       expect(models.length).toBeGreaterThan(0)
-//       expect(models).toContain("duo-chat-haiku-4-5")
-//       expect(models).toContain("duo-chat-sonnet-4-5")
-//       expect(models).toContain("duo-chat-opus-4-5")
-//     },
-//   })
-// })
+          const language = yield* provider.getLanguage(model)
+          expect(language).toBeDefined()
+          expect(language).not.toBeInstanceOf(GitLabWorkflowLanguageModel)
+        }),
+      ),
+    { config: {} },
+    60000,
+  )
 
-// describe("GitLab Duo: workflow model routing", () => {
-//   test("duo-workflow-* model routes through workflowChat", async () => {
-//     await using tmp = await tmpdir({
-//       init: async (dir) => {
-//         await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ $schema: "https://opencode.ai/config.json" }))
-//       },
-//     })
-//     await withTestInstance({
-//       directory: tmp.path,
-//       init: async () => {
-//         Env.set("GITLAB_TOKEN", "test-token")
-//       },
-//       fn: async () => {
-//         const providers = await list()
-//         const gitlab = providers[ProviderID.gitlab]
-//         expect(gitlab).toBeDefined()
-//         gitlab.models["duo-workflow-sonnet-4-6"] = {
-//           id: ModelID.make("duo-workflow-sonnet-4-6"),
-//           providerID: ProviderID.make("gitlab"),
-//           name: "Agent Platform (Claude Sonnet 4.6)",
-//           family: "",
-//           api: { id: "duo-workflow-sonnet-4-6", url: "https://gitlab.com", npm: "gitlab-ai-provider" },
-//           status: "active",
-//           headers: {},
-//           options: { workflowRef: "claude_sonnet_4_6" },
-//           cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
-//           limit: { context: 200000, output: 64000 },
-//           capabilities: {
-//             temperature: false,
-//             reasoning: true,
-//             attachment: true,
-//             toolcall: true,
-//             input: { text: true, audio: false, image: true, video: false, pdf: true },
-//             output: { text: true, audio: false, image: false, video: false, pdf: false },
-//             interleaved: false,
-//           },
-//           release_date: "",
-//           variants: {},
-//         }
-//         const model = await getModel(ProviderID.gitlab, ModelID.make("duo-workflow-sonnet-4-6"))
-//         expect(model).toBeDefined()
-//         expect(model.options?.workflowRef).toBe("claude_sonnet_4_6")
-//         const language = await getLanguage(model)
-//         expect(language).toBeDefined()
-//         expect(language).toBeInstanceOf(GitLabWorkflowLanguageModel)
-//       },
-//     })
-//   })
+  it.instance(
+    "model.options merged with provider.options in getLanguage",
+    () =>
+      withEnv(
+        { GITLAB_TOKEN: "test-token" },
+        Effect.gen(function* () {
+          const provider = yield* Provider.Service
+          const providers = yield* provider.list()
+          const gitlab = providers[GITLAB]
+          expect(gitlab.options?.featureFlags).toBeDefined()
 
-//   test("duo-chat-* model routes through agenticChat (not workflow)", async () => {
-//     await using tmp = await tmpdir({
-//       init: async (dir) => {
-//         await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ $schema: "https://opencode.ai/config.json" }))
-//       },
-//     })
-//     await withTestInstance({
-//       directory: tmp.path,
-//       init: async () => {
-//         Env.set("GITLAB_TOKEN", "test-token")
-//       },
-//       fn: async () => {
-//         const providers = await list()
-//         expect(providers[ProviderID.gitlab]).toBeDefined()
-//         const model = await getModel(ProviderID.gitlab, ModelID.make("duo-chat-sonnet-4-5"))
-//         expect(model).toBeDefined()
-//         const language = await getLanguage(model)
-//         expect(language).toBeDefined()
-//         expect(language).not.toBeInstanceOf(GitLabWorkflowLanguageModel)
-//       },
-//     })
-//   })
+          const model = yield* provider.getModel(GITLAB, ModelV2.ID.make("duo-chat-sonnet-4-5"))
+          expect(model).toBeDefined()
+          expect(model.options).toBeDefined()
+        }),
+      ),
+    { config: { provider: { gitlab: { options: { featureFlags: { duo_agent_platform_agentic_chat: true, duo_agent_platform: true } } } } } },
+    60000,
+  )
+})
 
-//   test("model.options merged with provider.options in getLanguage", async () => {
-//     await using tmp = await tmpdir({
-//       init: async (dir) => {
-//         await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ $schema: "https://opencode.ai/config.json" }))
-//       },
-//     })
-//     await withTestInstance({
-//       directory: tmp.path,
-//       init: async () => {
-//         Env.set("GITLAB_TOKEN", "test-token")
-//       },
-//       fn: async () => {
-//         const providers = await list()
-//         const gitlab = providers[ProviderID.gitlab]
-//         expect(gitlab.options?.featureFlags).toBeDefined()
-//         const model = await getModel(ProviderID.gitlab, ModelID.make("duo-chat-sonnet-4-5"))
-//         expect(model).toBeDefined()
-//         expect(model.options).toBeDefined()
-//       },
-//     })
-//   })
-// })
-
-// describe("GitLab Duo: static models", () => {
-//   test("static duo-chat models always present regardless of discovery", async () => {
-//     await using tmp = await tmpdir({
-//       init: async (dir) => {
-//         await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ $schema: "https://opencode.ai/config.json" }))
-//       },
-//     })
-//     await withTestInstance({
-//       directory: tmp.path,
-//       init: async () => {
-//         Env.set("GITLAB_TOKEN", "test-token")
-//       },
-//       fn: async () => {
-//         const providers = await list()
-//         const models = Object.keys(providers[ProviderID.gitlab].models)
-//         expect(models).toContain("duo-chat-haiku-4-5")
-//         expect(models).toContain("duo-chat-sonnet-4-5")
-//         expect(models).toContain("duo-chat-opus-4-5")
-//       },
-//     })
-//   })
-// })
+describe("GitLab Duo: static models", () => {
+  it.instance(
+    "static duo-chat models always present regardless of discovery",
+    () =>
+      withEnv(
+        { GITLAB_TOKEN: "test-token" },
+        Effect.gen(function* () {
+          const provider = yield* Provider.Service
+          const providers = yield* provider.list()
+          const models = Object.keys(providers[GITLAB].models)
+          expect(models).toContain("duo-chat-haiku-4-5")
+          expect(models).toContain("duo-chat-sonnet-4-5")
+          expect(models).toContain("duo-chat-opus-4-5")
+        }),
+      ),
+    { config: {} },
+    60000,
+  )
+})

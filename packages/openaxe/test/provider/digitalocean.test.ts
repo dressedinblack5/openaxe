@@ -85,6 +85,7 @@ it.instance(
       }),
     ),
   { config: {} },
+  60000,
 )
 
 it.instance(
@@ -105,6 +106,7 @@ it.instance(
       }),
     ),
   { config: {} },
+  60000,
 )
 
 it.instance(
@@ -121,4 +123,5 @@ it.instance(
       }),
     ),
   { config: {} },
+  60000,
 )

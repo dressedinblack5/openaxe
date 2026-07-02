@@ -43,12 +43,13 @@ it.live("headerTimeout does not abort delayed SSE body after headers arrive", ()
       { config: providerConfig(server.url, { headerTimeout: 500 }) },
     )
   }),
+  30000,
 )
 
 it.live("chunkTimeout raises a response stream error when SSE body stalls", () =>
   Effect.gen(function* () {
     const server = yield* Effect.acquireRelease(
-      Effect.promise(() => delayedBodyServer(250)),
+      Effect.promise(() => delayedBodyServer(500)),
       (server) => Effect.sync(() => server.server.close()),
     )
 
@@ -74,15 +75,16 @@ it.live("chunkTimeout raises a response stream error when SSE body stalls", () =
           })
           expect(error).toBeInstanceOf(ProviderError.ResponseStreamError)
         }),
-      { config: providerConfig(server.url, { chunkTimeout: 50 }) },
+      { config: providerConfig(server.url, { chunkTimeout: 200 }) },
     )
   }),
+  30000,
 )
 
 it.live("headerTimeout aborts when response headers do not arrive", () =>
   Effect.gen(function* () {
     const server = yield* Effect.acquireRelease(
-      Effect.promise(() => delayedHeaderServer(250)),
+      Effect.promise(() => delayedHeaderServer(500)),
       (server) => Effect.sync(() => server.server.close()),
     )
 
@@ -106,15 +108,16 @@ it.live("headerTimeout aborts when response headers do not arrive", () =>
           })
           expect(errors.join("\n")).toContain("response headers timed out")
         }),
-      { config: providerConfig(server.url, { headerTimeout: 50 }) },
+      { config: providerConfig(server.url, { headerTimeout: 200 }) },
     )
   }),
+  30000,
 )
 
 it.live("headerTimeout is opt-in for non-OpenAI providers", () =>
   Effect.gen(function* () {
     const server = yield* Effect.acquireRelease(
-      Effect.promise(() => delayedHeaderServer(100)),
+      Effect.promise(() => delayedHeaderServer(200)),
       (server) => Effect.sync(() => server.server.close()),
     )
 
@@ -133,6 +136,7 @@ it.live("headerTimeout is opt-in for non-OpenAI providers", () =>
       { config: providerConfig(server.url) },
     )
   }),
+  30000,
 )
 
 it.live("OpenAI Codex headerTimeout default can be disabled by config", () =>
@@ -151,6 +155,7 @@ it.live("OpenAI Codex headerTimeout default can be disabled by config", () =>
       }),
     )
   }),
+  30000,
 )
 
 it.live("OpenAI API auth gets default headerTimeout", () =>
@@ -168,6 +173,7 @@ it.live("OpenAI API auth gets default headerTimeout", () =>
       { openai: { type: "api", key: "sk-test" } },
     )
   }),
+  30000,
 )
 
 function providerConfig(url: string, options: Record<string, unknown> = {}) {

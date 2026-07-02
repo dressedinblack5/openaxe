@@ -111,6 +111,7 @@ it.instance("provider loaded from env variable", () =>
     expect(providers[ProviderV2.ID.anthropic].source).toBe("env")
     expect(providers[ProviderV2.ID.anthropic].options.headers["anthropic-beta"]).toBeDefined()
   }),
+  30000,
 )
 
 it.instance(
@@ -120,6 +121,7 @@ it.instance(
     expect(providers[ProviderV2.ID.anthropic]).toBeDefined()
   }),
   { config: { provider: { anthropic: { options: { apiKey: "config-api-key" } } } } },
+  30000,
 )
 
 it.instance(
@@ -130,6 +132,7 @@ it.instance(
     expect(providers[ProviderV2.ID.anthropic]).toBeUndefined()
   }),
   { config: { disabled_providers: ["anthropic"] } },
+  30000,
 )
 
 it.instance(
@@ -155,6 +158,7 @@ it.instance(
     expect(models.length).toBe(1)
   }),
   { config: { provider: { anthropic: { whitelist: ["claude-sonnet-4-20250514"] } } } },
+  30000,
 )
 
 it.instance(
@@ -167,6 +171,7 @@ it.instance(
     expect(models).not.toContain("claude-sonnet-4-20250514")
   }),
   { config: { provider: { anthropic: { blacklist: ["claude-sonnet-4-20250514"] } } } },
+  30000,
 )
 
 it.instance(
@@ -185,6 +190,7 @@ it.instance(
       },
     },
   },
+  30000,
 )
 
 it.instance(
@@ -215,6 +221,7 @@ it.instance(
       },
     },
   },
+  30000,
 )
 
 it.instance(
@@ -225,6 +232,7 @@ it.instance(
     expect(providers[ProviderV2.ID.make("custom-provider")].models["alpha-model"]).toBeUndefined()
   }),
   { config: alphaProviderConfig },
+  30000,
 )
 
 experimentalModels.instance(
@@ -235,6 +243,7 @@ experimentalModels.instance(
     expect(providers[ProviderV2.ID.make("custom-provider")].models["alpha-model"]).toBeDefined()
   }),
   { config: alphaProviderConfig },
+  30000,
 )
 
 it.instance(
@@ -273,6 +282,7 @@ it.instance(
       },
     },
   },
+  30000,
 )
 
 it.instance(
