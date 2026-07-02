@@ -68,6 +68,34 @@ const loginEffect = Effect.fn("login")(function* (url: string) {
   yield* Match.valueTags(result, {
     PollSuccess: (r) =>
       Effect.gen(function* () {
+        // If there are multiple orgs, prompt user to select one
+        let selectedOrgID: OrgID
+        if (r.orgs.length > 1) {
+          yield* Prompt.log.info("Multiple organizations found. Please select one:")
+          const opts = r.orgs.map((org) => ({
+            value: org,
+            label: org.name,
+          }))
+          const selected = yield* Prompt.select<{ id: string; name: string }>({
+            message: "Select organization",
+            options: opts,
+          })
+          if (Option.isNone(selected)) return
+          selectedOrgID = OrgID.make(selected.value.id)
+        } else if (r.orgs.length === 1) {
+          selectedOrgID = OrgID.make(r.orgs[0].id)
+        } else {
+          selectedOrgID = OrgID.make("")
+        }
+
+        yield* service.persistAccount({
+          email: r.email,
+          url: login.server,
+          accessToken: r.accessToken,
+          refreshToken: r.refreshToken,
+          expiry: r.expiry,
+          orgID: selectedOrgID,
+        })
         yield* s.stop("Logged in as " + r.email)
         yield* Prompt.outro("Done")
       }),

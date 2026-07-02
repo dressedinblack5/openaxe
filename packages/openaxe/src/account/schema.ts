@@ -81,6 +81,11 @@ export class Login extends Schema.Class<Login>("Login")({
 
 export class PollSuccess extends Schema.TaggedClass<PollSuccess>()("PollSuccess", {
   email: Schema.String,
+  orgs: Schema.Array(Org),
+  selectedOrgID: Schema.NullOr(OrgID),
+  accessToken: AccessToken,
+  refreshToken: RefreshToken,
+  expiry: Schema.Number,
 }) {}
 
 export class PollPending extends Schema.TaggedClass<PollPending>()("PollPending", {}) {}

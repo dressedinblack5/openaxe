@@ -180,6 +180,14 @@ export interface Interface {
   readonly token: (accountID: AccountID) => Effect.Effect<Option.Option<AccessToken>, AccountError>
   readonly login: (url: string) => Effect.Effect<Login, AccountError>
   readonly poll: (input: Login) => Effect.Effect<PollResult, AccountError>
+  readonly persistAccount: (input: {
+    email: string
+    url: string
+    accessToken: AccessToken
+    refreshToken: RefreshToken
+    expiry: number
+    orgID: OrgID
+  }) => Effect.Effect<void, AccountError>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Account") {}
@@ -420,24 +428,19 @@ export const layer: Layer.Layer<Service, never, AccountRepo.Service | HttpClient
 
       const [account, remoteOrgs] = yield* Effect.all([user, orgs], { concurrency: 2 })
 
-      // TODO: When there are multiple orgs, let the user choose
-      const firstOrgID = remoteOrgs.length > 0 ? Option.some(remoteOrgs[0].id) : Option.none<OrgID>()
-
       const now = yield* Clock.currentTimeMillis
       const expiry = now + Duration.toMillis(parsed.expires_in)
       const refreshToken = parsed.refresh_token
 
-      yield* repo.persistAccount({
-        id: account.id,
+      // Return orgs and tokens so CLI can prompt user to select org and persist account
+      return new PollSuccess({
         email: account.email,
-        url: input.server,
+        orgs: remoteOrgs,
+        selectedOrgID: null,
         accessToken,
         refreshToken,
         expiry,
-        orgID: firstOrgID,
       })
-
-      return new PollSuccess({ email: account.email })
     })
 
     return Service.of({
@@ -452,6 +455,16 @@ export const layer: Layer.Layer<Service, never, AccountRepo.Service | HttpClient
       token,
       login,
       poll,
+      persistAccount: (input) =>
+        repo.persistAccount({
+          id: AccountID.make(input.email),
+          email: input.email,
+          url: input.url,
+          accessToken: input.accessToken,
+          refreshToken: input.refreshToken,
+          expiry: input.expiry,
+          orgID: Option.some(input.orgID),
+        }),
     })
   }),
 )
