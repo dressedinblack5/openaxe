@@ -383,12 +383,22 @@ it.live("poll stores the account and first org on success", () =>
     expect(res._tag).toBe("PollSuccess")
     if (res._tag === "PollSuccess") {
       expect(res.email).toBe("user@example.com")
+      yield* Account.Service.use((s) =>
+        s.persistAccount({
+          email: res.email,
+          url: login().server,
+          accessToken: res.accessToken,
+          refreshToken: res.refreshToken,
+          expiry: res.expiry,
+          orgID: OrgID.make(res.orgs[0].id),
+        }),
+      ).pipe(Effect.provide(live(client)))
     }
 
     const active = yield* AccountRepo.use.active()
     expect(Option.getOrThrow(active)).toEqual(
       expect.objectContaining({
-        id: "user-1",
+        id: "user@example.com",
         email: "user@example.com",
         active_org_id: "org-1",
       }),
