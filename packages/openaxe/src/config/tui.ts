@@ -278,6 +278,7 @@ export const layer = (directory?: string) =>
                   name: "@opencode-ai/plugin",
                   version: InstallationLocal ? undefined : InstallationVersion,
                 },
+                ...BUNDLED_PLUGINS.map((name) => ({ name })),
               ],
             })
             .pipe(Effect.forkScoped),

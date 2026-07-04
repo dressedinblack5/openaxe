@@ -109,8 +109,22 @@ function resolvePackageEntrypoint(spec: string, kind: PluginKind, pkg: PluginPac
 
   if (kind !== "server") return
   const main = packageMain(pkg)
-  if (!main) return
-  return resolvePackagePath(spec, main, kind, pkg)
+  if (main) return resolvePackagePath(spec, main, kind, pkg)
+
+  const opencodePkgPath = path.join(pkg.dir, ".opencode", "package.json")
+  return Filesystem.exists(opencodePkgPath)
+    .then((exists) => {
+      if (!exists) return
+      const opencodePkg = path.join(pkg.dir, ".opencode")
+      return Filesystem.readJson<Record<string, unknown>>(path.join(opencodePkg, "package.json"))
+        .then((json) => {
+          const opencodeMain = typeof json.main === "string" ? json.main.trim() : ""
+          if (!opencodeMain) return
+          return resolvePackagePath(spec, path.join(".opencode", opencodeMain), kind, pkg)
+        })
+        .catch(() => undefined)
+    })
+    .then((resolved) => resolved)
 }
 
 function targetPath(target: string) {

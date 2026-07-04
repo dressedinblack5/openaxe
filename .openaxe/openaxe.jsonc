@@ -11,7 +11,8 @@
     "@tarquinen/opencode-dcp@latest",
     "ecc-universal",
     "DietrichGebert/ponytail",
-    "ls"
+    "ls",
+    "list"
   ],
   "references": {
     "effect": {
