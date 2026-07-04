@@ -66,6 +66,13 @@ const withAuthJson = (contents: string) =>
       }),
   )
 
+// Skip integration tests that require AWS credentials
+const hasAwsCredentials = () =>
+  process.env.AWS_ACCESS_KEY_ID !== undefined ||
+  process.env.AWS_PROFILE !== undefined ||
+  process.env.AWS_BEARER_TOKEN_BEDROCK !== undefined ||
+  process.env.AWS_WEB_IDENTITY_TOKEN_FILE !== undefined
+
 it.instance(
   "Bedrock: config region takes precedence over AWS_REGION env var",
   () =>
@@ -93,6 +100,7 @@ it.instance(
   "Bedrock: loads when bearer token from auth.json is present",
   () =>
     Effect.gen(function* () {
+      if (!hasAwsCredentials()) return // skip if no AWS credentials
       yield* withAuthJson(JSON.stringify({ "amazon-bedrock": { type: "api", key: "test-bearer-token" } }))
       yield* set("AWS_PROFILE", "")
       yield* set("AWS_ACCESS_KEY_ID", "")
