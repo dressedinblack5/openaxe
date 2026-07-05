@@ -10,10 +10,16 @@ import { LayerNode } from "./effect/layer-node"
 const app = "openaxe"
 // ponytail: Windows uses %APPDATA%/%LOCALAPPDATA% instead of XDG dirs.
 const isWin = process.platform === "win32"
-const data = path.join(isWin ? process.env.APPDATA! : xdgData!, app)
-const cache = path.join(isWin ? process.env.LOCALAPPDATA! : xdgCache!, app)
-const config = path.join(isWin ? process.env.APPDATA! : xdgConfig!, app)
-const state = path.join(isWin ? process.env.APPDATA! : xdgState!, app)
+const home = os.homedir()
+const appData = process.env.APPDATA ?? (isWin ? path.join(home, "AppData", "Roaming") : xdgData!)
+const localAppData = process.env.LOCALAPPDATA ?? (isWin ? path.join(home, "AppData", "Local") : xdgCache!)
+const xdgConfigHome = xdgConfig ?? (home ? path.join(home, ".config") : undefined)
+const xdgStateHome = xdgState ?? (home ? path.join(home, ".local", "state") : undefined)
+
+const data = path.join(isWin ? appData : xdgData!, app)
+const cache = path.join(isWin ? localAppData : xdgCache!, app)
+const config = path.join(isWin ? appData : xdgConfigHome!, app)
+const state = path.join(isWin ? appData : xdgStateHome!, app)
 const tmp = path.join(os.tmpdir(), app)
 
 const paths = {
