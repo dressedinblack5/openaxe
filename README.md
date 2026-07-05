@@ -80,7 +80,7 @@ openaxe run "summarize this codebase"  # non-interactive
 - **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
 
 | Category | Command | Description |
-|---|---|---|
+|---|---|---|---|
 | **Core** | `openaxe` [project] | Start the TUI |
 | | `openaxe run <message>` | Run with a prompt, non-interactive |
 | | `openaxe serve` | Start headless server |
@@ -88,13 +88,19 @@ openaxe run "summarize this codebase"  # non-interactive
 | | `openaxe attach <url>` | Attach to a running server |
 | **Providers** | `openaxe providers` | Manage AI providers & credentials |
 | | `openaxe models` | List available models |
-| **Sessions** | `openaxe session` | Manage sessions |
+| | `openaxe agent` | Manage agents |
+| **Sessions** | `openaxe session` | Manage sessions (list, view, fork) |
+| | `openaxe stats` | Session statistics |
+| | `openaxe export` / `import` | Session data portability |
+| | `openaxe db` | Database tools |
 | | `openaxe pr <number>` | Fetch and checkout a PR |
 | **Extensions** | `openaxe mcp` | Manage MCP servers |
 | | `openaxe acp` | Start ACP server |
 | | `openaxe plugin` | Install/manage plugins |
 | | `openaxe github` | GitHub agent |
-| **System** | `openaxe upgrade` | Upgrade openaxe |
+| **System** | `openaxe debug` | Debugging and troubleshooting |
+| | `openaxe upgrade` | Upgrade openaxe |
+| | `openaxe uninstall` | Uninstall and remove all files |
 
 ## Preinstalled Plugins
 
