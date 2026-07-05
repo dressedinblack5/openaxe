@@ -9,10 +9,7 @@
     "superpowers@git+https://github.com/obra/superpowers.git",
     "opencode-vibeguard",
     "@tarquinen/opencode-dcp@latest",
-    "ecc-universal",
-    "DietrichGebert/ponytail",
-    "ls",
-    "list"
+    "ecc-universal"
   ],
   "references": {
     "effect": {
