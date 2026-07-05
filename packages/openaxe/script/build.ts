@@ -247,6 +247,11 @@ for (const item of targets) {
     const src = new URL(nativeLibName(item.os), pkgRoot)
     const dst = `${nativeCopyDir(item)}/${nativeLibName(item.os)}`
     await $`cp ${src.pathname} ${dst}`
+    // Copy alongside the repo's bin/openaxe so bun link global install
+    // and dist installations both find libopentui.so via process.execPath.
+    if (item.os === process.platform && item.arch === process.arch && !item.abi) {
+      await $`cp ${src.pathname} ${dir}/bin/${nativeLibName(item.os)}`
+    }
   } catch {
     console.warn(`  warning: could not copy native lib for ${name}`)
   }
