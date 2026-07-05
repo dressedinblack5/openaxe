@@ -1334,8 +1334,8 @@ test("config parser preserves permission order while rejecting unknown top-level
     ConfigParse.schema(ConfigV1.Info, { invalid_field: true }, "test")
     throw new Error("expected config parse to fail")
   } catch (err) {
-    const error = err as { data?: { issues?: Array<{ code?: string; keys?: string[]; path?: string[] }> } }
-    expect(error.data?.issues?.[0]).toMatchObject({ code: "unrecognized_keys", keys: ["invalid_field"], path: [] })
+    const error = err as { issues?: Array<{ code?: string; keys?: string[]; path?: string[] }> }
+    expect(error.issues?.[0]).toMatchObject({ code: "unrecognized_keys", keys: ["invalid_field"], path: [] })
   }
 })
 
@@ -1661,7 +1661,7 @@ loginPageWellKnown.it.instance(
       expect(Exit.isFailure(exit)).toBe(true)
       const error = Exit.isFailure(exit) ? Cause.squash(exit.cause) : undefined
       expect(NamedError.hasName(error, "ConfigRemoteAuthError")).toBe(true)
-      expect((error as { data?: { url?: string } }).data?.url).toBe("https://example.com")
+      expect((error as { url?: string }).url).toBe("https://example.com")
     }),
 )
 
