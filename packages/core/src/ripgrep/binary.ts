@@ -62,22 +62,18 @@ export namespace RipgrepBinary {
         const dir = yield* fs.makeTempDirectoryScoped({ directory: Global.Path.bin, prefix: "ripgrep-" })
 
         if (config.extension === "zip") {
-          // Use Node.js exec with shell for reliable PATHEXT resolution on Windows
-          // `--force-local` prevents GNU tar (Git Bash) from interpreting
-          // `C:\...` as a remote host connection.
-          const tarCmd = `tar --force-local -xf "${archive.replaceAll('"', '\\"')}" -C "${dir.replaceAll('"', '\\"')}"`
-          const tarOk = yield* Effect.tryPromise({
-            try: () => execAsync(tarCmd, { shell: true }),
-            catch: (cause) => { throw cause instanceof Error ? cause : new Error(String(cause)) },
+          const unzipOk = yield* Effect.tryPromise({
+            try: () => execAsync(`unzip -o "${archive}" -d "${dir}"`, { shell: true }),
+            catch: (cause) => cause,
           }).pipe(Effect.isSuccess)
-          if (!tarOk) {
+          if (!unzipOk) {
             const shell = which("powershell.exe") ?? which("pwsh.exe") ?? "powershell.exe"
             const psCmd = `& { $global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force }`
             yield* Effect.tryPromise({
               try: () => execAsync(`"${shell}" -NoProfile -NonInteractive -Command "${psCmd.replaceAll('"', '\\"')}"`, { shell: true }),
               catch: (cause: unknown) => {
                 const msg = cause instanceof Error ? cause.message : String(cause)
-                throw new Error(`ripgrep extraction failed: ${msg}`)
+                return new Error(`ripgrep extraction failed: ${msg}`)
               },
             })
           }
