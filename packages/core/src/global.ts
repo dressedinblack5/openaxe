@@ -18,8 +18,8 @@ const xdgStateHome = xdgState ?? (home ? path.join(home, ".local", "state") : un
 
 const data = path.join(isWin ? appData : xdgData!, app)
 const cache = path.join(isWin ? localAppData : xdgCache!, app)
-const config = path.join(isWin ? appData : xdgConfigHome!, app)
-const state = path.join(isWin ? appData : xdgStateHome!, app)
+const config = path.join(isWin ? (xdgConfig ?? appData) : xdgConfigHome!, app)
+const state = path.join(isWin ? (xdgState ?? appData) : xdgStateHome!, app)
 const tmp = path.join(os.tmpdir(), app)
 
 const paths = {
