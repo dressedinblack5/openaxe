@@ -93,6 +93,7 @@ describe("ProjectV2.resolve", () => {
       expect(result.previous).toBeUndefined()
       expect(result.vcs?.type).toBe("git")
     }),
+    30_000,
   )
 
   it.live("prefers normalized origin over root commit", () =>

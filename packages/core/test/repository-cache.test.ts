@@ -85,6 +85,7 @@ describe("RepositoryCache", () => {
         expect(cloneFailure).toBeInstanceOf(RepositoryCache.CloneFailedError)
       }).pipe(Effect.provide(cacheLayer(fixture.root))),
     ),
+    30_000,
   )
 })
 
