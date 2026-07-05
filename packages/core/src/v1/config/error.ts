@@ -1,7 +1,6 @@
 export * as ConfigErrorV1 from "./error"
 
 import { Schema } from "effect"
-import { NamedError } from "../../util/error"
 
 const Issue = Schema.StructWithRest(
   Schema.Struct({
@@ -11,29 +10,29 @@ const Issue = Schema.StructWithRest(
   [Schema.Record(Schema.String, Schema.Unknown)],
 )
 
-export const JsonError = NamedError.create("ConfigJsonError", {
+export class JsonError extends Schema.TaggedErrorClass<JsonError>()("ConfigJsonError", {
   path: Schema.String,
   message: Schema.optional(Schema.String),
-})
+}) {}
 
-export const InvalidError = NamedError.create("ConfigInvalidError", {
+export class InvalidError extends Schema.TaggedErrorClass<InvalidError>()("ConfigInvalidError", {
   path: Schema.String,
   issues: Schema.optional(Schema.Array(Issue)),
   message: Schema.optional(Schema.String),
-})
+}) {}
 
-export const FrontmatterError = NamedError.create("ConfigFrontmatterError", {
+export class FrontmatterError extends Schema.TaggedErrorClass<FrontmatterError>()("ConfigFrontmatterError", {
   path: Schema.String,
   message: Schema.String,
-})
+}) {}
 
-export const DirectoryTypoError = NamedError.create("ConfigDirectoryTypoError", {
+export class DirectoryTypoError extends Schema.TaggedErrorClass<DirectoryTypoError>()("ConfigDirectoryTypoError", {
   path: Schema.String,
   dir: Schema.String,
   suggestion: Schema.String,
-})
+}) {}
 
-export const RemoteAuthError = NamedError.create("ConfigRemoteAuthError", {
+export class RemoteAuthError extends Schema.TaggedErrorClass<RemoteAuthError>()("ConfigRemoteAuthError", {
   url: Schema.String,
   remote: Schema.String,
-})
+}) {}

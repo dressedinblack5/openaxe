@@ -8,9 +8,11 @@ describe("legacy event schema compatibility", () => {
     expect(SessionV1.Event.PartUpdated).toBe(Wire.Event.PartUpdated)
   })
 
-  test("Core retains NamedError constructor identity", () => {
+  test("Core retains TaggedErrorClass constructor identity", () => {
     const error = new SessionV1.APIError({ message: "failed", isRetryable: false })
     expect(error).toBeInstanceOf(SessionV1.APIError)
-    expect(error.toObject()).toEqual({ name: "APIError", data: { message: "failed", isRetryable: false } })
+    expect(error._tag).toBe("APIError")
+    expect(error.message).toBe("failed")
+    expect(error.isRetryable).toBe(false)
   })
 })

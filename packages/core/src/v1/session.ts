@@ -2,7 +2,6 @@ export * as SessionV1 from "./session"
 
 import { Schema } from "effect"
 import { NonNegativeInt } from "../schema"
-import { NamedError } from "../util/error"
 
 export {
   AgentPart,
@@ -45,24 +44,85 @@ export {
   WithParts,
 } from "@opencode-ai/schema/session-v1"
 
-export const OutputLengthError = NamedError.create("MessageOutputLengthError", {})
-export const AuthError = NamedError.create("ProviderAuthError", { providerID: Schema.String, message: Schema.String })
-export const AbortedError = NamedError.create("MessageAbortedError", { message: Schema.String })
-export const StructuredOutputError = NamedError.create("StructuredOutputError", {
+export class OutputLengthError extends Schema.TaggedErrorClass<OutputLengthError>()("MessageOutputLengthError", {}) {
+  static isInstance(input: unknown): input is OutputLengthError {
+    return input instanceof OutputLengthError
+  }
+  toObject(): { name: string; data: Record<string, unknown> } {
+    return { name: this._tag, data: {} }
+  }
+}
+
+export class AuthError extends Schema.TaggedErrorClass<AuthError>()("ProviderAuthError", {
+  providerID: Schema.String,
+  message: Schema.String,
+}) {
+  static isInstance(input: unknown): input is AuthError {
+    return input instanceof AuthError
+  }
+  toObject(): { name: string; data: { providerID: string; message: string } } {
+    return { name: this._tag, data: { providerID: this.providerID, message: this.message } }
+  }
+}
+
+export class AbortedError extends Schema.TaggedErrorClass<AbortedError>()("MessageAbortedError", {
+  message: Schema.String,
+}) {
+  static isInstance(input: unknown): input is AbortedError {
+    return input instanceof AbortedError
+  }
+  toObject(): { name: string; data: { message: string } } {
+    return { name: this._tag, data: { message: this.message } }
+  }
+}
+
+export class StructuredOutputError extends Schema.TaggedErrorClass<StructuredOutputError>()("StructuredOutputError", {
   message: Schema.String,
   retries: NonNegativeInt,
-})
-export const APIError = NamedError.create("APIError", {
+}) {
+  static isInstance(input: unknown): input is StructuredOutputError {
+    return input instanceof StructuredOutputError
+  }
+  toObject(): { name: string; data: { message: string; retries: number } } {
+    return { name: this._tag, data: { message: this.message, retries: this.retries } }
+  }
+}
+
+export class APIError extends Schema.TaggedErrorClass<APIError>()("APIError", {
   message: Schema.String,
   statusCode: Schema.optional(NonNegativeInt),
   isRetryable: Schema.Boolean,
   responseHeaders: Schema.optional(Schema.Record(Schema.String, Schema.String)),
   responseBody: Schema.optional(Schema.String),
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.String)),
-})
-export type APIError = Schema.Schema.Type<typeof APIError.Schema>
-export const ContextOverflowError = NamedError.create("ContextOverflowError", {
+}) {
+  static isInstance(input: unknown): input is APIError {
+    return input instanceof APIError
+  }
+  toObject(): { name: string; data: { message: string; statusCode?: number; isRetryable: boolean; responseHeaders?: Record<string, string>; responseBody?: string; metadata?: Record<string, string> } } {
+    return { name: this._tag, data: { message: this.message, statusCode: this.statusCode, isRetryable: this.isRetryable, responseHeaders: this.responseHeaders, responseBody: this.responseBody, metadata: this.metadata } }
+  }
+}
+
+export class ContextOverflowError extends Schema.TaggedErrorClass<ContextOverflowError>()("ContextOverflowError", {
   message: Schema.String,
   responseBody: Schema.optional(Schema.String),
-})
-export const ContentFilterError = NamedError.create("ContentFilterError", { message: Schema.String })
+}) {
+  static isInstance(input: unknown): input is ContextOverflowError {
+    return input instanceof ContextOverflowError
+  }
+  toObject(): { name: string; data: { message: string; responseBody?: string } } {
+    return { name: this._tag, data: { message: this.message, responseBody: this.responseBody } }
+  }
+}
+
+export class ContentFilterError extends Schema.TaggedErrorClass<ContentFilterError>()("ContentFilterError", {
+  message: Schema.String,
+}) {
+  static isInstance(input: unknown): input is ContentFilterError {
+    return input instanceof ContentFilterError
+  }
+  toObject(): { name: string; data: { message: string } } {
+    return { name: this._tag, data: { message: this.message } }
+  }
+}

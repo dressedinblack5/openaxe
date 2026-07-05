@@ -31,7 +31,6 @@ export abstract class NamedError extends Error {
 
     const result = class extends NamedError {
       public static readonly Schema = schema
-      public static readonly EffectSchema = schema
       public static readonly tag = name
 
       public override readonly name = name

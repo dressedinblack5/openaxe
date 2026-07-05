@@ -26,41 +26,46 @@ export const PartID = Schema.String.check(Schema.isStartsWith("prt")).pipe(
 )
 export type PartID = typeof PartID.Type
 
-const namedError = <Name extends string, Fields extends Schema.Struct.Fields>(name: Name, fields: Fields) => {
-  const schema = Schema.Struct({ name: Schema.Literal(name), data: Schema.Struct(fields) }).annotate({
-    identifier: name,
-  })
-  return { Schema: schema, EffectSchema: schema }
-}
+export class OutputLengthError extends Schema.TaggedErrorClass<OutputLengthError>()("MessageOutputLengthError", {}) {}
 
-export const OutputLengthError = namedError("MessageOutputLengthError", {})
-
-export const AuthError = namedError("ProviderAuthError", {
+export class AuthError extends Schema.TaggedErrorClass<AuthError>()("ProviderAuthError", {
   providerID: Schema.String,
   message: Schema.String,
-})
+}) {}
 
-export const AbortedError = namedError("MessageAbortedError", { message: Schema.String })
-export const StructuredOutputError = namedError("StructuredOutputError", {
+export class AbortedError extends Schema.TaggedErrorClass<AbortedError>()("MessageAbortedError", { message: Schema.String }) {}
+
+export class StructuredOutputError extends Schema.TaggedErrorClass<StructuredOutputError>()("StructuredOutputError", {
   message: Schema.String,
   retries: NonNegativeInt,
-})
-export const APIError = namedError("APIError", {
+}) {}
+
+export class APIError extends Schema.TaggedErrorClass<APIError>()("APIError", {
   message: Schema.String,
   statusCode: Schema.optional(NonNegativeInt),
   isRetryable: Schema.Boolean,
   responseHeaders: Schema.optional(Schema.Record(Schema.String, Schema.String)),
   responseBody: Schema.optional(Schema.String),
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.String)),
-})
-export type APIError = Schema.Schema.Type<typeof APIError.Schema>
-export const ContextOverflowError = namedError("ContextOverflowError", {
+}) {}
+
+export const APIErrorSchema = Schema.Struct({
+  message: Schema.String,
+  statusCode: Schema.optional(NonNegativeInt),
+  isRetryable: Schema.Boolean,
+  responseHeaders: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+  responseBody: Schema.optional(Schema.String),
+  metadata: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+}).annotate({ identifier: "APIError" })
+
+export class ContextOverflowError extends Schema.TaggedErrorClass<ContextOverflowError>()("ContextOverflowError", {
   message: Schema.String,
   responseBody: Schema.optional(Schema.String),
-})
-export const ContentFilterError = namedError("ContentFilterError", {
+}) {}
+
+export class ContentFilterError extends Schema.TaggedErrorClass<ContentFilterError>()("ContentFilterError", {
   message: Schema.String,
-})
+}) {}
 
 export class OutputFormatText extends Schema.Class<OutputFormatText>("OutputFormatText")({
   type: Schema.Literal("text"),
@@ -221,7 +226,7 @@ export const RetryPart = Schema.Struct({
   ...partBase,
   type: Schema.Literal("retry"),
   attempt: NonNegativeInt,
-  error: APIError.EffectSchema,
+  error: APIErrorSchema,
   time: Schema.Struct({
     created: NonNegativeInt,
   }),
@@ -383,14 +388,45 @@ export type Part =
   | CompactionPart
 
 const AssistantErrorSchema = Schema.Union([
-  AuthError.EffectSchema,
-  namedError("UnknownError", { message: Schema.String, ref: Schema.optional(Schema.String) }).EffectSchema,
-  OutputLengthError.EffectSchema,
-  AbortedError.EffectSchema,
-  StructuredOutputError.EffectSchema,
-  ContextOverflowError.EffectSchema,
-  ContentFilterError.EffectSchema,
-  APIError.EffectSchema,
+  Schema.Struct({
+    name: Schema.Literal("ProviderAuthError"),
+    data: Schema.Struct({ providerID: Schema.String, message: Schema.String }),
+  }).annotate({ identifier: "ProviderAuthError" }),
+  Schema.Struct({
+    name: Schema.Literal("UnknownError"),
+    data: Schema.Struct({ message: Schema.String, ref: Schema.optional(Schema.String) }),
+  }).annotate({ identifier: "UnknownError" }),
+  Schema.Struct({
+    name: Schema.Literal("MessageOutputLengthError"),
+    data: Schema.Struct({}),
+  }).annotate({ identifier: "MessageOutputLengthError" }),
+  Schema.Struct({
+    name: Schema.Literal("MessageAbortedError"),
+    data: Schema.Struct({ message: Schema.String }),
+  }).annotate({ identifier: "MessageAbortedError" }),
+  Schema.Struct({
+    name: Schema.Literal("StructuredOutputError"),
+    data: Schema.Struct({ message: Schema.String, retries: NonNegativeInt }),
+  }).annotate({ identifier: "StructuredOutputError" }),
+  Schema.Struct({
+    name: Schema.Literal("ContextOverflowError"),
+    data: Schema.Struct({ message: Schema.String, responseBody: Schema.optional(Schema.String) }),
+  }).annotate({ identifier: "ContextOverflowError" }),
+  Schema.Struct({
+    name: Schema.Literal("ContentFilterError"),
+    data: Schema.Struct({ message: Schema.String }),
+  }).annotate({ identifier: "ContentFilterError" }),
+  Schema.Struct({
+    name: Schema.Literal("APIError"),
+    data: Schema.Struct({
+      message: Schema.String,
+      statusCode: Schema.optional(NonNegativeInt),
+      isRetryable: Schema.Boolean,
+      responseHeaders: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+      responseBody: Schema.optional(Schema.String),
+      metadata: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+    }),
+  }).annotate({ identifier: "APIErrorSchema" }),
 ]).annotate({ discriminator: "name" })
 type AssistantError = Schema.Schema.Type<typeof AssistantErrorSchema>
 
