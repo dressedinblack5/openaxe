@@ -28,7 +28,7 @@
 |---|---|
 | Install and try openaxe | [Quick Start](#quick-start) |
 | Understand the project | [Features](#features) → [Architecture](packages/openaxe/README.md#architecture) → [Security](#security) |
-| Browse available commands | [CLI Commands](#cli-commands) |
+| Browse available commands | [User Guide](packages/openaxe/README.md#user-guide) |
 | Set up providers | [Preinstalled Plugins](#preinstalled-plugins) |
 | Extend openaxe | [External Plugins](#external-plugins) |
 | See how it differs from upstream | [Advantages](#advantages-over-official-opencode) |
@@ -40,24 +40,42 @@
 - **Bun** 1.2+ — `curl -fsSL https://bun.sh/install | bash`
 - **Git** 2.30+
 
-### Install
+### Linux / macOS
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
 ```
 
-**From source:**
+Installs `openaxe` to `~/.local/bin` and sets up a desktop entry.
+
+### Windows (PowerShell)
+
+```powershell
+git clone https://github.com/dressedinblack5/openaxe.git; cd openaxe; bun install
+```
+
+Then `.\packages\openaxe\bin\openaxe` to launch. Add the repo to `PATH` for persistent access.
+
+### Pre-built Binary
+
+Download the archive for your platform from the [latest release](https://github.com/dressedinblack5/openaxe/releases/latest), extract it, and place the binary in your `PATH`:
+
+| Platform | Archive |
+|---|---|
+| Linux x64 | `openaxe-linux-x64.tar.gz` |
+| Linux x64 (AVX2) | `openaxe-linux-x64.tar.gz` (preferred on modern CPUs) |
+| Linux arm64 | `openaxe-linux-arm64.tar.gz` |
+| macOS x64 | `openaxe-darwin-x64.tar.gz` |
+| macOS arm64 | `openaxe-darwin-arm64.tar.gz` |
+| Windows x64 | `openaxe-windows-x64.zip` |
 
 ```bash
-git clone https://github.com/dressedinblack5/openaxe.git
-cd openaxe
-bun install
+# Linux / macOS
+tar xzf openaxe-*.tar.gz
+mv openaxe ~/.local/bin/
 
-# Run via binary wrapper (auto-detects compiled binary or falls back to bun)
-bun packages/openaxe/bin/openaxe
-
-# Or install the openaxe command for system-wide use
-./install
+# Windows
+# Extract the zip and add the folder to your PATH
 ```
 
 ### First Run
@@ -78,29 +96,6 @@ openaxe run "summarize this codebase"  # non-interactive
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Run as background server with HTTP API and optional web UI
 - **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
-
-| Category | Command | Description |
-|---|---|---|---|
-| **Core** | `openaxe` [project] | Start the TUI |
-| | `openaxe run <message>` | Run with a prompt, non-interactive |
-| | `openaxe serve` | Start headless server |
-| | `openaxe web` | Start server with web UI |
-| | `openaxe attach <url>` | Attach to a running server |
-| **Providers** | `openaxe providers` | Manage AI providers & credentials |
-| | `openaxe models` | List available models |
-| | `openaxe agent` | Manage agents |
-| **Sessions** | `openaxe session` | Manage sessions (list, view, fork) |
-| | `openaxe stats` | Session statistics |
-| | `openaxe export` / `import` | Session data portability |
-| | `openaxe db` | Database tools |
-| | `openaxe pr <number>` | Fetch and checkout a PR |
-| **Extensions** | `openaxe mcp` | Manage MCP servers |
-| | `openaxe acp` | Start ACP server |
-| | `openaxe plugin` | Install/manage plugins |
-| | `openaxe github` | GitHub agent |
-| **System** | `openaxe debug` | Debugging and troubleshooting |
-| | `openaxe upgrade` | Upgrade openaxe |
-| | `openaxe uninstall` | Uninstall and remove all files |
 
 ## Preinstalled Plugins
 
