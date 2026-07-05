@@ -30,6 +30,8 @@ jobs:
         settings:
           - name: linux
             host: ubuntu-latest
+          - name: windows
+            host: windows-latest
     runs-on: ${{ matrix.settings.host }}
     defaults:
       run:
@@ -67,6 +69,7 @@ jobs:
         run: GITHUB_ACTIONS=false bun turbo test
 
       - name: Run HttpApi exerciser gates
+        if: matrix.settings.name == 'linux'
         working-directory: packages/openaxe
         run: bun run test:httpapi
 
