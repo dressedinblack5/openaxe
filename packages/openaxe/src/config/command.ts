@@ -33,7 +33,7 @@ export async function load(dir: string) {
       result[config.name] = parsed.value
       continue
     }
-    throw new InvalidError({ path: item, message: Cause.pretty(parsed.cause) }, { cause: Cause.squash(parsed.cause) })
+    throw new InvalidError({ path: item, message: Cause.pretty(parsed.cause) })
   }
   return result
 }

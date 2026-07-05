@@ -115,10 +115,11 @@ export const ExperimentalApi = HttpApi.make("experimental")
             description: "Get experimental features enabled on the OpenCode server.",
           }),
         ),
-        HttpApiEndpoint.get("console", ExperimentalPaths.console, {
+HttpApiEndpoint.get("console", ExperimentalPaths.console, {
           query: WorkspaceRoutingQuery,
           success: described(ConsoleStateResponse, "Active Console provider metadata"),
-          error: HttpApiError.InternalServerError,
+          error: HttpApiError.InternalServerErrorNoContent as any,
+          disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.console.get",
@@ -129,7 +130,8 @@ export const ExperimentalApi = HttpApi.make("experimental")
         HttpApiEndpoint.get("consoleOrgs", ExperimentalPaths.consoleOrgs, {
           query: WorkspaceRoutingQuery,
           success: described(ConsoleOrgList, "Switchable Console orgs"),
-          error: HttpApiError.InternalServerError,
+          error: HttpApiError.InternalServerErrorNoContent as any,
+          disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.console.listOrgs",
@@ -141,7 +143,8 @@ export const ExperimentalApi = HttpApi.make("experimental")
           query: WorkspaceRoutingQuery,
           payload: ConsoleSwitchPayload,
           success: described(Schema.Boolean, "Switch success"),
-          error: HttpApiError.BadRequest,
+          error: HttpApiError.BadRequestNoContent as any,
+          disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.console.switchOrg",
@@ -152,7 +155,8 @@ export const ExperimentalApi = HttpApi.make("experimental")
         HttpApiEndpoint.get("tool", ExperimentalPaths.tool, {
           query: ToolListQuery,
           success: described(ToolList, "Tools"),
-          error: HttpApiError.BadRequest,
+          error: HttpApiError.BadRequestNoContent as any,
+          disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "tool.list",
@@ -164,7 +168,8 @@ export const ExperimentalApi = HttpApi.make("experimental")
         HttpApiEndpoint.get("toolIDs", ExperimentalPaths.toolIDs, {
           query: WorkspaceRoutingQuery,
           success: described(ToolIDs, "Tool IDs"),
-          error: HttpApiError.BadRequest,
+          error: HttpApiError.BadRequestNoContent as any,
+          disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "tool.ids",
@@ -177,6 +182,7 @@ export const ExperimentalApi = HttpApi.make("experimental")
           query: WorkspaceRoutingQuery,
           success: described(WorktreeList, "List of worktree directories"),
           error: WorktreeApiError,
+          disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "worktree.list",
@@ -202,6 +208,7 @@ export const ExperimentalApi = HttpApi.make("experimental")
           payload: Worktree.RemoveInput,
           success: described(Schema.Boolean, "Worktree removed"),
           error: WorktreeApiError,
+          disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "worktree.remove",
@@ -214,6 +221,7 @@ export const ExperimentalApi = HttpApi.make("experimental")
           payload: Worktree.ResetInput,
           success: described(Schema.Boolean, "Worktree reset"),
           error: WorktreeApiError,
+          disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "worktree.reset",

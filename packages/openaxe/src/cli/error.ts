@@ -1,6 +1,9 @@
-import { NamedError } from "@opencode-ai/core/util/error"
 import { errorFormat } from "@/util/error"
 import { isRecord } from "@/util/record"
+
+function hasName(error: unknown, name: string): boolean {
+  return typeof error === "object" && error !== null && "name" in error && (error as Record<string, unknown>).name === name
+}
 
 type ConfigIssue = { message: string; path: string[] }
 
@@ -45,7 +48,7 @@ export function FormatError(input: unknown): string | undefined {
   }
 
   // MCPFailed: { name: string }
-  if (NamedError.hasName(input, "MCPFailed")) {
+  if (hasName(input, "MCPFailed")) {
     const data = isRecord(input) && isRecord(input.data) ? stringField(input.data, "name") : undefined
     return `MCP server "${data}" failed. Note, openaxe does not support MCP authentication yet.`
   }
@@ -119,7 +122,7 @@ export function FormatError(input: unknown): string | undefined {
   }
 
   // UICancelledError: user cancelled an interactive CLI prompt
-  if (isTaggedError(input, "UICancelledError") || NamedError.hasName(input, "UICancelledError")) {
+  if (isTaggedError(input, "UICancelledError") || hasName(input, "UICancelledError")) {
     return ""
   }
   return undefined

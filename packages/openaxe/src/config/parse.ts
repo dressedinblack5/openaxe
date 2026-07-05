@@ -67,7 +67,6 @@ export function schema<S extends EffectSchema.Decoder<unknown, never>>(
           }))
         : [{ message: String(error), path: [] }],
     },
-    { cause: error },
   )
 }
 

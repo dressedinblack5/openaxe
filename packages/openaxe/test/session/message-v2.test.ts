@@ -973,7 +973,7 @@ describe("session.message-v2.toModelMessage", () => {
         info: assistantInfo(
           assistantID,
           "m-parent",
-          new SessionV1.APIError({ message: "boom", isRetryable: true }).toObject() as SessionV1.APIError,
+          new SessionV1.APIError({ message: "boom", isRetryable: true }).toObject() as NonNullable<SessionV1.Assistant["error"]>,
         ),
         parts: [
           {
@@ -1535,9 +1535,9 @@ describe("session.message-v2.fromError", () => {
 
     const result = MessageV2.fromError(zlibError, { providerID })
 
-    expect(SessionV1.APIError.isInstance(result)).toBe(true)
-    expect((result as SessionV1.APIError).data.isRetryable).toBe(true)
-    expect((result as SessionV1.APIError).data.message).toInclude("decompression")
+    expect((result as NonNullable<SessionV1.Assistant["error"]>).name).toBe("APIError")
+    expect((result as NonNullable<SessionV1.Assistant["error"] & { data: { isRetryable: boolean; message: string } }>).data.isRetryable).toBe(true)
+    expect((result as NonNullable<SessionV1.Assistant["error"] & { data: { isRetryable: boolean; message: string } }>).data.message).toInclude("decompression")
   })
 
   test("classifies ZlibError as AbortedError when abort context is provided", () => {
@@ -1549,7 +1549,7 @@ describe("session.message-v2.fromError", () => {
 
     const result = MessageV2.fromError(zlibError, { providerID, aborted: true })
 
-    expect(result.name).toBe("MessageAbortedError")
+    expect(result!.name).toBe("MessageAbortedError")
   })
 })
 

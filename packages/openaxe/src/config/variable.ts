@@ -70,15 +70,12 @@ export async function substitute(input: SubstituteInput) {
 
         const errMsg = `bad file reference: "${token}"`
         if (error.code === "ENOENT") {
-          throw new InvalidError(
-            {
-              path: configSource,
-              message: errMsg + ` ${resolvedPath} does not exist`,
-            },
-            { cause: error },
-          )
+          throw new InvalidError({
+            path: configSource,
+            message: errMsg + ` ${resolvedPath} does not exist`,
+          })
         }
-        throw new InvalidError({ path: configSource, message: errMsg }, { cause: error })
+        throw new InvalidError({ path: configSource, message: errMsg })
       })
     ).trim()
 

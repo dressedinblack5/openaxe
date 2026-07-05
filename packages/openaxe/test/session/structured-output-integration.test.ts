@@ -225,8 +225,8 @@ describe("StructuredOutput Integration", () => {
     })
 
     expect(error.name).toBe("StructuredOutputError")
-    expect(error.data.message).toContain("3 attempts")
-    expect(error.data.retries).toBe(3)
+    expect(error.message).toContain("3 attempts")
+    expect(error.retries).toBe(3)
 
     const obj = error.toObject()
     expect(obj.name).toBe("StructuredOutputError")

@@ -23,6 +23,7 @@ import { SessionShare } from "@/share/session"
 import { Session } from "@/session/session"
 import type { SessionID } from "../../session/schema"
 import { MessageID, PartID } from "../../session/schema"
+import { MessageError, isOutputLengthError, isAuthError } from "../../session/message-error"
 import { Provider } from "@/provider/provider"
 import { MessageV2 } from "../../session/message-v2"
 import { EventV2Bridge } from "@/event-v2-bridge"
@@ -933,9 +934,9 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
           })
 
           if (result.info.role === "assistant" && result.info.error) {
-            const err = result.info.error
+            const err = result.info.error as MessageError.Shared
             console.error("Agent error:", err)
-            if (err.name === "ContextOverflowError") throw new Error(formatPromptTooLargeError(files))
+            if (MessageError.ContextOverflowError.isInstance(err)) throw new Error(formatPromptTooLargeError(files))
             const message = "message" in err.data ? err.data.message : ""
             throw new Error(`${err.name}: ${message}`)
           }
@@ -963,9 +964,9 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
           })
 
           if (summary.info.role === "assistant" && summary.info.error) {
-            const err = summary.info.error
+            const err = summary.info.error as MessageError.Shared
             console.error("Summary agent error:", err)
-            if (err.name === "ContextOverflowError") throw new Error(formatPromptTooLargeError(files))
+            if (MessageError.ContextOverflowError.isInstance(err)) throw new Error(formatPromptTooLargeError(files))
             const message = "message" in err.data ? err.data.message : ""
             throw new Error(`${err.name}: ${message}`)
           }

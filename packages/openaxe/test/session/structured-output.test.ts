@@ -72,8 +72,8 @@ describe("structured-output.StructuredOutputError", () => {
     })
 
     expect(error.name).toBe("StructuredOutputError")
-    expect(error.data.message).toBe("Failed to validate")
-    expect(error.data.retries).toBe(3)
+    expect(error.message).toBe("Failed to validate")
+    expect(error.retries).toBe(3)
   })
 
   test("converts to object correctly", () => {

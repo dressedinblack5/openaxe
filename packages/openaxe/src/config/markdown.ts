@@ -23,13 +23,10 @@ export async function parse(filePath: string) {
   try {
     return ConfigMarkdownCore.parse(template)
   } catch (err) {
-    throw new FrontmatterError(
-      {
-        path: filePath,
-        message: `${filePath}: Failed to parse YAML frontmatter: ${err instanceof Error ? err.message : String(err)}`,
-      },
-      { cause: err },
-    )
+    throw new FrontmatterError({
+      path: filePath,
+      message: `${filePath}: Failed to parse YAML frontmatter: ${err instanceof Error ? err.message : String(err)}`,
+    })
   }
 }
 

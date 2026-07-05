@@ -1,7 +1,15 @@
-import { NamedError } from "@opencode-ai/core/util/error"
 import { ConfigErrorV1 } from "@opencode-ai/core/v1/config/error"
 import { Cause, Effect } from "effect"
 import { HttpRouter, HttpServerError, HttpServerRespondable, HttpServerResponse } from "effect/unstable/http"
+
+function isConfigError(error: unknown): error is { _tag: string; [key: string]: unknown } {
+  return typeof error === "object" && error !== null && "_tag" in error
+}
+
+function toObject(error: { _tag: string; [key: string]: unknown }): { name: string; data: Record<string, unknown> } {
+  const { _tag, ...data } = error
+  return { name: _tag, data }
+}
 
 // Keep typed HttpApi failures on their declared error path; this boundary only replaces defect-only empty 500s.
 export const errorLayer = HttpRouter.middleware<{ handles: unknown }>()((effect) =>
@@ -17,12 +25,13 @@ export const errorLayer = HttpRouter.middleware<{ handles: unknown }>()((effect)
 
       const error = defect.defect
       if (
-        ConfigErrorV1.JsonError.isInstance(error) ||
-        ConfigErrorV1.InvalidError.isInstance(error) ||
-        ConfigErrorV1.FrontmatterError.isInstance(error) ||
-        ConfigErrorV1.DirectoryTypoError.isInstance(error)
+        isConfigError(error) &&
+        (error._tag === "ConfigJsonError" ||
+          error._tag === "ConfigInvalidError" ||
+          error._tag === "ConfigFrontmatterError" ||
+          error._tag === "ConfigDirectoryTypoError")
       ) {
-        return Effect.succeed(HttpServerResponse.jsonUnsafe(error.toObject(), { status: 400 }))
+        return Effect.succeed(HttpServerResponse.jsonUnsafe(toObject(error), { status: 400 }))
       }
 
       const ref = `err_${crypto.randomUUID().slice(0, 8)}`
@@ -30,10 +39,7 @@ export const errorLayer = HttpRouter.middleware<{ handles: unknown }>()((effect)
       return Effect.logError("failed", { ref, error, cause: Cause.pretty(cause) }).pipe(
         Effect.as(
           HttpServerResponse.jsonUnsafe(
-            new NamedError.Unknown({
-              message: "Unexpected server error. Check server logs for details.",
-              ref,
-            }).toObject(),
+            { name: "UnknownError", data: { message: "Unexpected server error. Check server logs for details.", ref } },
             { status: 500 },
           ),
         ),

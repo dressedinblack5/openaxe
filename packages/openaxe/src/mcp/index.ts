@@ -64,9 +64,9 @@ export const ToolsChanged = McpEvent.ToolsChanged
 
 export const BrowserOpenFailed = McpEvent.BrowserOpenFailed
 
-export const Failed = NamedError.create("MCPFailed", {
+export class Failed extends Schema.TaggedErrorClass<Failed>()("MCPFailed", {
   name: Schema.String,
-})
+}) {}
 
 export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("MCP.NotFoundError", {
   name: Schema.String,
