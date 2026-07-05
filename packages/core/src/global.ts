@@ -8,10 +8,12 @@ import { Flag } from "./flag/flag"
 import { LayerNode } from "./effect/layer-node"
 
 const app = "openaxe"
-const data = path.join(xdgData!, app)
-const cache = path.join(xdgCache!, app)
-const config = path.join(xdgConfig!, app)
-const state = path.join(xdgState!, app)
+// ponytail: Windows uses %APPDATA%/%LOCALAPPDATA% instead of XDG dirs.
+const isWin = process.platform === "win32"
+const data = path.join(isWin ? process.env.APPDATA! : xdgData!, app)
+const cache = path.join(isWin ? process.env.LOCALAPPDATA! : xdgCache!, app)
+const config = path.join(isWin ? process.env.APPDATA! : xdgConfig!, app)
+const state = path.join(isWin ? process.env.APPDATA! : xdgState!, app)
 const tmp = path.join(os.tmpdir(), app)
 
 const paths = {

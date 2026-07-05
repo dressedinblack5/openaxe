@@ -77,8 +77,18 @@ export const layer = Layer.effect(
       return yield* Effect.fail(new Error("Registered server version does not match the client"))
     })
 
-    const signal = (pid: number, signal: NodeJS.Signals) =>
-      Effect.try({ try: () => process.kill(pid, signal), catch: (cause) => cause }).pipe(Effect.ignore)
+    // ponytail: Windows doesn't support signal names — fall back to process.kill(pid).
+    const signal = (pid: number, signal?: NodeJS.Signals) =>
+      Effect.try({
+        try: () => {
+          if (process.platform === "win32") {
+            process.kill(pid)
+          } else {
+            process.kill(pid, signal)
+          }
+        },
+        catch: (cause) => cause,
+      }).pipe(Effect.ignore)
 
     const awaitStopped = Effect.fnUntraced(function* (pid: number) {
       const running = yield* Effect.try({ try: () => process.kill(pid, 0), catch: () => false }).pipe(
@@ -122,6 +132,7 @@ export const layer = Layer.effect(
           spawn(process.execPath, [...(entrypoint ? [entrypoint] : []), "serve", "--register"], {
             detached: true,
             stdio: "ignore",
+            windowsHide: true,
           }).unref()
         },
         catch: (cause) => new Error("Failed to start server", { cause }),
