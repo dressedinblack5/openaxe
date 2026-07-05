@@ -11,7 +11,15 @@ import { createClient } from "@hey-api/openapi-ts"
 
 const opencode = path.resolve(dir, "../../openaxe")
 
-await $`bun dev generate > ${dir}/openapi.json`.cwd(opencode)
+const generated = await $`bun dev generate > ${dir}/openapi.json`.cwd(opencode).nothrow()
+const useExisting = generated.exitCode !== 0
+if (useExisting) {
+  const existing = Bun.file(path.join(dir, "openapi.json"))
+  if (!(await existing.exists())) {
+    throw new Error("Failed to generate OpenAPI spec and no existing openapi.json found")
+  }
+  console.warn("bun dev generate failed, using committed openapi.json")
+}
 
 await createClient({
   input: "./openapi.json",
@@ -62,4 +70,4 @@ await $`bun prettier --write src/gen`
 await $`bun prettier --write src/v2`
 await $`rm -rf dist`
 await $`bun tsc`
-await $`rm openapi.json`
+if (!useExisting) await $`rm openapi.json`
