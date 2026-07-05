@@ -6,7 +6,7 @@
   "plugin": [
     "oh-my-openagent",
     "opencode-plugin-selector",
-    "superpowers@git+https://github.com/obra/superpowers.git",
+    "superpowers",
     "opencode-vibeguard",
     "@tarquinen/opencode-dcp@latest",
     "ecc-universal"
@@ -25,13 +25,20 @@
     "context7": {
       "type": "local",
       "enabled": true,
-      "command": ["npx", "-y", "@upstash/context7-mcp"]
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ]
     },
     "github": {
       "type": "local",
       "enabled": true,
       "command": "npx",
-      "args": ["-y", "@ildunari/github-mcp-server"]
+      "args": [
+        "-y",
+        "@ildunari/github-mcp-server"
+      ]
     }
   },
   "tools": {
