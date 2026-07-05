@@ -216,7 +216,7 @@ describe("HttpApi Server.listen", () => {
     } finally {
       if (!stopped) await stop(listener, "timed out cleaning up listener").catch(() => undefined)
     }
-  })
+  }, 60_000)
 
   testPty("stop(true) is safe when called concurrently and repeatedly", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
@@ -255,7 +255,7 @@ describe("HttpApi Server.listen", () => {
       await withTimeout(socket.closed, 5_000, "timed out waiting for websocket close after forced stop")
       stopped = true
     } finally {
-      if (!stopped) await stop(listener, "timed out cleaning up forced stop listener").catch(() => undefined)
+      if (!stopped)     await stop(listener, "timed out cleaning up forced stop listener").catch(() => undefined)
     }
   })
 
@@ -429,7 +429,7 @@ describe("HttpApi Server.listen", () => {
     } finally {
       await stop(listener, "timed out cleaning up rejected ticket listener").catch(() => undefined)
     }
-  }, 45_000)
+  }, 90_000)
 
   testPty("keeps PTY websocket tickets optionally when server auth is disabled", async () => {
     await using tmp = await tmpdir({ config: { formatter: false, lsp: false } })

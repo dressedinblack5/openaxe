@@ -46,7 +46,7 @@ export {
 
 export class OutputLengthError extends Schema.TaggedErrorClass<OutputLengthError>()("MessageOutputLengthError", {}) {
   static isInstance(input: unknown): input is OutputLengthError {
-    return input instanceof OutputLengthError
+    return input instanceof OutputLengthError || (typeof input === "object" && input !== null && "name" in input && (input as { name: string }).name === "MessageOutputLengthError")
   }
   toObject(): { name: string; data: Record<string, unknown> } {
     return { name: this._tag, data: {} }
@@ -58,7 +58,7 @@ export class AuthError extends Schema.TaggedErrorClass<AuthError>()("ProviderAut
   message: Schema.String,
 }) {
   static isInstance(input: unknown): input is AuthError {
-    return input instanceof AuthError
+    return input instanceof AuthError || (typeof input === "object" && input !== null && "name" in input && (input as { name: string }).name === "ProviderAuthError")
   }
   toObject(): { name: string; data: { providerID: string; message: string } } {
     return { name: this._tag, data: { providerID: this.providerID, message: this.message } }
@@ -69,7 +69,7 @@ export class AbortedError extends Schema.TaggedErrorClass<AbortedError>()("Messa
   message: Schema.String,
 }) {
   static isInstance(input: unknown): input is AbortedError {
-    return input instanceof AbortedError
+    return input instanceof AbortedError || (typeof input === "object" && input !== null && "name" in input && (input as { name: string }).name === "MessageAbortedError")
   }
   toObject(): { name: string; data: { message: string } } {
     return { name: this._tag, data: { message: this.message } }
@@ -81,7 +81,7 @@ export class StructuredOutputError extends Schema.TaggedErrorClass<StructuredOut
   retries: NonNegativeInt,
 }) {
   static isInstance(input: unknown): input is StructuredOutputError {
-    return input instanceof StructuredOutputError
+    return input instanceof StructuredOutputError || (typeof input === "object" && input !== null && "name" in input && (input as { name: string }).name === "StructuredOutputError")
   }
   toObject(): { name: string; data: { message: string; retries: number } } {
     return { name: this._tag, data: { message: this.message, retries: this.retries } }
@@ -97,10 +97,15 @@ export class APIError extends Schema.TaggedErrorClass<APIError>()("APIError", {
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.String)),
 }) {
   static isInstance(input: unknown): input is APIError {
-    return input instanceof APIError
+    return input instanceof APIError || (typeof input === "object" && input !== null && "name" in input && (input as { name: string }).name === "APIError")
   }
-  toObject(): { name: string; data: { message: string; statusCode?: number; isRetryable: boolean; responseHeaders?: Record<string, string>; responseBody?: string; metadata?: Record<string, string> } } {
-    return { name: this._tag, data: { message: this.message, statusCode: this.statusCode, isRetryable: this.isRetryable, responseHeaders: this.responseHeaders, responseBody: this.responseBody, metadata: this.metadata } }
+  toObject(): { name: string; data: Record<string, unknown> } {
+    const data: Record<string, unknown> = { message: this.message, isRetryable: this.isRetryable }
+    if (this.statusCode !== undefined) data.statusCode = this.statusCode
+    if (this.responseHeaders !== undefined) data.responseHeaders = this.responseHeaders
+    if (this.responseBody !== undefined) data.responseBody = this.responseBody
+    if (this.metadata !== undefined) data.metadata = this.metadata
+    return { name: this._tag, data }
   }
 }
 
@@ -109,10 +114,12 @@ export class ContextOverflowError extends Schema.TaggedErrorClass<ContextOverflo
   responseBody: Schema.optional(Schema.String),
 }) {
   static isInstance(input: unknown): input is ContextOverflowError {
-    return input instanceof ContextOverflowError
+    return input instanceof ContextOverflowError || (typeof input === "object" && input !== null && "name" in input && (input as { name: string }).name === "ContextOverflowError")
   }
-  toObject(): { name: string; data: { message: string; responseBody?: string } } {
-    return { name: this._tag, data: { message: this.message, responseBody: this.responseBody } }
+  toObject(): { name: string; data: Record<string, unknown> } {
+    const data: Record<string, unknown> = { message: this.message }
+    if (this.responseBody !== undefined) data.responseBody = this.responseBody
+    return { name: this._tag, data }
   }
 }
 
@@ -120,7 +127,7 @@ export class ContentFilterError extends Schema.TaggedErrorClass<ContentFilterErr
   message: Schema.String,
 }) {
   static isInstance(input: unknown): input is ContentFilterError {
-    return input instanceof ContentFilterError
+    return input instanceof ContentFilterError || (typeof input === "object" && input !== null && "name" in input && (input as { name: string }).name === "ContentFilterError")
   }
   toObject(): { name: string; data: { message: string } } {
     return { name: this._tag, data: { message: this.message } }
