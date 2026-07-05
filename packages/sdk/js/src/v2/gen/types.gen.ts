@@ -128,10 +128,6 @@ export type WellKnownAuth = {
 
 export type Auth = OAuth | ApiAuth | WellKnownAuth
 
-export type EffectHttpApiErrorBadRequest = {
-  _tag: "BadRequest"
-}
-
 export type InvalidRequestError = {
   _tag: "InvalidRequestError"
   message: string
@@ -311,7 +307,7 @@ export type ContentFilterError = {
   }
 }
 
-export type ApiError = {
+export type ApiErrorSchema = {
   name: "APIError"
   data: {
     message: string
@@ -343,7 +339,7 @@ export type AssistantMessage = {
     | StructuredOutputError
     | ContextOverflowError
     | ContentFilterError
-    | ApiError
+    | ApiErrorSchema
   parentID: string
   modelID: string
   providerID: string
@@ -596,6 +592,19 @@ export type AgentPart = {
     value: string
     start: number
     end: number
+  }
+}
+
+export type ApiError = {
+  message: string
+  statusCode?: number
+  isRetryable: boolean
+  responseHeaders?: {
+    [key: string]: string
+  }
+  responseBody?: string
+  metadata?: {
+    [key: string]: string
   }
 }
 
@@ -1220,7 +1229,7 @@ export type GlobalEvent = {
             | StructuredOutputError
             | ContextOverflowError
             | ContentFilterError
-            | ApiError
+            | ApiErrorSchema
         }
       }
     | {
@@ -2032,6 +2041,10 @@ export type Config = {
   }
 }
 
+export type EffectHttpApiErrorBadRequest = {
+  _tag: "BadRequest"
+}
+
 export type Model = {
   id: string
   providerID: string
@@ -2137,10 +2150,6 @@ export type ConsoleState = {
   consoleManagedProviders: Array<string>
   activeOrgName?: string
   switchableOrgCount: number
-}
-
-export type EffectHttpApiErrorInternalServerError = {
-  _tag: "InternalServerError"
 }
 
 export type ToolListItem = {
@@ -2561,6 +2570,10 @@ export type NotFoundError = {
   data: {
     message: string
   }
+}
+
+export type EffectHttpApiErrorInternalServerError = {
+  _tag: "InternalServerError"
 }
 
 export type TextPartInput = {
@@ -5124,7 +5137,7 @@ export type V2EventSessionError = {
       | StructuredOutputError
       | ContextOverflowError
       | ContentFilterError
-      | ApiError
+      | ApiErrorSchema
   }
 }
 
@@ -6513,7 +6526,7 @@ export type EventSessionError = {
       | StructuredOutputError
       | ContextOverflowError
       | ContentFilterError
-      | ApiError
+      | ApiErrorSchema
   }
 }
 
@@ -6945,9 +6958,9 @@ export type AuthRemoveData = {
 
 export type AuthRemoveErrors = {
   /**
-   * BadRequest | InvalidRequestError
+   * Bad request
    */
-  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  400: BadRequestError
 }
 
 export type AuthRemoveError = AuthRemoveErrors[keyof AuthRemoveErrors]
@@ -6972,9 +6985,9 @@ export type AuthSetData = {
 
 export type AuthSetErrors = {
   /**
-   * BadRequest | InvalidRequestError
+   * Bad request
    */
-  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  400: BadRequestError
 }
 
 export type AuthSetError = AuthSetErrors[keyof AuthSetErrors]
@@ -7016,9 +7029,9 @@ export type AppLogData = {
 
 export type AppLogErrors = {
   /**
-   * BadRequest | InvalidRequestError
+   * Bad request
    */
-  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  400: BadRequestError
 }
 
 export type AppLogError = AppLogErrors[keyof AppLogErrors]
@@ -7285,9 +7298,9 @@ export type ConfigUpdateData = {
 
 export type ConfigUpdateErrors = {
   /**
-   * BadRequest | InvalidRequestError
+   * Bad request
    */
-  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  400: BadRequestError
 }
 
 export type ConfigUpdateError = ConfigUpdateErrors[keyof ConfigUpdateErrors]
@@ -7382,7 +7395,7 @@ export type ExperimentalConsoleGetErrors = {
   /**
    * InternalServerError
    */
-  500: EffectHttpApiErrorInternalServerError
+  500: unknown
 }
 
 export type ExperimentalConsoleGetError = ExperimentalConsoleGetErrors[keyof ExperimentalConsoleGetErrors]
@@ -7414,7 +7427,7 @@ export type ExperimentalConsoleListOrgsErrors = {
   /**
    * InternalServerError
    */
-  500: EffectHttpApiErrorInternalServerError
+  500: unknown
 }
 
 export type ExperimentalConsoleListOrgsError =
@@ -7476,9 +7489,9 @@ export type ToolListData = {
 
 export type ToolListErrors = {
   /**
-   * BadRequest | InvalidRequestError
+   * Bad request
    */
-  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  400: BadRequestError
 }
 
 export type ToolListError = ToolListErrors[keyof ToolListErrors]
@@ -7504,9 +7517,9 @@ export type ToolIdsData = {
 
 export type ToolIdsErrors = {
   /**
-   * BadRequest | InvalidRequestError
+   * Bad request
    */
-  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  400: BadRequestError
 }
 
 export type ToolIdsError = ToolIdsErrors[keyof ToolIdsErrors]
