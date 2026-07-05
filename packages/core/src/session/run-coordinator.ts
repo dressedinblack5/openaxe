@@ -17,6 +17,7 @@ type Entry<E> = {
   owner?: Fiber.Fiber<void, never>
   pendingWake: boolean
   stopping: boolean
+  readonly createdAt: number
 }
 
 export const make = <Key, E>(options: {
@@ -26,10 +27,21 @@ export const make = <Key, E>(options: {
     const active = new Map<Key, Entry<E>>()
     const fork = yield* FiberSet.makeRuntime<never, void, never>()
 
+    // ponytail: sweep stale entries with done fibers; TTL if active.size creeps
+    const sweep = () => {
+      if (active.size < 50) return
+      const now = Date.now()
+      for (const [k, e] of active) {
+        if (now - e.createdAt < 5 * 60_000) continue
+        if (e.owner && e.owner.pollUnsafe() !== undefined) active.delete(k)
+      }
+    }
+
     const makeEntry = (): Entry<E> => ({
       done: Deferred.makeUnsafe<void, E>(),
       pendingWake: false,
       stopping: false,
+      createdAt: Date.now(),
     })
 
     const start = (key: Key, entry: Entry<E>, force: boolean, successor = false) => {
@@ -64,6 +76,7 @@ export const make = <Key, E>(options: {
 
     const run = (key: Key): Effect.Effect<void, E> =>
       Effect.uninterruptibleMask((restore) => {
+        sweep()
         const entry = active.get(key)
         if (entry !== undefined) {
           if (entry.stopping) return restore(Deferred.await(entry.done).pipe(Effect.andThen(run(key))))

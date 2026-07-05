@@ -33,7 +33,7 @@ import { SessionStore } from "../store"
 import { type RunError, Service } from "./index"
 import { SessionRunnerModel } from "./model"
 import { createLLMEventPublisher } from "./publish-llm-event"
-import { toLLMMessages } from "./to-llm-message"
+import { toLLMMessage } from "./to-llm-message"
 import { MAX_STEPS_PROMPT } from "./max-steps"
 
 /**
@@ -189,7 +189,6 @@ export const layer = Layer.effect(
         initialized ?? (yield* SessionContextEpoch.prepare(db, events, loadSystemContext(agent), session.id))
       const model = yield* models.resolve(session)
       const entries = yield* SessionHistory.entriesForRunner(db, session.id, system.baselineSeq)
-      const context = entries.map((entry) => entry.message)
       const isLastStep = agent.info?.steps !== undefined && currentStep >= agent.info.steps
       const toolMaterialization = isLastStep ? undefined : yield* tools.materialize(agent.info?.permissions)
       const promptCacheKey = /^ses_[0-9a-f]{64}$/.test(session.id) ? session.id.slice(4) : session.id
@@ -199,12 +198,15 @@ export const layer = Layer.effect(
         system: [agent.info?.system, system.baseline]
           .filter((part): part is string => part !== undefined && part.length > 0)
           .map(SystemPart.make),
-        messages: [...toLLMMessages(context, model), ...(isLastStep ? [Message.assistant(MAX_STEPS_PROMPT)] : [])],
+        messages: isLastStep
+          ? [...entries.flatMap(({ message }) => toLLMMessage(message, model)), Message.assistant(MAX_STEPS_PROMPT)]
+          : entries.flatMap(({ message }) => toLLMMessage(message, model)),
         tools: toolMaterialization?.definitions ?? [],
         toolChoice: isLastStep ? "none" : undefined,
       })
       if (yield* compaction.compactIfNeeded({ sessionID: session.id, entries, model, request }))
         return yield* Effect.die(continueAfterCompaction(currentStep))
+      entries.length = 0 // ponytail: free decoded V2 messages; LLM copies now in request.messages
       const publisher = createLLMEventPublisher(events, {
         sessionID: session.id,
         agent: agent.id,

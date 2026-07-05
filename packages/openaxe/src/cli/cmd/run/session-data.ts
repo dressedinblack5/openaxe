@@ -473,7 +473,8 @@ function stashEcho(data: SessionData, part: ToolPart) {
     return
   }
 
-  const text = output.replace(/^\n+/, "")
+  // ponytail: only first 10K chars needed for echo detection (startsWith match)
+  const text = output.replace(/^\n+/, "").slice(0, 10_000)
   if (!text.trim()) {
     return
   }

@@ -99,7 +99,7 @@ const assistant = (message: SessionMessage.Assistant, model: Model) => {
   ]
 }
 
-function toLLMMessage(message: SessionMessage.Message, model: Model): Message[] {
+export function toLLMMessage(message: SessionMessage.Message, model: Model): Message[] {
   switch (message.type) {
     case "agent-switched":
     case "model-switched":
