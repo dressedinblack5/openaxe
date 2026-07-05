@@ -162,8 +162,8 @@ describe("session.retry.retryable", () => {
 
   test("retries transport timeout errors", () => {
     const request = MessageV2.fromError(new ProviderError.HeaderTimeoutError(10000), { providerID })
-    expect(SessionV1.APIError.isInstance(request)).toBe(true)
-    expect(SessionRetry.retryable(request, retryProvider)).toEqual({
+    expect(request!.name).toBe("APIError")
+    expect(SessionRetry.retryable(request!, retryProvider)).toEqual({
       message: "Provider response headers timed out after 10000ms",
     })
   })
@@ -173,7 +173,7 @@ describe("session.retry.retryable", () => {
       new ProviderError.ResponseStreamError("WebSocket closed before response.completed (code 1006: Connection ended)"),
       { providerID },
     )
-    expect(SessionV1.APIError.isInstance(request)).toBe(true)
+    expect(request!.name).toBe("APIError")
     expect(SessionRetry.retryable(request, retryProvider)).toEqual({
       message: "WebSocket closed before response.completed (code 1006: Connection ended)",
     })
