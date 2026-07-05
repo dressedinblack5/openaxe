@@ -17,6 +17,7 @@ ts-dist
 .serena/
 **/.omo
 .omo/
+.opencode/
 .codegraph
 /result
 refs
