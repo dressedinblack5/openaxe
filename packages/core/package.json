@@ -37,13 +37,13 @@
     }
   },
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
-    "@types/bun": "catalog:",
-    "@types/cross-spawn": "catalog:",
-    "@types/node": "catalog:",
+    "@tsconfig/bun": "1.0.9",
+    "@types/bun": "1.3.13",
+    "@types/cross-spawn": "6.0.6",
+    "@types/node": "24.12.2",
     "@types/npm-package-arg": "6.1.4",
     "@types/npmcli__arborist": "6.3.3",
-    "@types/semver": "catalog:",
+    "@types/semver": "7.7.1",
     "@types/turndown": "5.0.5",
     "@types/which": "3.0.4",
     "@parcel/watcher-darwin-arm64": "2.5.1",
@@ -55,7 +55,7 @@
     "@parcel/watcher-win32-arm64": "2.5.1",
     "@parcel/watcher-win32-x64": "2.5.1",
     "@opencode-ai/http-recorder": "workspace:*",
-    "drizzle-kit": "catalog:"
+    "drizzle-kit": "1.0.0-rc.2"
   },
   "dependencies": {
     "@ai-sdk/alibaba": "1.0.17",
@@ -79,10 +79,10 @@
     "@ai-sdk/vercel": "2.0.39",
     "@ai-sdk/xai": "3.0.82",
     "@aws-sdk/credential-providers": "3.1057.0",
-    "@effect/opentelemetry": "catalog:",
-    "@effect/platform-node": "catalog:",
-    "@effect/sql-sqlite-bun": "catalog:",
-    "@lydell/node-pty": "catalog:",
+    "@effect/opentelemetry": "4.0.0-beta.82",
+    "@effect/platform-node": "4.0.0-beta.82",
+    "@effect/sql-sqlite-bun": "4.0.0-beta.82",
+    "@lydell/node-pty": "1.2.0-beta.12",
     "@ff-labs/fff-bun": "0.9.4",
     "@npmcli/arborist": "9.4.0",
     "@npmcli/config": "10.8.1",
@@ -99,9 +99,9 @@
     "@openrouter/ai-sdk-provider": "2.9.0",
     "ai-gateway-provider": "3.1.2",
     "bun-pty": "0.4.8",
-    "cross-spawn": "catalog:",
-    "drizzle-orm": "catalog:",
-    "effect": "catalog:",
+    "cross-spawn": "7.0.6",
+    "drizzle-orm": "1.0.0-rc.2",
+    "effect": "4.0.0-beta.82",
     "fuzzysort": "3.1.0",
     "gitlab-ai-provider": "6.9.3",
     "glob": "13.0.5",
@@ -119,9 +119,9 @@
     "venice-ai-sdk-provider": "2.0.2",
     "which": "6.0.1",
     "xdg-basedir": "5.1.0",
-    "zod": "catalog:"
+    "zod": "4.1.8"
   },
   "overrides": {
-    "drizzle-orm": "catalog:"
+    "drizzle-orm": "1.0.0-rc.2"
   }
 }
