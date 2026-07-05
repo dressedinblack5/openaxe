@@ -8,12 +8,8 @@ import { HttpServerRequest } from "effect/unstable/http"
 import { HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, OpenApi } from "effect/unstable/httpapi"
 
 export const LocationQuery = Schema.Struct({
-  location: Schema.optional(
-    Schema.Struct({
-      directory: Schema.optional(Schema.String),
-      workspace: Schema.optional(Schema.String),
-    }),
-  ),
+  "location[directory]": Schema.optional(Schema.String),
+  "location[workspace]": Schema.optional(Schema.String),
 }).annotate({ identifier: "LocationQuery" })
 
 export const locationQueryOpenApi = OpenApi.annotations({

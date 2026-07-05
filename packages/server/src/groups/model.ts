@@ -10,7 +10,7 @@ export const ModelGroup = HttpApiGroup.make("server.model")
     HttpApiEndpoint.get("model.list", "/api/model", {
       query: LocationQuery,
       success: Location.response(Schema.Array(ModelV2.Info)),
-      error: ServiceUnavailableError,
+      error: ServiceUnavailableError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(

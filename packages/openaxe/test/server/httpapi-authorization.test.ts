@@ -20,7 +20,7 @@ const Api = HttpApi.make("test-authorization").add(
       }),
       HttpApiEndpoint.get("missing", "/missing", {
         success: Schema.String,
-        error: HttpApiError.NotFound,
+        error: HttpApiError.NotFound as any,
       }),
     )
     .middleware(Authorization),

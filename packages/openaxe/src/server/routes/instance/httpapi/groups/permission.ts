@@ -33,7 +33,7 @@ export const PermissionApi = HttpApi.make("permission")
           query: WorkspaceRoutingQuery,
           payload: ReplyPayload,
           success: described(Schema.Boolean, "Permission processed successfully"),
-          error: [HttpApiError.BadRequest, PermissionNotFoundError],
+          error: [HttpApiError.BadRequest, PermissionNotFoundError] as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "permission.reply",

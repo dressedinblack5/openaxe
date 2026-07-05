@@ -34,7 +34,7 @@ export const MessageGroup = HttpApiGroup.make("server.message")
           next: Schema.String.pipe(Schema.optional),
         }),
       }).annotate({ identifier: "SessionMessagesResponse" }),
-      error: [InvalidCursorError, SessionNotFoundError, UnknownError],
+      error: [InvalidCursorError, SessionNotFoundError, UnknownError] as any,
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(

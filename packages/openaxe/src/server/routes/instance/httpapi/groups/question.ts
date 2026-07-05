@@ -34,7 +34,7 @@ export const QuestionApi = HttpApi.make("question")
           query: WorkspaceRoutingQuery,
           payload: ReplyPayload,
           success: described(Schema.Boolean, "Question answered successfully"),
-          error: [HttpApiError.BadRequest, QuestionNotFoundError],
+          error: [HttpApiError.BadRequest, QuestionNotFoundError] as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "question.reply",
@@ -46,7 +46,7 @@ export const QuestionApi = HttpApi.make("question")
           params: { requestID: QuestionID },
           query: WorkspaceRoutingQuery,
           success: described(Schema.Boolean, "Question rejected successfully"),
-          error: [HttpApiError.BadRequest, QuestionNotFoundError],
+          error: [HttpApiError.BadRequest, QuestionNotFoundError] as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "question.reject",

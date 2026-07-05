@@ -28,7 +28,7 @@ export const QuestionGroup = HttpApiGroup.make("server.question")
     HttpApiEndpoint.get("session.question.list", "/api/session/:sessionID/question", {
       params: { sessionID: SessionV2.ID },
       success: Schema.Struct({ data: Schema.Array(QuestionV2.Request) }),
-      error: SessionNotFoundError,
+      error: SessionNotFoundError as any,
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -44,7 +44,7 @@ export const QuestionGroup = HttpApiGroup.make("server.question")
       params: { sessionID: SessionV2.ID, requestID: QuestionV2.ID },
       payload: QuestionV2.Reply,
       success: HttpApiSchema.NoContent,
-      error: [SessionNotFoundError, QuestionNotFoundError],
+      error: [SessionNotFoundError, QuestionNotFoundError] as any,
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -59,7 +59,7 @@ export const QuestionGroup = HttpApiGroup.make("server.question")
     HttpApiEndpoint.post("session.question.reject", "/api/session/:sessionID/question/:requestID/reject", {
       params: { sessionID: SessionV2.ID, requestID: QuestionV2.ID },
       success: HttpApiSchema.NoContent,
-      error: [SessionNotFoundError, QuestionNotFoundError],
+      error: [SessionNotFoundError, QuestionNotFoundError] as any,
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(

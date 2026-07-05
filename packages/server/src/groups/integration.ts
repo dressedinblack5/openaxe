@@ -46,7 +46,7 @@ export const IntegrationGroup = HttpApiGroup.make("server.integration")
         label: Schema.optional(Schema.String),
       }),
       success: HttpApiSchema.NoContent,
-      error: InvalidRequestError,
+      error: InvalidRequestError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -67,7 +67,7 @@ export const IntegrationGroup = HttpApiGroup.make("server.integration")
         label: Schema.optional(Schema.String),
       }),
       success: Location.response(Integration.Attempt),
-      error: InvalidRequestError,
+      error: InvalidRequestError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -99,7 +99,7 @@ export const IntegrationGroup = HttpApiGroup.make("server.integration")
       query: LocationQuery,
       payload: Schema.Struct({ code: Schema.optional(Schema.String) }),
       success: HttpApiSchema.NoContent,
-      error: InvalidRequestError,
+      error: InvalidRequestError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(

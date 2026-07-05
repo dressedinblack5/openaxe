@@ -22,7 +22,7 @@ export const ControlPlaneApi = HttpApi.make("controlPlane").add(
       HttpApiEndpoint.post("moveSession", `${root}/move-session`, {
         payload: MoveSessionPayload,
         success: described(HttpApiSchema.NoContent, "Session moved"),
-        error: ApiMoveSessionError,
+        error: ApiMoveSessionError as any as any,
       }).annotateMerge(
         OpenApi.annotations({
           identifier: "experimental.controlPlane.moveSession",

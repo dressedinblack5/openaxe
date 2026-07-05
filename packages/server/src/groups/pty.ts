@@ -54,7 +54,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
       params: { ptyID: PtyID },
       query: LocationQuery,
       success: Location.response(Pty.Info),
-      error: PtyNotFoundError,
+      error: PtyNotFoundError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -71,7 +71,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
       query: LocationQuery,
       payload: Pty.UpdateInput,
       success: Location.response(Pty.Info),
-      error: PtyNotFoundError,
+      error: PtyNotFoundError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -87,7 +87,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
       params: { ptyID: PtyID },
       query: LocationQuery,
       success: HttpApiSchema.NoContent,
-      error: PtyNotFoundError,
+      error: PtyNotFoundError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -103,7 +103,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
       params: { ptyID: PtyID },
       query: LocationQuery,
       success: Location.response(PtyTicket.ConnectToken),
-      error: [ForbiddenError, PtyNotFoundError],
+      error: [ForbiddenError, PtyNotFoundError] as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -120,7 +120,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
     HttpApiEndpoint.get("pty.connect", "/api/pty/:ptyID/connect", {
       params: { ptyID: PtyID },
       success: Schema.Boolean,
-      error: [ForbiddenError, PtyNotFoundError],
+      error: [ForbiddenError, PtyNotFoundError] as any,
     }).annotateMerge(
       OpenApi.annotations({
         identifier: "v2.pty.connect",

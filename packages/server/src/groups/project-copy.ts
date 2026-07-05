@@ -27,7 +27,7 @@ export const ProjectCopyGroup = HttpApiGroup.make("server.projectCopy")
       query: LocationQuery,
       payload: CreatePayload,
       success: ProjectCopy.Copy,
-      error: ProjectCopyError,
+      error: ProjectCopyError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(OpenApi.annotations({ identifier: "v2.projectCopy.create" })),
@@ -38,7 +38,7 @@ export const ProjectCopyGroup = HttpApiGroup.make("server.projectCopy")
       query: LocationQuery,
       payload: RemovePayload,
       success: HttpApiSchema.NoContent,
-      error: ProjectCopyError,
+      error: ProjectCopyError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(OpenApi.annotations({ identifier: "v2.projectCopy.remove" })),
@@ -48,7 +48,7 @@ export const ProjectCopyGroup = HttpApiGroup.make("server.projectCopy")
       params: { projectID: ProjectV2.ID },
       query: LocationQuery,
       success: HttpApiSchema.NoContent,
-      error: ProjectCopyError,
+      error: ProjectCopyError as any,
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(OpenApi.annotations({ identifier: "v2.projectCopy.refresh" })),

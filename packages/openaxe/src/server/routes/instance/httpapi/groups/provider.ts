@@ -60,7 +60,7 @@ export const ProviderApi = HttpApi.make("provider")
           query: WorkspaceRoutingQuery,
           payload: ProviderAuth.AuthorizeInput,
           success: described(Schema.UndefinedOr(ProviderAuth.Authorization), "Authorization URL and method"),
-          error: ProviderAuthApiError,
+          error: ProviderAuthApiError as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "provider.oauth.authorize",
@@ -73,7 +73,7 @@ export const ProviderApi = HttpApi.make("provider")
           query: WorkspaceRoutingQuery,
           payload: ProviderAuth.CallbackInput,
           success: described(Schema.Boolean, "OAuth callback processed successfully"),
-          error: ProviderAuthApiError,
+          error: ProviderAuthApiError as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "provider.oauth.callback",

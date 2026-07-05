@@ -74,7 +74,7 @@ export const WorkspaceApi = HttpApi.make("workspace")
           query: WorkspaceRoutingQuery,
           payload: CreatePayload,
           success: described(Workspace.Info, "Workspace created"),
-          error: [ApiWorkspaceCreateError, HttpApiError.BadRequest],
+          error: [ApiWorkspaceCreateError, HttpApiError.BadRequest] as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.workspace.create",
@@ -106,7 +106,7 @@ export const WorkspaceApi = HttpApi.make("workspace")
           params: { id: Workspace.Info.fields.id },
           query: WorkspaceRoutingQuery,
           success: described(Schema.UndefinedOr(Workspace.Info), "Workspace removed"),
-          error: HttpApiError.BadRequest,
+          error: HttpApiError.BadRequest as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.workspace.remove",
@@ -118,7 +118,7 @@ export const WorkspaceApi = HttpApi.make("workspace")
           query: WorkspaceRoutingQuery,
           payload: WarpPayload,
           success: described(HttpApiSchema.NoContent, "Session warped"),
-          error: [ApiWorkspaceWarpError, ApiVcsApplyError, ApiNotFoundError],
+          error: [ApiWorkspaceWarpError, ApiVcsApplyError, ApiNotFoundError] as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.workspace.warp",

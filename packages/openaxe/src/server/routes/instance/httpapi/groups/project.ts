@@ -54,7 +54,7 @@ export const ProjectApi = HttpApi.make("project")
           query: WorkspaceRoutingQuery,
           payload: UpdatePayload,
           success: described(Project.Info, "Updated project information"),
-          error: [HttpApiError.BadRequest, ProjectNotFoundError],
+          error: [HttpApiError.BadRequest, ProjectNotFoundError] as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "project.update",

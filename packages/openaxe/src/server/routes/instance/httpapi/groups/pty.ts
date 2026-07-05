@@ -65,7 +65,7 @@ export const PtyApi = HttpApi.make("pty")
           query: WorkspaceRoutingQuery,
           payload: Pty.CreateInput,
           success: described(Pty.Info, "Created session"),
-          error: HttpApiError.BadRequest,
+          error: HttpApiError.BadRequest as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "pty.create",
@@ -77,7 +77,7 @@ export const PtyApi = HttpApi.make("pty")
           params: { ptyID: PtyID },
           query: WorkspaceRoutingQuery,
           success: described(Pty.Info, "Session info"),
-          error: PtyNotFoundError,
+          error: PtyNotFoundError as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "pty.get",
@@ -90,7 +90,7 @@ export const PtyApi = HttpApi.make("pty")
           query: WorkspaceRoutingQuery,
           payload: Pty.UpdateInput,
           success: described(Pty.Info, "Updated session"),
-          error: [PtyNotFoundError, HttpApiError.BadRequest],
+          error: [PtyNotFoundError, HttpApiError.BadRequest] as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "pty.update",
@@ -102,7 +102,7 @@ export const PtyApi = HttpApi.make("pty")
           params: { ptyID: PtyID },
           query: WorkspaceRoutingQuery,
           success: described(Schema.Boolean, "Session removed"),
-          error: PtyNotFoundError,
+          error: PtyNotFoundError as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "pty.remove",
@@ -114,7 +114,7 @@ export const PtyApi = HttpApi.make("pty")
           params: { ptyID: PtyID },
           query: WorkspaceRoutingQuery,
           success: described(PtyTicket.ConnectToken, "WebSocket connect token"),
-          error: [PtyForbiddenError, PtyNotFoundError],
+          error: [PtyForbiddenError, PtyNotFoundError] as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "pty.connectToken",
@@ -144,7 +144,7 @@ export const PtyConnectApi = HttpApi.make("pty-connect").add(
       HttpApiEndpoint.get("connect", PtyPaths.connect, {
         params: Params,
         success: described(Schema.Boolean, "Connected session"),
-        error: [HttpApiError.Forbidden, HttpApiError.NotFound],
+        error: [HttpApiError.Forbidden, HttpApiError.NotFound] as any,
       }).annotateMerge(
         OpenApi.annotations({
           identifier: "pty.connect",

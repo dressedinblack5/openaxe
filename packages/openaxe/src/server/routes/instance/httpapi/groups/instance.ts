@@ -128,7 +128,7 @@ export const InstanceApi = HttpApi.make("instance")
           query: WorkspaceRoutingQuery,
           payload: Vcs.ApplyInput,
           success: described(Vcs.ApplyResult, "VCS patch applied"),
-          error: ApiVcsApplyError,
+          error: ApiVcsApplyError as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "vcs.apply",

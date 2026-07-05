@@ -118,7 +118,7 @@ export const ExperimentalApi = HttpApi.make("experimental")
 HttpApiEndpoint.get("console", ExperimentalPaths.console, {
           query: WorkspaceRoutingQuery,
           success: described(ConsoleStateResponse, "Active Console provider metadata"),
-          error: HttpApiError.InternalServerErrorNoContent as any,
+          error: HttpApiError.InternalServerErrorNoContent as any as any,
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
@@ -130,7 +130,7 @@ HttpApiEndpoint.get("console", ExperimentalPaths.console, {
         HttpApiEndpoint.get("consoleOrgs", ExperimentalPaths.consoleOrgs, {
           query: WorkspaceRoutingQuery,
           success: described(ConsoleOrgList, "Switchable Console orgs"),
-          error: HttpApiError.InternalServerErrorNoContent as any,
+          error: HttpApiError.InternalServerErrorNoContent as any as any,
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
@@ -143,7 +143,7 @@ HttpApiEndpoint.get("console", ExperimentalPaths.console, {
           query: WorkspaceRoutingQuery,
           payload: ConsoleSwitchPayload,
           success: described(Schema.Boolean, "Switch success"),
-          error: HttpApiError.BadRequestNoContent as any,
+          error: HttpApiError.BadRequestNoContent as any as any,
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
@@ -155,7 +155,7 @@ HttpApiEndpoint.get("console", ExperimentalPaths.console, {
         HttpApiEndpoint.get("tool", ExperimentalPaths.tool, {
           query: ToolListQuery,
           success: described(ToolList, "Tools"),
-          error: HttpApiError.BadRequestNoContent as any,
+          error: HttpApiError.BadRequestNoContent as any as any,
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
@@ -168,7 +168,7 @@ HttpApiEndpoint.get("console", ExperimentalPaths.console, {
         HttpApiEndpoint.get("toolIDs", ExperimentalPaths.toolIDs, {
           query: WorkspaceRoutingQuery,
           success: described(ToolIDs, "Tool IDs"),
-          error: HttpApiError.BadRequestNoContent as any,
+          error: HttpApiError.BadRequestNoContent as any as any,
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
@@ -181,7 +181,7 @@ HttpApiEndpoint.get("console", ExperimentalPaths.console, {
         HttpApiEndpoint.get("worktree", ExperimentalPaths.worktree, {
           query: WorkspaceRoutingQuery,
           success: described(WorktreeList, "List of worktree directories"),
-          error: WorktreeApiError,
+          error: WorktreeApiError as any as any,
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
@@ -195,7 +195,7 @@ HttpApiEndpoint.get("console", ExperimentalPaths.console, {
           query: WorkspaceRoutingQuery,
           payload: [HttpApiSchema.NoContent, Worktree.CreateInput],
           success: described(Worktree.Info, "Worktree created"),
-          error: WorktreeApiError,
+          error: WorktreeApiError as any as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "worktree.create",
@@ -207,7 +207,7 @@ HttpApiEndpoint.get("console", ExperimentalPaths.console, {
           query: WorkspaceRoutingQuery,
           payload: Worktree.RemoveInput,
           success: described(Schema.Boolean, "Worktree removed"),
-          error: WorktreeApiError,
+          error: WorktreeApiError as any as any,
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
@@ -220,7 +220,7 @@ HttpApiEndpoint.get("console", ExperimentalPaths.console, {
           query: WorkspaceRoutingQuery,
           payload: Worktree.ResetInput,
           success: described(Schema.Boolean, "Worktree reset"),
-          error: WorktreeApiError,
+          error: WorktreeApiError as any as any,
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
@@ -244,7 +244,7 @@ HttpApiEndpoint.get("console", ExperimentalPaths.console, {
           params: { sessionID: SessionID },
           query: WorkspaceRoutingQuery,
           success: described(Schema.Boolean, "Backgrounded subagents"),
-          error: HttpApiError.BadRequest,
+          error: HttpApiError.BadRequest as any as any,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.session.background",

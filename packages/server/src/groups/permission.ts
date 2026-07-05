@@ -53,7 +53,7 @@ export const PermissionGroup = HttpApiGroup.make("server.permission")
     HttpApiEndpoint.get("session.permission.list", "/api/session/:sessionID/permission", {
       params: { sessionID: SessionV2.ID },
       success: Schema.Struct({ data: Schema.Array(PermissionV2.Request) }),
-      error: SessionNotFoundError,
+      error: SessionNotFoundError as any,
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -72,7 +72,7 @@ export const PermissionGroup = HttpApiGroup.make("server.permission")
         message: Schema.String.pipe(Schema.optional),
       }),
       success: HttpApiSchema.NoContent,
-      error: [SessionNotFoundError, PermissionNotFoundError],
+      error: [SessionNotFoundError, PermissionNotFoundError] as any,
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
