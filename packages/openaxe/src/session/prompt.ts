@@ -1309,7 +1309,7 @@ export const layer = Layer.effect(
             msg.error ??= MessageV2.fromError(new DOMException("Aborted", "AbortError"), {
               providerID: msg.providerID,
               aborted: true,
-            })
+            }) as NonNullable<typeof msg.error>
             msg.time.completed = Date.now()
             yield* sessions.updateMessage(msg)
           })
@@ -1404,7 +1404,7 @@ export const layer = Layer.effect(
               if (handle.message.finish === "content-filter") {
                 handle.message.error = new SessionV1.ContentFilterError({
                   message: "The response was blocked by the provider's content filter",
-                }).toObject()
+                }).toObject() as NonNullable<typeof handle.message.error>
                 yield* sessions.updateMessage(handle.message)
                 yield* events.publish(Session.Event.Error, { sessionID, error: handle.message.error })
                 return "break" as const
@@ -1413,7 +1413,7 @@ export const layer = Layer.effect(
                 handle.message.error = new SessionV1.StructuredOutputError({
                   message: "Model did not produce structured output",
                   retries: 0,
-                }).toObject()
+                }).toObject() as NonNullable<typeof handle.message.error>
                 yield* sessions.updateMessage(handle.message)
                 return "break" as const
               }

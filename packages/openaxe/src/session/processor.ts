@@ -910,16 +910,16 @@ export const layer = Layer.effect(
         })
         const error = parse(e)
         yield* flushV2Fragments()
-        if (SessionV1.ContextOverflowError.isInstance(error)) {
+        if (error && "name" in error && error.name === "ContextOverflowError") {
           if ((yield* config.get()).compaction?.auto === false && !ctx.assistantMessage.summary) {
-            ctx.assistantMessage.error = error
+            ctx.assistantMessage.error = error as NonNullable<typeof ctx.assistantMessage.error>
             ctx.assistantMessage.finish = "error"
-            yield* events.publish(Session.Event.Error, { sessionID: ctx.sessionID, error })
+            yield* events.publish(Session.Event.Error, { sessionID: ctx.sessionID, error: error as NonNullable<typeof ctx.assistantMessage.error> })
             yield* status.set(ctx.sessionID, { type: "idle" })
             return
           }
           ctx.needsCompaction = true
-          yield* events.publish(Session.Event.Error, { sessionID: ctx.sessionID, error })
+          yield* events.publish(Session.Event.Error, { sessionID: ctx.sessionID, error: error as NonNullable<typeof ctx.assistantMessage.error> })
           return
         }
         if (!ctx.assistantMessage.summary) {
@@ -935,7 +935,7 @@ if (mirrorAssistant) {
             })
           }
         }
-        ctx.assistantMessage.error = error
+        ctx.assistantMessage.error = error as NonNullable<typeof ctx.assistantMessage.error> | undefined
         yield* events.publish(Session.Event.Error, {
           sessionID: ctx.assistantMessage.sessionID,
           error: ctx.assistantMessage.error,

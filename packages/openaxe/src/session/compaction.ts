@@ -421,7 +421,7 @@ export const layer = Layer.effect(
           message: replay
             ? "Conversation history too large to compact - exceeds model context limit"
             : "Session too large to compact - context exceeds model limit even after stripping media",
-        }).toObject()
+        }).toObject() as NonNullable<(typeof processor.message)["error"]>
         processor.message.finish = "error"
         yield* session.updateMessage(processor.message)
         return "stop"

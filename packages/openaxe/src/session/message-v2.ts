@@ -16,7 +16,6 @@ import {
   WithParts,
 } from "@opencode-ai/core/v1/session"
 
-import { NamedError } from "@opencode-ai/core/util/error"
 import { APICallError, convertToModelMessages, LoadAPIKeyError, type ModelMessage, type UIMessage } from "ai"
 import { Database } from "@opencode-ai/core/database/database"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
@@ -602,133 +601,100 @@ export function latest(msgs: WithParts[]) {
   return { user, assistant, finished, tasks }
 }
 
+function isTaggedError(e: unknown, tag: string): e is SessionV1.OutputLengthError {
+  return e instanceof Error && "_tag" in e && (e as { _tag: string })._tag === tag
+}
+
 export function fromError(
   e: unknown,
   ctx: { providerID: ProviderV2.ID; aborted?: boolean },
-): NonNullable<Assistant["error"]> {
+): NonNullable<SessionV1.Assistant["error"]> | undefined {
   switch (true) {
     case e instanceof DOMException && e.name === "AbortError":
-      return new AbortedError(
-        { message: e.message },
-        {
-          cause: e,
-        },
-      ).toObject()
-    case OutputLengthError.isInstance(e):
-      return e
+      return new SessionV1.AbortedError({ message: e.message }).toObject() as NonNullable<SessionV1.Assistant["error"]>
+    case isTaggedError(e, "MessageOutputLengthError"):
+      return e.toObject() as NonNullable<SessionV1.Assistant["error"]>
     case LoadAPIKeyError.isInstance(e):
-      return new AuthError(
-        {
-          providerID: ctx.providerID,
-          message: e.message,
-        },
-        { cause: e },
-      ).toObject()
+      return new SessionV1.AuthError({ providerID: ctx.providerID, message: e.message }).toObject() as NonNullable<SessionV1.Assistant["error"]>
     case (e as SystemError)?.code === "ECONNRESET":
-      return new APIError(
-        {
-          message: "Connection reset by server",
-          isRetryable: true,
-          metadata: {
-            code: (e as SystemError).code ?? "",
-            syscall: (e as SystemError).syscall ?? "",
-            message: (e as SystemError).message ?? "",
-          },
+      return new SessionV1.APIError({
+        message: "Connection reset by server",
+        isRetryable: true,
+        metadata: {
+          code: (e as SystemError).code ?? "",
+          syscall: (e as SystemError).syscall ?? "",
+          message: (e as SystemError).message ?? "",
         },
-        { cause: e },
-      ).toObject()
+      }).toObject() as NonNullable<SessionV1.Assistant["error"]>
     case e instanceof Error && (e as FetchDecompressionError).code === "ZlibError":
       if (ctx.aborted) {
-        return new AbortedError({ message: e.message }, { cause: e }).toObject()
+        return new SessionV1.AbortedError({ message: e.message }).toObject() as NonNullable<SessionV1.Assistant["error"]>
       }
-      return new APIError(
-        {
-          message: "Response decompression failed",
-          isRetryable: true,
-          metadata: {
-            code: (e as FetchDecompressionError).code,
-            message: e.message,
-          },
+      return new SessionV1.APIError({
+        message: "Response decompression failed",
+        isRetryable: true,
+        metadata: {
+          code: (e as FetchDecompressionError).code,
+          message: e.message,
         },
-        { cause: e },
-      ).toObject()
+      }).toObject() as NonNullable<SessionV1.Assistant["error"]>
     case e instanceof ProviderError.HeaderTimeoutError:
-      return new APIError(
-        {
-          message: e.message,
-          isRetryable: true,
-          metadata: {
-            code: e.name,
-            timeoutMs: String(e.ms),
-          },
+      return new SessionV1.APIError({
+        message: e.message,
+        isRetryable: true,
+        metadata: {
+          code: e.name,
+          timeoutMs: String(e.ms),
         },
-        { cause: e },
-      ).toObject()
+      }).toObject() as NonNullable<SessionV1.Assistant["error"]>
     case e instanceof ProviderError.ResponseStreamError:
-      return new APIError(
-        {
-          message: e.message,
-          isRetryable: true,
-          metadata: {
-            code: e.name,
-          },
+      return new SessionV1.APIError({
+        message: e.message,
+        isRetryable: true,
+        metadata: {
+          code: e.name,
         },
-        { cause: e },
-      ).toObject()
+      }).toObject() as NonNullable<SessionV1.Assistant["error"]>
     case APICallError.isInstance(e):
       const parsed = ProviderError.parseAPICallError({
         providerID: ctx.providerID,
         error: e,
       })
       if (parsed.type === "context_overflow") {
-        return new ContextOverflowError(
-          {
-            message: parsed.message,
-            responseBody: parsed.responseBody,
-          },
-          { cause: e },
-        ).toObject()
+        return new SessionV1.ContextOverflowError({
+          message: parsed.message,
+          responseBody: parsed.responseBody,
+        }).toObject() as NonNullable<SessionV1.Assistant["error"]>
       }
 
-      return new APIError(
-        {
-          message: parsed.message,
-          statusCode: parsed.statusCode,
-          isRetryable: parsed.isRetryable,
-          responseHeaders: parsed.responseHeaders,
-          responseBody: parsed.responseBody,
-          metadata: parsed.metadata,
-        },
-        { cause: e },
-      ).toObject()
+      return new SessionV1.APIError({
+        message: parsed.message,
+        statusCode: parsed.statusCode,
+        isRetryable: parsed.isRetryable,
+        responseHeaders: parsed.responseHeaders,
+        responseBody: parsed.responseBody,
+        metadata: parsed.metadata,
+      }).toObject() as NonNullable<SessionV1.Assistant["error"]>
     case e instanceof Error:
-      return new NamedError.Unknown({ message: errorMessage(e) }, { cause: e }).toObject()
+      return { name: "UnknownError" as const, data: { message: errorMessage(e) } }
     default:
       try {
         const parsed = ProviderError.parseStreamError(e)
         if (parsed) {
           if (parsed.type === "context_overflow") {
-            return new ContextOverflowError(
-              {
-                message: parsed.message,
-                responseBody: parsed.responseBody,
-              },
-              { cause: e },
-            ).toObject()
-          }
-          return new APIError(
-            {
+            return new SessionV1.ContextOverflowError({
               message: parsed.message,
-              isRetryable: parsed.isRetryable,
               responseBody: parsed.responseBody,
-            },
-            {
-              cause: e,
-            },
-          ).toObject()
+            }).toObject() as NonNullable<SessionV1.Assistant["error"]>
+          }
+          return new SessionV1.APIError({
+            message: parsed.message,
+            isRetryable: parsed.isRetryable,
+            responseBody: parsed.responseBody,
+          }).toObject() as NonNullable<SessionV1.Assistant["error"]>
         }
       } catch {}
-      return new NamedError.Unknown({ message: JSON.stringify(e) }, { cause: e }).toObject()
+      return { name: "UnknownError" as const, data: { message: JSON.stringify(e) } }
   }
 }
 

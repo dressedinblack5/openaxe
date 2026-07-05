@@ -3,10 +3,10 @@ import { SessionID } from "./schema"
 
 import { NonNegativeInt } from "@opencode-ai/core/schema"
 import { MessageError } from "./message-error"
-import { AuthError, OutputLengthError } from "./message-error"
+import { ProviderAuthError as AuthError, OutputLengthError } from "./message-error"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
-export { AuthError, OutputLengthError } from "./message-error"
+export { ProviderAuthError as AuthError, OutputLengthError } from "./message-error"
 
 export const ToolCall = Schema.Struct({
   state: Schema.Literal("call"),
