@@ -63,7 +63,9 @@ export namespace RipgrepBinary {
 
         if (config.extension === "zip") {
           // Use Node.js exec with shell for reliable PATHEXT resolution on Windows
-          const tarCmd = `tar -xf "${archive.replaceAll('"', '\\"')}" -C "${dir.replaceAll('"', '\\"')}"`
+          // `--force-local` prevents GNU tar (Git Bash) from interpreting
+          // `C:\...` as a remote host connection.
+          const tarCmd = `tar --force-local -xf "${archive.replaceAll('"', '\\"')}" -C "${dir.replaceAll('"', '\\"')}"`
           const tarOk = yield* Effect.tryPromise({
             try: () => execAsync(tarCmd, { shell: true }),
             catch: (cause) => { throw cause instanceof Error ? cause : new Error(String(cause)) },
