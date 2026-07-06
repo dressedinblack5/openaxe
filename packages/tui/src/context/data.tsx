@@ -52,7 +52,8 @@ function locationKey(location: LocationRef) {
 }
 
 function locationQuery(ref?: LocationRef) {
-  return ref ? { directory: ref.directory, workspace: ref.workspaceID } : undefined
+  if (!ref) return undefined
+  return { "location[directory]": ref.directory, "location[workspace]": ref.workspaceID }
 }
 
 export const { use: useData, provider: DataProvider } = createSimpleContext({
@@ -466,7 +467,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
           return defaultLocation()
         },
         async refresh(ref?: LocationRef) {
-          const response = await sdk.client.v2.location.get({ location: locationQuery(ref) }, { throwOnError: true })
+          const response = await sdk.client.v2.location.get({ ...locationQuery(ref) }, { throwOnError: true })
           const location = response.data
           const key = locationKey(location)
           if (!store.location[key]) setStore("location", key, {})
@@ -477,7 +478,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
             return store.location[locationKey(location ?? defaultLocation())]?.agent
           },
           async refresh(ref?: LocationRef) {
-            const result = await sdk.client.v2.agent.list({ location: locationQuery(ref) }, { throwOnError: true })
+            const result = await sdk.client.v2.agent.list({ ...locationQuery(ref) }, { throwOnError: true })
             const key = locationKey(result.data.location)
             setStore("location", key, "agent", result.data.data)
           },
@@ -487,7 +488,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
             return store.location[locationKey(location ?? defaultLocation())]?.command
           },
           async refresh(ref?: LocationRef) {
-            const result = await sdk.client.v2.command.list({ location: locationQuery(ref) }, { throwOnError: true })
+            const result = await sdk.client.v2.command.list({ ...locationQuery(ref) }, { throwOnError: true })
             const key = locationKey(result.data.location)
             setStore("location", key, "command", result.data.data)
           },
@@ -498,7 +499,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
           },
           async refresh(ref?: LocationRef) {
             const result = await sdk.client.v2.integration.list(
-              { location: locationQuery(ref) },
+              { ...locationQuery(ref) },
               { throwOnError: true },
             )
             const key = locationKey(result.data.location)
@@ -510,7 +511,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
             return store.location[locationKey(location ?? defaultLocation())]?.model
           },
           async refresh(ref?: LocationRef) {
-            const result = await sdk.client.v2.model.list({ location: locationQuery(ref) }, { throwOnError: true })
+            const result = await sdk.client.v2.model.list({ ...locationQuery(ref) }, { throwOnError: true })
             const key = locationKey(result.data.location)
             setStore("location", key, "model", result.data.data)
           },
@@ -520,7 +521,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
             return store.location[locationKey(location ?? defaultLocation())]?.provider
           },
           async refresh(ref?: LocationRef) {
-            const result = await sdk.client.v2.provider.list({ location: locationQuery(ref) }, { throwOnError: true })
+            const result = await sdk.client.v2.provider.list({ ...locationQuery(ref) }, { throwOnError: true })
             const key = locationKey(result.data.location)
             setStore("location", key, "provider", result.data.data)
           },
@@ -530,7 +531,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
             return store.location[locationKey(location ?? defaultLocation())]?.reference
           },
           async refresh(ref?: LocationRef) {
-            const result = await sdk.client.v2.reference.list({ location: locationQuery(ref) }, { throwOnError: true })
+            const result = await sdk.client.v2.reference.list({ ...locationQuery(ref) }, { throwOnError: true })
             const key = locationKey(result.data.location)
             setStore("location", key, "reference", result.data.data)
           },
@@ -540,7 +541,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
             return store.location[locationKey(location ?? defaultLocation())]?.skill
           },
           async refresh(ref?: LocationRef) {
-            const result = await sdk.client.v2.skill.list({ location: locationQuery(ref) }, { throwOnError: true })
+            const result = await sdk.client.v2.skill.list({ ...locationQuery(ref) }, { throwOnError: true })
             const key = locationKey(result.data.location)
             setStore("location", key, "skill", result.data.data)
           },
