@@ -11,7 +11,8 @@ import { createClient } from "@hey-api/openapi-ts"
 
 const opencode = path.resolve(dir, "../../openaxe")
 
-const generated = await $`bun dev generate > ${dir}/openapi.json`.cwd(opencode).nothrow()
+// ponytail: timeout after 120s — Windows CI hangs on bun dev generate; falls back to committed openapi.json
+const generated = await $`timeout 120 bun dev generate > ${dir}/openapi.json`.cwd(opencode).nothrow()
 const useExisting = generated.exitCode !== 0
 if (useExisting) {
   const existing = Bun.file(path.join(dir, "openapi.json"))

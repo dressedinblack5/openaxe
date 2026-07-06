@@ -11130,10 +11130,8 @@ export type V2LocationGetData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/location"
 }
@@ -11164,10 +11162,8 @@ export type V2AgentListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/agent"
 }
@@ -11608,10 +11604,8 @@ export type V2ModelListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/model"
 }
@@ -11649,10 +11643,8 @@ export type V2ProviderListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/provider"
 }
@@ -11692,10 +11684,8 @@ export type V2ProviderGetData = {
     providerID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/provider/{providerID}"
 }
@@ -11737,10 +11727,8 @@ export type V2IntegrationListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/integration"
 }
@@ -11776,10 +11764,8 @@ export type V2IntegrationGetData = {
     integrationID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/integration/{integrationID}"
 }
@@ -11818,10 +11804,8 @@ export type V2IntegrationConnectKeyData = {
     integrationID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/integration/{integrationID}/connect/key"
 }
@@ -11860,10 +11844,8 @@ export type V2IntegrationConnectOauthData = {
     integrationID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/integration/{integrationID}/connect/oauth"
 }
@@ -11900,10 +11882,8 @@ export type V2IntegrationAttemptCancelData = {
     attemptID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/integration/attempt/{attemptID}"
 }
@@ -11937,10 +11917,8 @@ export type V2IntegrationAttemptStatusData = {
     attemptID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/integration/attempt/{attemptID}"
 }
@@ -12008,10 +11986,8 @@ export type V2IntegrationAttemptCompleteData = {
     attemptID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/integration/attempt/{attemptID}/complete"
 }
@@ -12046,10 +12022,8 @@ export type V2CredentialRemoveData = {
     credentialID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/credential/{credentialID}"
 }
@@ -12084,10 +12058,8 @@ export type V2CredentialUpdateData = {
     credentialID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/credential/{credentialID}"
 }
@@ -12118,10 +12090,8 @@ export type V2PermissionRequestListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/permission/request"
 }
@@ -12296,10 +12266,8 @@ export type V2FsReadData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/fs/read/*"
 }
@@ -12330,10 +12298,8 @@ export type V2FsListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
     path?: string
   }
   url: "/api/fs/list"
@@ -12368,10 +12334,8 @@ export type V2FsFindData = {
   body?: never
   path?: never
   query: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
     query: string
     type?: "file" | "directory"
     limit?: string
@@ -12408,10 +12372,8 @@ export type V2CommandListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/command"
 }
@@ -12445,10 +12407,8 @@ export type V2SkillListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/skill"
 }
@@ -12511,10 +12471,8 @@ export type V2PtyListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/pty"
 }
@@ -12556,10 +12514,8 @@ export type V2PtyCreateData = {
   }
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/pty"
 }
@@ -12595,10 +12551,8 @@ export type V2PtyRemoveData = {
     ptyID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/pty/{ptyID}"
 }
@@ -12635,10 +12589,8 @@ export type V2PtyGetData = {
     ptyID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/pty/{ptyID}"
 }
@@ -12684,10 +12636,8 @@ export type V2PtyUpdateData = {
     ptyID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/pty/{ptyID}"
 }
@@ -12727,10 +12677,8 @@ export type V2PtyConnectTokenData = {
     ptyID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/pty/{ptyID}/connect-token"
 }
@@ -12819,10 +12767,8 @@ export type V2QuestionRequestListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/question/request"
 }
@@ -12965,10 +12911,8 @@ export type V2ReferenceListData = {
   body?: never
   path?: never
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/api/reference"
 }
@@ -13007,10 +12951,8 @@ export type V2ProjectCopyRemoveData = {
     projectID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/experimental/project/{projectID}/copy"
 }
@@ -13043,10 +12985,8 @@ export type V2ProjectCopyCreateData = {
     projectID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/experimental/project/{projectID}/copy"
 }
@@ -13075,10 +13015,8 @@ export type V2ProjectCopyRefreshData = {
     projectID: string
   }
   query?: {
-    location?: {
-      directory?: string
-      workspace?: string
-    }
+    "location[directory]"?: string
+    "location[workspace]"?: string
   }
   url: "/experimental/project/{projectID}/copy/refresh"
 }

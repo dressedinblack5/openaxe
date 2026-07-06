@@ -170,6 +170,7 @@ Auto-configured on first run. They auto-install the first time you run `openaxe`
 | **superpowers** | Skill system — brainstorming, TDD, debugging, and more |
 | **opencode-vibeguard** | Safety guardrails for agent actions |
 | **@tarquinen/opencode-dcp** | Context compression for long sessions |
+| **ecc-universal** | Everything Claude Code — agents, skills, hooks, MCP, and rules |
 | **ponytail** | Lazy senior dev mode — cuts boilerplate (local file; manual install) |
 
 Write your own using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK.

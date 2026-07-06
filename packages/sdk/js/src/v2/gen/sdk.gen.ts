@@ -5028,14 +5028,22 @@ export class Location extends HeyApiClient {
    */
   public get<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2LocationGetResponses, V2LocationGetErrors, ThrowOnError>({
       url: "/api/location",
       ...options,
@@ -5052,14 +5060,22 @@ export class Agent extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2AgentListResponses, V2AgentListErrors, ThrowOnError>({
       url: "/api/agent",
       ...options,
@@ -5574,14 +5590,22 @@ export class Model extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2ModelListResponses, V2ModelListErrors, ThrowOnError>({
       url: "/api/model",
       ...options,
@@ -5598,14 +5622,22 @@ export class Provider2 extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2ProviderListResponses, V2ProviderListErrors, ThrowOnError>({
       url: "/api/provider",
       ...options,
@@ -5621,10 +5653,8 @@ export class Provider2 extends HeyApiClient {
   public get<ThrowOnError extends boolean = false>(
     parameters: {
       providerID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -5634,7 +5664,8 @@ export class Provider2 extends HeyApiClient {
         {
           args: [
             { in: "path", key: "providerID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
           ],
         },
       ],
@@ -5656,10 +5687,8 @@ export class Connect extends HeyApiClient {
   public key<ThrowOnError extends boolean = false>(
     parameters: {
       integrationID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       key?: string
       label?: string
     },
@@ -5671,7 +5700,8 @@ export class Connect extends HeyApiClient {
         {
           args: [
             { in: "path", key: "integrationID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "body", key: "key" },
             { in: "body", key: "label" },
           ],
@@ -5702,10 +5732,8 @@ export class Connect extends HeyApiClient {
   public oauth<ThrowOnError extends boolean = false>(
     parameters: {
       integrationID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       methodID?: string
       inputs?: {
         [key: string]: string
@@ -5720,7 +5748,8 @@ export class Connect extends HeyApiClient {
         {
           args: [
             { in: "path", key: "integrationID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "body", key: "methodID" },
             { in: "body", key: "inputs" },
             { in: "body", key: "label" },
@@ -5754,10 +5783,8 @@ export class Attempt extends HeyApiClient {
   public cancel<ThrowOnError extends boolean = false>(
     parameters: {
       attemptID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -5767,7 +5794,8 @@ export class Attempt extends HeyApiClient {
         {
           args: [
             { in: "path", key: "attemptID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
           ],
         },
       ],
@@ -5791,10 +5819,8 @@ export class Attempt extends HeyApiClient {
   public status<ThrowOnError extends boolean = false>(
     parameters: {
       attemptID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -5804,7 +5830,8 @@ export class Attempt extends HeyApiClient {
         {
           args: [
             { in: "path", key: "attemptID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
           ],
         },
       ],
@@ -5828,10 +5855,8 @@ export class Attempt extends HeyApiClient {
   public complete<ThrowOnError extends boolean = false>(
     parameters: {
       attemptID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       code?: string
     },
     options?: Options<never, ThrowOnError>,
@@ -5842,7 +5867,8 @@ export class Attempt extends HeyApiClient {
         {
           args: [
             { in: "path", key: "attemptID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "body", key: "code" },
           ],
         },
@@ -5873,14 +5899,22 @@ export class Integration extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2IntegrationListResponses, V2IntegrationListErrors, ThrowOnError>({
       url: "/api/integration",
       ...options,
@@ -5896,10 +5930,8 @@ export class Integration extends HeyApiClient {
   public get<ThrowOnError extends boolean = false>(
     parameters: {
       integrationID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -5909,7 +5941,8 @@ export class Integration extends HeyApiClient {
         {
           args: [
             { in: "path", key: "integrationID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
           ],
         },
       ],
@@ -5941,10 +5974,8 @@ export class Credential extends HeyApiClient {
   public remove<ThrowOnError extends boolean = false>(
     parameters: {
       credentialID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -5954,7 +5985,8 @@ export class Credential extends HeyApiClient {
         {
           args: [
             { in: "path", key: "credentialID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
           ],
         },
       ],
@@ -5976,10 +6008,8 @@ export class Credential extends HeyApiClient {
   public update<ThrowOnError extends boolean = false>(
     parameters: {
       credentialID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       label?: string
     },
     options?: Options<never, ThrowOnError>,
@@ -5990,7 +6020,8 @@ export class Credential extends HeyApiClient {
         {
           args: [
             { in: "path", key: "credentialID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "body", key: "label" },
           ],
         },
@@ -6017,14 +6048,22 @@ export class Request extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<
       V2PermissionRequestListResponses,
       V2PermissionRequestListErrors,
@@ -6105,14 +6144,22 @@ export class Fs extends HeyApiClient {
    */
   public read<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2FsReadResponses, V2FsReadErrors, ThrowOnError>({
       url: "/api/fs/read/*",
       ...options,
@@ -6127,10 +6174,8 @@ export class Fs extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       path?: string
     },
     options?: Options<never, ThrowOnError>,
@@ -6140,7 +6185,8 @@ export class Fs extends HeyApiClient {
       [
         {
           args: [
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "query", key: "path" },
           ],
         },
@@ -6160,10 +6206,8 @@ export class Fs extends HeyApiClient {
    */
   public find<ThrowOnError extends boolean = false>(
     parameters: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       query: string
       type?: "file" | "directory"
       limit?: string
@@ -6175,7 +6219,8 @@ export class Fs extends HeyApiClient {
       [
         {
           args: [
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "query", key: "query" },
             { in: "query", key: "type" },
             { in: "query", key: "limit" },
@@ -6199,14 +6244,22 @@ export class Command2 extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2CommandListResponses, V2CommandListErrors, ThrowOnError>({
       url: "/api/command",
       ...options,
@@ -6223,14 +6276,22 @@ export class Skill extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2SkillListResponses, V2SkillListErrors, ThrowOnError>({
       url: "/api/skill",
       ...options,
@@ -6261,14 +6322,22 @@ export class Pty2 extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2PtyListResponses, V2PtyListErrors, ThrowOnError>({
       url: "/api/pty",
       ...options,
@@ -6283,10 +6352,8 @@ export class Pty2 extends HeyApiClient {
    */
   public create<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       command?: string
       args?: Array<string>
       cwd?: string
@@ -6302,7 +6369,8 @@ export class Pty2 extends HeyApiClient {
       [
         {
           args: [
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "body", key: "command" },
             { in: "body", key: "args" },
             { in: "body", key: "cwd" },
@@ -6332,10 +6400,8 @@ export class Pty2 extends HeyApiClient {
   public remove<ThrowOnError extends boolean = false>(
     parameters: {
       ptyID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -6345,7 +6411,8 @@ export class Pty2 extends HeyApiClient {
         {
           args: [
             { in: "path", key: "ptyID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
           ],
         },
       ],
@@ -6365,10 +6432,8 @@ export class Pty2 extends HeyApiClient {
   public get<ThrowOnError extends boolean = false>(
     parameters: {
       ptyID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -6378,7 +6443,8 @@ export class Pty2 extends HeyApiClient {
         {
           args: [
             { in: "path", key: "ptyID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
           ],
         },
       ],
@@ -6398,10 +6464,8 @@ export class Pty2 extends HeyApiClient {
   public update<ThrowOnError extends boolean = false>(
     parameters: {
       ptyID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       title?: string
       size?: {
         rows: number
@@ -6416,7 +6480,8 @@ export class Pty2 extends HeyApiClient {
         {
           args: [
             { in: "path", key: "ptyID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "body", key: "title" },
             { in: "body", key: "size" },
           ],
@@ -6443,10 +6508,8 @@ export class Pty2 extends HeyApiClient {
   public connectToken<ThrowOnError extends boolean = false>(
     parameters: {
       ptyID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -6456,7 +6519,8 @@ export class Pty2 extends HeyApiClient {
         {
           args: [
             { in: "path", key: "ptyID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
           ],
         },
       ],
@@ -6513,14 +6577,22 @@ export class Request2 extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<
       V2QuestionRequestListResponses,
       V2QuestionRequestListErrors,
@@ -6548,14 +6620,22 @@ export class Reference extends HeyApiClient {
    */
   public list<ThrowOnError extends boolean = false>(
     parameters?: {
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).get<V2ReferenceListResponses, V2ReferenceListErrors, ThrowOnError>({
       url: "/api/reference",
       ...options,
@@ -6568,10 +6648,8 @@ export class ProjectCopy2 extends HeyApiClient {
   public remove<ThrowOnError extends boolean = false>(
     parameters: {
       projectID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       directory?: string
       force?: boolean
     },
@@ -6583,7 +6661,8 @@ export class ProjectCopy2 extends HeyApiClient {
         {
           args: [
             { in: "path", key: "projectID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "body", key: "directory" },
             { in: "body", key: "force" },
           ],
@@ -6609,10 +6688,8 @@ export class ProjectCopy2 extends HeyApiClient {
   public create<ThrowOnError extends boolean = false>(
     parameters: {
       projectID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
       strategy?: string
       directory?: string
       name?: string
@@ -6625,7 +6702,8 @@ export class ProjectCopy2 extends HeyApiClient {
         {
           args: [
             { in: "path", key: "projectID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
             { in: "body", key: "strategy" },
             { in: "body", key: "directory" },
             { in: "body", key: "name" },
@@ -6650,10 +6728,8 @@ export class ProjectCopy2 extends HeyApiClient {
   public refresh<ThrowOnError extends boolean = false>(
     parameters: {
       projectID: string
-      location?: {
-        directory?: string
-        workspace?: string
-      }
+      "location[directory]"?: string
+      "location[workspace]"?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -6663,7 +6739,8 @@ export class ProjectCopy2 extends HeyApiClient {
         {
           args: [
             { in: "path", key: "projectID" },
-            { in: "query", key: "location" },
+            { in: "query", key: "location[directory]" },
+            { in: "query", key: "location[workspace]" },
           ],
         },
       ],
