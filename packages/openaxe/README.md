@@ -23,17 +23,26 @@ New to openaxe? Here's what to read in order:
 
 ### Prerequisites
 
-- **Bun** 1.2+ — install via `curl -fsSL https://bun.sh/install | bash`
+- **Bun** 1.2+ — install via `curl -fsSL https://bun.sh/install | bash` (Linux/macOS) or `powershell -c "irm bun.sh/install.ps1 | iex"` (Windows)
 - **Git** 2.30+ (for session/GitHub features)
 - **Ripgrep** (optional, for faster codebase search)
 
 ### Install
 
+**Linux / macOS**
+
 ```bash
 # Preferred — one-liner
 curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
+```
 
-# Or from source
+**Windows**
+
+Download the latest `openaxe-windows-x64.zip` from the [releases page](https://github.com/dressedinblack5/openaxe/releases/latest), extract, and add to `PATH`.
+
+**Build from source**
+
+```bash
 git clone https://github.com/dressedinblack5/openaxe.git
 cd openaxe
 bun install

@@ -37,7 +37,7 @@
 
 ### Prerequisites
 
-- **Bun** 1.2+ — `curl -fsSL https://bun.sh/install | bash`
+- **Bun** 1.2+ — `curl -fsSL https://bun.sh/install | bash` (Linux/macOS) or `powershell -c "irm bun.sh/install.ps1 | iex"` (Windows)
 - **Git** 2.30+
 
 ### Linux / macOS
@@ -48,13 +48,28 @@ curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install
 
 Installs `openaxe` to `~/.local/bin` and sets up a desktop entry.
 
-### Windows (PowerShell)
+### Windows
+
+**Option 1 — Pre-built binary (recommended)**
+
+Download the latest `openaxe-windows-x64.zip` from the [releases page](https://github.com/dressedinblack5/openaxe/releases/latest), extract, and add to `PATH`.
+
+**Option 2 — PowerShell one-liner (via Git Bash)**
 
 ```powershell
-git clone https://github.com/dressedinblack5/openaxe.git; cd openaxe; bun install
+# Requires Git for Windows (git-scm.com) which provides Git Bash
+# Then in Git Bash:
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
 ```
 
-Then `.\packages\openaxe\bin\openaxe` to launch. Add the repo to `PATH` for persistent access.
+**Option 3 — Build from source**
+
+```powershell
+git clone https://github.com/dressedinblack5/openaxe.git
+cd openaxe
+bun install
+.\packages\openaxe\bin\openaxe
+```
 
 ### Pre-built Binary
 
