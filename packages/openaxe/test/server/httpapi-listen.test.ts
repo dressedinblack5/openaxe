@@ -134,7 +134,9 @@ async function expectSocketRejected(url: URL, init?: { headers?: Record<string, 
 }
 
 function stop(listener: Awaited<ReturnType<typeof startListener>>, label: string) {
-  return withTimeout(listener.stop(true), 10_000, label)
+  // ponytail: 15s — forceClose has 8s timeout + closeScope has 3s timeout
+  // in the server's stop chain, so the total worst case is ~11s.
+  return withTimeout(listener.stop(true), 15_000, label)
 }
 
 function waitForMessage(ws: WebSocket, predicate: (message: string) => boolean) {

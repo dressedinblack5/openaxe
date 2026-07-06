@@ -185,8 +185,18 @@ function makeStop(state: ListenerState, unpublishMdns: Effect.Effect<void>, list
     return (close?: boolean) =>
       Effect.gen(function* () {
         yield* unpublishMdns
-        if (close) yield* forceCloseOnce
-        yield* closeScopeOnce
+        if (close) {
+          // ponytail: forceClose has bounded 1s per-close timeout from
+          // WebSocketTracker, but a defective WebSocket (half-open PTY,
+          // Bun compatibility quirk) can still block it. Add an 8-second
+          // safety so closeScopeOnce runs even if forceClose stalls.
+          yield* forceCloseOnce.pipe(Effect.timeout("8 seconds"), Effect.ignore)
+        }
+        // ponytail: Scope.close also gets a timeout — NodeHttpServer's
+        // gracefulShutdownTimeout is 1s, but if the server's close event
+        // never fires (Bun edge case on WebSocket-upgraded connections),
+        // this prevents the hang from holding the process alive.
+        yield* closeScopeOnce.pipe(Effect.timeout("3 seconds"), Effect.ignore)
       })
   })
 }
