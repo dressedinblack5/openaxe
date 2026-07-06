@@ -153,6 +153,12 @@ export type ParsedAPICallError =
       responseBody?: string
     }
   | {
+      type: "content_policy"
+      message: string
+      statusCode?: number
+      responseBody?: string
+    }
+  | {
       type: "api_error"
       message: string
       statusCode?: number
@@ -162,9 +168,25 @@ export type ParsedAPICallError =
       metadata?: Record<string, string>
     }
 
+function isContentFilter(body: unknown, message_: string): boolean {
+  const err = (body as { error?: { code?: string; message?: string } })?.error
+  if (err?.code === "content_filter") return true
+  if (typeof err?.message === "string" && /\b(content.filter|safety|moderation)\b/i.test(err.message)) return true
+  if (/\b(content.filter|safety)\b/i.test(message_)) return true
+  return false
+}
+
 export function parseAPICallError(input: { providerID: ProviderV2.ID; error: APICallError }): ParsedAPICallError {
   const m = message(input.providerID, input.error)
   const body = json(input.error.responseBody)
+  if (isContentFilter(body, m)) {
+    return {
+      type: "content_policy",
+      message: m,
+      statusCode: input.error.statusCode,
+      responseBody: input.error.responseBody,
+    }
+  }
   if (isContextOverflow(m) || input.error.statusCode === 413 || body?.error?.code === "context_length_exceeded") {
     return {
       type: "context_overflow",

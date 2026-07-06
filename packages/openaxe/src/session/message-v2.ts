@@ -667,6 +667,10 @@ export function fromError(
         }).toObject() as NonNullable<SessionV1.Assistant["error"]>
       }
 
+      if (parsed.type === "content_policy") {
+        return new SessionV1.ContentFilterError({ message: parsed.message }).toObject() as NonNullable<SessionV1.Assistant["error"]>
+      }
+
       return new SessionV1.APIError({
         message: parsed.message,
         statusCode: parsed.statusCode,

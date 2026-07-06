@@ -450,6 +450,10 @@ export const McpAddCommand = effectCmd({
         describe: "URL for a remote MCP server",
         type: "string",
       })
+      .option("cwd", {
+        describe: "working directory for a local MCP server",
+        type: "string",
+      })
       .option("env", {
         describe: "environment variable for a local MCP server (KEY=VALUE)",
         type: "string",
@@ -479,6 +483,9 @@ export const McpAddCommand = effectCmd({
         if (args.url && args.env?.length) {
           throw new Error("--env is only valid for local MCP servers")
         }
+        if (args.cwd && args.url) {
+          throw new Error("--cwd is only valid for local MCP servers")
+        }
         if (command.length && args.header?.length) {
           throw new Error("--header is only valid for remote MCP servers")
         }
@@ -503,6 +510,7 @@ export const McpAddCommand = effectCmd({
               type: "local",
               command,
               ...(Object.keys(environment).length ? { environment } : {}),
+              ...(args.cwd ? { cwd: args.cwd } : {}),
             }
 
         const configPath = await resolveConfigPath(Global.Path.config, true)
@@ -575,9 +583,16 @@ export const McpAddCommand = effectCmd({
         })
         if (prompts.isCancel(command)) throw new UI.CancelledError()
 
+        const cwd = await prompts.text({
+          message: "Working directory (optional, defaults to workspace root)",
+          placeholder: "e.g., ./server or /absolute/path",
+        })
+        if (prompts.isCancel(cwd)) throw new UI.CancelledError()
+
         const mcpConfig: ConfigMCPV1.Info = {
           type: "local",
           command: command.split(" "),
+          ...(cwd ? { cwd } : {}),
         }
 
         await addMcpToConfig(name, mcpConfig, configPath)
