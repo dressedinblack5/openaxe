@@ -67,9 +67,11 @@ function emptySessionInfo(): SessionInfo {
 }
 
 function defaultRunTuiConfig(): RunTuiConfig {
+  const base = resolve({}, { terminalSuspend: process.platform !== "win32" })
   return {
-    ...resolve({}, { terminalSuspend: process.platform !== "win32" }),
+    ...base,
     diff_style: "auto",
+    keybinds: base.keybinds,
   }
 }
 

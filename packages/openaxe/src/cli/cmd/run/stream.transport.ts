@@ -71,6 +71,7 @@ type StreamInput = {
   directory?: string
   sessionID: string
   thinking: boolean
+  collapsedThinking?: () => boolean
   replay?: boolean
   replayLimit?: number
   limits: () => Record<string, number>
@@ -900,6 +901,7 @@ function createLayer(input: StreamInput) {
             event,
             sessionID: input.sessionID,
             thinking: input.thinking,
+            collapsedThinking: input.collapsedThinking?.() ?? false,
             limits: input.limits(),
           })
           state.data = next.data

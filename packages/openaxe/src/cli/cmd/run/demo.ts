@@ -263,6 +263,7 @@ function feed(state: State, event: Event): void {
     sessionID: state.id,
     thinking: state.thinking,
     limits: state.limits(),
+    collapsedThinking: false,
   })
   state.data = out.data
   writeSessionOutput(

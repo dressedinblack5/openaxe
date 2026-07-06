@@ -363,6 +363,9 @@ async function runInteractiveRuntime(input: RunRuntimeInput, deps: RunRuntimeDep
       if (!hasSession(input, state)) return
       void ctx.sdk.experimental.session.background({ sessionID: state.sessionID }).catch(() => {})
     },
+    onThinkingCollapse: () => {
+      collapsedThinking = !collapsedThinking
+    },
     onSubagentSelect: (sessionID) => {
       state.selectSubagent?.(sessionID)
       log?.write("subagent.select", {
@@ -472,6 +475,8 @@ async function runInteractiveRuntime(input: RunRuntimeInput, deps: RunRuntimeDep
     })
   })
 
+  let collapsedThinking = false
+
   const streamTask = deps.streamTransport ?? import("./stream.transport")
   const ensureStream = () => {
     if (state.stream) {
@@ -496,6 +501,7 @@ async function runInteractiveRuntime(input: RunRuntimeInput, deps: RunRuntimeDep
         directory: ctx.directory,
         sessionID: state.sessionID,
         thinking: input.thinking,
+        collapsedThinking: () => collapsedThinking,
         replay: input.replay,
         replayLimit: input.replayLimit,
         limits: () => state.limits,

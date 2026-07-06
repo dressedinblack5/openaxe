@@ -10,6 +10,7 @@ function reduce(data: ReturnType<typeof createSessionData>, event: unknown, thin
     sessionID: "session-1",
     thinking,
     limits: {},
+    collapsedThinking: false,
   })
 }
 

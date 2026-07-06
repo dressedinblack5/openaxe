@@ -9,6 +9,7 @@ type ReplayInput = {
   permissions: PermissionRequest[]
   questions: QuestionRequest[]
   thinking: boolean
+  collapsedThinking?: boolean
   limits: Record<string, number>
   providers?: RunProvider[]
 }
@@ -32,12 +33,13 @@ type ReplayMessage = {
 
 const SHELL_SYNTHETIC_USER_TEXT = "The following tool was executed by the user"
 
-function apply(data: SessionData, event: Event, sessionID: string, thinking: boolean, limits: Record<string, number>) {
+function apply(data: SessionData, event: Event, sessionID: string, thinking: boolean, limits: Record<string, number>, collapsedThinking = false) {
   return reduceSessionData({
     data,
     event,
     sessionID,
     thinking,
+    collapsedThinking,
     limits,
   })
 }
@@ -155,6 +157,7 @@ function replayMessage(
   message: SessionMessages[number],
   thinking: boolean,
   config: ReplayConfig,
+  collapsedThinking?: boolean,
 ): ReplayMessage {
   if (message.info.role === "user") {
     const prompt = messagePrompt(message)
@@ -193,6 +196,7 @@ function replayMessage(
     message.info.sessionID,
     thinking,
     config.limits,
+    collapsedThinking,
   )
   commits.push(...info.commits)
   patch = mergePatch(patch, info.footer?.patch)
@@ -212,6 +216,7 @@ function replayMessage(
       message.info.sessionID,
       thinking,
       config.limits,
+      collapsedThinking,
     )
     patch = mergePatch(patch, next.footer?.patch)
     commits.push(...next.commits)
@@ -248,7 +253,7 @@ export function replaySession(input: ReplayInput): SessionReplay {
       limits: input.limits,
       providers: input.providers,
       summaries,
-    })
+    }, input.collapsedThinking)
     commits.push(...next.commits)
     patch = mergePatch(patch, next.patch)
   }

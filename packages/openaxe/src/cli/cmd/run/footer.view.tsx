@@ -97,6 +97,7 @@ type RunFooterViewProps = {
   onCycle: () => void
   onInterrupt: () => boolean
   onBackground?: () => void
+  onThinkingCollapse?: () => void
   onEditorOpen: (input: { value: string }) => Promise<string | undefined>
   onInputClear: () => void
   onExitRequest?: () => boolean
@@ -559,6 +560,20 @@ export function RunFooterView(props: RunFooterViewProps) {
       },
     ],
     bindings: props.tuiConfig.keybinds.get("session.queued_prompts"),
+  }))
+
+  useBindings(() => ({
+    mode: OPENCODE_BASE_MODE,
+    enabled: active().type === "prompt" && route().type === "composer",
+    commands: [
+      {
+        name: "session.toggle.thinking",
+        title: "Toggle reasoning collapse",
+        category: "Session",
+        run: () => props.onThinkingCollapse?.(),
+      },
+    ],
+    bindings: props.tuiConfig.keybinds.get("session.toggle.thinking"),
   }))
 
   createEffect(() => {

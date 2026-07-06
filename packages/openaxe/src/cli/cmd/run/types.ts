@@ -313,6 +313,7 @@ export type StreamCommit = {
   interrupted?: boolean
   toolState?: StreamToolState
   toolError?: string
+  collapsedThinking?: boolean
   shell?: {
     callID: string
     command: string

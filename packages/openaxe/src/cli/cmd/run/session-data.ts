@@ -93,6 +93,7 @@ export type SessionDataInput = {
   event: Event
   sessionID: string
   thinking: boolean
+  collapsedThinking: boolean
   limits: Record<string, number>
 }
 
@@ -511,7 +512,7 @@ function stripEcho(data: SessionData, msg: string | undefined, chunk: string): s
   return chunk
 }
 
-function flushPart(data: SessionData, commits: SessionCommit[], partID: string, interrupted = false) {
+function flushPart(data: SessionData, commits: SessionCommit[], partID: string, interrupted = false, collapsedThinking?: boolean) {
   const kind = data.part.get(partID)
   if (!kind) {
     return
@@ -543,14 +544,18 @@ function flushPart(data: SessionData, commits: SessionCommit[], partID: string, 
   if (chunk) {
     data.sent.set(partID, text.length)
     data.visible.set(partID, (data.visible.get(partID) ?? "") + chunk)
-    commits.push({
+    const commit: SessionCommit = {
       kind,
       text: chunk,
       phase: "progress",
       source: kind === "user" ? "system" : kind,
       messageID: msg,
       partID,
-    })
+    }
+    if (kind === "reasoning" && collapsedThinking) {
+      commit.collapsedThinking = true
+    }
+    commits.push(commit)
   }
 
   if (!interrupted) {
@@ -580,7 +585,7 @@ function drop(data: SessionData, partID: string) {
 // Called when we learn a message's role (from message.updated). Flushes any
 // buffered text parts that were waiting on role confirmation. User-role
 // parts are silently dropped.
-function replay(data: SessionData, commits: SessionCommit[], messageID: string, role: MessageRole, thinking: boolean) {
+function replay(data: SessionData, commits: SessionCommit[], messageID: string, role: MessageRole, thinking: boolean, collapsedThinking?: boolean) {
   for (const [partID, msg] of data.msg.entries()) {
     if (msg !== messageID || data.ids.has(partID)) {
       continue
@@ -609,7 +614,7 @@ function replay(data: SessionData, commits: SessionCommit[], messageID: string, 
       continue
     }
 
-    flushPart(data, commits, partID)
+    flushPart(data, commits, partID, false, collapsedThinking)
 
     if (!data.end.has(partID)) {
       continue
@@ -831,7 +836,7 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
     const info = event.properties.info
     if (typeof info.id === "string") {
       data.role.set(info.id, info.role)
-      replay(data, commits, info.id, info.role, input.thinking)
+      replay(data, commits, info.id, info.role, input.thinking, input.collapsedThinking)
     }
 
     if (info.role !== "assistant") {
@@ -912,7 +917,7 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
       return out(data, commits)
     }
 
-    flushPart(data, commits, partID)
+    flushPart(data, commits, partID, false, input.collapsedThinking)
     return out(data, commits)
   }
 
@@ -1043,7 +1048,7 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
       return out(data, commits)
     }
 
-    flushPart(data, commits, part.id)
+    flushPart(data, commits, part.id, false, input.collapsedThinking)
 
     if (!part.time?.end) {
       return out(data, commits)

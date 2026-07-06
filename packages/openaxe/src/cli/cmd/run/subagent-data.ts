@@ -567,6 +567,7 @@ function applyChildEvent(input: {
     sessionID: input.detail.sessionID,
     thinking: input.thinking,
     limits: input.limits,
+    collapsedThinking: false,
   })
   const changed = appendCommits(input.detail, out.commits)
   compactDetail(input.detail)
@@ -586,6 +587,7 @@ function bootstrapChildEvent(input: {
     sessionID: input.detail.sessionID,
     thinking: input.thinking,
     limits: input.limits,
+    collapsedThinking: false,
   })
 
   return appendCommits(input.detail, out.commits)

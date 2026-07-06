@@ -58,10 +58,17 @@ function userBody(raw: string): RunEntryBody {
   return textBody(`${lead}› ${body}`)
 }
 
-function reasoningBody(raw: string): RunEntryBody {
+function reasoningBody(raw: string, collapsed = false): RunEntryBody {
   const clean = raw.replace(/\[REDACTED\]/g, "")
   if (!clean) {
     return RUN_ENTRY_NONE
+  }
+
+  if (collapsed) {
+    const lines = clean.trim().split("\n")
+    const lineCount = lines.length
+    // ponytail: token count not passed through yet — just line count
+    return codeBody(`\u25b8 Thinking (${lineCount} line${lineCount === 1 ? "" : "s"})`)
   }
 
   const lead = clean.match(/^\n+/)?.[0] ?? ""
@@ -198,7 +205,7 @@ export function entryBody(commit: StreamCommit): RunEntryBody {
       return commit.interrupted ? textBody("reasoning interrupted") : RUN_ENTRY_NONE
     }
 
-    return reasoningBody(raw)
+    return reasoningBody(raw, commit.collapsedThinking)
   }
 
   return systemBody(raw, commit.phase)
