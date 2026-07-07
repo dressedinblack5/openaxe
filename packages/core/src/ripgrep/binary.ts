@@ -14,7 +14,10 @@ import { which } from "../util/which"
 
 // ponytail: promisify exec — shell resolves PATHEXT on Windows where
 // ChildProcessSpawner doesn't.
-const execAsync = promisify(exec) as (cmd: string, opts?: { shell?: string | boolean }) => Promise<{ stdout: string; stderr: string }>
+const execAsync = promisify(exec) as (
+  cmd: string,
+  opts?: { shell?: string | boolean },
+) => Promise<{ stdout: string; stderr: string }>
 
 export namespace RipgrepBinary {
   const VERSION = "15.1.0"
@@ -70,7 +73,10 @@ export namespace RipgrepBinary {
             const shell = which("powershell.exe") ?? which("pwsh.exe") ?? "powershell.exe"
             const psCmd = `& { $global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force }`
             yield* Effect.tryPromise({
-              try: () => execAsync(`"${shell}" -NoProfile -NonInteractive -Command "${psCmd.replaceAll('"', '\\"')}"`, { shell: true }),
+              try: () =>
+                execAsync(`"${shell}" -NoProfile -NonInteractive -Command "${psCmd.replaceAll('"', '\\"')}"`, {
+                  shell: true,
+                }),
               catch: (cause: unknown) => {
                 const msg = cause instanceof Error ? cause.message : String(cause)
                 return new Error(`ripgrep extraction failed: ${msg}`)

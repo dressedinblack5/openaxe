@@ -498,10 +498,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
             return store.location[locationKey(location ?? defaultLocation())]?.integration
           },
           async refresh(ref?: LocationRef) {
-            const result = await sdk.client.v2.integration.list(
-              { ...locationQuery(ref) },
-              { throwOnError: true },
-            )
+            const result = await sdk.client.v2.integration.list({ ...locationQuery(ref) }, { throwOnError: true })
             const key = locationKey(result.data.location)
             setStore("location", key, "integration", result.data.data)
           },

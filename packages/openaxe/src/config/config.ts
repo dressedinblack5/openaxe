@@ -150,9 +150,7 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/Co
 export const use = serviceUse(Service)
 
 function globalConfigFile() {
-  const candidates = ["openaxe.jsonc", "openaxe.json", "config.json"].map((file) =>
-    path.join(Global.Path.config, file),
-  )
+  const candidates = ["openaxe.jsonc", "openaxe.json", "config.json"].map((file) => path.join(Global.Path.config, file))
   for (const file of candidates) {
     if (existsSync(file)) return file
   }
@@ -300,7 +298,9 @@ export const layer = Layer.effect(
 
       // Ensure bundled plugins are always present, even if the config file was
       // written before a newer openaxe release added them as defaults.
-      const seen = new Set((result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg))
+      const seen = new Set(
+        (result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg),
+      )
       const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
       if (add.length) {
         result.plugin = [...(result.plugin ?? []), ...add]

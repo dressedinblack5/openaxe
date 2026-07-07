@@ -56,18 +56,16 @@ export function schema<S extends EffectSchema.Decoder<unknown, never>>(
   if (Exit.isSuccess(decoded)) return decoded.value as DeepMutable<S["Type"]>
   const error = Cause.squash(decoded.cause)
 
-  throw new InvalidError(
-    {
-      path: source,
-      issues: EffectSchema.isSchemaError(error)
-        ? SchemaIssue.makeFormatterStandardSchemaV1()(error.issue).issues.map((issue) => ({
-            ...issue,
-            message: issue.message,
-            path: issue.path?.map(String) ?? [],
-          }))
-        : [{ message: String(error), path: [] }],
-    },
-  )
+  throw new InvalidError({
+    path: source,
+    issues: EffectSchema.isSchemaError(error)
+      ? SchemaIssue.makeFormatterStandardSchemaV1()(error.issue).issues.map((issue) => ({
+          ...issue,
+          message: issue.message,
+          path: issue.path?.map(String) ?? [],
+        }))
+      : [{ message: String(error), path: [] }],
+  })
 }
 
 function topLevelExtraKeys(schema: EffectSchema.Top, data: unknown) {

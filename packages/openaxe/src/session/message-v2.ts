@@ -615,7 +615,9 @@ export function fromError(
     case isTaggedError(e, "MessageOutputLengthError"):
       return e.toObject() as NonNullable<SessionV1.Assistant["error"]>
     case LoadAPIKeyError.isInstance(e):
-      return new SessionV1.AuthError({ providerID: ctx.providerID, message: e.message }).toObject() as NonNullable<SessionV1.Assistant["error"]>
+      return new SessionV1.AuthError({ providerID: ctx.providerID, message: e.message }).toObject() as NonNullable<
+        SessionV1.Assistant["error"]
+      >
     case (e as SystemError)?.code === "ECONNRESET":
       return new SessionV1.APIError({
         message: "Connection reset by server",
@@ -628,7 +630,9 @@ export function fromError(
       }).toObject() as NonNullable<SessionV1.Assistant["error"]>
     case e instanceof Error && (e as FetchDecompressionError).code === "ZlibError":
       if (ctx.aborted) {
-        return new SessionV1.AbortedError({ message: e.message }).toObject() as NonNullable<SessionV1.Assistant["error"]>
+        return new SessionV1.AbortedError({ message: e.message }).toObject() as NonNullable<
+          SessionV1.Assistant["error"]
+        >
       }
       return new SessionV1.APIError({
         message: "Response decompression failed",
@@ -668,7 +672,9 @@ export function fromError(
       }
 
       if (parsed.type === "content_policy") {
-        return new SessionV1.ContentFilterError({ message: parsed.message }).toObject() as NonNullable<SessionV1.Assistant["error"]>
+        return new SessionV1.ContentFilterError({ message: parsed.message }).toObject() as NonNullable<
+          SessionV1.Assistant["error"]
+        >
       }
 
       return new SessionV1.APIError({

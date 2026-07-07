@@ -117,14 +117,7 @@ function build(input: SplashWriterInput, kind: "entry" | "exit", ctx: Scrollback
     const top = 1
     push(lines, 0, top, "OpenAxe", right, undefined, TextAttributes.BOLD)
     if (input.detail) {
-      push(
-        lines,
-        0,
-        top + 1,
-        Locale.truncateMiddle(input.detail, Math.max(1, width)),
-        left,
-        undefined,
-      )
+      push(lines, 0, top + 1, Locale.truncateMiddle(input.detail, Math.max(1, width)), left, undefined)
     }
     height = top + (input.detail ? 2 : 1)
   }
@@ -140,15 +133,7 @@ function build(input: SplashWriterInput, kind: "entry" | "exit", ctx: Scrollback
     }
 
     push(lines, 0, top + 1, label, left, undefined, TextAttributes.DIM)
-    push(
-      lines,
-      label.length,
-      top + 1,
-      `opencode --mini -s ${meta.session_id}`,
-      right,
-      undefined,
-      TextAttributes.BOLD,
-    )
+    push(lines, label.length, top + 1, `opencode --mini -s ${meta.session_id}`, right, undefined, TextAttributes.BOLD)
     height = top + 2
   }
 

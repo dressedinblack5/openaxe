@@ -512,7 +512,13 @@ function stripEcho(data: SessionData, msg: string | undefined, chunk: string): s
   return chunk
 }
 
-function flushPart(data: SessionData, commits: SessionCommit[], partID: string, interrupted = false, collapsedThinking?: boolean) {
+function flushPart(
+  data: SessionData,
+  commits: SessionCommit[],
+  partID: string,
+  interrupted = false,
+  collapsedThinking?: boolean,
+) {
   const kind = data.part.get(partID)
   if (!kind) {
     return
@@ -585,7 +591,14 @@ function drop(data: SessionData, partID: string) {
 // Called when we learn a message's role (from message.updated). Flushes any
 // buffered text parts that were waiting on role confirmation. User-role
 // parts are silently dropped.
-function replay(data: SessionData, commits: SessionCommit[], messageID: string, role: MessageRole, thinking: boolean, collapsedThinking?: boolean) {
+function replay(
+  data: SessionData,
+  commits: SessionCommit[],
+  messageID: string,
+  role: MessageRole,
+  thinking: boolean,
+  collapsedThinking?: boolean,
+) {
   for (const [partID, msg] of data.msg.entries()) {
     if (msg !== messageID || data.ids.has(partID)) {
       continue

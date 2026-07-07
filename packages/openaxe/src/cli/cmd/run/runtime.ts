@@ -19,7 +19,15 @@ import { createRunDemo } from "./demo"
 import { resolveModelInfo, resolveRunTuiConfig, resolveSessionInfo } from "./runtime.boot"
 import { createRuntimeLifecycle } from "./runtime.lifecycle"
 import { trace } from "./trace"
-import { cycleVariant, formatModelLabel, resolveSavedModel, resolveSavedVariant, resolveVariant, saveModel, saveVariant } from "./variant.shared"
+import {
+  cycleVariant,
+  formatModelLabel,
+  resolveSavedModel,
+  resolveSavedVariant,
+  resolveVariant,
+  saveModel,
+  saveVariant,
+} from "./variant.shared"
 import type { LocalReplayAnchor, LocalReplayRow, RunInput, RunPrompt, RunProvider, StreamCommit } from "./types"
 
 /** @internal Exported for testing */

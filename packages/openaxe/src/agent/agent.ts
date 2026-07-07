@@ -382,11 +382,8 @@ export const layer = Layer.effect(
         const existing = yield* InstanceState.useEffect(state, (s) => s.list())
 
         const authInfo = yield* auth.get(model.providerID).pipe(Effect.orDie)
-        const { messages: systemMessages, providerOptions: systemProviderOptions } = ProviderTransform.resolveSystemPrompt(
-          resolved,
-          authInfo?.type,
-          system,
-        )
+        const { messages: systemMessages, providerOptions: systemProviderOptions } =
+          ProviderTransform.resolveSystemPrompt(resolved, authInfo?.type, system)
 
         const params = {
           experimental_telemetry: {

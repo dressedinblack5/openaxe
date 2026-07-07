@@ -138,7 +138,8 @@ export function retryable(error: Err, provider: string) {
             reason: "free_tier_limit",
             provider,
             title: "Free limit reached",
-            message: "Subscribe to OpenCode Go for reliable access to the best open-source models, starting at $5/month.",
+            message:
+              "Subscribe to OpenCode Go for reliable access to the best open-source models, starting at $5/month.",
             label: "subscribe",
             link: GO_UPSELL_URL,
           },
@@ -178,7 +179,7 @@ export function retryable(error: Err, provider: string) {
         }
       }
       const apiMsg = apiErr.message
-      return { message: apiMsg?.includes("Overloaded") ? "Provider is overloaded" : apiMsg ?? "" }
+      return { message: apiMsg?.includes("Overloaded") ? "Provider is overloaded" : (apiMsg ?? "") }
     }
   }
 

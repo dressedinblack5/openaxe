@@ -56,7 +56,9 @@ export async function readManagedPreferences() {
   ]
 
   for (const plist of paths) {
-    const exists = await access(plist).then(() => true).catch(() => false)
+    const exists = await access(plist)
+      .then(() => true)
+      .catch(() => false)
     if (!exists) continue
     const result = await Process.run(["plutil", "-convert", "json", "-o", "-", plist], { nothrow: true })
     if (result.code !== 0) continue

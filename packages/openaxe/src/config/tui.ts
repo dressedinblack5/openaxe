@@ -200,9 +200,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
   // 4. `.openaxe` directories (and OPENCODE_CONFIG_DIR) discovered while
   // walking up the tree. Also returned below so callers can install plugin
   // dependencies from each location.
-  const dirs = unique(directories).filter(
-    (dir) => dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR,
-  )
+  const dirs = unique(directories).filter((dir) => dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR)
 
   // Parallel read across all .openaxe dirs, then sequential merge
   const fileEntries: { file: string; data: Info }[] = yield* Effect.forEach(
@@ -232,7 +230,9 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
 
   // Ensure bundled plugins are always present, even if the config file was
   // written before a newer openaxe release added them as defaults.
-  const seen = new Set((acc.result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg))
+  const seen = new Set(
+    (acc.result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg),
+  )
   const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
   if (add.length) {
     acc.result = {
@@ -294,8 +294,8 @@ export const layer = (directory?: string) =>
         Effect.forEach(deps, Fiber.join, { concurrency: "unbounded" }).pipe(Effect.ignore(), Effect.asVoid),
       )
       return Service.of({ get, pluginOrigins, waitForDependencies })
-  }).pipe(Effect.withSpan("TuiConfig.layer")),
-)
+    }).pipe(Effect.withSpan("TuiConfig.layer")),
+  )
 
 export const defaultLayer = layer().pipe(Layer.provide(Npm.defaultLayer), Layer.provide(FSUtil.defaultLayer))
 

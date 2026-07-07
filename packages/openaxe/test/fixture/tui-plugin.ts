@@ -154,6 +154,7 @@ export function createTuiPluginApi(opts: Opts = {}): HostPluginApi {
     once(this: CliRenderer) {
       return this
     },
+    requestRender() {},
   }
   const keymap =
     opts.keymap ??

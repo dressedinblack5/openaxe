@@ -308,7 +308,6 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         return undefined
       })
 
-
       const awsWebIdentityTokenFile = env["AWS_WEB_IDENTITY_TOKEN_FILE"]
 
       const containerCreds = Boolean(
@@ -1323,14 +1322,13 @@ export const layer = Layer.effect(
         const discoveryLoaders: {
           [providerID: string]: CustomDiscoverModels
         } = {}
-         const dep = {
-           auth: (id: string) => auth.get(id).pipe(Effect.orDie),
-           config: () => config.get(),
-           env: () => env.all(),
-           get: (key: string) => env.get(key),
-           set: (key: string, value: string) => env.set(key, value),
-         }
-
+        const dep = {
+          auth: (id: string) => auth.get(id).pipe(Effect.orDie),
+          config: () => config.get(),
+          env: () => env.all(),
+          get: (key: string) => env.get(key),
+          set: (key: string, value: string) => env.set(key, value),
+        }
 
         function mergeProvider(providerID: ProviderV2.ID, provider: Partial<Info>) {
           const existing = providers[providerID]

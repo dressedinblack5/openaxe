@@ -115,7 +115,7 @@ export const ExperimentalApi = HttpApi.make("experimental")
             description: "Get experimental features enabled on the OpenCode server.",
           }),
         ),
-HttpApiEndpoint.get("console", ExperimentalPaths.console, {
+        HttpApiEndpoint.get("console", ExperimentalPaths.console, {
           query: WorkspaceRoutingQuery,
           success: described(ConsoleStateResponse, "Active Console provider metadata"),
           error: HttpApiError.InternalServerErrorNoContent as any as any,

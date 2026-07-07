@@ -2,7 +2,9 @@ import { errorFormat } from "@/util/error"
 import { isRecord } from "@/util/record"
 
 function hasName(error: unknown, name: string): boolean {
-  return typeof error === "object" && error !== null && "name" in error && (error as Record<string, unknown>).name === name
+  return (
+    typeof error === "object" && error !== null && "name" in error && (error as Record<string, unknown>).name === name
+  )
 }
 
 type ConfigIssue = { message: string; path: string[] }

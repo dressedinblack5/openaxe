@@ -43,7 +43,7 @@ export function createTuiApi(input: Omit<TuiPluginApi, "lifecycle">): TuiPluginA
   if (input.renderer === null || input.renderer === undefined) {
     console.warn(
       "[tui.plugin] Invalid renderer provided to TuiPluginApi - renderer is null/undefined. " +
-      "Creating safe wrapper to prevent TypeError."
+        "Creating safe wrapper to prevent TypeError.",
     )
     return {
       ...input,
@@ -51,18 +51,19 @@ export function createTuiApi(input: Omit<TuiPluginApi, "lifecycle">): TuiPluginA
         requestRender: () => {
           console.warn(
             "[tui.plugin] renderer.requestRender called on null/undefined renderer. " +
-            "Plugin is not properly initialized with a valid renderer."
+              "Plugin is not properly initialized with a valid renderer.",
           )
         },
       } as unknown as TuiPluginApi["renderer"],
       lifecycle: createLifecycle(),
     }
   }
-  
+
   if (typeof input.renderer !== "object" || !("requestRender" in input.renderer)) {
     console.warn(
       "[tui.plugin] Invalid renderer provided to TuiPluginApi - renderer is not a CliRenderer instance. " +
-      "Expected renderer with requestRender() method, got " + typeof input.renderer
+        "Expected renderer with requestRender() method, got " +
+        typeof input.renderer,
     )
     return {
       ...input,
@@ -70,14 +71,14 @@ export function createTuiApi(input: Omit<TuiPluginApi, "lifecycle">): TuiPluginA
         requestRender: () => {
           console.warn(
             "[tui.plugin] renderer.requestRender called on invalid renderer. " +
-            "This plugin may not work correctly without proper renderer initialization."
+              "This plugin may not work correctly without proper renderer initialization.",
           )
         },
       } as unknown as TuiPluginApi["renderer"],
       lifecycle: createLifecycle(),
     }
   }
-  
+
   return {
     ...input,
     lifecycle: createLifecycle(),

@@ -914,16 +914,22 @@ export const layer = Layer.effect(
           if ((yield* config.get()).compaction?.auto === false && !ctx.assistantMessage.summary) {
             ctx.assistantMessage.error = error as NonNullable<typeof ctx.assistantMessage.error>
             ctx.assistantMessage.finish = "error"
-            yield* events.publish(Session.Event.Error, { sessionID: ctx.sessionID, error: error as NonNullable<typeof ctx.assistantMessage.error> })
+            yield* events.publish(Session.Event.Error, {
+              sessionID: ctx.sessionID,
+              error: error as NonNullable<typeof ctx.assistantMessage.error>,
+            })
             yield* status.set(ctx.sessionID, { type: "idle" })
             return
           }
           ctx.needsCompaction = true
-          yield* events.publish(Session.Event.Error, { sessionID: ctx.sessionID, error: error as NonNullable<typeof ctx.assistantMessage.error> })
+          yield* events.publish(Session.Event.Error, {
+            sessionID: ctx.sessionID,
+            error: error as NonNullable<typeof ctx.assistantMessage.error>,
+          })
           return
         }
         if (!ctx.assistantMessage.summary) {
-if (mirrorAssistant) {
+          if (mirrorAssistant) {
             yield* events.publish(SessionEvent.Step.Failed, {
               sessionID: ctx.sessionID,
               assistantMessageID: yield* ensureV2AssistantMessage(),

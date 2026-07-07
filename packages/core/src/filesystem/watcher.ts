@@ -97,21 +97,25 @@ export const layer = Layer.effect(
         Effect.timeout(SUBSCRIBE_TIMEOUT_MS),
         Effect.catchCause((cause) => {
           pending.then((subscription) => subscription.unsubscribe()).catch(() => {})
-          const limit = process.platform === "linux"
-            ? Effect.sync(() => {
-                try {
-                  return require("fs").readFileSync("/proc/sys/fs/inotify/max_user_watches", "utf8").trim()
-                } catch { return "unknown" }
-              })
-            : Effect.succeed("n/a")
+          const limit =
+            process.platform === "linux"
+              ? Effect.sync(() => {
+                  try {
+                    return require("fs").readFileSync("/proc/sys/fs/inotify/max_user_watches", "utf8").trim()
+                  } catch {
+                    return "unknown"
+                  }
+                })
+              : Effect.succeed("n/a")
           return Effect.flatMap(limit, (watches) =>
             Effect.logError("failed to subscribe", {
               directory,
               cause: Cause.pretty(cause),
-              hint: process.platform === "linux"
-                ? `Try: echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/99-inotify.conf && sudo sysctl --system (current: ${watches})`
-                : undefined,
-            })
+              hint:
+                process.platform === "linux"
+                  ? `Try: echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/99-inotify.conf && sudo sysctl --system (current: ${watches})`
+                  : undefined,
+            }),
           )
         }),
       )

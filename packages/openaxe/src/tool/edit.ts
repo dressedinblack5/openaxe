@@ -77,9 +77,7 @@ export const EditTool = Tool.define(
           }
 
           const instance = yield* InstanceState.context
-          const filePath = isAbsolute(params.filePath)
-            ? params.filePath
-            : join(instance.directory, params.filePath)
+          const filePath = isAbsolute(params.filePath) ? params.filePath : join(instance.directory, params.filePath)
           yield* assertExternalDirectoryEffect(ctx, filePath)
 
           let diff = ""

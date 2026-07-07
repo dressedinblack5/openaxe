@@ -33,7 +33,9 @@ export class AuthError extends Schema.TaggedErrorClass<AuthError>()("ProviderAut
   message: Schema.String,
 }) {}
 
-export class AbortedError extends Schema.TaggedErrorClass<AbortedError>()("MessageAbortedError", { message: Schema.String }) {}
+export class AbortedError extends Schema.TaggedErrorClass<AbortedError>()("MessageAbortedError", {
+  message: Schema.String,
+}) {}
 
 export class StructuredOutputError extends Schema.TaggedErrorClass<StructuredOutputError>()("StructuredOutputError", {
   message: Schema.String,

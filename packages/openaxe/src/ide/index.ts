@@ -12,7 +12,10 @@ const SUPPORTED_IDES = [
 
 export const Event = IdeEvent
 
-export class AlreadyInstalledError extends Schema.TaggedErrorClass<AlreadyInstalledError>()("AlreadyInstalledError", {}) {}
+export class AlreadyInstalledError extends Schema.TaggedErrorClass<AlreadyInstalledError>()(
+  "AlreadyInstalledError",
+  {},
+) {}
 
 export class InstallFailedError extends Schema.TaggedErrorClass<InstallFailedError>()("InstallFailedError", {
   stderr: Schema.String,

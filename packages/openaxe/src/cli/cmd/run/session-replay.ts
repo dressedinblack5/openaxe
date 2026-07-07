@@ -33,7 +33,14 @@ type ReplayMessage = {
 
 const SHELL_SYNTHETIC_USER_TEXT = "The following tool was executed by the user"
 
-function apply(data: SessionData, event: Event, sessionID: string, thinking: boolean, limits: Record<string, number>, collapsedThinking = false) {
+function apply(
+  data: SessionData,
+  event: Event,
+  sessionID: string,
+  thinking: boolean,
+  limits: Record<string, number>,
+  collapsedThinking = false,
+) {
   return reduceSessionData({
     data,
     event,
@@ -249,11 +256,17 @@ export function replaySession(input: ReplayInput): SessionReplay {
   })
 
   for (const message of input.messages) {
-    const next = replayMessage(data, message, input.thinking, {
-      limits: input.limits,
-      providers: input.providers,
-      summaries,
-    }, input.collapsedThinking)
+    const next = replayMessage(
+      data,
+      message,
+      input.thinking,
+      {
+        limits: input.limits,
+        providers: input.providers,
+        summaries,
+      },
+      input.collapsedThinking,
+    )
     commits.push(...next.commits)
     patch = mergePatch(patch, next.patch)
   }

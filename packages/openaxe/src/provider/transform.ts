@@ -61,11 +61,7 @@ function sdkKey(npm: string): string | undefined {
   return undefined
 }
 
-export function resolveSystemPrompt(
-  model: Provider.Model,
-  authType: string | undefined,
-  systemPrompts: string[],
-) {
+export function resolveSystemPrompt(model: Provider.Model, authType: string | undefined, systemPrompts: string[]) {
   const isOpenaiOauth = model.providerID === "openai" && authType === "oauth"
   const messages: ModelMessage[] = isOpenaiOauth
     ? []
@@ -102,7 +98,7 @@ const sanitizeMessageContent = (msgs: ModelMessage[]) => {
       case "tool":
         if (Array.isArray(msg.content)) {
           msg.content = msg.content.map((content) =>
-            content.type === "tool-result" ? sanitizeToolResultOutput(content) : content
+            content.type === "tool-result" ? sanitizeToolResultOutput(content) : content,
           )
         }
         break
@@ -182,7 +178,11 @@ const scrubClaudeToolCallIds = (msgs: ModelMessage[]) => {
 }
 
 const scrubMistralToolCallIds = (msgs: ModelMessage[]) => {
-  const scrub = (id: string) => id.replace(/[^a-zA-Z0-9]/g, "").substring(0, 9).padEnd(9, "0")
+  const scrub = (id: string) =>
+    id
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .substring(0, 9)
+      .padEnd(9, "0")
   const result: ModelMessage[] = []
   for (let i = 0; i < msgs.length; i++) {
     const msg = msgs[i]
@@ -192,12 +192,12 @@ const scrubMistralToolCallIds = (msgs: ModelMessage[]) => {
       msg.content = msg.content.map((part) =>
         part.type === "tool-call" || part.type === "tool-result"
           ? { ...part, toolCallId: scrub(part.toolCallId) }
-          : part
+          : part,
       )
     }
     if (msg.role === "tool" && Array.isArray(msg.content)) {
       msg.content = msg.content.map((part) =>
-        part.type === "tool-result" ? { ...part, toolCallId: scrub(part.toolCallId) } : part
+        part.type === "tool-result" ? { ...part, toolCallId: scrub(part.toolCallId) } : part,
       )
     }
     result.push(msg)

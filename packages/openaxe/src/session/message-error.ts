@@ -58,9 +58,11 @@ export type Shared = Schema.Schema.Type<typeof SharedSchema>
 export const isOutputLengthError = (error: Shared): error is OutputLengthError => OutputLengthError.isInstance(error)
 export const isAuthError = (error: Shared): error is AuthError => AuthError.isInstance(error)
 export const isAbortedError = (error: Shared): error is AbortedError => AbortedError.isInstance(error)
-export const isStructuredOutputError = (error: Shared): error is StructuredOutputError => StructuredOutputError.isInstance(error)
+export const isStructuredOutputError = (error: Shared): error is StructuredOutputError =>
+  StructuredOutputError.isInstance(error)
 export const isAPIError = (error: Shared): error is APIError => APIError.isInstance(error)
-export const isContextOverflowError = (error: Shared): error is ContextOverflowError => ContextOverflowError.isInstance(error)
+export const isContextOverflowError = (error: Shared): error is ContextOverflowError =>
+  ContextOverflowError.isInstance(error)
 export const isContentFilterError = (error: Shared): error is ContentFilterError => ContentFilterError.isInstance(error)
 
 export * as MessageError from "./message-error"

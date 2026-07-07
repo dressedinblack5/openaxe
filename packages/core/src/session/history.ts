@@ -95,8 +95,10 @@ export const entriesForRunner = Effect.fn("SessionHistory.entriesForRunner")(fun
   baselineSeq: number,
 ) {
   const rows = yield* messageRows(db, sessionID, yield* latestCompaction(db, sessionID), baselineSeq)
-  return yield* Effect.forEach(rows, (row) =>
-    decodeMessageRow(row).pipe(Effect.map((message) => ({ seq: row.seq, message }))), { concurrency: "unbounded" },
+  return yield* Effect.forEach(
+    rows,
+    (row) => decodeMessageRow(row).pipe(Effect.map((message) => ({ seq: row.seq, message }))),
+    { concurrency: "unbounded" },
   )
 })
 

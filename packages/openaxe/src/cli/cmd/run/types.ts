@@ -349,4 +349,3 @@ export type FooterApi = {
   close(): void
   destroy(): void
 }
-

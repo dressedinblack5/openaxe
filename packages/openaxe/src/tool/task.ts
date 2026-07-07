@@ -166,10 +166,11 @@ export const TaskTool = Tool.define(
       if (msg.info.role !== "assistant") return yield* Effect.fail(new Error("Not an assistant message"))
       const variant = msg.info.variant
 
-      const model = next.model ?? (cfg.model ? parseModel(cfg.model) : null) ?? {
-        modelID: msg.info.modelID,
-        providerID: msg.info.providerID,
-      }
+      const model = next.model ??
+        (cfg.model ? parseModel(cfg.model) : null) ?? {
+          modelID: msg.info.modelID,
+          providerID: msg.info.providerID,
+        }
       const metadata = {
         parentSessionId: ctx.sessionID,
         sessionId: nextSession.id,

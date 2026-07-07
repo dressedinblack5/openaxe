@@ -814,7 +814,7 @@ export const McpDebugCommand = effectCmd({
 
           try {
             const client = new Client({
-name: "openaxe-debug",
+              name: "openaxe-debug",
               version: InstallationVersion,
             })
             await client.connect(transport)

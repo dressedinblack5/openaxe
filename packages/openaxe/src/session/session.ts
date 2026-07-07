@@ -378,13 +378,13 @@ export const getUsage = (input: { model: Provider.Model; usage: Usage; metadata?
       typeof totalNanoAiu === "number" && Number.isFinite(totalNanoAiu) && totalNanoAiu >= 0
         ? totalNanoAiu / 100_000_000_000
         : safe(
-            tokens.input * (costInfo?.input ?? 0) / 1_000_000 +
-            tokens.output * (costInfo?.output ?? 0) / 1_000_000 +
-            tokens.cache.read * (costInfo?.cache?.read ?? 0) / 1_000_000 +
-            tokens.cache.write * (costInfo?.cache?.write ?? 0) / 1_000_000 +
-            // TODO: update models.dev to have better pricing model, for now:
-            // charge reasoning tokens at the same rate as output tokens
-            tokens.reasoning * (costInfo?.output ?? 0) / 1_000_000,
+            (tokens.input * (costInfo?.input ?? 0)) / 1_000_000 +
+              (tokens.output * (costInfo?.output ?? 0)) / 1_000_000 +
+              (tokens.cache.read * (costInfo?.cache?.read ?? 0)) / 1_000_000 +
+              (tokens.cache.write * (costInfo?.cache?.write ?? 0)) / 1_000_000 +
+              // TODO: update models.dev to have better pricing model, for now:
+              // charge reasoning tokens at the same rate as output tokens
+              (tokens.reasoning * (costInfo?.output ?? 0)) / 1_000_000,
           ),
     tokens,
   }

@@ -358,7 +358,13 @@ describe("filesystem", () => {
     test("returns MIME type for TypeScript (or video/mp2t due to extension conflict)", async () => {
       const mime = await Filesystem.mimeType("test.ts")
       // .ts is ambiguous: TypeScript vs MPEG-2 TS video
-      expect(mime === "video/mp2t" || mime === "application/typescript" || mime === "text/typescript" || mime === "text/javascript").toBe(true)
+      // Bun may append charset (e.g. "text/javascript;charset=utf-8"), so use includes()
+      expect(
+        mime === "video/mp2t" ||
+          mime === "application/typescript" ||
+          mime === "text/typescript" ||
+          mime.includes("text/javascript"),
+      ).toBe(true)
     })
 
     test("returns correct MIME type for images", async () => {

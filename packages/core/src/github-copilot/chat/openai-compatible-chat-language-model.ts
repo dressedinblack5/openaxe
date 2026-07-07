@@ -34,30 +34,46 @@ type OpenAICompatibleChunk = {
   id: string | null | undefined
   created: number | null | undefined
   model: string | null | undefined
-  choices: Array<{
-    delta: {
-      role: "assistant" | null | undefined
-      content: string | null | undefined
-      reasoning_text: string | null | undefined
-      reasoning_opaque: string | null | undefined
-      tool_calls: Array<{
-        index: number
-        id: string | null | undefined
-        function: {
-          name: string | null | undefined
-          arguments: string | null | undefined
+  choices:
+    | Array<{
+        delta:
+          | {
+              role: "assistant" | null | undefined
+              content: string | null | undefined
+              reasoning_text: string | null | undefined
+              reasoning_opaque: string | null | undefined
+              tool_calls:
+                | Array<{
+                    index: number
+                    id: string | null | undefined
+                    function: {
+                      name: string | null | undefined
+                      arguments: string | null | undefined
+                    }
+                  }>
+                | null
+                | undefined
+            }
+          | null
+          | undefined
+        finish_reason: string | null | undefined
+      }>
+    | null
+    | undefined
+  usage:
+    | {
+        prompt_tokens: number | null | undefined
+        completion_tokens: number | null | undefined
+        total_tokens: number | null | undefined
+        prompt_tokens_details?: { cached_tokens: number | null | undefined }
+        completion_tokens_details?: {
+          reasoning_tokens: number | null | undefined
+          accepted_prediction_tokens: number | null | undefined
+          rejected_prediction_tokens: number | null | undefined
         }
-      }> | null | undefined
-    } | null | undefined
-    finish_reason: string | null | undefined
-  }> | null | undefined
-  usage: {
-    prompt_tokens: number | null | undefined
-    completion_tokens: number | null | undefined
-    total_tokens: number | null | undefined
-    prompt_tokens_details?: { cached_tokens: number | null | undefined }
-    completion_tokens_details?: { reasoning_tokens: number | null | undefined; accepted_prediction_tokens: number | null | undefined; rejected_prediction_tokens: number | null | undefined }
-  } | null | undefined
+      }
+    | null
+    | undefined
 }
 
 type OpenAICompatibleChunkError = { error: { message: string } }
@@ -92,7 +108,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   readonly modelId: OpenAICompatibleChatModelId
   private readonly config: OpenAICompatibleChatConfig
   private readonly failedResponseHandler: ResponseHandler<APICallError>
-  private readonly chunkSchema = createOpenAICompatibleChatChunkSchema(defaultOpenAICompatibleErrorStructure.errorSchema)
+  private readonly chunkSchema = createOpenAICompatibleChatChunkSchema(
+    defaultOpenAICompatibleErrorStructure.errorSchema,
+  )
 
   constructor(modelId: OpenAICompatibleChatModelId, config: OpenAICompatibleChatConfig) {
     this.modelId = modelId
