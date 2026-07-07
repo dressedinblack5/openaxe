@@ -229,7 +229,6 @@ export const layer = Layer.effectDiscard(
                         objective: input.query,
                         search_queries: [input.query],
                         session_id: context.sessionID,
-                        // V2 invocation context does not safely expose the model yet.
                       },
                       {
                         "User-Agent": `opencode/${InstallationVersion}`,
