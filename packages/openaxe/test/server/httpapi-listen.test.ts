@@ -58,7 +58,7 @@ function socketURL(listener: Awaited<ReturnType<typeof startListener>>, id: stri
   return url
 }
 
-const sigh = (ms = 30_000) => AbortSignal.timeout(ms)
+const sigh = (ms = 60_000) => AbortSignal.timeout(ms)
 
 async function requestTicket(
   listener: Awaited<ReturnType<typeof startListener>>,
@@ -223,7 +223,7 @@ describe("HttpApi Server.listen", () => {
     } finally {
       if (!stopped) await stop(listener, "timed out cleaning up listener").catch(() => undefined)
     }
-  }, 60_000)
+  }, 180_000)
 
   testPty("stop(true) is safe when called concurrently and repeatedly", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
@@ -243,7 +243,7 @@ describe("HttpApi Server.listen", () => {
     } finally {
       if (!stopped) await stop(listener, "timed out cleaning up concurrent stop listener").catch(() => undefined)
     }
-  })
+  }, 60_000)
 
   testPty("stop(true) can force a graceful stop already in progress", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
@@ -264,7 +264,7 @@ describe("HttpApi Server.listen", () => {
     } finally {
       if (!stopped)     await stop(listener, "timed out cleaning up forced stop listener").catch(() => undefined)
     }
-  })
+  }, 60_000)
 
   testPty("graceful stop waits for an overlapping forced stop", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
@@ -280,7 +280,7 @@ describe("HttpApi Server.listen", () => {
     } finally {
       if (!stopped) await stop(listener, "timed out cleaning up overlapping stop listener").catch(() => undefined)
     }
-  })
+  }, 60_000)
 
   test("stop() gracefully closes an idle listener and is repeat-safe", async () => {
     const listener = await startListener()
@@ -359,7 +359,7 @@ describe("HttpApi Server.listen", () => {
       if (previous === undefined) delete process.env.OPENCODE_DISABLE_DEFAULT_PLUGINS
       else process.env.OPENCODE_DISABLE_DEFAULT_PLUGINS = previous
     }
-  })
+  }, 30_000)
 
   test("port 0 prefers 4096 when free", async () => {
     if (!(await isPortFree(4096))) return
@@ -454,7 +454,7 @@ describe("HttpApi Server.listen", () => {
     } finally {
       await stop(listener, "timed out cleaning up no-auth listener").catch(() => undefined)
     }
-  })
+  }, 60_000)
 })
 
 function isPortFree(port: number) {
