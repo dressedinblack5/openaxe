@@ -5,7 +5,6 @@ import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
 import path from "path"
 import { BackgroundJob } from "@/background/job"
-import { Decimal } from "decimal.js"
 import type { ProviderMetadata, Usage } from "@opencode-ai/llm"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Database } from "@opencode-ai/core/database/database"
@@ -377,17 +376,15 @@ export const getUsage = (input: { model: Provider.Model; usage: Usage; metadata?
   return {
     cost:
       typeof totalNanoAiu === "number" && Number.isFinite(totalNanoAiu) && totalNanoAiu >= 0
-        ? new Decimal(totalNanoAiu).div(100_000_000_000).toNumber()
+        ? totalNanoAiu / 100_000_000_000
         : safe(
-            new Decimal(0)
-              .add(new Decimal(tokens.input).mul(costInfo?.input ?? 0).div(1_000_000))
-              .add(new Decimal(tokens.output).mul(costInfo?.output ?? 0).div(1_000_000))
-              .add(new Decimal(tokens.cache.read).mul(costInfo?.cache?.read ?? 0).div(1_000_000))
-              .add(new Decimal(tokens.cache.write).mul(costInfo?.cache?.write ?? 0).div(1_000_000))
-              // TODO: update models.dev to have better pricing model, for now:
-              // charge reasoning tokens at the same rate as output tokens
-              .add(new Decimal(tokens.reasoning).mul(costInfo?.output ?? 0).div(1_000_000))
-              .toNumber(),
+            tokens.input * (costInfo?.input ?? 0) / 1_000_000 +
+            tokens.output * (costInfo?.output ?? 0) / 1_000_000 +
+            tokens.cache.read * (costInfo?.cache?.read ?? 0) / 1_000_000 +
+            tokens.cache.write * (costInfo?.cache?.write ?? 0) / 1_000_000 +
+            // TODO: update models.dev to have better pricing model, for now:
+            // charge reasoning tokens at the same rate as output tokens
+            tokens.reasoning * (costInfo?.output ?? 0) / 1_000_000,
           ),
     tokens,
   }

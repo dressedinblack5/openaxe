@@ -115,8 +115,7 @@ export async function writeStream(
 }
 
 export async function mimeType(p: string): Promise<string> {
-  const { lookup } = await import("mime-types")
-  return lookup(p) || "application/octet-stream"
+  return Bun.file(p).type || "application/octet-stream"
 }
 
 /**
