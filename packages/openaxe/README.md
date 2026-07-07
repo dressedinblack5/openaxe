@@ -33,7 +33,7 @@ New to openaxe? Here's what to read in order:
 
 ```bash
 # Preferred — one-liner
-curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash
 ```
 
 **Windows**

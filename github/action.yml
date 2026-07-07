@@ -58,7 +58,7 @@ runs:
     - name: Install openaxe
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
-      run: curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
+      run: curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash
 
     - name: Add openaxe to PATH
       shell: bash

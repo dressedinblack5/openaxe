@@ -43,7 +43,7 @@
 ### Linux / macOS
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash
 ```
 
 Installs `openaxe` to `~/.local/bin` and sets up a desktop entry.
@@ -59,7 +59,7 @@ Download the latest `openaxe-windows-x64.zip` from the [releases page](https://g
 ```powershell
 # Requires Git for Windows (git-scm.com) which provides Git Bash
 # Then in Git Bash:
-curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash
 ```
 
 **Option 3 — Build from source**
