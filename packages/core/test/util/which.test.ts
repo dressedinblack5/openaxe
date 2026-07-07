@@ -84,7 +84,7 @@ describe("util.which", () => {
     const file = path.join(bin, "pathext.CMD")
     await fs.writeFile(file, "@echo off\r\n")
 
-    expect(which("pathext", { PATH: bin, PATHEXT: ".CMD" })).toBe(file)
+    same(which("pathext", { PATH: bin, PATHEXT: ".CMD" }), file)
   })
 
   test("uses Windows Path casing fallback", async () => {
