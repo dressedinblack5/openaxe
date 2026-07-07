@@ -14,7 +14,7 @@
 // Tools not in TOOL_RULES get fallback formatting.
 import os from "os"
 import path from "path"
-import stripAnsi from "strip-ansi"
+const stripAnsi = (s: string) => s.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, "")
 import type { ToolPart } from "@opencode-ai/sdk/v2"
 import type * as Tool from "@/tool/tool"
 import type { ApplyPatchTool } from "@/tool/apply_patch"

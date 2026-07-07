@@ -336,8 +336,8 @@ export type LocalReplayRow = {
 }
 
 // The public contract between the stream transport / prompt queue and
-// the footer. RunFooter implements this. The transport and queue never
-// touch the renderer directly -- they go through this interface.
+// the footer. Mocked in tests — kept as interface so mocks don't need
+// the full 700-line class.
 export type FooterApi = {
   readonly isClosed: boolean
   onPrompt(fn: (input: RunPrompt) => void): () => void
@@ -349,3 +349,4 @@ export type FooterApi = {
   close(): void
   destroy(): void
 }
+
