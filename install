@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO="dressedinblack5/openaxe"
-BRANCH="dev"
+BRANCH="main"
 INSTALL_DIR="${OPENAXE_INSTALL_DIR:-$HOME/.openaxe}"
 BIN_DIR="${XDG_BIN_DIR:-$HOME/.local/bin}"
 WRAPPER="$BIN_DIR/openaxe"

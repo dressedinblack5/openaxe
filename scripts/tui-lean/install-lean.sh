@@ -7,7 +7,7 @@ set -euo pipefail
 
 REPO="dressedinblack5/openaxe"
 UPSTREAM_REPO="anomalyco/opencode"
-BRANCH="dev"
+BRANCH="main"
 INSTALL_DIR="$HOME/.openaxe"
 PACKAGE_PREFIX="packages/opencode"
 DRY_RUN="${1:-}"
