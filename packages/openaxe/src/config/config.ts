@@ -42,7 +42,6 @@ import { parsePluginSpecifier } from "@/plugin/shared"
 export const BUNDLED_PLUGINS = [
   "oh-my-openagent",
   "opencode-plugin-selector",
-  "superpowers",
   "opencode-vibeguard",
   "@tarquinen/opencode-dcp",
   "ecc-universal",
