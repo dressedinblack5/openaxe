@@ -32,8 +32,11 @@ jobs:
 
       - uses: ./.github/actions/setup-bun
 
-      - name: Install openaxe
-        run: curl -fsSL https://opencode.ai/install | bash
+      - name: Build openaxe
+        run: |
+          bun run --cwd packages/openaxe build --single
+          binary=$(ls packages/openaxe/dist/opencode-linux-*/bin/opencode 2>/dev/null | head -1)
+          echo "$(dirname "$binary")" >> "$GITHUB_PATH"
 
       - name: Get PR details
         id: pr-details
