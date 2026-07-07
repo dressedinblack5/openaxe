@@ -66,7 +66,7 @@ jobs:
 
       - name: Run unit tests
         timeout-minutes: ${{ matrix.settings.name == 'windows' && 90 || 60 }}
-        run: GITHUB_ACTIONS=false bun turbo test --no-daemon
+        run: GITHUB_ACTIONS=false bun turbo test
 
       - name: Run HttpApi exerciser gates
         if: matrix.settings.name == 'linux'
