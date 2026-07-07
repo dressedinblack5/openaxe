@@ -45,7 +45,6 @@
     "@types/npmcli__arborist": "6.3.3",
     "@types/semver": "7.7.1",
     "@types/turndown": "5.0.5",
-    "@types/which": "3.0.4",
     "@parcel/watcher-darwin-arm64": "2.5.1",
     "@parcel/watcher-darwin-x64": "2.5.1",
     "@parcel/watcher-linux-arm64-glibc": "2.5.1",
@@ -117,7 +116,6 @@
     "semver": "catalog:",
     "turndown": "7.2.0",
     "venice-ai-sdk-provider": "2.0.2",
-    "which": "6.0.1",
     "xdg-basedir": "5.1.0",
     "zod": "4.1.8"
   },
