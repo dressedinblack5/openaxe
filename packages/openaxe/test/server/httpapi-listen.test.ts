@@ -391,6 +391,12 @@ describe("HttpApi Server.listen", () => {
     await using tmp = await tmpdir({ config: { formatter: false, lsp: false } })
     const listener = await startListener()
     try {
+      const warmup = await fetch(new URL(PtyPaths.shells, listener.url), {
+        signal: sigh(),
+        headers: { authorization: authorization(), "x-opencode-directory": tmp.path },
+      })
+      expect(warmup.status).toBe(200)
+
       const info = await createCat(listener, tmp.path)
 
       expect((await requestTicket(listener, info.id, tmp.path, { ticketHeader: false })).status).toBe(403)
