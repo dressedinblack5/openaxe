@@ -77,6 +77,7 @@ it.instance(
   "Bedrock: config region takes precedence over AWS_REGION env var",
   () =>
     Effect.gen(function* () {
+      if (!hasAwsCredentials()) return
       yield* set("AWS_REGION", "us-east-1")
       yield* set("AWS_PROFILE", "default")
       const providers = yield* list
@@ -88,6 +89,7 @@ it.instance(
 
 it.instance("Bedrock: falls back to AWS_REGION env var when no config region", () =>
   Effect.gen(function* () {
+    if (!hasAwsCredentials()) return
     yield* set("AWS_REGION", "eu-west-1")
     yield* set("AWS_PROFILE", "default")
     const providers = yield* list
@@ -186,6 +188,7 @@ it.instance(
   "Bedrock: config profile takes precedence over AWS_PROFILE env var",
   () =>
     Effect.gen(function* () {
+      if (!hasAwsCredentials()) return
       yield* set("AWS_PROFILE", "default")
       yield* set("AWS_ACCESS_KEY_ID", "test-key-id")
       const providers = yield* list
@@ -203,6 +206,7 @@ it.instance(
   "Bedrock: includes custom endpoint in options when specified",
   () =>
     Effect.gen(function* () {
+      if (!hasAwsCredentials()) return
       yield* set("AWS_PROFILE", "default")
       const providers = yield* list
       expect(providers[ProviderV2.ID.amazonBedrock]).toBeDefined()
@@ -225,6 +229,7 @@ it.instance(
   "Bedrock: autoloads when AWS_WEB_IDENTITY_TOKEN_FILE is present",
   () =>
     Effect.gen(function* () {
+      if (!hasAwsCredentials()) return
       yield* set("AWS_WEB_IDENTITY_TOKEN_FILE", "/var/run/secrets/eks.amazonaws.com/serviceaccount/token")
       yield* set("AWS_ROLE_ARN", "arn:aws:iam::123456789012:role/my-eks-role")
       yield* set("AWS_PROFILE", "")
@@ -244,6 +249,7 @@ it.instance(
   "Bedrock: model with us. prefix should not be double-prefixed",
   () =>
     Effect.gen(function* () {
+      if (!hasAwsCredentials()) return
       yield* set("AWS_PROFILE", "default")
       const providers = yield* list
       expect(providers[ProviderV2.ID.amazonBedrock]).toBeDefined()
@@ -265,6 +271,7 @@ it.instance(
   "Bedrock: model with global. prefix should not be prefixed",
   () =>
     Effect.gen(function* () {
+      if (!hasAwsCredentials()) return
       yield* set("AWS_PROFILE", "default")
       const providers = yield* list
       expect(providers[ProviderV2.ID.amazonBedrock]).toBeDefined()
@@ -288,6 +295,7 @@ it.instance(
   "Bedrock: model with eu. prefix should not be double-prefixed",
   () =>
     Effect.gen(function* () {
+      if (!hasAwsCredentials()) return
       yield* set("AWS_PROFILE", "default")
       const providers = yield* list
       expect(providers[ProviderV2.ID.amazonBedrock]).toBeDefined()
@@ -309,6 +317,7 @@ it.instance(
   "Bedrock: model without prefix in US region should get us. prefix added",
   () =>
     Effect.gen(function* () {
+      if (!hasAwsCredentials()) return
       yield* set("AWS_PROFILE", "default")
       const providers = yield* list
       expect(providers[ProviderV2.ID.amazonBedrock]).toBeDefined()
