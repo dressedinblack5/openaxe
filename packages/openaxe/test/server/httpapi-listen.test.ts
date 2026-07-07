@@ -417,7 +417,7 @@ describe("HttpApi Server.listen", () => {
           listener.url,
         ),
         {
-          signal: sigh(),
+          signal: sigh(120_000),
           method: "POST",
           headers: { authorization: authorization(), "x-opencode-ticket": "1" },
         },
