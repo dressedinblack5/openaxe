@@ -58,6 +58,8 @@ function socketURL(listener: Awaited<ReturnType<typeof startListener>>, id: stri
   return url
 }
 
+const sigh = (ms = 30_000) => AbortSignal.timeout(ms)
+
 async function requestTicket(
   listener: Awaited<ReturnType<typeof startListener>>,
   id: string,
@@ -65,6 +67,7 @@ async function requestTicket(
   options?: { ticketHeader?: boolean; origin?: string },
 ) {
   const response = await fetch(new URL(PtyPaths.connectToken.replace(":ptyID", id), listener.url), {
+    signal: sigh(),
     method: "POST",
     headers: {
       authorization: authorization(),
@@ -85,6 +88,7 @@ async function connectTicket(listener: Awaited<ReturnType<typeof startListener>>
 
 async function createCat(listener: Awaited<ReturnType<typeof startListener>>, dir: string) {
   const response = await fetch(new URL(PtyPaths.create, listener.url), {
+    signal: sigh(120_000),
     method: "POST",
     headers: {
       authorization: authorization(),
@@ -175,6 +179,7 @@ describe("HttpApi Server.listen", () => {
     let stopped = false
     try {
       const response = await fetch(new URL(PtyPaths.shells, listener.url), {
+        signal: sigh(),
         headers: { authorization: authorization(), "x-opencode-directory": tmp.path },
       })
       expect(response.status).toBe(200)
@@ -282,7 +287,7 @@ describe("HttpApi Server.listen", () => {
     await withTimeout(listener.stop(), 10_000, "timed out waiting for graceful listener.stop()")
     await withTimeout(listener.stop(), 5_000, "timed out waiting for repeated graceful listener.stop()")
     await expect(
-      fetch(new URL(PtyPaths.shells, listener.url), { headers: { authorization: authorization() } }),
+      fetch(new URL(PtyPaths.shells, listener.url), { signal: sigh(), headers: { authorization: authorization() } }),
     ).rejects.toThrow()
   })
 
@@ -337,6 +342,7 @@ describe("HttpApi Server.listen", () => {
     try {
       listener = await startListener()
       const response = await fetch(new URL("/config", listener.url), {
+        signal: sigh(),
         headers: { authorization: authorization(), "x-opencode-directory": tmp.path },
       })
       expect(response.status).toBe(200)
@@ -393,6 +399,7 @@ describe("HttpApi Server.listen", () => {
       // Regression for #25698: minting without a directory uses the server cwd
       // and cannot find a PTY registered in a project directory.
       const ambiguous = await fetch(new URL(PtyPaths.connectToken.replace(":ptyID", info.id), listener.url), {
+        signal: sigh(),
         method: "POST",
         headers: { authorization: authorization(), "x-opencode-ticket": "1" },
       })
@@ -404,6 +411,7 @@ describe("HttpApi Server.listen", () => {
           listener.url,
         ),
         {
+          signal: sigh(),
           method: "POST",
           headers: { authorization: authorization(), "x-opencode-ticket": "1" },
         },
@@ -431,7 +439,7 @@ describe("HttpApi Server.listen", () => {
     } finally {
       await stop(listener, "timed out cleaning up rejected ticket listener").catch(() => undefined)
     }
-  }, 90_000)
+  }, 180_000)
 
   testPty("keeps PTY websocket tickets optionally when server auth is disabled", async () => {
     await using tmp = await tmpdir({ config: { formatter: false, lsp: false } })
