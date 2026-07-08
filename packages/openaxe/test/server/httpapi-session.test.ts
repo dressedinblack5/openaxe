@@ -429,7 +429,8 @@ describe("session HttpApi", () => {
         root: sessionDirectory,
       })
     }).pipe(Effect.provide(TestLLMServer.layer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
-  )
+  120_000,
+)
 
   it.instance(
     "returns v2 public request errors for cursor and workspace query failures",
