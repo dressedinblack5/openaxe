@@ -7,8 +7,8 @@
   "private": true,
   "scripts": {
     "typecheck": "tsgo --noEmit",
-    "test": "bun test --timeout 60000 --parallel=1 --rerun-each=2 --path-ignore-patterns='**/provider/**'",
-    "test:full": "bun test --timeout 120000 --parallel=1 --rerun-each=2",
+    "test": "bun test --timeout 60000 --parallel=2 --rerun-each=3 --path-ignore-patterns='**/provider/**'",
+    "test:full": "bun test --timeout 120000 --parallel=2 --rerun-each=3",
     "test:httpapi": "bun run script/httpapi-exercise.ts --mode coverage --fail-on-missing --fail-on-skip && bun run script/httpapi-exercise.ts --mode auth --fail-on-missing --fail-on-skip && bun run script/httpapi-exercise.ts --mode effect --fail-on-missing",
     "bench:test": "bun run script/bench-test-suite.ts",
     "profile:test": "bun run script/profile-test-files.ts",
