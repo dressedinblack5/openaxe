@@ -23,7 +23,7 @@ env:
 
 jobs:
   unit:
-    name: unit (${{ matrix.settings.name }} / shard ${{ matrix.shard }})
+    name: unit (${{ matrix.settings.name }})
     strategy:
       fail-fast: false
       matrix:
@@ -32,11 +32,6 @@ jobs:
             host: ubuntu-latest
           - name: windows
             host: windows-latest
-        shard:
-          - 1
-          - 2
-          - 3
-          - 4
     runs-on: ${{ matrix.settings.host }}
     defaults:
       run:
@@ -70,18 +65,17 @@ jobs:
             turbo-${{ runner.os }}-
 
       - name: Run core/ui tests
-        if: matrix.shard == 1
         run: bun turbo test --filter=@opencode-ai/core --filter=@opencode-ai/ui
 
-      - name: Run openaxe tests (sharded)
+      - name: Run openaxe tests
         working-directory: packages/openaxe
         timeout-minutes: ${{ matrix.settings.name == 'windows' && 60 || 45 }}
-        run: GITHUB_ACTIONS=false bun test --shard=${{ matrix.shard }}/4 --timeout 60000 --path-ignore-patterns='**/provider/**'
+        run: GITHUB_ACTIONS=false bun test --timeout 60000 --path-ignore-patterns='**/provider/**'
         env:
           OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
 
       - name: Run HttpApi exerciser gates
-        if: matrix.settings.name == 'linux' && matrix.shard == 1
+        if: matrix.settings.name == 'linux'
         working-directory: packages/openaxe
         run: bun run test:httpapi
 
