@@ -69,11 +69,6 @@ jobs:
             turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package.json') }}-
             turbo-${{ runner.os }}-
 
-      - name: Build
-        run: bun turbo build
-
-      # core/ui run sequentially; openaxe is sharded below into independent processes
-      # so a Bun 1.3.14 worker crash in one shard cannot cascade to the others.
       - name: Run core/ui tests
         if: matrix.shard == 1
         run: bun turbo test --filter=@opencode-ai/core --filter=@opencode-ai/ui
