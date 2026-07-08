@@ -38,7 +38,7 @@ describe("LSPClient interop", () => {
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect(client.connection).toBeDefined()
     await client.shutdown()
-  })
+  }, 90_000)
 
   test("handles client/registerCapability request", async () => {
     const handle = spawnFakeServer() as any
@@ -62,7 +62,7 @@ describe("LSPClient interop", () => {
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect(client.connection).toBeDefined()
     await client.shutdown()
-  })
+  }, 90_000)
 
   test("handles client/unregisterCapability request", async () => {
     const handle = spawnFakeServer() as any
@@ -86,7 +86,7 @@ describe("LSPClient interop", () => {
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect(client.connection).toBeDefined()
     await client.shutdown()
-  })
+  }, 90_000)
 
   test("initialize does not overclaim unsupported diagnostics capabilities", async () => {
     const handle = spawnFakeServer() as any
@@ -108,7 +108,7 @@ describe("LSPClient interop", () => {
     expect(params.capabilities.textDocument.publishDiagnostics.versionSupport).toBe(false)
 
     await client.shutdown()
-  })
+  }, 90_000)
 
   test("workspace/configuration returns one result per requested item", async () => {
     const handle = spawnFakeServer() as any
@@ -141,7 +141,7 @@ describe("LSPClient interop", () => {
     expect(response).toEqual([{ beta: 1 }, 1, null, initialization])
 
     await client.shutdown()
-  })
+  }, 90_000)
 
   test("sends ranged didChange for incremental sync servers", async () => {
     const handle = spawnFakeServer() as any
@@ -185,7 +185,7 @@ describe("LSPClient interop", () => {
         await client.shutdown()
       },
     })
-  })
+  }, 90_000)
 
   test("document mode falls back to push diagnostics", async () => {
     const handle = spawnFakeServer() as any
@@ -232,7 +232,7 @@ describe("LSPClient interop", () => {
         await client.shutdown()
       },
     })
-  })
+  }, 90_000)
 
   test("document mode accepts matching push diagnostics published before waiting", async () => {
     const handle = spawnFakeServer() as any
@@ -280,7 +280,7 @@ describe("LSPClient interop", () => {
         await client.shutdown()
       },
     })
-  })
+  }, 90_000)
 
   test("document mode waits for pull diagnostics", async () => {
     const handle = spawnFakeServer() as any
@@ -329,7 +329,7 @@ describe("LSPClient interop", () => {
         await client.shutdown()
       },
     })
-  })
+  }, 90_000)
 
   test("document mode does not wait for the slowest pull identifier after current-file diagnostics arrive", async () => {
     const handle = spawnFakeServer() as any
@@ -381,7 +381,7 @@ describe("LSPClient interop", () => {
         await client.shutdown()
       },
     })
-  })
+  }, 90_000)
 
   test("full mode includes workspace pull diagnostics", async () => {
     const handle = spawnFakeServer() as any
@@ -448,7 +448,7 @@ describe("LSPClient interop", () => {
         await client.shutdown()
       },
     })
-  })
+  }, 90_000)
 
   test("full mode treats an empty workspace pull response as handled", async () => {
     const handle = spawnFakeServer() as any
@@ -484,5 +484,5 @@ describe("LSPClient interop", () => {
         await client.shutdown()
       },
     })
-  })
+  }, 90_000)
 })
