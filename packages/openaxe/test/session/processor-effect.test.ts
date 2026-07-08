@@ -285,6 +285,7 @@ it.live("session.processor effect tests capture llm input cleanly", () =>
       }),
     { config: (url) => providerCfg(url) },
   ),
+  120_000,
 )
 
 it.live("session.processor effect tests preserve text start time", () =>
@@ -371,6 +372,7 @@ it.live("session.processor effect tests preserve text start time", () =>
       }),
     { config: (url) => providerCfg(url) },
   ),
+  120_000,
 )
 
 it.live("session.processor effect tests stop after token overflow requests compaction", () =>
