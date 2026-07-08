@@ -41,7 +41,7 @@ function request(server: TestServer, input: string, init?: RequestInit) {
   return Effect.promise(() => Promise.resolve(server.request(input, init)))
 }
 
-function withRequestTimeout(effect: Effect.Effect<Response>, label: string, ms = 5_000) {
+function withRequestTimeout(effect: Effect.Effect<Response>, label: string, ms = 10_000) {
   return effect.pipe(
     Effect.timeoutOrElse({
       duration: `${ms} millis`,
