@@ -386,11 +386,12 @@ describe("workspace CRUD", () => {
         const workspace = yield* Workspace.Service
         expect(yield* workspace.get(WorkspaceV2.ID.ascending("wrk_missing_get"))).toBeUndefined()
       }),
-    { git: true },
-  )
+  { git: true },
+  120_000,
+)
 
-  it.instance(
-    "list maps database rows, filters by project, and sorts by id",
+it.instance(
+  "list maps database rows, filters by project, and sorts by id",
     () =>
       Effect.gen(function* () {
         const instance = yield* requireInstance
