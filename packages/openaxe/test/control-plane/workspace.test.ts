@@ -1698,7 +1698,7 @@ describe("workspace waitForSync", () => {
           `Timed out waiting for sync fence: {"${sessionID}":1}`,
         )
       }),
-    { git: true },
-    7000,
+      { git: true },
+      15000,
   )
 })

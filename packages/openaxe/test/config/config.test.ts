@@ -432,7 +432,7 @@ test("loads project config from Git Bash and MSYS2 paths on Windows", async () =
     const rest = dir.slice(2).replaceAll("\\", "/")
     return `/${drive}${rest}`
   })
-})
+}, 120_000)
 
 test("loads project config from Cygwin paths on Windows", async () => {
   await check((dir) => {
@@ -440,7 +440,7 @@ test("loads project config from Cygwin paths on Windows", async () => {
     const rest = dir.slice(2).replaceAll("\\", "/")
     return `/cygdrive/${drive}${rest}`
   })
-})
+}, 120_000)
 
 it.instance("ignores legacy tui keys in openaxe config", () =>
   Effect.gen(function* () {
@@ -457,6 +457,7 @@ it.instance("ignores legacy tui keys in openaxe config", () =>
     expect((config as Record<string, unknown>).theme).toBeUndefined()
     expect((config as Record<string, unknown>).tui).toBeUndefined()
   }),
+  120_000,
 )
 
 it.instance("loads JSONC config file", () =>

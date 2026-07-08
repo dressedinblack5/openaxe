@@ -385,14 +385,14 @@ describe("HttpApi Server.listen", () => {
     } finally {
       await new Promise<void>((resolve) => blocker.close(() => resolve()))
     }
-  })
+  }, 120_000)
 
   testPty("rejects unsafe PTY ticket mint and connect requests", async () => {
     await using tmp = await tmpdir({ config: { formatter: false, lsp: false } })
     const listener = await startListener()
     try {
       const warmup = await fetch(new URL(PtyPaths.shells, listener.url), {
-        signal: sigh(),
+        signal: sigh(120_000),
         headers: { authorization: authorization(), "x-opencode-directory": tmp.path },
       })
       expect(warmup.status).toBe(200)

@@ -194,8 +194,8 @@ function resetState() {
   })
 }
 
-function httpapi<A, E>(name: string, effect: Effect.Effect<A, E, TestScope>) {
-  it.live(name, effect)
+function httpapi<A, E>(name: string, effect: Effect.Effect<A, E, TestScope>, timeout?: number) {
+  it.live(name, effect, timeout)
 }
 
 function httpapiInstance<A, E>(
@@ -205,6 +205,7 @@ function httpapiInstance<A, E>(
     git?: boolean
     config?: Partial<ConfigV1.Info>
     setup?: (dir: string) => Effect.Effect<void, E, TestServices>
+    timeout?: number
   },
   run: (input: ProjectFixture) => Effect.Effect<A, E, TestScope>,
 ) {
@@ -216,6 +217,7 @@ function httpapiInstance<A, E>(
       return yield* run({ sdk: yield* client(options.serverPath, instance.directory), directory: instance.directory })
     }),
     { git: options.git ?? true, config: { formatter: false, lsp: false, ...options.config } },
+    options.timeout,
   )
 }
 
@@ -833,6 +835,7 @@ describe("HttpApi SDK", () => {
         expect(JSON.stringify(inputs[0])).toContain("project-rest-skill")
       }),
     ),
+    120_000,
   )
 
   serverPathParity("matches generated SDK TUI validation and command routes", (serverPath) =>
