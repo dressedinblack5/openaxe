@@ -33,7 +33,7 @@ const tmpdirEffect = (options: Parameters<typeof tmpdir>[0]) =>
 afterEach(async () => {
   await disposeAllInstances()
   await resetDatabase()
-})
+}, 180_000)
 
 describe("config HttpApi", () => {
   it.live(

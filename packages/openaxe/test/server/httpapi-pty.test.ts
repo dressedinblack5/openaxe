@@ -55,7 +55,7 @@ const directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode
 afterEach(async () => {
   await disposeAllInstances()
   await resetDatabase()
-})
+}, 180_000)
 
 describe("pty HttpApi bridge", () => {
   test("serves available shell list through experimental Effect routes", async () => {

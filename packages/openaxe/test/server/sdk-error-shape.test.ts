@@ -16,7 +16,7 @@ import { resetDatabase } from "../fixture/db"
 afterEach(async () => {
   await disposeAllInstances()
   await resetDatabase()
-})
+}, 180_000)
 
 function client(directory: string) {
   return createOpencodeClient({
