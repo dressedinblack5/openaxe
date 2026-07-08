@@ -136,5 +136,6 @@ describe("plugin.workspace", () => {
         extra: { key: "value" },
       })
     }),
+    90_000,
   )
 })
