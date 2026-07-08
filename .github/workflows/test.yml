@@ -29,9 +29,9 @@ jobs:
       matrix:
         settings:
           - name: linux
-            host: ubuntu-latest
+            host: blacksmith-4vcpu-ubuntu-2404
           - name: windows
-            host: windows-latest
+            host: blacksmith-4vcpu-windows-2025
     runs-on: ${{ matrix.settings.host }}
     defaults:
       run:
@@ -65,7 +65,7 @@ jobs:
             turbo-${{ runner.os }}-
 
       - name: Run unit tests
-        timeout-minutes: ${{ matrix.settings.name == 'windows' && 90 || 60 }}
+        timeout-minutes: 20
         run: GITHUB_ACTIONS=false bun turbo test
         env:
           OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
