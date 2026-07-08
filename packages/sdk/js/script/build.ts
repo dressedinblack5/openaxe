@@ -36,7 +36,11 @@ await createClient({
     },
     {
       name: "@hey-api/sdk",
-      instance: "OpencodeClient",
+      operations: {
+        strategy: "single",
+        containerName: "OpencodeClient",
+        methods: "instance",
+      },
       exportFromIndex: false,
       auth: false,
       paramsStructure: "flat",
