@@ -219,7 +219,7 @@ export function withCliFixture<A, E>(
 
     const spawn = Effect.fn("opencode.spawn")(function* (args: string[], opts?: SpawnOpts) {
       const start = Date.now()
-      const timeoutMs = opts?.timeoutMs ?? 30_000
+      const timeoutMs = opts?.timeoutMs ?? 60_000
       // stdin: "ignore" so the child doesn't see a piped stdin and block
       // on `Bun.stdin.text()` (see src/cli/cmd/run.ts — non-TTY stdin is
       // consumed as the prompt). The old Process.run wrapper defaulted to

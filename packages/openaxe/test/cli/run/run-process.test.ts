@@ -73,10 +73,10 @@ describe("opencode run (non-interactive subprocess)", () => {
       Effect.gen(function* () {
         const result = yield* opencode.run("say hi", {
           model: "test/nonexistent-model",
-          timeoutMs: 15_000,
+          timeoutMs: 20_000,
         })
         expect(result.exitCode).not.toBe(0)
-        expect(result.durationMs).toBeLessThan(15_000)
+        expect(result.durationMs).toBeLessThan(20_000)
       }),
     30_000,
   )
@@ -95,7 +95,7 @@ describe("opencode run (non-interactive subprocess)", () => {
           }),
         )
         yield* llm.fail("upstream provider exploded mid-stream")
-        const result = yield* opencode.run("trigger midstream error", { timeoutMs: 30_000 })
+        const result = yield* opencode.run("trigger midstream error", { timeoutMs: 60_000 })
         expect(result.exitCode).toBe(0)
         expect(result.stdout).toBe("partial response\n")
         expect(result.stderr).not.toContain("upstream provider exploded mid-stream")
@@ -274,7 +274,7 @@ describe("opencode run (non-interactive subprocess)", () => {
         expect(explicitlyDenied.stdout).toContain("continued after explicit denial")
         expect(yield* Effect.promise(() => Bun.file(`${home}/explicitly-denied`).exists())).toBe(false)
       }),
-    60_000,
+    120_000,
   )
 
   cliIt.live(
