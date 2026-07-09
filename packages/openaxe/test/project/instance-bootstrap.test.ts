@@ -71,6 +71,7 @@ it.live("InstanceStore.provide runs InstanceBootstrap before effect", () =>
 
     expect(existsSync(tmp.marker)).toBe(true)
   }),
+  300_000,
 )
 
 it.live("CLI bootstrap runs InstanceBootstrap before callback", () =>

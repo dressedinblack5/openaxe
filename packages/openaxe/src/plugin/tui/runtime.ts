@@ -994,9 +994,13 @@ export async function init(input: {
   const cwd = process.cwd()
   if (loaded) {
     if (dir !== cwd) {
-      throw new Error(`TuiPluginRuntime.init() called with a different working directory. expected=${dir} got=${cwd}`)
+      // A prior init is still in-flight with a different cwd. Tear it down
+      // before starting fresh. This can happen when Bun runs test files from
+      // the same shard in parallel and they each use TuiPluginRuntime.
+      await dispose()
+    } else {
+      return loaded
     }
-    return loaded
   }
 
   dir = cwd

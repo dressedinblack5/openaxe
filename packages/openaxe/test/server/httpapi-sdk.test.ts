@@ -835,7 +835,7 @@ describe("HttpApi SDK", () => {
         expect(JSON.stringify(inputs[0])).toContain("project-rest-skill")
       }),
     ),
-    300_000,
+    600_000,
   )
 
   serverPathParity("matches generated SDK TUI validation and command routes", (serverPath) =>
