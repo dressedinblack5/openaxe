@@ -34,6 +34,7 @@ test("adds tui plugin at runtime from spec", async () => {
   process.env.OPENCODE_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
   const config = createTuiResolvedConfig({
     plugin: [],
+    plugin_origins: [],
   })
   const wait = spyOn(TuiConfig, "waitForDependencies").mockResolvedValue()
   const cwd = spyOn(process, "cwd").mockImplementation(() => tmp.path)
@@ -76,6 +77,7 @@ test("retries runtime add for file plugins after dependency wait", async () => {
   process.env.OPENCODE_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
   const config = createTuiResolvedConfig({
     plugin: [],
+    plugin_origins: [],
   })
   const wait = spyOn(TuiConfig, "waitForDependencies").mockImplementation(async () => {
     await Bun.write(

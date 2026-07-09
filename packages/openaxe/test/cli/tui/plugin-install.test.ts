@@ -53,6 +53,7 @@ test("installs plugin without loading it", async () => {
   process.env.OPENCODE_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
   const config = createTuiResolvedConfig({
     plugin: [],
+    plugin_origins: [],
   })
   const wait = spyOn(TuiConfig, "waitForDependencies").mockResolvedValue()
   const cwd = spyOn(process, "cwd").mockImplementation(() => tmp.path)

@@ -223,7 +223,9 @@ test("kv plugin_enabled overrides tui config on startup", async () => {
 
 test("loads disabled-by-default internal plugin inactive and activates on demand", async () => {
   await using tmp = await tmpdir()
-  const config = createTuiResolvedConfig()
+  const config = createTuiResolvedConfig({
+    plugin_origins: [],
+  })
   const wait = spyOn(TuiConfig, "waitForDependencies").mockResolvedValue()
   const cwd = spyOn(process, "cwd").mockImplementation(() => tmp.path)
   const api = createTuiPluginApi()
