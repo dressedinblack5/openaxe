@@ -18,15 +18,16 @@ function spawnFakeServer() {
 describe("LSPClient interop", () => {
   test("handles workspace/workspaceFolders request", async () => {
     const handle = spawnFakeServer() as any
+    await using tmp = await tmpdir()
 
     const client = await withTestInstance({
-      directory: process.cwd(),
+      directory: tmp.path,
       fn: (ctx) =>
         LSPClient.create({
           serverID: "fake",
           server: handle as unknown as LSPServer.Handle,
-          root: process.cwd(),
-          directory: process.cwd(),
+          root: tmp.path,
+          directory: tmp.path,
           instance: ctx,
         }),
     })
@@ -42,15 +43,16 @@ describe("LSPClient interop", () => {
 
   test("handles client/registerCapability request", async () => {
     const handle = spawnFakeServer() as any
+    await using tmp = await tmpdir()
 
     const client = await withTestInstance({
-      directory: process.cwd(),
+      directory: tmp.path,
       fn: (ctx) =>
         LSPClient.create({
           serverID: "fake",
           server: handle as unknown as LSPServer.Handle,
-          root: process.cwd(),
-          directory: process.cwd(),
+          root: tmp.path,
+          directory: tmp.path,
           instance: ctx,
         }),
     })
@@ -66,15 +68,16 @@ describe("LSPClient interop", () => {
 
   test("handles client/unregisterCapability request", async () => {
     const handle = spawnFakeServer() as any
+    await using tmp = await tmpdir()
 
     const client = await withTestInstance({
-      directory: process.cwd(),
+      directory: tmp.path,
       fn: (ctx) =>
         LSPClient.create({
           serverID: "fake",
           server: handle as unknown as LSPServer.Handle,
-          root: process.cwd(),
-          directory: process.cwd(),
+          root: tmp.path,
+          directory: tmp.path,
           instance: ctx,
         }),
     })
@@ -90,15 +93,16 @@ describe("LSPClient interop", () => {
 
   test("initialize does not overclaim unsupported diagnostics capabilities", async () => {
     const handle = spawnFakeServer() as any
+    await using tmp = await tmpdir()
 
     const client = await withTestInstance({
-      directory: process.cwd(),
+      directory: tmp.path,
       fn: (ctx) =>
         LSPClient.create({
           serverID: "fake",
           server: handle as unknown as LSPServer.Handle,
-          root: process.cwd(),
-          directory: process.cwd(),
+          root: tmp.path,
+          directory: tmp.path,
           instance: ctx,
         }),
     })
