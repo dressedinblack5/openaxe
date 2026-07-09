@@ -256,23 +256,21 @@ export const layer = Layer.effect(
 
     const loadGlobal = Effect.fnUntraced(function* (env?: Record<string, string>) {
       let result: Info = {}
+      const disableDefaultPlugins = process.env["OPENCODE_DISABLE_DEFAULT_PLUGINS"]?.toLowerCase() === "true"
       // Seed the default global config with the schema for editor completion, but avoid writing when the user
-      // explicitly routes config through env-provided paths or content.
+      // explicitly routes config through env-provided paths or content. Skip the bundled plugins list when
+      // disabled — tests set this to avoid costly npm installs of default plugins.
       if (!Flag.OPENCODE_CONFIG && !Flag.OPENCODE_CONFIG_DIR && !Flag.OPENCODE_CONFIG_CONTENT) {
         const file = globalConfigFile()
         if (!(yield* fs.existsSafe(file))) {
+          const defaultConfig: Record<string, unknown> = {
+            $schema: "https://opencode.ai/config.json",
+          }
+          if (!disableDefaultPlugins) {
+            defaultConfig.plugin = [...BUNDLED_PLUGINS]
+          }
           yield* fs
-            .writeWithDirs(
-              file,
-              JSON.stringify(
-                {
-                  $schema: "https://opencode.ai/config.json",
-                  plugin: [...BUNDLED_PLUGINS],
-                },
-                null,
-                2,
-              ),
-            )
+            .writeWithDirs(file, JSON.stringify(defaultConfig, null, 2))
             .pipe(Effect.catch(() => Effect.void))
         }
       }
@@ -298,12 +296,14 @@ export const layer = Layer.effect(
 
       // Ensure bundled plugins are always present, even if the config file was
       // written before a newer openaxe release added them as defaults.
-      const seen = new Set(
-        (result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg),
-      )
-      const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
-      if (add.length) {
-        result.plugin = [...(result.plugin ?? []), ...add]
+      if (!disableDefaultPlugins) {
+        const seen = new Set(
+          (result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg),
+        )
+        const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
+        if (add.length) {
+          result.plugin = [...(result.plugin ?? []), ...add]
+        }
       }
 
       return result

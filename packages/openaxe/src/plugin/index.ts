@@ -174,7 +174,7 @@ export const layer = Layer.effect(
           if (init._tag === "Some") hooks.push(init.value)
         }
 
-        const plugins = flags.pure ? [] : (cfg.plugin_origins ?? [])
+        const plugins = flags.pure ? [] : (cfg.plugin_origins ?? []).filter((p) => !flags.disableDefaultPlugins || p.scope !== "global")
         if (flags.pure && cfg.plugin_origins?.length) {
         }
         if (plugins.length) yield* config.waitForDependencies()

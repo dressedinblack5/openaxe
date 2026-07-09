@@ -83,6 +83,9 @@ delete process.env["OTEL_EXPORTER_OTLP_ENDPOINT"]
 delete process.env["OTEL_EXPORTER_OTLP_HEADERS"]
 delete process.env["OTEL_RESOURCE_ATTRIBUTES"]
 
+// Skip loading default bundled plugins — avoids npm installs and dynamic imports in tests
+process.env["OPENCODE_DISABLE_DEFAULT_PLUGINS"] = "true"
+
 // Use in-memory sqlite
 process.env["OPENCODE_DB"] = ":memory:"
 
