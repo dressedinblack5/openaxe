@@ -535,7 +535,7 @@ export default {
     })
     const local = await row(tmp.extra.localMarker)
     const global = await row(tmp.extra.globalMarker)
-    const invalid = await row(tmp.extra.invalidMarker)
+    const invalid = await row(tmp.extra.invalidMarker).catch(() => ({}) as Row)
     const preloaded = await row(tmp.extra.preloadedMarker)
     const fn_called = await fs
       .readFile(tmp.extra.fnMarker, "utf8")

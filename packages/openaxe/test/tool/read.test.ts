@@ -190,7 +190,7 @@ describe("tool.read external_directory permission", () => {
         const { items, next } = asks()
         const target = path.join(dir, "test.txt")
         const alt = target
-          .replace(/^[A-Za-z]:/, "")
+          .replace(/^([A-Za-z]):/, (_, d) => d.toLowerCase() + ":")
           .replaceAll("\\", "/")
           .toLowerCase()
 
