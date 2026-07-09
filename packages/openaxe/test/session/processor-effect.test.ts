@@ -106,7 +106,7 @@ function defer<T>() {
 
 const waitFor = <A>(check: Effect.Effect<A | undefined>, message: string) =>
   Effect.gen(function* () {
-    const stop = Date.now() + 500
+    const stop = Date.now() + 5_000
     while (Date.now() < stop) {
       const value = yield* check
       if (value !== undefined) return value

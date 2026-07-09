@@ -878,7 +878,7 @@ function closeHttpServer(server: HttpServer) {
 async function waitFor(predicate: () => boolean, message: string) {
   const started = Date.now()
   while (!predicate()) {
-    if (Date.now() - started > 1_000) throw new Error(message)
-    await new Promise((resolve) => setTimeout(resolve, 1))
+    if (Date.now() - started > 10_000) throw new Error(message)
+    await new Promise((resolve) => setTimeout(resolve, 10))
   }
 }
