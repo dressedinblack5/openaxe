@@ -1,0 +1,69 @@
+name: "Setup Git Committer"
+description: "Create app token and configure git user"
+inputs:
+  opencode-app-id:
+    description: "OpenCode GitHub App ID"
+    required: false
+    default: ""
+  opencode-app-secret:
+    description: "OpenCode GitHub App private key"
+    required: false
+    default: ""
+outputs:
+  token:
+    description: "GitHub token"
+    value: ${{ steps.token.outputs.value }}
+  app-slug:
+    description: "GitHub App slug"
+    value: ${{ steps.appslug.outputs.value }}
+runs:
+  using: "composite"
+  steps:
+    - name: Create app token
+      id: apptoken
+      if: inputs.opencode-app-id != ''
+      uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+      with:
+        app-id: ${{ inputs.opencode-app-id }}
+        private-key: ${{ inputs.opencode-app-secret }}
+        owner: ${{ github.repository_owner }}
+
+    - name: Use GITHUB_TOKEN as fallback
+      id: fallback
+      if: inputs.opencode-app-id == ''
+      run: echo "value=${{ github.token }}" >> "$GITHUB_OUTPUT"
+      shell: bash
+
+    - name: Resolve token
+      id: token
+      run: |
+        if [ -n "${{ steps.apptoken.outputs.token }}" ]; then
+          echo "value=${{ steps.apptoken.outputs.token }}" >> "$GITHUB_OUTPUT"
+        else
+          echo "value=${{ github.token }}" >> "$GITHUB_OUTPUT"
+        fi
+      shell: bash
+
+    - name: Resolve app slug
+      id: appslug
+      run: |
+        SLUG="${{ steps.apptoken.outputs.app-slug }}"
+        echo "value=${SLUG:-github-actions}" >> "$GITHUB_OUTPUT"
+      shell: bash
+
+    - name: Configure git user
+      run: |
+        slug="${{ steps.appslug.outputs.value }}"
+        git config --global user.name "${slug}[bot]"
+        git config --global user.email "${slug}[bot]@users.noreply.github.com"
+      shell: bash
+
+    - name: Clear checkout auth
+      run: |
+        git config --local --unset-all http.https://github.com/.extraheader || true
+      shell: bash
+
+    - name: Configure git remote
+      run: |
+        git remote set-url origin https://x-access-token:${{ steps.token.outputs.value }}@github.com/${{ github.repository }}
+      shell: bash

@@ -1,0 +1,38 @@
+name: triage
+
+on:
+  issues:
+    if: vars.OPENCODE_APP_ID != ''
+    types: [opened]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install openaxe
+        run: curl -fsSL https://opencode.ai/install | bash
+
+      - name: Triage issue
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          openaxe run --agent triage "The following issue was just opened, triage it:
+
+          Title: $ISSUE_TITLE
+
+          $ISSUE_BODY"

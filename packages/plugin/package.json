@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@opencode-ai/plugin",
+  "version": "1.17.10",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsgo --noEmit",
+    "build": "tsc"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./tool": "./src/tool.ts",
+    "./tui": "./src/tui.ts",
+    "./v2/effect": "./src/v2/effect/index.ts",
+    "./v2/effect/integration": "./src/v2/effect/integration.ts",
+    "./v2/effect/plugin": "./src/v2/effect/plugin.ts",
+    "./v2/promise": "./src/v2/promise/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@ai-sdk/provider": "3.0.8",
+    "@opencode-ai/sdk": "workspace:*",
+    "effect": "4.0.0-beta.82",
+    "zod": "4.1.8"
+  },
+  "peerDependencies": {
+    "@opentui/core": ">=0.4.2",
+    "@opentui/keymap": ">=0.4.2",
+    "@opentui/solid": ">=0.4.2"
+  },
+  "peerDependenciesMeta": {
+    "@opentui/core": {
+      "optional": true
+    },
+    "@opentui/keymap": {
+      "optional": true
+    },
+    "@opentui/solid": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@opentui/core": "0.4.2",
+    "@opentui/keymap": "0.4.2",
+    "@opentui/solid": "0.4.2",
+    "@tsconfig/node22": "22.0.2",
+    "@types/node": "24.12.2",
+    "typescript": "5.8.2",
+    "@typescript/native-preview": "7.0.0-dev.20251207.1"
+  }
+}

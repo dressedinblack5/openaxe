@@ -1,0 +1,30 @@
+name: release-github-action
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - "github/**"
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: vars.OPENCODE_APP_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - run: git fetch --force --tags
+
+      - name: Release
+        run: |
+          git config --global user.email "openaxe@sst.dev"
+          git config --global user.name "opencode"
+          ./github/script/release

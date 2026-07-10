@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "version": "1.17.10",
+  "name": "@opencode-ai/effect-drizzle-sqlite",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test": "bun test --timeout 30000 --only-failures",
+    "typecheck": "tsgo --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./effect-sqlite": "./src/effect-sqlite/index.ts",
+    "./effect-sqlite/migrator": "./src/effect-sqlite/migrator.ts",
+    "./sqlite-core/effect": "./src/sqlite-core/effect/index.ts"
+  },
+  "devDependencies": {
+    "@effect/sql-sqlite-bun": "4.0.0-beta.82",
+    "@tsconfig/bun": "1.0.9",
+    "@types/bun": "1.3.13",
+    "@typescript/native-preview": "7.0.0-dev.20251207.1"
+  },
+  "dependencies": {
+    "drizzle-orm": "1.0.0-rc.2",
+    "effect": "4.0.0-beta.82"
+  }
+}
