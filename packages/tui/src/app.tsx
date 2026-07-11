@@ -856,6 +856,36 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         },
       },
       {
+        name: "revert.undo",
+        title: "Revert last AI change",
+        category: "System",
+        slashName: "revert",
+        run: async () => {
+          try {
+            const response = await sdk.fetch(`${sdk.url}/api/revert`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ count: 1 }),
+            })
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const result: { reverted: number } = await response.json()
+            toast.show({
+              variant: "info",
+              message: `Reverted ${result.reverted} file(s)`,
+              duration: 3000,
+            })
+          } catch (error) {
+            toast.show({
+              variant: "error",
+              title: "Revert failed",
+              message: errorMessage(error),
+              duration: 5000,
+            })
+          }
+          dialog.clear()
+        },
+      },
+      {
         name: "memory.browse",
         title: "Browse memory",
         category: "System",

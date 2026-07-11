@@ -1,6 +1,7 @@
 export * as Revert from "./revert"
 
 import { Effect, FileSystem } from "effect"
+import type { PlatformError } from "effect/PlatformError"
 
 export interface SnapshotEntry {
   readonly path: string
@@ -27,11 +28,11 @@ function getBuffer(): SnapshotEntry[] {
  * Record a snapshot of a file's current content so it can be reverted later.
  * If the file does not exist, content is stored as null (new file → delete on revert).
  */
-export function recordRevertSnapshot(path: string): Effect.Effect<void, FileSystem.PlatformError, FileSystem.FileSystem> {
+export function recordRevertSnapshot(path: string): Effect.Effect<void, never, FileSystem.FileSystem> {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const content: string | null = yield* fs.readFileString(path).pipe(
-      Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(null)),
+      Effect.catchTag("PlatformError", () => Effect.succeed(null)),
     )
     const buffer = getBuffer()
     const entry: SnapshotEntry = {
@@ -51,7 +52,7 @@ export function recordRevertSnapshot(path: string): Effect.Effect<void, FileSyst
  * Revert the last `count` file mutations for the current process directory.
  * Returns the number of files successfully reverted.
  */
-export function revert(count: number): Effect.Effect<number, FileSystem.PlatformError, FileSystem.FileSystem> {
+export function revert(count: number): Effect.Effect<number, PlatformError, FileSystem.FileSystem> {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const buffer = getBuffer()

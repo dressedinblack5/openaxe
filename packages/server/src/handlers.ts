@@ -28,6 +28,7 @@ import { Artifact } from "@opencode-ai/core/artifact"
 import { Memory } from "@opencode-ai/core/memory"
 import { ProjectCopyHandler } from "./handlers/project-copy"
 import { ArtifactHandler } from "./handlers/artifact"
+import { RevertHandler } from "./handlers/revert"
 import { MemoryHandler } from "./handlers/memory"
 
 export const handlers = Layer.mergeAll(
@@ -50,6 +51,7 @@ export const handlers = Layer.mergeAll(
   ReferenceHandler,
   ProjectCopyHandler,
   ArtifactHandler,
+  RevertHandler,
   MemoryHandler,
 ).pipe(
   Layer.provide(sessionLocationLayer),

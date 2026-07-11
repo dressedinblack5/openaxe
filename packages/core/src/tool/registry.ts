@@ -8,6 +8,8 @@ import { SessionMessage } from "../session/message"
 import { SessionSchema } from "../session/schema"
 import { ToolOutputStore } from "../tool-output-store"
 import { Wildcard } from "../util/wildcard"
+import { AutoCommit } from "../auto-commit"
+import { ErrorJournal } from "../error-journal"
 import { Guardrail } from "../guardrail"
 import { ApplicationTools } from "./application-tools"
 import { definition, permission, settle, validateName, type AnyTool, type RegistrationError } from "./tool"
@@ -67,7 +69,15 @@ const registryLayer = Layer.effect(
       }).pipe(
         Effect.map((output) => ({ output })),
         Effect.catchTag("LLM.ToolFailure", (failure) =>
-          Effect.succeed({ result: { type: "error" as const, value: failure.message } }),
+          Effect.gen(function* () {
+            yield* ErrorJournal.appendError({
+              sessionID: input.sessionID,
+              toolName: input.call.name,
+              input: input.call.input,
+              error: failure.message,
+            }).pipe(Effect.ignoreCause)
+            return { result: { type: "error" as const, value: failure.message } }
+          }),
         ),
       )
       if ("result" in pending) return pending
@@ -100,6 +110,8 @@ const registryLayer = Layer.effect(
           }
         }
       }
+
+      AutoCommit.recordMutation(input.sessionID, filePaths, process.cwd())
 
       const bounded = yield* resources.bound({ sessionID: input.sessionID, toolCallID: input.call.id, output: guardedOutput })
       const result = ToolOutput.toResultValue(bounded.output)

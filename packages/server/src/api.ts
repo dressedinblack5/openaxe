@@ -21,6 +21,7 @@ import { IntegrationGroup } from "./groups/integration"
 import { CredentialGroup } from "./groups/credential"
 import { ProjectCopyGroup } from "./groups/project-copy"
 import { ArtifactGroup } from "./groups/artifact"
+import { RevertGroup } from "./groups/revert"
 import { MemoryGroup } from "./groups/memory"
 
 const makeApiFromGroup = <const Group extends HttpApiGroup.Any>(eventGroup: Group) =>
@@ -44,6 +45,7 @@ const makeApiFromGroup = <const Group extends HttpApiGroup.Any>(eventGroup: Grou
     .add(ReferenceGroup)
     .add(ProjectCopyGroup)
     .add(ArtifactGroup)
+    .add(RevertGroup)
     .add(MemoryGroup)
     .annotateMerge(
       OpenApi.annotations({
