@@ -53,3 +53,4 @@ __pycache__/
 *.pem
 *.key
 packages/core/.openaxe/
+packages/openaxe/bin/openaxe
