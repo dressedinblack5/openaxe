@@ -82,7 +82,9 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
       Layer.provide(resources),
       Layer.provide(base),
     )
-    const services = Layer.mergeAll(base, resources, permissionsAndTools, Memory.defaultLayer, AxeMdSync.defaultLayer)
+    const services = Layer.mergeAll(base, resources, permissionsAndTools, Memory.defaultLayer).pipe(
+      Layer.provideMerge(AxeMdSync.defaultLayer),
+    )
     const image = Image.layer.pipe(Layer.provide(services))
     const mutation = FileMutation.locationLayer.pipe(Layer.provide(services))
     const skillGuidance = SkillGuidance.locationLayer.pipe(Layer.provide(services))
