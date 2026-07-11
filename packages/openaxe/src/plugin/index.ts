@@ -346,7 +346,8 @@ export const layer = Layer.effect(
     })
 
     const init = Effect.fn("Plugin.init")(function* () {
-      yield* InstanceState.get(state)
+      const s = yield* InstanceState.get(state)
+      yield* s.deferredExternal
     })
 
     return Service.of({ trigger, list, init })

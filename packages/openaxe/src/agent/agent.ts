@@ -98,6 +98,7 @@ export const layer = Layer.effect(
     const state = yield* InstanceState.make<State>(
       Effect.fn("Agent.state")(function* (ctx) {
         const cfg = yield* config.get()
+        type AgentConfig = typeof cfg
         const skillDirs = yield* skill.dirs()
         const referenceDirs = Object.keys(cfg.references ?? cfg.reference ?? {}).length
           ? yield* Effect.gen(function* () {
@@ -137,7 +138,7 @@ export const layer = Layer.effect(
 
         const user = Permission.fromConfig(cfg.permission ?? {})
 
-        const agents: Record<string, Info> = {
+        const builtins: Record<string, Info> = {
           build: {
             name: "build",
             description: "The default agent. Executes tools based on configured permissions.",
@@ -264,59 +265,66 @@ export const layer = Layer.effect(
           },
         }
 
-        for (const [key, value] of Object.entries(cfg.agent ?? {})) {
-          if (value.disable) {
-            delete agents[key]
-            continue
-          }
-          let item = agents[key]
-          if (!item)
-            item = agents[key] = {
-              name: key,
-              mode: "all",
-              permission: Permission.merge(defaults, user),
-              options: {},
-              native: false,
+        const build = (cfg: AgentConfig) => {
+          const agents: Record<string, Info> = {}
+          for (const key in builtins) agents[key] = { ...builtins[key] }
+
+          for (const [key, value] of Object.entries(cfg.agent ?? {})) {
+            if (value.disable) {
+              delete agents[key]
+              continue
             }
-          if (value.model) item.model = Provider.parseModel(value.model)
-          item.variant = value.variant ?? item.variant
-          item.prompt = value.prompt ?? item.prompt
-          item.description = value.description ?? item.description
-          item.temperature = value.temperature ?? item.temperature
-          item.topP = value.top_p ?? item.topP
-          item.mode = value.mode ?? item.mode
-          item.color = value.color ?? item.color
-          item.hidden = value.hidden ?? item.hidden
-          item.name = value.name ?? item.name
-          item.steps = value.steps ?? item.steps
-          item.options = mergeDeep(item.options, value.options ?? {})
-          item.permission = Permission.merge(item.permission, Permission.fromConfig(value.permission ?? {}))
-        }
+            let item = agents[key]
+            if (!item)
+              item = agents[key] = {
+                name: key,
+                mode: "all",
+                permission: Permission.merge(defaults, user),
+                options: {},
+                native: false,
+              }
+            if (value.model) item.model = Provider.parseModel(value.model)
+            item.variant = value.variant ?? item.variant
+            item.prompt = value.prompt ?? item.prompt
+            item.description = value.description ?? item.description
+            item.temperature = value.temperature ?? item.temperature
+            item.topP = value.top_p ?? item.topP
+            item.mode = value.mode ?? item.mode
+            item.color = value.color ?? item.color
+            item.hidden = value.hidden ?? item.hidden
+            item.name = value.name ?? item.name
+            item.steps = value.steps ?? item.steps
+            item.options = mergeDeep(item.options, value.options ?? {})
+            item.permission = Permission.merge(item.permission, Permission.fromConfig(value.permission ?? {}))
+          }
 
-        // Ensure Truncate.GLOB is allowed unless explicitly configured
-        for (const name in agents) {
-          const agent = agents[name]
-          const explicit = agent.permission.some((r) => {
-            if (r.permission !== "external_directory") return false
-            if (r.action !== "deny") return false
-            return r.pattern === Truncate.GLOB
-          })
-          if (explicit) continue
+          // Ensure Truncate.GLOB is allowed unless explicitly configured
+          for (const name in agents) {
+            const agent = agents[name]
+            const explicit = agent.permission.some((r) => {
+              if (r.permission !== "external_directory") return false
+              if (r.action !== "deny") return false
+              return r.pattern === Truncate.GLOB
+            })
+            if (explicit) continue
 
-          agents[name].permission = Permission.merge(
-            agents[name].permission,
-            Permission.fromConfig({ external_directory: { [Truncate.GLOB]: "allow" } }),
-          )
+            agents[name].permission = Permission.merge(
+              agents[name].permission,
+              Permission.fromConfig({ external_directory: { [Truncate.GLOB]: "allow" } }),
+            )
+          }
+          return agents
         }
 
         const get = Effect.fnUntraced(function* (agent: string) {
-          return agents[agent]
+          const cfg = yield* config.get()
+          return build(cfg)[agent]
         })
 
         const list = Effect.fnUntraced(function* () {
           const cfg = yield* config.get()
           return pipe(
-            agents,
+            build(cfg),
             values(),
             sortBy(
               [(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "build"), "desc"],
@@ -326,12 +334,13 @@ export const layer = Layer.effect(
         })
 
         const defaultInfo = Effect.fnUntraced(function* () {
-          const c = yield* config.get()
-          if (c.default_agent) {
-            const agent = agents[c.default_agent]
-            if (!agent) throw new Error(`default agent "${c.default_agent}" not found`)
-            if (agent.mode === "subagent") throw new Error(`default agent "${c.default_agent}" is a subagent`)
-            if (agent.hidden === true) throw new Error(`default agent "${c.default_agent}" is hidden`)
+          const cfg = yield* config.get()
+          const agents = build(cfg)
+          if (cfg.default_agent) {
+            const agent = agents[cfg.default_agent]
+            if (!agent) throw new Error(`default agent "${cfg.default_agent}" not found`)
+            if (agent.mode === "subagent") throw new Error(`default agent "${cfg.default_agent}" is a subagent`)
+            if (agent.hidden === true) throw new Error(`default agent "${cfg.default_agent}" is hidden`)
             return agent
           }
           const visible = Object.values(agents).find((a) => a.mode !== "subagent" && a.hidden !== true)
