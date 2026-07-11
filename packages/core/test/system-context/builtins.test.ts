@@ -1,6 +1,8 @@
 import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
 import * as TestClock from "effect/testing/TestClock"
+import { Database } from "@opencode-ai/core/database/database"
+import { EventV2 } from "@opencode-ai/core/event"
 import { Location } from "@opencode-ai/core/location"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
@@ -25,12 +27,15 @@ const locationLayer = Layer.succeed(
     ),
   ),
 )
+const baseLayer = Layer.mergeAll(
+  Database.defaultLayer,
+  EventV2.defaultLayer,
+  FSUtil.defaultLayer,
+  Global.layerWith({ config: "/global" }),
+  locationLayer,
+)
 const it = testEffect(
-  SystemContextBuiltIns.locationLayer.pipe(
-    Layer.provide(FSUtil.defaultLayer),
-    Layer.provide(Global.layerWith({ config: "/global" })),
-    Layer.provide(locationLayer),
-  ),
+  SystemContextBuiltIns.locationLayer.pipe(Layer.provideMerge(baseLayer)),
 )
 const instructionFS = Layer.effect(
   FSUtil.Service,
@@ -47,8 +52,7 @@ const instructionFS = Layer.effect(
 const itWithInstructions = testEffect(
   SystemContextBuiltIns.locationLayer.pipe(
     Layer.provide(instructionFS),
-    Layer.provide(Global.layerWith({ config: "/global" })),
-    Layer.provide(locationLayer),
+    Layer.provideMerge(baseLayer),
   ),
 )
 
@@ -70,6 +74,10 @@ describe("SystemContextBuiltIns", () => {
           "</env>",
           "",
           `Today's date: ${localDate(timestamp)}`,
+          "",
+          "<memory>",
+          "No project memory configured.",
+          "</memory>",
         ].join("\n"),
       )
     }),
@@ -118,6 +126,10 @@ describe("SystemContextBuiltIns", () => {
           "</env>",
           "",
           `Today's date: ${localDate(timestamp)}`,
+          "",
+          "<memory>",
+          "No project memory configured.",
+          "</memory>",
           "",
           `Instructions from: ${instructionFile}\nBe precise.`,
         ].join("\n"),

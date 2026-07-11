@@ -6,6 +6,7 @@ import { Memory } from "../memory"
 import { SystemContext } from "./index"
 import { InstructionContext } from "../instruction-context"
 import { SystemContextRegistry } from "./registry"
+import { unavailable } from "./index"
 
 const builtIns = Layer.effectDiscard(
   Effect.gen(function* () {
@@ -35,17 +36,17 @@ const builtIns = Layer.effectDiscard(
         baseline: (date) => `Today's date: ${date}`,
         update: (_previous, date) => `Today's date is now: ${date}`,
       }),
-      SystemContext.make({
+SystemContext.make({
         key: SystemContext.Key.make("core/memory"),
         codec: Schema.toCodecJson(Schema.String),
         load: Effect.gen(function* () {
           const memory = yield* Memory.Service
           const entries = yield* memory.list(undefined, "project", "axe-md")
-          if (entries.length === 0) return ""
+          if (entries.length === 0) return "No project memory configured."
           return entries.map((e) => `${e.key}:\n${e.value}`).join("\n\n")
         }).pipe(Effect.provide(Memory.defaultLayer)),
-        baseline: (text) => text ? ["<memory>", text, "</memory>"].join("\n") : "",
-        update: (_prev, text) => text ? ["<memory>", text, "</memory>"].join("\n") : "",
+        baseline: (text) => ["<memory>", text, "</memory>"].join("\n"),
+        update: (_prev, text) => ["<memory>", text, "</memory>"].join("\n"),
       }),
     ])
 
