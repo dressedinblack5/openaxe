@@ -25,6 +25,7 @@ import { SessionApi } from "./groups/session"
 import { SyncApi } from "./groups/sync"
 import { TuiApi } from "./groups/tui"
 import { WorkspaceApi } from "./groups/workspace"
+import { MemoryApi } from "./groups/memory"
 import { makeApi } from "@opencode-ai/server/api"
 import { GlobalApi } from "./groups/global"
 import { Authorization } from "./middleware/authorization"
@@ -58,6 +59,7 @@ export const InstanceHttpApi = HttpApi.make("opencode-instance")
   .addHttpApi(FileApi)
   .addHttpApi(InstanceApi)
   .addHttpApi(McpApi)
+  .addHttpApi(MemoryApi)
   .addHttpApi(ProjectApi)
   .addHttpApi(ProjectCopyApi)
   .addHttpApi(PtyApi)
