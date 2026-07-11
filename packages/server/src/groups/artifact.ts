@@ -82,6 +82,6 @@ export const ArtifactGroup = HttpApiGroup.make("server.artifact")
   .annotateMerge(
     OpenApi.annotations({
       title: "artifact",
-      description: "Versioned artifact storage.",
+      description: "Versioned artifact storage. Note: The underlying service does not support delete operations; artifacts are immutable and versioned.",
     }),
   )
