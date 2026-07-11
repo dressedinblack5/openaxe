@@ -166,7 +166,6 @@ Auto-configured on first run. They auto-install the first time you run `openaxe`
 |---|---|
 | **oh-my-openagent** | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents |
 | **opencode-plugin-selector** | Interactive plugin manager for discovering and installing plugins |
-| **superpowers** | Skill system — pluggable agent capabilities (brainstorming, TDD, debugging, etc.) |
 | **opencode-vibeguard** | Safety guardrails for agent actions |
 | **@tarquinen/opencode-dcp** | Context compression — stay under context limits during long sessions |
 | **ecc-universal** | Everything Claude Code — battle-tested agents, skills, hooks, MCP, and rules |

@@ -144,7 +144,7 @@ check_plugin_startup() {
   "duration_seconds": $startup_duration,
   "target_seconds": $TARGET_STARTUP_TIME,
   "percentage_of_target": $(calculate_percentage "$startup_duration" "$TARGET_STARTUP_TIME"),
-  "plugins_loaded": "oh-my-openagent, opencode-plugin-selector, superpowers, ponytail, vibeguard"
+  "plugins_loaded": "oh-my-openagent, opencode-plugin-selector, ponytail, vibeguard"
 }
 EOF
     

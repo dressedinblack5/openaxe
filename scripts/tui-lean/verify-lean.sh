@@ -73,7 +73,7 @@ if [ -f "$INSTALL_DIR/.opencode/opencode.jsonc" ]; then
   log "Custom plugins: $plugin_count"
   
   # Verify essential TUI/CLI plugins
-  essential_plugins=("oh-my-openagent" "opencode-plugin-selector" "superpowers" "ponytail")
+  essential_plugins=("oh-my-openagent" "opencode-plugin-selector" "ponytail")
   for plugin in "${essential_plugins[@]}"; do
     if grep -q "$plugin" "$INSTALL_DIR/.opencode/opencode.jsonc" 2>/dev/null; then
       log "✓ $plugin: present"
