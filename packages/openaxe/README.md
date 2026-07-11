@@ -109,8 +109,8 @@ openaxe --help
 | `openaxe` [project] | Start the TUI (default) |
 | `openaxe run <message>` | Run with a prompt, non-interactive |
 | `openaxe serve` | Start headless server |
-| `openaxe web` | Start server with web UI |
 | `openaxe attach <url>` | Attach to a running server |
+| `openaxe memory <action>` | Manage project memory (AXE.md) — list, set, get, remove |
 
 ### Providers & Models
 
