@@ -147,7 +147,7 @@ export const layer = Layer.effect(
         const listenerCtx = yield* Effect.context()
         const { HttpApiApp } = yield* Effect.promise(() => import("../server/routes/instance/httpapi/server"))
         const { disposeMiddleware } = yield* Effect.promise(() => import("../server/routes/instance/httpapi/lifecycle"))
-        const listenerMemoMap = Context.get(listenerCtx, Layer.CurrentMemoMap)
+        const listenerMemoMap = Context.get(listenerCtx as Context.Context<Layer.CurrentMemoMap>, Layer.CurrentMemoMap)
         const instanceHandler = HttpRouter.toWebHandler(HttpApiApp.routes, {
           disableLogger: true,
           memoMap: listenerMemoMap,
@@ -157,7 +157,7 @@ export const layer = Layer.effect(
           baseUrl: Server.url?.toString() ?? "http://localhost:4096",
           directory: ctx.directory,
           headers: ServerAuth.headers(),
-          fetch: (req) => instanceHandler(req, listenerCtx),
+          fetch: (req) => instanceHandler(req, listenerCtx as Context.Context<any>),
         })
         const cfg = yield* config.get()
         const input: PluginInput = {
