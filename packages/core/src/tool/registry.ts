@@ -8,6 +8,7 @@ import { SessionMessage } from "../session/message"
 import { SessionSchema } from "../session/schema"
 import { ToolOutputStore } from "../tool-output-store"
 import { Wildcard } from "../util/wildcard"
+import { Guardrail } from "../guardrail"
 import { ApplicationTools } from "./application-tools"
 import { definition, permission, settle, validateName, type AnyTool, type RegistrationError } from "./tool"
 import { Tools } from "./tools"
@@ -71,7 +72,36 @@ const registryLayer = Layer.effect(
       )
       if ("result" in pending) return pending
       const output = pending.output
-      const bounded = yield* resources.bound({ sessionID: input.sessionID, toolCallID: input.call.id, output })
+
+      // Non-blocking guardrail auto-verification after mutation tools
+      let guardedOutput = output
+      const filePaths = extractFilePaths(input.call, output)
+      if (filePaths.length > 0) {
+        const maybeGuardrail = yield* Effect.serviceOption(Guardrail.Service)
+        if (maybeGuardrail._tag === "Some") {
+          const guardrail = maybeGuardrail.value
+          const results = yield* (guardrail.verify(filePaths).pipe(
+            Effect.catch(() => Effect.succeed([] as readonly Guardrail.VerifyResult[])),
+          ) as Effect.Effect<readonly Guardrail.VerifyResult[]>)
+          const failed = results.filter((r) => !r.passed)
+          if (failed.length > 0) {
+            const lines = failed.flatMap((r) =>
+              r.errors.map(
+                (e) => `${r.file}: ${e.message}${e.line != null ? ` (line ${e.line})` : ""}`,
+              ),
+            )
+            guardedOutput = {
+              ...output,
+              content: [
+                ...output.content,
+                { type: "text" as const, text: `\n\n⚠️ **Auto-verification warnings**\n${lines.join("\n")}` },
+              ],
+            }
+          }
+        }
+      }
+
+      const bounded = yield* resources.bound({ sessionID: input.sessionID, toolCallID: input.call.id, output: guardedOutput })
       const result = ToolOutput.toResultValue(bounded.output)
       if (result.type === "error")
         return bounded.outputPaths.length > 0 ? { result, outputPaths: bounded.outputPaths } : { result }
@@ -131,6 +161,30 @@ export const layer = Layer.effect(
 function whollyDisabled(action: string, rules: PermissionV2.Ruleset) {
   const rule = rules.findLast((rule) => Wildcard.match(action, rule.action))
   return rule?.resource === "*" && rule.effect === "deny"
+}
+
+function extractFilePaths(call: ToolCall, output: ToolOutput): readonly string[] {
+  const paths = new Set<string>()
+  if (typeof call.input === "object" && call.input !== null && !Array.isArray(call.input)) {
+    const input = call.input as Record<string, unknown>
+    if (typeof input.path === "string") paths.add(input.path)
+  }
+  if (typeof output.structured === "object" && output.structured !== null) {
+    const structured = output.structured as Record<string, unknown>
+    if (typeof structured.resource === "string") paths.add(structured.resource)
+    if (typeof structured.target === "string") paths.add(structured.target)
+    if (Array.isArray(structured.applied)) {
+      for (const item of structured.applied) {
+        if (typeof item === "object" && item !== null) {
+          if (typeof (item as Record<string, unknown>).resource === "string")
+            paths.add((item as Record<string, unknown>).resource as string)
+          if (typeof (item as Record<string, unknown>).target === "string")
+            paths.add((item as Record<string, unknown>).target as string)
+        }
+      }
+    }
+  }
+  return Array.from(paths)
 }
 
 export const defaultLayer = layer.pipe(
