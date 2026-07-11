@@ -153,6 +153,10 @@ export const McpListCommand = effectCmd({
         statusIcon = "✗"
         statusText = "needs client registration"
         hint = "\n    " + status.error
+      } else if (status.status === "pending") {
+        statusIcon = "…"
+        statusText = "pending"
+        hint = ""
       } else {
         statusIcon = "✗"
         statusText = "failed"
