@@ -21,6 +21,7 @@ import { DigitalOceanAuthPlugin } from "./digitalocean"
 import { XaiAuthPlugin } from "./xai"
 import { SnowflakeCortexAuthPlugin } from "./snowflake-cortex"
 import { Effect, Layer, Context } from "effect"
+import { HttpRouter } from "effect/unstable/http"
 import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { errorMessage } from "@/util/error"
@@ -138,12 +139,25 @@ export const layer = Layer.effect(
 
         const { Server } = yield* Effect.promise(() => import("../server/server"))
 
-        const serverUrl = Server.url
+        // Build the plugin client's in-process HTTP handler from the listener's
+        // own memoMap so it reuses the listener's already-initialized
+        // InstanceStore. Routing the client through a fresh memoMap (or
+        // Server.Default().app) constructs a second InstanceStore and reloads
+        // every plugin a second time.
+        const listenerCtx = yield* Effect.context()
+        const { HttpApiApp } = yield* Effect.promise(() => import("../server/routes/instance/httpapi/server"))
+        const { disposeMiddleware } = yield* Effect.promise(() => import("../server/routes/instance/httpapi/lifecycle"))
+        const listenerMemoMap = Context.get(listenerCtx, Layer.CurrentMemoMap)
+        const instanceHandler = HttpRouter.toWebHandler(HttpApiApp.routes, {
+          disableLogger: true,
+          memoMap: listenerMemoMap,
+          middleware: disposeMiddleware,
+        }).handler
         const client = createOpencodeClient({
-          baseUrl: serverUrl?.toString() ?? "http://localhost:4096",
+          baseUrl: Server.url?.toString() ?? "http://localhost:4096",
           directory: ctx.directory,
           headers: ServerAuth.headers(),
-          ...(serverUrl ? {} : { fetch: async (...args) => Server.Default().app.fetch(...args) }),
+          fetch: (req) => instanceHandler(req, listenerCtx),
         })
         const cfg = yield* config.get()
         const input: PluginInput = {
