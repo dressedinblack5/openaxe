@@ -1,9 +1,10 @@
 export * as FileMutation from "./file-mutation"
 
-import { Context, Effect, Layer, Schema } from "effect"
+import { Context, Effect, FileSystem, Layer, Schema } from "effect"
 import { dirname } from "path"
 import { KeyedMutex } from "./effect/keyed-mutex"
 import { FSUtil } from "./fs-util"
+import { Revert } from "./revert"
 
 export interface Target {
   readonly canonical: string
@@ -52,15 +53,15 @@ export interface RemoveResult {
 
 export interface Interface {
   /** Create without replacing an existing target. */
-  readonly create: (input: WriteInput) => Effect.Effect<WriteResult, TargetExistsError | FSUtil.Error>
-  readonly write: (input: WriteInput) => Effect.Effect<WriteResult, FSUtil.Error>
+  readonly create: (input: WriteInput) => Effect.Effect<WriteResult, TargetExistsError | FSUtil.Error, FileSystem.FileSystem>
+  readonly write: (input: WriteInput) => Effect.Effect<WriteResult, FSUtil.Error, FileSystem.FileSystem>
   /** Write text while retaining an existing UTF-8 BOM and emitting at most one BOM. */
-  readonly writeTextPreservingBom: (input: TextWriteInput) => Effect.Effect<WriteResult, FSUtil.Error>
+  readonly writeTextPreservingBom: (input: TextWriteInput) => Effect.Effect<WriteResult, FSUtil.Error, FileSystem.FileSystem>
   /** Commit only if an existing target still has the expected bytes. */
   readonly writeIfUnchanged: (
     input: ConditionalWriteInput,
-  ) => Effect.Effect<WriteResult, StaleContentError | FSUtil.Error>
-  readonly remove: (input: RemoveInput) => Effect.Effect<RemoveResult, FSUtil.Error>
+  ) => Effect.Effect<WriteResult, StaleContentError | FSUtil.Error, FileSystem.FileSystem>
+  readonly remove: (input: RemoveInput) => Effect.Effect<RemoveResult, FSUtil.Error, FileSystem.FileSystem>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/v2/FileMutation") {}
@@ -97,6 +98,7 @@ export const layer = Layer.effect(
     const write = Effect.fn("FileMutation.write")((input: WriteInput) =>
       withTargetLock(input.target)(
         Effect.gen(function* () {
+          yield* Revert.recordRevertSnapshot(fs, input.target.canonical).pipe(Effect.ignoreCause)
           const existed = yield* fs.exists(input.target.canonical)
           yield* fs.writeWithDirs(input.target.canonical, input.content)
           return writeResult(input.target, existed)
@@ -107,6 +109,7 @@ export const layer = Layer.effect(
     const writeTextPreservingBom = Effect.fn("FileMutation.writeTextPreservingBom")((input: TextWriteInput) =>
       withTargetLock(input.target)(
         Effect.gen(function* () {
+          yield* Revert.recordRevertSnapshot(fs, input.target.canonical).pipe(Effect.ignoreCause)
           const next = splitBom(input.content)
           const current = yield* fs
             .readFile(input.target.canonical)
@@ -123,6 +126,7 @@ export const layer = Layer.effect(
     const create = Effect.fn("FileMutation.create")((input: WriteInput) =>
       withTargetLock(input.target)(
         Effect.gen(function* () {
+          yield* Revert.recordRevertSnapshot(fs, input.target.canonical).pipe(Effect.ignoreCause)
           const write =
             typeof input.content === "string"
               ? fs.writeFileString(input.target.canonical, input.content, { flag: "wx" })
@@ -143,6 +147,7 @@ export const layer = Layer.effect(
     const writeIfUnchanged = Effect.fn("FileMutation.writeIfUnchanged")((input: ConditionalWriteInput) =>
       withTargetLock(input.target)(
         Effect.gen(function* () {
+          yield* Revert.recordRevertSnapshot(fs, input.target.canonical).pipe(Effect.ignoreCause)
           const current = yield* fs.readFile(input.target.canonical)
           if (!sameBytes(current, input.expected)) {
             return yield* new StaleContentError({ path: input.target.canonical })
@@ -158,6 +163,7 @@ export const layer = Layer.effect(
     const remove = Effect.fn("FileMutation.remove")((input: RemoveInput) =>
       withTargetLock(input.target)(
         Effect.gen(function* () {
+          yield* Revert.recordRevertSnapshot(fs, input.target.canonical).pipe(Effect.ignoreCause)
           const existed = yield* fs.remove(input.target.canonical).pipe(
             Effect.as(true),
             Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(false)),
