@@ -2394,6 +2394,10 @@ export type FormatterStatus = {
   enabled: boolean
 }
 
+export type McpStatusPending = {
+  status: "pending"
+}
+
 export type McpStatusConnected = {
   status: "connected"
 }
@@ -2417,6 +2421,7 @@ export type McpStatusNeedsClientRegistration = {
 }
 
 export type McpStatus =
+  | McpStatusPending
   | McpStatusConnected
   | McpStatusDisabled
   | McpStatusFailed
@@ -2431,6 +2436,14 @@ export type McpServerNotFoundError = {
   _tag: "McpServerNotFoundError"
   name: string
   message: string
+}
+
+export type MemoryEntry = {
+  key: string
+  value: unknown
+  kind: string
+  scope: string
+  source: string
 }
 
 export type Project = {
@@ -8554,6 +8567,127 @@ export type McpDisconnectResponses = {
 }
 
 export type McpDisconnectResponse = McpDisconnectResponses[keyof McpDisconnectResponses]
+
+export type MemoryListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory"
+}
+
+export type MemoryListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryListError = MemoryListErrors[keyof MemoryListErrors]
+
+export type MemoryListResponses = {
+  /**
+   * All memory entries
+   */
+  200: Array<MemoryEntry>
+}
+
+export type MemoryListResponse = MemoryListResponses[keyof MemoryListResponses]
+
+export type MemorySetData = {
+  body?: {
+    key: string
+    value: unknown
+    scope?: string
+    source?: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory"
+}
+
+export type MemorySetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemorySetError = MemorySetErrors[keyof MemorySetErrors]
+
+export type MemorySetResponses = {
+  /**
+   * Memory entry set
+   */
+  200: MemoryEntry
+}
+
+export type MemorySetResponse = MemorySetResponses[keyof MemorySetResponses]
+
+export type MemoryRemoveData = {
+  body?: never
+  path: {
+    key: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/{key}"
+}
+
+export type MemoryRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryRemoveError = MemoryRemoveErrors[keyof MemoryRemoveErrors]
+
+export type MemoryRemoveResponses = {
+  /**
+   * Memory entry removed
+   */
+  200: {
+    removed: boolean
+  }
+}
+
+export type MemoryRemoveResponse = MemoryRemoveResponses[keyof MemoryRemoveResponses]
+
+export type MemoryGetData = {
+  body?: never
+  path: {
+    key: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/{key}"
+}
+
+export type MemoryGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryGetError = MemoryGetErrors[keyof MemoryGetErrors]
+
+export type MemoryGetResponses = {
+  /**
+   * Memory entry value
+   */
+  200: unknown
+}
 
 export type ProjectListData = {
   body?: never
