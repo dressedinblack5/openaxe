@@ -1,6 +1,7 @@
 export * as AxeMdSync from "./sync"
 
 import { Context, Effect, FileSystem, Layer } from "effect"
+import { NodeFileSystem } from "@effect/platform-node"
 import { Memory } from "./index"
 
 export interface AxeMdRule {
@@ -73,4 +74,7 @@ export const layer = Layer.effect(
   }),
 )
 
-export const defaultLayer = layer
+export const defaultLayer = layer.pipe(
+  Layer.provide(NodeFileSystem.layer),
+  Layer.provide(Memory.defaultLayer),
+)
