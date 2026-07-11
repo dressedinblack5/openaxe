@@ -1,7 +1,3 @@
-node_modules
-plans
-package.json
-bun.lock
-.gitignore
-package-lock.json
-references/
+# Ignore all personal openaxe config/extensions; keep this ignore file tracked
+*
+!.gitignore
