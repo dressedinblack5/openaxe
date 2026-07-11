@@ -125,10 +125,7 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
 
     const upgradeFailure = (method: Method, result?: { code: number; stdout: string; stderr: string }) => {
       if (method === "choco") return "not running from an elevated command shell"
-      if (result) {
-        if (result.stderr) return `Upgrade failed for ${method} (exit code ${result.code}): ${result.stderr}`
-        return `Upgrade failed for ${method} (exit code ${result.code}).`
-      }
+      if (result) return `Upgrade failed for ${method} (exit code ${result.code}).`
       return `Upgrade failed for ${method}.`
     }
 

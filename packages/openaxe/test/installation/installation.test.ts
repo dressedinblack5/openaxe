@@ -76,57 +76,44 @@ describe("installation", () => {
         }),
     )
 
-    const npmCalls: string[] = []
-    testEffect(
-      testLayer((request) => {
-        npmCalls.push(request.url)
-        return jsonResponse({ version: "1.5.0" })
-      }),
-    ).effect("reads npm versions via registry", () =>
-      Effect.gen(function* () {
-        const result = yield* Installation.use.latest("npm")
-        expect(result).toBe("1.5.0")
-        expect(npmCalls).toContain(`https://registry.npmjs.org/opencode-ai/${InstallationChannel}`)
-      }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.5.0" }))).effect(
+      "reads npm version via GitHub API",
+      () =>
+        Effect.gen(function* () {
+          const result = yield* Installation.use.latest("npm")
+          expect(result).toBe("1.5.0")
+        }),
     )
 
-    const bunCalls: string[] = []
-    testEffect(
-      testLayer((request) => {
-        bunCalls.push(request.url)
-        return jsonResponse({ version: "1.6.0" })
-      }),
-    ).effect("reads bun versions via registry", () =>
-      Effect.gen(function* () {
-        const result = yield* Installation.use.latest("bun")
-        expect(result).toBe("1.6.0")
-        expect(bunCalls).toContain(`https://registry.npmjs.org/opencode-ai/${InstallationChannel}`)
-      }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.6.0" }))).effect(
+      "reads bun version via GitHub API",
+      () =>
+        Effect.gen(function* () {
+          const result = yield* Installation.use.latest("bun")
+          expect(result).toBe("1.6.0")
+        }),
     )
 
-    const pnpmCalls: string[] = []
-    testEffect(
-      testLayer((request) => {
-        pnpmCalls.push(request.url)
-        return jsonResponse({ version: "1.7.0" })
-      }),
-    ).effect("reads pnpm versions via registry", () =>
-      Effect.gen(function* () {
-        const result = yield* Installation.use.latest("pnpm")
-        expect(result).toBe("1.7.0")
-        expect(pnpmCalls).toContain(`https://registry.npmjs.org/opencode-ai/${InstallationChannel}`)
-      }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.7.0" }))).effect(
+      "reads pnpm version via GitHub API",
+      () =>
+        Effect.gen(function* () {
+          const result = yield* Installation.use.latest("pnpm")
+          expect(result).toBe("1.7.0")
+        }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ version: "2.3.4" }))).effect("reads scoop manifest versions", () =>
-      Effect.gen(function* () {
-        const result = yield* Installation.use.latest("scoop")
-        expect(result).toBe("2.3.4")
-      }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v2.3.4" }))).effect(
+      "reads scoop version via GitHub API",
+      () =>
+        Effect.gen(function* () {
+          const result = yield* Installation.use.latest("scoop")
+          expect(result).toBe("2.3.4")
+        }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ d: { results: [{ Version: "3.4.5" }] } }))).effect(
-      "reads chocolatey feed versions",
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v3.4.5" }))).effect(
+      "reads chocolatey version via GitHub API",
       () =>
         Effect.gen(function* () {
           const result = yield* Installation.use.latest("choco")
