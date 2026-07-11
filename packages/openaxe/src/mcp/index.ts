@@ -161,6 +161,7 @@ interface State {
   clients: Record<string, MCPClient>
   defs: Record<string, MCPToolDef[]>
   instructions: Record<string, string>
+  connecting: Set<string>
 }
 
 export interface ServerInstructions {
@@ -374,8 +375,11 @@ export const layer = Layer.effect(
       )
     })
 
+    let createCounter = 0
     const create = Effect.fn("MCP.create")(
       function* (key: string, mcp: ConfigMCPV1.Info) {
+        createCounter++
+        console.error("DEBUG create called", "key:", key, "counter:", createCounter, new Error().stack?.split("\n").slice(3, 8).join("\n"))
         if (mcp.enabled === false) {
           return DISABLED_RESULT
         }
@@ -524,6 +528,7 @@ export const layer = Layer.effect(
           clients: {},
           defs: {},
           instructions: {},
+          connecting: new Set(),
         }
 
         // Defer MCP server connections — just record configs as pending.
@@ -618,9 +623,13 @@ export const layer = Layer.effect(
       const s = yield* InstanceState.get(state)
       const current = s.status[name]
       if (!current || current.status !== "pending") return
+      if (s.connecting.has(name)) return
       const mcp = s.config[name]
       if (!mcp) return
-      const result = yield* create(name, mcp)
+      s.connecting.add(name)
+      const result = yield* create(name, mcp).pipe(
+        Effect.ensuring(Effect.sync(() => s.connecting.delete(name))),
+      )
       s.status[name] = result.status
       if (result.mcpClient) {
         s.clients[name] = result.mcpClient
