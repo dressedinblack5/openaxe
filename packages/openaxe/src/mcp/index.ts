@@ -379,7 +379,6 @@ export const layer = Layer.effect(
     const create = Effect.fn("MCP.create")(
       function* (key: string, mcp: ConfigMCPV1.Info) {
         createCounter++
-        console.error("DEBUG create called", "key:", key, "counter:", createCounter, new Error().stack?.split("\n").slice(3, 8).join("\n"))
         if (mcp.enabled === false) {
           return DISABLED_RESULT
         }
