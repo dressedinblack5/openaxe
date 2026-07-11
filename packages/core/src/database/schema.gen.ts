@@ -24,6 +24,17 @@ export default {
         );
       `)
       yield* tx.run(`
+        CREATE TABLE \`memory\` (
+          \`key\` text PRIMARY KEY,
+          \`value\` text,
+          \`kind\` text DEFAULT 'general' NOT NULL,
+          \`scope\` text DEFAULT 'session' NOT NULL,
+          \`source\` text DEFAULT 'agent' NOT NULL,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`account_state\` (
           \`id\` integer PRIMARY KEY,
           \`active_account_id\` text,
@@ -269,15 +280,6 @@ export default {
       yield* tx.run(`CREATE INDEX \`session_workspace_idx\` ON \`session\` (\`workspace_id\`);`)
       yield* tx.run(`CREATE INDEX \`session_parent_idx\` ON \`session\` (\`parent_id\`);`)
       yield* tx.run(`CREATE INDEX \`todo_session_idx\` ON \`todo\` (\`session_id\`);`)
-      yield* tx.run(`
-        CREATE TABLE \`memory\` (
-          \`key\` text PRIMARY KEY,
-          \`value\` text,
-          \`kind\` text NOT NULL DEFAULT 'general',
-          \`time_created\` integer NOT NULL,
-          \`time_updated\` integer NOT NULL
-        );
-      `)
     })
   },
 } satisfies Omit<DatabaseMigration.Migration, "id">

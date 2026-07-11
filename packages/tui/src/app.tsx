@@ -78,6 +78,8 @@ import {
 
 import type { EventSource } from "./context/sdk"
 import { DialogVariant } from "./component/dialog-variant"
+import { ArtifactPreview } from "./component/artifact-preview"
+import { MemoryBrowser } from "./component/memory-browser"
 import { createTuiAttention } from "./attention"
 import * as TuiAudio from "./audio"
 import { win32DisableProcessedInput, win32FlushInputBuffer } from "./terminal-win32"
@@ -123,6 +125,7 @@ const appBindingCommands = [
   "workspace.list",
   "app.debug",
   "app.console",
+  "artifacts.list",
   "app.heap_snapshot",
   "terminal.suspend",
   "terminal.title.toggle",
@@ -841,6 +844,24 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         run: () => {
           renderer.console.toggle()
           dialog.clear()
+        },
+      },
+      {
+        name: "artifacts.list",
+        title: "View artifacts",
+        category: "System",
+        slashName: "artifacts",
+        run: () => {
+          dialog.replace(() => <ArtifactPreview />)
+        },
+      },
+      {
+        name: "memory.browse",
+        title: "Browse memory",
+        category: "System",
+        slashName: "memory",
+        run: () => {
+          dialog.replace(() => <MemoryBrowser />)
         },
       },
       {

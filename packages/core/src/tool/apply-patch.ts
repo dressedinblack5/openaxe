@@ -2,6 +2,8 @@ export * as ApplyPatchTool from "./apply-patch"
 
 import { ToolFailure } from "@opencode-ai/llm"
 import { Effect, Layer, Schema } from "effect"
+import * as ts from "typescript"
+import { Config } from "../config"
 import { FileMutation } from "../file-mutation"
 import { FSUtil } from "../fs-util"
 import { LocationMutation } from "../location-mutation"
@@ -49,6 +51,7 @@ export const layer = Layer.effectDiscard(
     const mutation = yield* LocationMutation.Service
     const files = yield* FileMutation.Service
     const fs = yield* FSUtil.Service
+    const config = yield* Config.Service
     const permission = yield* PermissionV2.Service
 
     yield* tools
@@ -109,6 +112,9 @@ export const layer = Layer.effectDiscard(
                   source,
                 })
 
+                const entries = yield* config.entries()
+                const validatePatchTS = Config.latest(entries, "experimental")?.validate_patch_ts ?? true
+
                 const prepared: Prepared[] = []
                 for (const { hunk, target } of targets) {
                   yield* Effect.gen(function* () {
@@ -127,13 +133,22 @@ export const layer = Layer.effectDiscard(
                       hunk.chunks,
                       new TextDecoder("utf-8", { ignoreBOM: true }).decode(source),
                     )
+                    const content = Patch.joinBom(update.content, update.bom)
+
+                    if (validatePatchTS && (hunk.path.endsWith(".ts") || hunk.path.endsWith(".tsx"))) {
+                      const errors = validateTSContent(hunk.path, content)
+                      if (errors.length > 0) yield* new ToolFailure({
+                        message: `Patch introduces TypeScript syntax errors in ${hunk.path}:\n${errors.join("\n")}`,
+                      })
+                    }
+
                     prepared.push({
                       ...hunk,
                       target,
                       source,
-                      content: Patch.joinBom(update.content, update.bom),
+                      content,
                     })
-                  }).pipe(Effect.mapError(() => fail(hunk.path)))
+                  }).pipe(Effect.mapError((cause) => cause instanceof ToolFailure ? cause : fail(hunk.path)))
                 }
 
                 yield* Effect.forEach(
@@ -175,3 +190,14 @@ export const layer = Layer.effectDiscard(
       .pipe(Effect.orDie)
   }),
 )
+
+function validateTSContent(path: string, content: string): string[] {
+  const sourceFile = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true)
+  const diagnostics: readonly ts.Diagnostic[] = (sourceFile as any).parseDiagnostics ?? []
+  return diagnostics
+    .filter((d) => d.category === ts.DiagnosticCategory.Error)
+    .map((d) => {
+      const pos = d.start !== undefined ? sourceFile.getLineAndCharacterOfPosition(d.start) : { line: 0, character: 0 }
+      return `${ts.flattenDiagnosticMessageText(d.messageText, "\n")} (${pos.line + 1}:${pos.character + 1})`
+    })
+}

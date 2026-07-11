@@ -9,7 +9,7 @@ export interface Interface {
   readonly set: (key: string, value: unknown, scope?: string, source?: string) => Effect.Effect<void>
   readonly get: (key: string) => Effect.Effect<unknown | null>
   readonly remove: (key: string) => Effect.Effect<void>
-  readonly list: (kind?: string, scope?: string) => Effect.Effect<Array<{ key: string; value: unknown; kind: string; scope: string; source: string }>>
+  readonly list: (kind?: string, scope?: string, source?: string) => Effect.Effect<Array<{ key: string; value: unknown; kind: string; scope: string; source: string }>>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Memory") {}
@@ -37,10 +37,11 @@ export const layer = Layer.effect(
       yield* db.delete(MemoryTable).where(eq(MemoryTable.key, key)).run().pipe(Effect.orDie)
     })
 
-    const list = Effect.fn("Memory.list")(function* (kind?: string, scope?: string) {
+    const list = Effect.fn("Memory.list")(function* (kind?: string, scope?: string, source?: string) {
       const conditions = []
       if (kind) conditions.push(eq(MemoryTable.kind, kind))
       if (scope) conditions.push(eq(MemoryTable.scope, scope))
+      if (source) conditions.push(eq(MemoryTable.source, source))
       const query = db.select().from(MemoryTable)
       const rows = conditions.length
         ? yield* query.where(and(...conditions)).all().pipe(Effect.orDie)

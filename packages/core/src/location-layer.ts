@@ -1,5 +1,7 @@
 import { Effect, Layer, LayerMap } from "effect"
 import { Location } from "./location"
+import { Memory } from "./memory"
+import { AxeMdSync } from "./memory/sync"
 import { Policy } from "./policy"
 import { Config } from "./config"
 import { PluginV2 } from "./plugin"
@@ -80,7 +82,7 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
       Layer.provide(resources),
       Layer.provide(base),
     )
-    const services = Layer.mergeAll(base, resources, permissionsAndTools)
+    const services = Layer.mergeAll(base, resources, permissionsAndTools, Memory.defaultLayer, AxeMdSync.defaultLayer)
     const image = Image.layer.pipe(Layer.provide(services))
     const mutation = FileMutation.locationLayer.pipe(Layer.provide(services))
     const skillGuidance = SkillGuidance.locationLayer.pipe(Layer.provide(services))
@@ -107,6 +109,15 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
     // have a location
     const projectCopyRefresh = Layer.effectDiscard(ProjectCopy.refreshAfterBoot).pipe(Layer.provide(services))
 
+    const axeMdSync = Layer.effectDiscard(
+      Effect.gen(function* () {
+        const sync = yield* AxeMdSync.Service
+        const location = yield* Location.Service
+        const rules = yield* sync.readAxeMd(location.project.directory)
+        yield* sync.syncToMemory(rules)
+      }),
+    ).pipe(Layer.provide(services))
+
     return Layer.mergeAll(
       boot,
       services,
@@ -120,6 +131,7 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
       builtInTools,
       referenceGuidance,
       projectCopyRefresh,
+      axeMdSync,
     ).pipe(Layer.fresh)
   },
   idleTimeToLive: "60 minutes",
