@@ -11,7 +11,6 @@ import path from "path"
 import { makeRuntime } from "@opencode-ai/core/effect/runtime"
 import semver from "semver"
 import { InstallationChannel, InstallationVersion } from "@opencode-ai/core/installation/version"
-import { NpmConfig } from "@opencode-ai/core/npm-config"
 import { InstallationEvent } from "@opencode-ai/schema/installation-event"
 
 export type Method = "curl" | "npm" | "yarn" | "pnpm" | "bun" | "brew" | "scoop" | "choco" | "unknown"
@@ -61,15 +60,10 @@ export class UpgradeFailedError extends Schema.TaggedErrorClass<UpgradeFailedErr
 
 // Response schemas for external version APIs
 const GitHubRelease = Schema.Struct({ tag_name: Schema.String })
-const NpmPackage = Schema.Struct({ version: Schema.String })
 const BrewFormula = Schema.Struct({ versions: Schema.Struct({ stable: Schema.String }) })
 const BrewInfoV2 = Schema.Struct({
   formulae: Schema.Array(Schema.Struct({ versions: Schema.Struct({ stable: Schema.String }) })),
 })
-const ChocoPackage = Schema.Struct({
-  d: Schema.Struct({ results: Schema.Array(Schema.Struct({ Version: Schema.String })) }),
-})
-const ScoopManifest = NpmPackage
 
 export interface Interface {
   readonly info: () => Effect.Effect<Info>
@@ -131,7 +125,10 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
 
     const upgradeFailure = (method: Method, result?: { code: number; stdout: string; stderr: string }) => {
       if (method === "choco") return "not running from an elevated command shell"
-      if (result) return `Upgrade failed for ${method} (exit code ${result.code}).`
+      if (result) {
+        if (result.stderr) return `Upgrade failed for ${method} (exit code ${result.code}): ${result.stderr}`
+        return `Upgrade failed for ${method} (exit code ${result.code}).`
+      }
       return `Upgrade failed for ${method}.`
     }
 
@@ -198,7 +195,7 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
         for (const check of checks) {
           const output = yield* check.command()
           const installedName =
-            check.name === "brew" || check.name === "choco" || check.name === "scoop" ? "openaxe" : "openaxe-ai"
+            check.name === "brew" || check.name === "choco" || check.name === "scoop" ? "openaxe" : "openaxe"
           if (output.includes(installedName)) {
             return check.name
           }
@@ -225,35 +222,9 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
           return data.versions.stable
         }
 
-        if (detectedMethod === "npm" || detectedMethod === "bun" || detectedMethod === "pnpm") {
-          const response = yield* httpOk.execute(
-            HttpClientRequest.get(
-              `${yield* NpmConfig.registry(process.cwd())}/opencode-ai/${InstallationChannel}`,
-            ).pipe(HttpClientRequest.acceptJson),
-          )
-          const data = yield* HttpClientResponse.schemaBodyJson(NpmPackage)(response)
-          return data.version
-        }
-
-        if (detectedMethod === "choco") {
-          const response = yield* httpOk.execute(
-            HttpClientRequest.get(
-              "https://community.chocolatey.org/api/v2/Packages?$filter=Id%20eq%20%27opencode%27%20and%20IsLatestVersion&$select=Version",
-            ).pipe(HttpClientRequest.setHeaders({ Accept: "application/json;odata=verbose" })),
-          )
-          const data = yield* HttpClientResponse.schemaBodyJson(ChocoPackage)(response)
-          return data.d.results[0].Version
-        }
-
-        if (detectedMethod === "scoop") {
-          const response = yield* httpOk.execute(
-            HttpClientRequest.get(
-              "https://raw.githubusercontent.com/ScoopInstaller/Main/master/bucket/opencode.json",
-            ).pipe(HttpClientRequest.setHeaders({ Accept: "application/json" })),
-          )
-          const data = yield* HttpClientResponse.schemaBodyJson(ScoopManifest)(response)
-          return data.version
-        }
+        // ponytail: npm/bun/pnpm/choco/scoop branches removed — all point to upstream
+        // opencode-ai and would install the wrong project on this fork.
+        // All methods fall through to the GitHub API.
 
         const response = yield* httpOk.execute(
           HttpClientRequest.get("https://api.github.com/repos/dressedinblack5/openaxe/releases/latest").pipe(
@@ -270,13 +241,13 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
             upgradeResult = yield* upgradeCurl(target)
             break
           case "npm":
-            upgradeResult = yield* run(["npm", "install", "-g", `opencode-ai@${target}`])
+            upgradeResult = yield* run(["npm", "install", "-g", `openaxe@${target}`])
             break
           case "pnpm":
-            upgradeResult = yield* run(["pnpm", "install", "-g", `opencode-ai@${target}`])
+            upgradeResult = yield* run(["pnpm", "install", "-g", `openaxe@${target}`])
             break
           case "bun":
-            upgradeResult = yield* run(["bun", "install", "-g", `opencode-ai@${target}`])
+            upgradeResult = yield* run(["bun", "install", "-g", `openaxe@${target}`])
             break
           case "brew": {
             const formula = yield* getBrewFormula()
@@ -304,7 +275,7 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
             upgradeResult = yield* run(["choco", "upgrade", "openaxe", `--version=${target}`, "-y"])
             break
           case "scoop":
-            upgradeResult = yield* run(["scoop", "install", `opencode@${target}`])
+            upgradeResult = yield* run(["scoop", "install", `openaxe@${target}`])
             break
           default:
             return yield* new UpgradeFailedError({ stderr: `Unknown installation method: ${m}` })
