@@ -34,3 +34,21 @@ UPCOMING_CHANGELOG.md
 logs/
 *.bun-build
 tsconfig.tsbuildinfo
+
+# Editor swap files (not covered by *~)
+*.swp
+*.swo
+
+# OS thumbnails/config
+Thumbs.db
+Desktop.ini
+
+# Python cache (common in dev environments)
+__pycache__/
+
+# direnv env file (dir already covered by .direnv/)
+.envrc
+
+# Private keys and credentials
+*.pem
+*.key
