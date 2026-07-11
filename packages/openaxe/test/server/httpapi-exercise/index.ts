@@ -1673,6 +1673,7 @@ const scenarios: Scenario[] = [
     .mutating()
     .at((ctx) => ({ path: "/memory/test-delete-key", headers: ctx.headers() }))
     .json(200, (body) => {
+      object(body)
       check(body.removed === true, "should return removed: true")
     }),
 
