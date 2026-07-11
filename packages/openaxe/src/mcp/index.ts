@@ -505,9 +505,10 @@ export const layer = Layer.effect(
         const servers = getMcpServers(cfg.mcp)
 
         // ponytail: inject CodeGraph as built-in MCP when installed; user config overrides
-        // Only auto-inject when user hasn't set any mcp config (servers empty).
-        // Explicit mcp: {} means "no MCP servers", not "inject defaults".
-        if (!servers.codegraph) {
+        // Only auto-inject when user hasn't set any mpc config at all (undefined).
+        // Explicit mcp: {} or mcp: { ... } means "user configured MCP", don't inject defaults.
+        const mcpConfigured = cfg.mcp != null
+        if (!servers.codegraph && !mcpConfigured) {
           const tryResolve = Option.liftThrowable(() =>
             createRequire(import.meta.url).resolve(
               `@colbymchenry/codegraph-${process.platform}-${process.arch}/bin/codegraph`,

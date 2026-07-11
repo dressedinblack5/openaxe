@@ -850,7 +850,7 @@ export const RunCommand = effectCmd({
             parts: [...files, { type: "text", text: message }],
           })
           if (result.error) {
-            if (!emit("error", { error: result.error })) UI.error(formatRunError(result.error))
+            // Error will be emitted via session.error event from the event stream loop
             process.exitCode = 1
             return
           }
