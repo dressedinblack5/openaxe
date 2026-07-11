@@ -24,15 +24,24 @@ check_cmd bun
 if [ -d "$INSTALL_DIR" ]; then
   if [ -d "$INSTALL_DIR/.git" ]; then
     echo -e "${MUTED}Updating openaxe in $INSTALL_DIR...${NC}"
-    git -C "$INSTALL_DIR" fetch --depth 1 origin "$BRANCH"
-    git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH"
+    if [ -n "${VERSION:-}" ]; then
+      git -C "$INSTALL_DIR" fetch --depth 1 origin tag "v$VERSION"
+      git -C "$INSTALL_DIR" checkout "v$VERSION"
+    else
+      git -C "$INSTALL_DIR" fetch --depth 1 origin "$BRANCH"
+      git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH"
+    fi
   else
     echo -e "${RED}Error: $INSTALL_DIR exists but is not a git repository.${NC}" >&2
     exit 1
   fi
 else
   echo -e "${MUTED}Cloning openaxe into $INSTALL_DIR...${NC}"
-  git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" "$INSTALL_DIR"
+  clone_ref="$BRANCH"
+  if [ -n "${VERSION:-}" ]; then
+    clone_ref="v$VERSION"
+  fi
+  git clone --depth 1 --branch "$clone_ref" "https://github.com/$REPO.git" "$INSTALL_DIR"
 fi
 
 echo -e "${MUTED}Installing dependencies...${NC}"
