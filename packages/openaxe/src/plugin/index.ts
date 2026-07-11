@@ -35,6 +35,7 @@ import { InstallationChannel } from "@opencode-ai/core/installation/version"
 
 type State = {
   hooks: Hooks[]
+  deferredExternal: Effect.Effect<void>
 }
 
 // Hook names that follow the (input, output) => Promise<void> trigger pattern
@@ -188,70 +189,7 @@ export const layer = Layer.effect(
           if (init._tag === "Some") hooks.push(init.value)
         }
 
-        const plugins = flags.pure ? [] : (cfg.plugin_origins ?? []).filter((p) => !flags.disableDefaultPlugins || p.scope !== "global")
-        if (flags.pure && cfg.plugin_origins?.length) {
-        }
-        if (plugins.length) yield* config.waitForDependencies()
-
-        const loaded = yield* Effect.promise(() =>
-          PluginLoader.loadExternal({
-            items: plugins,
-            kind: "server",
-            report: {
-              start(candidate) {},
-              missing(candidate, _retry, message) {},
-              error(candidate, _retry, stage, error, resolved) {
-                const spec = candidate.plan.spec
-                const cause = error instanceof Error ? (error.cause ?? error) : error
-                const message = stage === "load" ? errorMessage(error) : errorMessage(cause)
-
-                if (stage === "install") {
-                  const parsed = parsePluginSpecifier(spec)
-                  publishPluginError(`Failed to install plugin ${parsed.pkg}@${parsed.version}: ${message}`)
-                  return
-                }
-
-                if (stage === "compatibility") {
-                  publishPluginError(`Plugin ${spec} skipped: ${message}`)
-                  return
-                }
-
-                if (stage === "entry") {
-                  publishPluginError(`Failed to load plugin ${spec}: ${message}`)
-                  return
-                }
-
-                publishPluginError(`Failed to load plugin ${spec}: ${message}`)
-              },
-            },
-          }),
-        )
-        for (const load of loaded) {
-          if (!load) continue
-
-          // Keep plugin execution sequential so hook registration and execution
-          // order remains deterministic across plugin runs.
-          yield* Effect.tryPromise({
-            try: () => applyPlugin(load, input, hooks),
-            catch: (err) => {
-              const message = errorMessage(err)
-              return message
-            },
-          }).pipe(
-            Effect.tapError((error) => Effect.logError("failed to load plugin", { path: load.spec, error })),
-            Effect.catch(() => {
-              // TODO: make proper events for this
-              // events.publish(Session.Event.Error, {
-              //   error: new NamedError.Unknown({
-              //     message: `Failed to load plugin ${load.spec}: ${message}`,
-              //   }).toObject(),
-              // })
-              return Effect.void
-            }),
-          )
-        }
-
-        // Notify plugins of current config
+        // Notify internal plugins of current config eagerly
         for (const hook of hooks) {
           yield* Effect.tryPromise({
             try: () => Promise.resolve((hook as any).config?.(cfg)),
@@ -261,6 +199,88 @@ export const layer = Layer.effect(
             Effect.ignore,
           )
         }
+
+        // Defer external plugin loading — heavy npm imports, disk I/O, and
+        // plugin initialization run on first list() or trigger() call.
+        const deferredExternal = yield* Effect.cached(
+          Effect.fn("Plugin.loadExternal")(function* () {
+            const plugins = flags.pure ? [] : (cfg.plugin_origins ?? []).filter(
+              (p) => !flags.disableDefaultPlugins || p.scope !== "global",
+            )
+            if (flags.pure && cfg.plugin_origins?.length) {
+            }
+            if (plugins.length) yield* config.waitForDependencies()
+
+            const loaded = yield* Effect.promise(() =>
+              PluginLoader.loadExternal({
+                items: plugins,
+                kind: "server",
+                report: {
+                  start(candidate) {},
+                  missing(candidate, _retry, message) {},
+                  error(candidate, _retry, stage, error, resolved) {
+                    const spec = candidate.plan.spec
+                    const cause = error instanceof Error ? (error.cause ?? error) : error
+                    const message = stage === "load" ? errorMessage(error) : errorMessage(cause)
+
+                    if (stage === "install") {
+                      const parsed = parsePluginSpecifier(spec)
+                      publishPluginError(`Failed to install plugin ${parsed.pkg}@${parsed.version}: ${message}`)
+                      return
+                    }
+
+                    if (stage === "compatibility") {
+                      publishPluginError(`Plugin ${spec} skipped: ${message}`)
+                      return
+                    }
+
+                    if (stage === "entry") {
+                      publishPluginError(`Failed to load plugin ${spec}: ${message}`)
+                      return
+                    }
+
+                    publishPluginError(`Failed to load plugin ${spec}: ${message}`)
+                  },
+                },
+              }),
+            )
+            for (const load of loaded) {
+              if (!load) continue
+
+              // Keep plugin execution sequential so hook registration and execution
+              // order remains deterministic across plugin runs.
+              yield* Effect.tryPromise({
+                try: () => applyPlugin(load, input, hooks),
+                catch: (err) => {
+                  const message = errorMessage(err)
+                  return message
+                },
+              }).pipe(
+                Effect.tapError((error) => Effect.logError("failed to load plugin", { path: load.spec, error })),
+                Effect.catch(() => {
+                  // TODO: make proper events for this
+                  // events.publish(Session.Event.Error, {
+                  //   error: new NamedError.Unknown({
+                  //     message: `Failed to load plugin ${load.spec}: ${message}`,
+                  //   }).toObject(),
+                  // })
+                  return Effect.void
+                }),
+              )
+            }
+
+            // Notify all plugins (internal + newly loaded external) of current config
+            for (const hook of hooks) {
+              yield* Effect.tryPromise({
+                try: () => Promise.resolve((hook as any).config?.(cfg)),
+                catch: errorMessage,
+              }).pipe(
+                Effect.tapError((error) => Effect.logError("plugin config hook failed", { error })),
+                Effect.ignore,
+              )
+            }
+          })(),
+        )
 
         const unsubscribe = yield* events.listen((event) => {
           if (event.location?.directory !== ctx.directory) return Effect.void
@@ -287,7 +307,7 @@ export const layer = Layer.effect(
           ),
         )
 
-        return { hooks }
+        return { hooks, deferredExternal }
       }),
     )
 
@@ -303,6 +323,7 @@ export const layer = Layer.effect(
       const ready = yield* InstanceState.has(state)
       if (!ready) return output
       const s = yield* InstanceState.get(state)
+      yield* s.deferredExternal
       for (const hook of s.hooks) {
         const fn = hook[name] as any
         if (!fn) continue
@@ -320,6 +341,7 @@ export const layer = Layer.effect(
       const ready = yield* InstanceState.has(state)
       if (!ready) return []
       const s = yield* InstanceState.get(state)
+      yield* s.deferredExternal
       return s.hooks
     })
 

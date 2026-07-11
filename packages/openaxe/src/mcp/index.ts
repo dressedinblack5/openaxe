@@ -94,12 +94,17 @@ const StatusFailed = Schema.Struct({ status: Schema.Literal("failed"), error: Sc
 const StatusNeedsAuth = Schema.Struct({ status: Schema.Literal("needs_auth") }).annotate({
   identifier: "MCPStatusNeedsAuth",
 })
+const StatusPending = Schema.Struct({ status: Schema.Literal("pending") }).annotate({
+  identifier: "MCPStatusPending",
+})
+
 const StatusNeedsClientRegistration = Schema.Struct({
   status: Schema.Literal("needs_client_registration"),
   error: Schema.String,
 }).annotate({ identifier: "MCPStatusNeedsClientRegistration" })
 
 export const Status = Schema.Union([
+  StatusPending,
   StatusConnected,
   StatusDisabled,
   StatusFailed,
@@ -512,6 +517,8 @@ export const layer = Layer.effect(
           instructions: {},
         }
 
+        // Defer MCP server connections — just record configs as pending.
+        // Actual connection happens lazily on first access via ensurePendingConnections().
         yield* Effect.forEach(
           Object.entries(config),
           ([key, mcp]) =>
@@ -529,14 +536,8 @@ export const layer = Layer.effect(
                 return
               }
 
-              const result = yield* create(key, mcp)
-              s.status[key] = result.status
-              if (result.mcpClient) {
-                s.clients[key] = result.mcpClient
-                s.defs[key] = result.defs!
-                if (result.instructions) s.instructions[key] = result.instructions
-                watch(s, key, result.mcpClient, bridge, mcp.timeout)
-              }
+              s.config[key] = mcp
+              s.status[key] = { status: "pending" }
             }),
           { concurrency: "unbounded" },
         )
@@ -601,6 +602,35 @@ export const layer = Layer.effect(
       return s.status[name]
     })
 
+    // ── Lazy connection helpers ──────────────────────────────────────────────
+    // Connects a single pending MCP server by name. Idempotent — skips if
+    // already connected, disabled, or missing from config.
+    const connectOne = Effect.fn("MCP.connectOne")(function* (name: string) {
+      const s = yield* InstanceState.get(state)
+      const current = s.status[name]
+      if (!current || current.status !== "pending") return
+      const mcp = s.config[name]
+      if (!mcp) return
+      const result = yield* create(name, mcp)
+      s.status[name] = result.status
+      if (result.mcpClient) {
+        s.clients[name] = result.mcpClient
+        s.defs[name] = result.defs!
+        if (result.instructions) s.instructions[name] = result.instructions
+        watch(s, name, result.mcpClient, yield* EffectBridge.make(), mcp.timeout)
+      }
+    })
+
+    // Connects all servers still in pending status. Uses connectOne per server.
+    const connectAll = Effect.fn("MCP.connectAll")(function* () {
+      const s = yield* InstanceState.get(state)
+      const pending = Object.keys(s.status).filter(
+        (name) => s.status[name]?.status === "pending"
+      )
+      for (const name of pending) {
+        yield* connectOne(name)
+      }
+    })
     const status = Effect.fn("MCP.status")(function* () {
       const s = yield* InstanceState.get(state)
 
@@ -621,11 +651,13 @@ export const layer = Layer.effect(
     })
 
     const clients = Effect.fn("MCP.clients")(function* () {
+      yield* connectAll()
       const s = yield* InstanceState.get(state)
       return s.clients
     })
 
     const instructions = Effect.fn("MCP.instructions")(function* () {
+      yield* connectAll()
       const s = yield* InstanceState.get(state)
       return Object.entries(s.instructions)
         .filter(([name]) => s.status[name]?.status === "connected")
@@ -677,6 +709,7 @@ export const layer = Layer.effect(
     }
 
     const tools = Effect.fn("MCP.tools")(function* () {
+      yield* connectAll()
       const result: Record<string, Tool> = {}
       const s = yield* InstanceState.get(state)
 
@@ -698,9 +731,9 @@ export const layer = Layer.effect(
           result[key] = McpCatalog.convertTool(mcpTool, client, timeout)
         }
       }
+
       return result
     })
-
     function collectFromConnected<T extends { name: string }>(
       s: State,
       listFn: (c: Client, timeout?: number) => Promise<T[]>,
@@ -709,6 +742,7 @@ export const layer = Layer.effect(
       targetClientName?: string,
     ) {
       return Effect.gen(function* () {
+        yield* connectAll()
         const cfg = yield* cfgSvc.get()
         return yield* Effect.forEach(
           Object.entries(s.clients).filter(
@@ -758,6 +792,7 @@ export const layer = Layer.effect(
       meta?: Record<string, unknown>,
     ) {
       const s = yield* InstanceState.get(state)
+      yield* connectOne(clientName)
       const client = s.clients[clientName]
       if (!client) {
         yield* Effect.logWarning(`client not found for ${label}`, { clientName })

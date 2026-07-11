@@ -1307,8 +1307,33 @@ export const layer = Layer.effect(
         const bridge = yield* EffectBridge.make()
         const cfg = yield* config.get()
         const modelsDev = yield* modelsDevSvc.get()
-        const catalog = mapValues(modelsDev, fromModelsDevProvider)
-        const database = mapValues(catalog, toPublicInfo)
+
+        // ── Prune models-dev to configured providers ──────────────────────────
+        // Only eagerly convert providers the user has configured. Unconfigured
+        // providers are lazily converted on first access via getProvider/getModel.
+        const configuredIds = new Set(Object.keys(cfg.provider ?? {}))
+        if (cfg.enabled_providers) {
+          for (const id of cfg.enabled_providers) configuredIds.add(id)
+        }
+
+        const catalog: Record<string, Info> = {}
+        const database: Record<string, Info> = {}
+        for (const [id, raw] of Object.entries(modelsDev)) {
+          if (configuredIds.has(id)) {
+            catalog[id] = fromModelsDevProvider(raw)
+            database[id] = toPublicInfo(catalog[id])
+          }
+        }
+
+        // Helper to lazily convert a provider from raw models-dev data
+        function ensureDatabase(id: string): Info | undefined {
+          if (database[id]) return database[id]
+          const raw = modelsDev[id]
+          if (!raw) return undefined
+          catalog[id] = fromModelsDevProvider(raw)
+          database[id] = toPublicInfo(catalog[id])
+          return database[id]
+        }
 
         const providers: Record<ProviderV2.ID, Info> = {} as Record<ProviderV2.ID, Info>
         const languages = new Map<string, LanguageModelV3>()
@@ -1479,16 +1504,19 @@ export const layer = Layer.effect(
           database[providerID] = parsed
         }
 
-        // load env
+        // load env — check raw modelsDev so providers discovered via env vars
+        // auto-activate even when not explicitly configured.
         const envs = yield* env.all()
-        for (const [id, provider] of Object.entries(database)) {
+        for (const [id, raw] of Object.entries(modelsDev)) {
           const providerID = ProviderV2.ID.make(id)
           if (disabled.has(providerID)) continue
-          const apiKey = provider.env.map((item) => envs[item]).find(Boolean)
+          const envVars = raw.env ?? []
+          const apiKey = envVars.map((item) => envs[item]).find(Boolean)
           if (!apiKey) continue
+          ensureDatabase(id)
           mergeProvider(providerID, {
             source: "env",
-            key: provider.env.length === 1 ? apiKey : undefined,
+            key: envVars.length === 1 ? apiKey : undefined,
           })
         }
 
@@ -1498,6 +1526,7 @@ export const layer = Layer.effect(
           const providerID = ProviderV2.ID.make(id)
           if (disabled.has(providerID)) continue
           if (provider.type === "api") {
+            ensureDatabase(id)
             mergeProvider(providerID, {
               source: "api",
               key: provider.key,
@@ -1529,7 +1558,7 @@ export const layer = Layer.effect(
         for (const [id, fn] of Object.entries(custom(dep))) {
           const providerID = ProviderV2.ID.make(id)
           if (disabled.has(providerID)) continue
-          const data = database[providerID]
+          const data = ensureDatabase(id)
           if (!data) {
             continue
           }
@@ -1617,6 +1646,12 @@ export const layer = Layer.effect(
           }
         }
 
+        // Prune catalog to only active providers
+        for (const id of Object.keys(catalog)) {
+          if (!providers[ProviderV2.ID.make(id)]) {
+            delete catalog[id]
+          }
+        }
         return {
           models: languages,
           providers,
