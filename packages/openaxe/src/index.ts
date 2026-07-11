@@ -67,6 +67,11 @@ const cli = yargs(args)
     ),
   )
   .command(
+    lazyCommand("memory <action>", "manage project memory (AXE.md)", undefined, () =>
+      import("./cli/cmd/memory").then((m) => m.MemoryCommand),
+    ),
+  )
+  .command(
     lazyCommand("$0 [project]", "start openaxe tui", undefined, () =>
       import("./cli/cmd/tui").then((m) => m.TuiCommand),
     ),
@@ -127,11 +132,6 @@ const cli = yargs(args)
     ),
   )
   .command(
-    lazyCommand("memory <action>", "manage project memory (AXE.md)", undefined, () =>
-      import("./cli/cmd/memory").then((m) => m.MemoryCommand),
-    ),
-  )
-  .command(
     lazyCommand("export [sessionID]", "export session data as JSON", undefined, () =>
       import("./cli/cmd/export").then((m) => m.ExportCommand),
     ),
@@ -154,11 +154,6 @@ const cli = yargs(args)
   .command(
     lazyCommand("session", "manage sessions", undefined, () =>
       import("./cli/cmd/session").then((m) => m.SessionCommand),
-    ),
-  )
-  .command(
-    lazyCommand("memory <action>", "manage project memory (AXE.md)", undefined, () =>
-      import("./cli/cmd/memory").then((m) => m.MemoryCommand),
     ),
   )
   .command(

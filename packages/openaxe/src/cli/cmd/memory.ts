@@ -23,7 +23,9 @@ export const MemoryCommand = effectCmd({
   describe: "manage project memory (AXE.md)",
   instance: true,
   handler: Effect.fn("Cli.memory")(function* (args) {
+    console.error("DEBUG: memory command handler started", { action: args.action })
     const ctx = yield* InstanceRef
+    console.error("DEBUG: got instance ref", { projectDir: ctx.project.directory })
     const projectDir = ctx.project.directory
 
     switch (args.action) {
