@@ -1,8 +1,6 @@
-import { NodeFileSystem } from "@effect/platform-node"
 import { Database } from "@opencode-ai/core/database/database"
 import { EventV2 } from "@opencode-ai/core/event"
 import { LocationServiceMap } from "@opencode-ai/core/location-layer"
-
 import { FetchHttpClient, HttpRouter, HttpServer } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { Layer, Option } from "effect"
@@ -28,7 +26,6 @@ export function createRoutes(password?: string) {
     Layer.provide(Database.defaultLayer),
     Layer.provide(EventV2.defaultLayer),
     Layer.provide(FetchHttpClient.layer),
-    Layer.provide(NodeFileSystem.layer),
   )
 }
 

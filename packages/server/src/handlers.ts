@@ -24,12 +24,7 @@ import { LocationHandler } from "./handlers/location"
 import { IntegrationHandler } from "./handlers/integration"
 import { CredentialHandler } from "./handlers/credential"
 import { Credential } from "@opencode-ai/core/credential"
-import { Artifact } from "@opencode-ai/core/artifact"
-import { Memory } from "@opencode-ai/core/memory"
 import { ProjectCopyHandler } from "./handlers/project-copy"
-import { ArtifactHandler } from "./handlers/artifact"
-import { RevertHandler } from "./handlers/revert"
-import { MemoryHandler } from "./handlers/memory"
 
 export const handlers = Layer.mergeAll(
   HealthHandler,
@@ -50,9 +45,6 @@ export const handlers = Layer.mergeAll(
   QuestionHandler,
   ReferenceHandler,
   ProjectCopyHandler,
-  ArtifactHandler,
-  RevertHandler,
-  MemoryHandler,
 ).pipe(
   Layer.provide(sessionLocationLayer),
   Layer.provide(locationLayer),
@@ -62,6 +54,4 @@ export const handlers = Layer.mergeAll(
   Layer.provide(PtyTicket.defaultLayer),
   Layer.provide(LocationServiceMap.layer),
   Layer.provide(Credential.defaultLayer),
-  Layer.provide(Artifact.defaultLayer),
-  Layer.provide(Memory.defaultLayer),
 )

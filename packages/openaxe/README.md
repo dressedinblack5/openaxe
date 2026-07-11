@@ -89,6 +89,12 @@ openaxe run "explain this codebase"
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Background HTTP API server with optional web interface
 - **All major platforms** — Linux, macOS, Windows (native binaries, AVX2/musl detection)
+- **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, survives across sessions
+- **Auto-verification guardrails** — automatic `tsc`/`cargo`/`ruff`/`go vet` after every file mutation, plus bracket balance and import validation
+- **Versioned artifact store** — content-versioned storage for build outputs and generated files with TUI preview
+- **Auto-commit** — automatic git commits at each AI mutation turn
+- **Error journal** — tool errors logged to `.openaxe/errors.jsonl` for debugging
+- **/revert** — undo AI file changes via snapshot-based rollback
 
 ## User Guide
 
@@ -260,28 +266,6 @@ The monorepo ships 13 packages:
 | **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
 | **Startup** | Lazy-loaded CLI commands | Eager imports |
 | **Identity** | Renamed project-wide (`openaxe`) | N/A |
-
-## Development Status
-
-The following features are designed and planned but not yet implemented. They were scoped in the `improve-openaxe` work plan; implementation is pending resolution of agent-execution constraints.
-
-### MemoryStore
-
-- **Persistent agent memory** — a SQLite-backed key-value store (`packages/core/src/memory`) that survives across sessions and reloads, so an agent can recall prior context, decisions, and project notes without re-deriving them every run.
-- **Schema + service** — Drizzle SQLite tables (`*.sql.ts`) plus an Effect `MemoryStore` service exposing `set`, `get`, `delete`, and `list` over a shared `Database` connection.
-- **AXE.md sync** — a synchronization layer that mirrors the memory store to a root-level `AXE.md` file, keeping human-readable project guidance in sync with the durable store.
-- **Injection** — memory loads as a system-context source (`core/memory` key) so it is visible to the model as a refreshable, typed context block.
-
-### Auto-verification Guardrails
-
-- **Diagnostic executor** (`packages/core/src/guardrail/verify`) — after file mutations, triggers the workspace's native verifiers (`tsc`, `eslint`, project test scripts) and surfaces diagnostics back to the agent.
-- **Tool-pipeline integration** — wired as middleware into the tool `settle` pipeline (`packages/core/src/tool`) so verification runs automatically after each mutation rather than as a manual step.
-- **Patch safety** — structural/AST verification for `apply_patch` hunks (`packages/core/src/tool/patch`) that catches malformed or conflicting edits before they are written.
-
-### ArtifactStore
-
-- **Versioned storage** — a content-versioned artifact store (`packages/core/src/artifact`) for build outputs, test results, and generated files, each retained with a stable version identifier.
-- **TUI previews** — text previews of artifacts surfaced directly in the terminal UI so users can inspect build/test output without leaving the session.
 
 Contributions welcome — see `AGENTS.md` for development guidelines.
 

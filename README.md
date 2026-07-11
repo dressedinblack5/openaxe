@@ -120,6 +120,10 @@ openaxe run "summarize this codebase"  # non-interactive
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Run as background server with HTTP API and optional web UI
 - **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
+- **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, persists across sessions
+- **Auto-verification guardrails** — automatic `tsc`/`cargo`/`ruff`/`go vet` after every file mutation
+- **Versioned artifact store** with TUI preview
+- **Auto-commit**, **error journal**, **/revert** — productivity trio for AI change management
 
 ## Preinstalled Plugins
 
