@@ -79,61 +79,87 @@ export namespace PluginLoader {
     return { spec, options: ConfigPlugin.pluginOptions(item), deprecated: isDeprecatedPlugin(spec) }
   }
 
-  // Resolve a configured plugin into a concrete entrypoint that can later be imported.
-  //
-  // The stages here intentionally separate install/target resolution, entrypoint detection,
-  // and compatibility checks so callers can report the exact reason a plugin was skipped.
-  export async function resolve(
-    plan: Plan,
-    kind: PluginKind,
-  ): Promise<
-    | { ok: true; value: Resolved }
-    | { ok: false; stage: "missing"; value: Missing }
-    | { ok: false; stage: "install" | "entry" | "compatibility"; error: unknown }
-  > {
-    // First make sure the plugin exists locally, installing npm plugins on demand.
-    let target = ""
-    try {
-      target = await resolvePluginTarget(plan.spec)
-    } catch (error) {
-      return { ok: false, stage: "install", error }
-    }
-    if (!target) return { ok: false, stage: "install", error: new Error(`Plugin ${plan.spec} target is empty`) }
+// Memoization caches for resolve and load to avoid redundant work
+// Key: `${spec}:${kind}`
+const resolveCache = new Map<string, Promise<ResolveResult>>()
+const loadCache = new Map<string, Promise<LoadResult>>()
 
-    // Then inspect the target for the requested server/tui entrypoint.
-    let base
-    try {
-      base = await createPluginEntry(plan.spec, target, kind)
-    } catch (error) {
-      return { ok: false, stage: "entry", error }
-    }
-    if (!base.entry)
-      return {
-        ok: false,
-        stage: "missing",
-        value: {
-          ...plan,
-          source: base.source,
-          target: base.target,
-          pkg: base.pkg,
-          message: `Plugin ${plan.spec} does not expose a ${kind} entrypoint`,
-        },
-      }
+type ResolveResult =
+  | { ok: true; value: Resolved }
+  | { ok: false; stage: "missing"; value: Missing }
+  | { ok: false; stage: "install" | "entry" | "compatibility"; error: unknown }
 
-    // npm plugins can declare which opencode versions they support; file plugins are treated
-    // as local development code and skip this compatibility gate.
-    if (base.source === "npm") {
+type LoadResult = { ok: true; value: Loaded } | { ok: false; error: unknown }
+
+function cacheKey(plan: Plan, kind: PluginKind): string {
+  return `${plan.spec}:${kind}`
+}
+
+// Resolve a configured plugin into a concrete entrypoint that can later be imported.
+//
+// The stages here intentionally separate install/target resolution, entrypoint detection,
+// and compatibility checks so callers can report the exact reason a plugin was skipped.
+export async function resolve(
+  plan: Plan,
+  kind: PluginKind,
+): Promise<ResolveResult> {
+  const key = cacheKey(plan, kind)
+  const cached = resolveCache.get(key)
+  if (cached) return cached
+
+  const promise = (async (): Promise<ResolveResult> => {
+      // First make sure the plugin exists locally, installing npm plugins on demand.
+      let target = ""
       try {
-        await checkPluginCompatibility(base.target, InstallationVersion, base.pkg)
+        target = await resolvePluginTarget(plan.spec)
       } catch (error) {
-        return { ok: false, stage: "compatibility", error }
+        return { ok: false, stage: "install", error }
       }
-    }
-    return { ok: true, value: { ...plan, source: base.source, target: base.target, entry: base.entry, pkg: base.pkg } }
+      if (!target) return { ok: false, stage: "install", error: new Error(`Plugin ${plan.spec} target is empty`) }
+
+      // Then inspect the target for the requested server/tui entrypoint.
+      let base
+      try {
+        base = await createPluginEntry(plan.spec, target, kind)
+      } catch (error) {
+        return { ok: false, stage: "entry", error }
+      }
+      if (!base.entry)
+        return {
+          ok: false,
+          stage: "missing",
+          value: {
+            ...plan,
+            source: base.source,
+            target: base.target,
+            pkg: base.pkg,
+            message: `Plugin ${plan.spec} does not expose a ${kind} entrypoint`,
+          },
+        }
+
+      // npm plugins can declare which opencode versions they support; file plugins are treated
+      // as local development code and skip this compatibility gate.
+      if (base.source === "npm") {
+        try {
+          await checkPluginCompatibility(base.target, InstallationVersion, base.pkg)
+        } catch (error) {
+          return { ok: false, stage: "compatibility", error }
+        }
+      }
+      return { ok: true, value: { ...plan, source: base.source, target: base.target, entry: base.entry, pkg: base.pkg } }
+    })()
+
+    resolveCache.set(key, promise)
+    return promise
   }
 
-  // Import the resolved module only after all earlier validation has succeeded.
-  export async function load(row: Resolved): Promise<{ ok: true; value: Loaded } | { ok: false; error: unknown }> {
+// Import the resolved module only after all earlier validation has succeeded.
+export async function load(row: Resolved): Promise<LoadResult> {
+  const key = cacheKey(row, "load" as PluginKind)
+  const cached = loadCache.get(key)
+  if (cached) return cached
+
+  const promise = (async (): Promise<LoadResult> => {
     let mod
     try {
       mod = await import(row.entry)
@@ -142,7 +168,11 @@ export namespace PluginLoader {
     }
     if (!mod) return { ok: false, error: new Error(`Plugin ${row.spec} module is empty`) }
     return { ok: true, value: { ...row, mod } }
-  }
+  })()
+
+  loadCache.set(key, promise)
+  return promise
+}
 
   // Run one candidate through the full pipeline: resolve, optionally surface a missing entry,
   // import the module, and finally let the caller transform the loaded plugin into any result type.
