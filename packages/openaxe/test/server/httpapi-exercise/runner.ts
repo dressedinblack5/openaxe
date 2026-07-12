@@ -8,6 +8,7 @@ import type { Config } from "../../../src/config/config"
 import type { MessageV2 } from "../../../src/session/message-v2"
 import { MessageID, PartID } from "../../../src/session/schema"
 import { InstanceBootstrap } from "../../../src/project/bootstrap-service"
+import { InstanceStore } from "../../../src/project/instance-store"
 import { call, callAuthProbe, disposeApps } from "./backend"
 import { original } from "./environment"
 import { runtime } from "./runtime"
@@ -111,7 +112,7 @@ function withContext<A, E>(
         yield* trace(options, scenario, `${label} runtime start`)
         const modules = yield* Effect.promise(() => runtime())
         yield* trace(options, scenario, `${label} runtime done`)
-        // Build the full service context once into an unsafe scope so the
+// Build the full service context once into an unsafe scope so the
         // service graph (InstanceStore, Session, Database, etc.) stays alive
         // across all scenarios. The same memoMap is shared with backend.ts's
         // toWebHandler, so both the web handler and the effect context share
@@ -227,6 +228,10 @@ function withContext<A, E>(
           llmText: (value) => Effect.suspend(() => llm().text(value)),
           llmWait: (count) => Effect.suspend(() => llm().wait(count)),
           tuiRequest: (request) => Effect.sync(() => modules.Tui.submitTuiRequest(request)),
+          memorySet: (key, value, scope, source) =>
+            run(modules.Memory.Service.use((svc) => svc.set(key, value, scope, source))),
+          artifactStore: (key, content) =>
+            run(modules.Artifact.Service.use((svc) => svc.store(key, content))).pipe(Effect.asVoid),
         }
         yield* trace(options, scenario, `${label} seed start`)
         const state = yield* scenario.seed(base)

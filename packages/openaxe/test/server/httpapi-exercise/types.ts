@@ -68,6 +68,8 @@ export type ScenarioContext = {
   llmText: (value: string) => Effect.Effect<void>
   llmWait: (count: number) => Effect.Effect<void>
   tuiRequest: (request: { path: string; body: unknown }) => Effect.Effect<void>
+  memorySet: (key: string, value: unknown, scope?: string, source?: string) => Effect.Effect<void>
+  artifactStore: (key: string, content: string) => Effect.Effect<void>
 }
 
 /** Scenario context after `.seeded(...)`; `state` preserves the seed return type in the DSL. */

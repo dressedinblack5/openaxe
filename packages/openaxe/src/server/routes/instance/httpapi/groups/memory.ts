@@ -45,10 +45,10 @@ export const MemoryApi = HttpApi.make("memory")
             summary: "Set memory entry",
           }),
         ),
-        HttpApiEndpoint.get("get", "/memory/:key", {
+HttpApiEndpoint.get("get", "/memory/:key", {
           query: WorkspaceRoutingQuery,
           params: { key: Schema.String },
-          success: described(Schema.Unknown, "Memory entry value"),
+          success: described(MemoryEntry, "Memory entry"),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "memory.get",

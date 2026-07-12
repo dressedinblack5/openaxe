@@ -1653,10 +1653,14 @@ const scenarios: Scenario[] = [
 
   http.protected.get("/memory", "memory.list").json(200, array),
 
-  http.protected.get("/memory/{key}", "memory.get").json(200, (body) => {
-    object(body)
-    check(body.key === "test-key", "should return memory entry with key")
-  }),
+  http.protected
+    .get("/memory/{key}", "memory.get")
+    .seeded((ctx) => ctx.memorySet("test-key", "test-value", "session", "agent"))
+    .at((ctx) => ({ path: "/memory/test-key", headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.key === "test-key", "should return memory entry with key")
+    }),
 
   http.protected
     .post("/memory", "memory.set")
@@ -1679,23 +1683,31 @@ const scenarios: Scenario[] = [
 
   http.protected.get("/api/artifact", "artifact.list").json(200, array),
 
-  http.protected.get("/api/artifact/{key}", "artifact.getLatest").json(200, (body) => {
-    object(body)
-    check(typeof body.key === "string", "should return artifact with key")
-  }),
+  http.protected
+    .get("/api/artifact/{key}", "artifact.getLatest")
+    .seeded((ctx) => ctx.artifactStore("test-artifact", "test content"))
+    .at((ctx) => ({ path: "/api/artifact/test-artifact", headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.key === "string", "should return artifact with key")
+    }),
 
-  http.protected.get("/api/artifact/{key}/{version}", "artifact.getVersion").json(200, (body) => {
-    object(body)
-    check(typeof body.key === "string", "should return artifact version")
-  }),
+  http.protected
+    .get("/api/artifact/{key}/{version}", "artifact.getVersion")
+    .seeded((ctx) => ctx.artifactStore("test-artifact-version", "test content"))
+    .at((ctx) => ({ path: "/api/artifact/test-artifact-version/1", headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.key === "string", "should return artifact version")
+    }),
 
   http.protected
     .post("/api/artifact", "artifact.store")
     .mutating()
-    .at((ctx) => ({ path: "/api/artifact", headers: ctx.headers(), body: { key: "test-artifact", content: "test content" } }))
+    .at((ctx) => ({ path: "/api/artifact", headers: ctx.headers(), body: { key: "test-artifact-new", content: "test content" } }))
     .json(200, (body) => {
       object(body)
-      check(body.key === "test-artifact", "should return stored artifact")
+      check(body.key === "test-artifact-new", "should return stored artifact")
       check(typeof body.content === "string", "should return content")
     }),
 
