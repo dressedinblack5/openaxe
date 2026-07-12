@@ -36,6 +36,15 @@ logs/
 *.bun-build
 tsconfig.tsbuildinfo
 
+# npm pack artifacts
+*.tgz
+
+# Test coverage
+coverage/
+
+# Generic tool cache
+.cache/
+
 # Editor swap files (not covered by *~)
 *.swp
 *.swo
