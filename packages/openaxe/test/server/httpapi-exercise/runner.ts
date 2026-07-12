@@ -231,7 +231,7 @@ function withContext<A, E>(
           memorySet: (key, value, scope, source) =>
             run(modules.Memory.Service.use((svc) => svc.set(key, value, scope, source))),
           artifactStore: (key, content) =>
-            run(modules.Artifact.Service.use((svc) => svc.store(key, content))).pipe(Effect.asVoid),
+            run(modules.Artifact.Service.use((svc) => svc.store(key, content)).pipe(Effect.orDie)).pipe(Effect.asVoid),
         }
         yield* trace(options, scenario, `${label} seed start`)
         const state = yield* scenario.seed(base)

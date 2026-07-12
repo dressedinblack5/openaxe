@@ -12,17 +12,22 @@ type CallOptions = {
 }
 
 export function call(scenario: ActiveScenario, ctx: SeededContext<unknown>, options: CallOptions = {}) {
-  return Effect.promise(async () =>
-    capture(await app(await runtime(), options).request(toRequest(scenario, ctx)), scenario.capture),
-  )
+  return Effect.promise(async () => {
+    const modules = await runtime()
+    return capture(
+      await app(modules, options).request(toRequest(scenario, ctx)),
+      scenario.capture,
+    )
+  })
 }
 
 export function callAuthProbe(scenario: ActiveScenario, credentials: "missing" | "valid" = "missing") {
   return Effect.promise(async () => {
+    const modules = await runtime()
     const controller = new AbortController()
     return Promise.race([
       Promise.resolve(
-        app(await runtime(), { auth: { password: "secret" } }).request(
+        app(modules, { auth: { password: "secret" } }).request(
           toAuthProbeRequest(scenario, credentials, controller.signal),
         ),
       ).then((response) => capture(response, scenario.capture)),
@@ -47,7 +52,9 @@ const appCache: Partial<Record<string, CachedApp>> = {}
 export async function disposeApps() {
   const apps = Object.values(appCache)
   for (const key of Object.keys(appCache)) delete appCache[key]
-  await Promise.all(apps.flatMap((app) => (app === undefined ? [] : [app.dispose()])))
+  await Promise.all(
+    apps.flatMap((app) => (app === undefined ? [] : [app.dispose()])),
+  )
 }
 
 function app(modules: Runtime, options: CallOptions) {
@@ -58,9 +65,12 @@ function app(modules: Runtime, options: CallOptions) {
 
   const web = HttpRouter.toWebHandler(
     modules.HttpApiApp.routes.pipe(
-      Layer.provide(
+      Layer.provideMerge(
         ConfigProvider.layer(
-          ConfigProvider.fromUnknown({ OPENCODE_SERVER_PASSWORD: password, OPENCODE_SERVER_USERNAME: username }),
+          ConfigProvider.fromUnknown({
+            OPENCODE_SERVER_PASSWORD: password,
+            OPENCODE_SERVER_USERNAME: username,
+          }),
         ),
       ),
     ),
@@ -86,7 +96,11 @@ function toRequest(scenario: ActiveScenario, ctx: SeededContext<unknown>) {
   })
 }
 
-function toAuthProbeRequest(scenario: ActiveScenario, credentials: "missing" | "valid", signal: AbortSignal) {
+function toAuthProbeRequest(
+  scenario: ActiveScenario,
+  credentials: "missing" | "valid",
+  signal: AbortSignal,
+) {
   const spec = scenario.authProbe ?? {
     path: authProbePath(scenario.path),
     body: scenario.method === "GET" ? undefined : {},
