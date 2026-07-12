@@ -52,7 +52,7 @@ import { RuntimeFlags } from "@/effect/runtime-flags"
 import { MoveSession } from "@opencode-ai/core/control-plane/move-session"
 import { Database } from "@opencode-ai/core/database/database"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { httpClient } from "@opencode-ai/core/effect/layer-node-platform"
+import { filesystem, httpClient } from "@opencode-ai/core/effect/layer-node-platform"
 import { EventV2 } from "@opencode-ai/core/event"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
 import { Memory } from "@opencode-ai/core/memory"
@@ -255,6 +255,7 @@ const app = LayerNode.group([
   SessionShare.node,
   InstanceStore.node,
   httpClient,
+  filesystem,
   EventV2.node,
   ProjectV2.node,
   ProjectCopy.node,
