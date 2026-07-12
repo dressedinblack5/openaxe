@@ -33,7 +33,7 @@ import { errorMessage } from "@/util/error"
 import { isMedia } from "@/util/media"
 import type { SystemError } from "bun"
 import type { Provider } from "@/provider/provider"
-import { Effect, Schema, Ref } from "effect"
+import { Effect, Schema } from "effect"
 
 export const node = LayerNode.group([Database.node])
 
@@ -77,32 +77,6 @@ export const cursor = {
     return decodeCursor(JSON.parse(Buffer.from(input, "base64url").toString("utf8")))
   },
 }
-
-// Simple memoization cache for message page queries - TTL: 5 seconds
-const PAGE_CACHE_TTL_MS = 5_000
-type PageCacheKey = string
-type PageCacheValue = {
-  items: WithParts[]
-  more: boolean
-  cursor: string | undefined
-  timestamp: number
-}
-const pageCache = Ref.makeUnsafe<Map<PageCacheKey, PageCacheValue>>(new Map())
-
-function cleanupPageCache() {
-  const now = Date.now()
-  Ref.update(pageCache, (cache) => {
-    const next = new Map(cache)
-    for (const [key, value] of cache) {
-      if (now - value.timestamp > PAGE_CACHE_TTL_MS) {
-        next.delete(key)
-      }
-    }
-    return next
-  })
-}
-
-setInterval(cleanupPageCache, PAGE_CACHE_TTL_MS)
 
 const info = (row: typeof MessageTable.$inferSelect) =>
   ({
@@ -454,14 +428,6 @@ export const page = Effect.fn("MessageV2.page")(function* (input: {
   limit: number
   before?: string
 }) {
-  const cacheKey = `${input.sessionID}:${input.limit}:${input.before ?? ""}`
-  const cache = yield* Ref.get(pageCache)
-  const cached = cache.get(cacheKey)
-
-  if (cached && Date.now() - cached.timestamp < PAGE_CACHE_TTL_MS) {
-    return cached
-  }
-
   const { db } = yield* Database.Service
   const before = input.before ? cursor.decode(input.before) : undefined
   const where = before
@@ -495,19 +461,11 @@ export const page = Effect.fn("MessageV2.page")(function* (input: {
   const items = yield* hydrate(db, slice)
   items.reverse()
   const tail = slice.at(-1)
-  const result = {
+  return {
     items,
     more,
     cursor: more && tail ? cursor.encode({ id: tail.id, time: tail.time_created }) : undefined,
   }
-
-  yield* Ref.update(pageCache, (cache) => {
-    const next = new Map(cache)
-    next.set(cacheKey, { ...result, timestamp: Date.now() })
-    return next
-  })
-
-  return result
 })
 
 export function stream(sessionID: SessionID) {
