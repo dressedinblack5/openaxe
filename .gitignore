@@ -32,6 +32,7 @@ target
 opencode-dev
 UPCOMING_CHANGELOG.md
 logs/
+/AXE.md
 *.bun-build
 tsconfig.tsbuildinfo
 
