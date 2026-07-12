@@ -42,6 +42,16 @@ import {
   SUBAGENT_CALL_BOOTSTRAP_LIMIT,
   type SubagentData,
 } from "./subagent-data"
+
+// Buffer limits for event stream backpressure
+const MAX_BUFFERED_EVENTS = 10_000
+const MAX_BUFFERED_EVENTS_PER_SESSION = 2_000
+const SUBAGENT_CHILDREN_LIMIT = 100
+const EVENT_SUBSCRIPTION_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
+// Default pagination limit for message history fetches
+const MESSAGE_HISTORY_LIMIT = 200
+
 import { traceFooterOutput, writeSessionOutput } from "./stream"
 import type {
   FooterApi,
@@ -110,6 +120,7 @@ export type SessionTransport = {
 export type SessionResizeReplayInput = {
   localRows: () => LocalReplayRow[]
   reset: () => Promise<void>
+  visibleLimit?: number
 }
 
 type State = {
@@ -457,8 +468,13 @@ function createLayer(input: StreamInput) {
         let replayDisabled = false
         let replayPending: SessionResizeReplayInput | undefined
         const buffered: Event[] = []
+        const sessionBufferCounts = new Map<string, number>()
         const replayedParts = new Set<string>()
         const recovering = new Set<string>()
+        const sessionLastEventTime = new Map<string, number>()
+        // TTL-based cleanup for inactive subagent tabs (5 minutes)
+        const SUBAGENT_TAB_TTL_MS = 5 * 60 * 1000
+        const subagentTabLastActivity = new Map<string, number>()
         const tracked = (sessionID: string | undefined) =>
           sessionID === input.sessionID || (!!sessionID && state.subagent.tabs.has(sessionID))
         const currentSubagentState = () => {
@@ -467,6 +483,47 @@ function createLayer(input: StreamInput) {
           }
 
           return snapshotSelectedSubagentData(state.subagent, state.selectedSubagent)
+        }
+
+        const updateSubagentTabActivity = (sessionID: string) => {
+          subagentTabLastActivity.set(sessionID, Date.now())
+        }
+
+        const cleanupInactiveSubagentTabs = () => {
+          const now = Date.now()
+          for (const [sessionID, lastActivity] of subagentTabLastActivity) {
+            if (now - lastActivity > SUBAGENT_TAB_TTL_MS && state.subagent.tabs.has(sessionID)) {
+              state.subagent.tabs.delete(sessionID)
+              state.subagent.details.delete(sessionID)
+              subagentTabLastActivity.delete(sessionID)
+              input.trace?.write("subagent.tab.cleanup", {
+                sessionID,
+                reason: "TTL expired",
+              })
+            }
+          }
+        }
+
+        const cleanupStaleSessions = () => {
+          const now = Date.now()
+          const staleSessions = new Set<string>()
+          for (const [sid, lastTime] of sessionLastEventTime) {
+            if (now - lastTime > EVENT_SUBSCRIPTION_TTL_MS && sid !== input.sessionID && !state.subagent.tabs.has(sid)) {
+              staleSessions.add(sid)
+            }
+          }
+          if (staleSessions.size > 0) {
+            for (let i = buffered.length - 1; i >= 0; i--) {
+              const eSid = sid(buffered[i]) ?? "unknown"
+              if (staleSessions.has(eSid)) {
+                buffered.splice(i, 1)
+              }
+            }
+            for (const sid of staleSessions) {
+              sessionLastEventTime.delete(sid)
+              sessionBufferCounts.delete(sid)
+            }
+          }
         }
 
         const seedBlocker = (id: string) => {
@@ -603,20 +660,22 @@ function createLayer(input: StreamInput) {
           Effect.promise(() =>
             input.sdk.session.messages({
               sessionID,
-              ...(typeof limit === "number" ? { limit } : {}),
+              ...(typeof limit === "number" ? { limit } : { limit: MESSAGE_HISTORY_LIMIT }),
             }),
           ).pipe(
             Effect.map((item) => item.data ?? []),
             Effect.orElseSucceed(() => []),
           )
 
-        const replayMessages = () =>
+        const replayMessages = (limit?: number) =>
           Effect.promise(() =>
             input.sdk.session.messages({
               sessionID: input.sessionID,
-              ...(input.replayLimit === undefined
-                ? {}
-                : { limit: Math.max(input.replayLimit, SUBAGENT_BOOTSTRAP_LIMIT) }),
+              ...(limit === undefined
+                ? input.replayLimit === undefined
+                  ? {}
+                  : { limit: Math.max(input.replayLimit, SUBAGENT_BOOTSTRAP_LIMIT) }
+                : { limit }),
             }),
           ).pipe(Effect.flatMap((item) => (item.error ? Effect.fail(item.error) : Effect.succeed(item.data ?? []))))
 
@@ -944,6 +1003,12 @@ function createLayer(input: StreamInput) {
           if (changed && prev) {
             traceTabs(input.trace, prev, listSubagentTabs(state.subagent))
           }
+          // Update subagent tab activity time when subagent events are processed
+          const eventProps = event.properties as Record<string, unknown>
+          const sessionID = eventProps.sessionID as string | undefined
+          if (sessionID && sessionID !== input.sessionID && state.subagent.tabs.has(sessionID)) {
+            updateSubagentTabActivity(sessionID)
+          }
           releaseBlocker(event)
 
           syncFooter(next.commits, next.footer?.patch, changed ? currentSubagentState() : undefined)
@@ -966,6 +1031,10 @@ function createLayer(input: StreamInput) {
               changed = true
               yield* applyEvent(event)
             }
+
+            // Periodic cleanup of stale sessions and inactive subagent tabs
+            cleanupStaleSessions()
+            cleanupInactiveSubagentTabs()
 
             const arrived = buffered.splice(0)
             if (!changed && arrived.length === 0) {
@@ -1007,7 +1076,7 @@ function createLayer(input: StreamInput) {
           input.trace?.write("replay.resize.start", {
             sessionID: input.sessionID,
           })
-          const source = yield* Effect.all([replayMessages(), replayRequests()], { concurrency: "unbounded" }).pipe(
+          const source = yield* Effect.all([replayMessages(next.visibleLimit), replayRequests()], { concurrency: "unbounded" }).pipe(
             Effect.exit,
           )
           if (Exit.isFailure(source)) {
