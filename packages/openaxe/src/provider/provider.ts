@@ -894,7 +894,9 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
                 delete body.max_tokens
                 init = { ...init, body: JSON.stringify(body) }
               }
-            } catch {}
+            } catch {
+              // expected when body is not parseable JSON
+            }
           }
 
           const response = await fetch(url, init)
@@ -911,7 +913,9 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
                   { status: 200, headers: new Headers({ "content-type": "application/json" }) },
                 )
               }
-            } catch {}
+            } catch {
+              // expected when error response is not JSON
+            }
           }
 
           if (response.body && response.headers.get("content-type")?.includes("text/event-stream")) {
@@ -1369,14 +1373,12 @@ export const layer = Layer.effect(
         function mergeProvider(providerID: ProviderV2.ID, provider: Partial<Info>) {
           const existing = providers[providerID]
           if (existing) {
-            // @ts-expect-error
-            providers[providerID] = mergeDeep(existing, provider)
+            providers[providerID] = mergeDeep(existing, provider) as Info
             return
           }
           const match = database[providerID]
           if (!match) return
-          // @ts-expect-error
-          providers[providerID] = mergeDeep(match, provider)
+          providers[providerID] = mergeDeep(match, provider) as Info
         }
 
         // load plugins first so config() hook runs before reading cfg.provider
@@ -1604,7 +1606,9 @@ export const layer = Layer.effect(
                   providers[gitlab].models[modelID] = model
                 }
               }
-            } catch (e) {}
+            } catch (e) {
+              // expected for non-standard provider responses
+            }
           })
         }
 
@@ -1765,9 +1769,8 @@ export const layer = Layer.effect(
 
           const res = await fetchFn(input, {
             ...opts,
-            // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
             timeout: false,
-          }).finally(() => headerTimeoutCtl?.clear())
+          } as unknown as RequestInit).finally(() => headerTimeoutCtl?.clear())
 
           if (!chunkAbortCtl) return res
           return wrapSSE(res, chunkTimeout, chunkAbortCtl)

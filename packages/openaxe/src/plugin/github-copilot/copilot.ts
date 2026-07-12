@@ -153,7 +153,9 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
                     isAgent: !(last?.role === "user" && hasNonToolCalls) || imgMsg(last),
                   }
                 }
-              } catch {}
+              } catch {
+                // expected for non-conforming messages, fall through to defaults
+              }
               return { isVision: false, isAgent: false }
             })
 

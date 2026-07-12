@@ -61,8 +61,7 @@ import { SessionReminders } from "./reminders"
 import { SessionTools } from "./tools"
 import { LLMEvent } from "@opencode-ai/llm"
 
-// @ts-ignore
-globalThis.AI_SDK_LOG_WARNINGS = false
+;(globalThis as { AI_SDK_LOG_WARNINGS: boolean }).AI_SDK_LOG_WARNINGS = false
 
 const decodeMessageInfo = Schema.decodeUnknownExit(SessionV1.Info)
 const decodeMessagePart = Schema.decodeUnknownExit(SessionV1.Part)
@@ -676,7 +675,7 @@ export const layer = Layer.effect(
         !input.variant && ag.variant && same
           ? yield* provider
               .getModel(model.providerID, model.modelID)
-              .pipe(Effect.catchIf(Provider.ModelNotFoundError.isInstance, () => Effect.succeed(undefined)))
+              .pipe(Effect.catchIf(Provider.ModelNotFoundError.isInstance, () => Effect.void))
           : undefined
       const variant = input.variant ?? (ag.variant && full?.variants?.[ag.variant] ? ag.variant : undefined)
 

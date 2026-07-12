@@ -31,7 +31,7 @@ export const memoryHandlers = HttpApiBuilder.group(InstanceHttpApi, "memory", (h
     const get = Effect.fn("MemoryHttpApi.get")(function* (ctx: { params: { key: string } }) {
       const value = yield* memory.get(ctx.params.key)
       if (value === null) {
-        return yield* Effect.fail(new InvalidRequestError({ message: "Memory entry not found" }))
+        return yield* new InvalidRequestError({ message: "Memory entry not found" })
       }
       const entries = yield* memory.list()
       const entry = entries.find((e) => e.key === ctx.params.key)

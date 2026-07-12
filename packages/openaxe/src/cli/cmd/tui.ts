@@ -322,7 +322,9 @@ export const TuiCommand = cmd({
     } finally {
       try {
         unguard?.()
-      } catch {}
+      } catch {
+        // cleanup is best-effort
+      }
     }
     process.exit(0)
   },

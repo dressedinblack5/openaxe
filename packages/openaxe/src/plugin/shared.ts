@@ -16,7 +16,9 @@ export function isDeprecatedPlugin(spec: string) {
 function parse(spec: string) {
   try {
     return npa(spec)
-  } catch {}
+  } catch {
+    // expected for invalid spec strings
+  }
 }
 
 export function parsePluginSpecifier(spec: string) {

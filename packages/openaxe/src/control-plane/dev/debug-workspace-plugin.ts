@@ -16,7 +16,9 @@ async function waitForHealth(port: number) {
       if (response.ok) {
         return
       }
-    } catch {}
+    } catch {
+      // expected during startup, retry loop handles it
+    }
 
     await sleep(250)
   }

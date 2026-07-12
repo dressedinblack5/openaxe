@@ -250,7 +250,7 @@ export const layer = Layer.effect(
 
       const msgs = yield* session
         .messages({ sessionID: input.sessionID })
-        .pipe(Effect.catchIf(NotFoundError.isInstance, () => Effect.succeed(undefined)))
+        .pipe(Effect.catchIf(NotFoundError.isInstance, () => Effect.void))
       if (!msgs) return
 
       let total = 0

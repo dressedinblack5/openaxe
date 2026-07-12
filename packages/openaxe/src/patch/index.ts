@@ -614,7 +614,7 @@ export const maybeParseApplyPatchVerified = Effect.fn("Patch.maybeParseApplyPatc
 
           case "delete": {
             const deletePath = resolve(effectiveCwd, hunk.path)
-            const content = yield* fs.readFileString(deletePath).pipe(Effect.catch(() => Effect.succeed(undefined)))
+            const content = yield* fs.readFileString(deletePath).pipe(Effect.catch(() => Effect.void))
             if (content === undefined) {
               return {
                 type: MaybeApplyPatchVerified.CorrectnessError,

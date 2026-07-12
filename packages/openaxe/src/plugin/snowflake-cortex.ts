@@ -336,7 +336,9 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
                 },
               })
               .catch(() => {})
-          } catch {}
+          } catch {
+            // best-effort oauth state persist
+          }
         }
 
         return {
@@ -413,7 +415,9 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
                     delete parsed.max_tokens
                     body = JSON.stringify(parsed)
                   }
-                } catch {}
+                } catch {
+                  // expected when body is not parseable JSON
+                }
               }
 
               return { ...init, headers, body }
@@ -432,7 +436,9 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
                       { status: 200, headers: new Headers({ "content-type": "application/json" }) },
                     )
                   }
-                } catch {}
+                } catch {
+                  // expected when error response is not JSON
+                }
               }
 
               if (response.body && response.headers.get("content-type")?.includes("text/event-stream")) {

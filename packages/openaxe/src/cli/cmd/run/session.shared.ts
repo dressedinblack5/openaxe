@@ -37,7 +37,9 @@ function fileName(url: string, filename?: string) {
     if (name) {
       return decodeURIComponent(name)
     }
-  } catch {}
+  } catch {
+    // expected when URL has no pathname
+  }
 
   return url
 }
