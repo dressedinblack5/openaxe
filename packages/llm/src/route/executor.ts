@@ -1,4 +1,4 @@
-import { Cause, Context, Effect, Layer, Random } from "effect"
+import { Cause, Context, Effect, Layer, Option, Random, Ref, Schedule, Semaphore } from "effect"
 import {
   FetchHttpClient,
   Headers,
@@ -23,6 +23,24 @@ import {
   UnknownProviderReason,
 } from "../schema"
 import { isContextOverflow } from "../provider-error"
+
+export interface ExecutorConfig {
+  readonly maxConcurrentRequests: number
+  readonly circuitBreakerThreshold: number
+  readonly circuitBreakerTimeoutMs: number
+  readonly requestDeduplicationTtlMs: number
+}
+
+export const defaultExecutorConfig: ExecutorConfig = {
+  maxConcurrentRequests: 50,
+  circuitBreakerThreshold: 50,
+  circuitBreakerTimeoutMs: 30_000,
+  requestDeduplicationTtlMs: 5_000,
+}
+
+export const ExecutorConfigTag = Context.Service<ExecutorConfig, ExecutorConfig>()("@opencode/LLM/ExecutorConfig")
+
+export const ExecutorConfigLayer = Layer.succeed(ExecutorConfigTag, defaultExecutorConfig)
 
 export interface Interface {
   readonly execute: (
@@ -380,6 +398,138 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient> = Layer.e
   }),
 )
 
+export const enhancedLayer: Layer.Layer<Service, never, HttpClient.HttpClient | ExecutorConfig> = Layer.effect(
+  Service,
+  Effect.gen(function* () {
+    const http = yield* HttpClient.HttpClient
+    const config = yield* Effect.serviceOption(ExecutorConfigTag).pipe(
+      Effect.map(Option.getOrElse(() => defaultExecutorConfig)),
+    )
+
+    const semaphore = yield* Semaphore.make(config.maxConcurrentRequests)
+    const circuitBreakerRef = yield* Ref.make({
+      failures: 0,
+      successes: 0,
+      state: "closed" as "closed" | "open" | "half-open",
+      lastStateChange: Date.now(),
+    })
+    const deduplicationCache = yield* Ref.make<Map<string, Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError, never>>>(new Map())
+
+    const checkCircuitBreaker = Effect.gen(function* () {
+      const state = yield* Ref.get(circuitBreakerRef)
+      const now = Date.now()
+
+      if (state.state === "open") {
+        if (now - state.lastStateChange > config.circuitBreakerTimeoutMs) {
+          yield* Ref.update(circuitBreakerRef, (s) => ({ ...s, state: "half-open" as const }))
+          return
+        }
+        return yield* Effect.fail(
+          new LLMError({
+            module: "RequestExecutor",
+            method: "execute",
+            reason: new RateLimitReason({
+              message: "Circuit breaker open - too many failures",
+              retryAfterMs: config.circuitBreakerTimeoutMs,
+            }),
+          }),
+        )
+      }
+    })
+
+    const recordSuccess = Effect.gen(function* () {
+      yield* Ref.update(circuitBreakerRef, (s) => {
+        if (s.state === "half-open") {
+          return { ...s, state: "closed" as const, failures: 0, successes: 0, lastStateChange: Date.now() }
+        }
+        return { ...s, successes: s.successes + 1 }
+      })
+    })
+
+    const recordFailure = Effect.gen(function* () {
+      yield* Ref.update(circuitBreakerRef, (s) => {
+        const newFailures = s.failures + 1
+        const total = newFailures + s.successes
+        const failureRate = total > 0 ? (newFailures / total) * 100 : 0
+
+        if (s.state === "half-open") {
+          return { ...s, state: "open" as const, lastStateChange: Date.now() }
+        }
+        if (failureRate >= config.circuitBreakerThreshold && total >= 10) {
+          return { ...s, state: "open" as const, lastStateChange: Date.now() }
+        }
+        return { ...s, failures: newFailures }
+      })
+    })
+
+    const withDeduplication = (
+      key: string,
+      effect: Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError>,
+    ): Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError> =>
+      Effect.gen(function* () {
+        const cache = yield* Ref.get(deduplicationCache)
+        const cached = cache.get(key)
+        if (cached) {
+          return yield* cached
+        }
+
+        const cachedEffect = effect.pipe(
+          Effect.ensuring(
+            Effect.sync(() => {
+              setTimeout(() => {
+                Effect.runSync(Ref.update(deduplicationCache, (c) => {
+                  const next = new Map(c)
+                  next.delete(key)
+                  return next
+                }))
+              }, config.requestDeduplicationTtlMs)
+            }),
+          ),
+        )
+
+        yield* Ref.update(deduplicationCache, (c) => {
+          const next = new Map(c)
+          next.set(key, cachedEffect)
+          return next
+        })
+
+        return yield* cachedEffect
+      })
+
+    const executeOnce = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.gen(function* () {
+        const redactedNames = yield* Headers.CurrentRedactedNames
+        return yield* http
+          .execute(request)
+          .pipe(Effect.mapError(toHttpError(redactedNames)), Effect.flatMap(statusError(request, redactedNames)))
+      })
+
+    const executeWithCircuitBreaker = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.gen(function* () {
+        yield* checkCircuitBreaker
+        const result = yield* semaphore.withPermit(executeOnce(request))
+        yield* recordSuccess
+        return result
+      }).pipe(Effect.catchTag("LLM.Error", (error) =>
+        recordFailure.pipe(Effect.flatMap(() => Effect.fail(error)))))
+
+    // Create deduplication key from request
+    const deduplicationKey = (request: HttpClientRequest.HttpClientRequest): string => {
+      const auth = (request.headers as Record<string, string>)["authorization"] ?? ""
+      return `${request.method}:${request.url}:${auth}`
+    }
+
+    return Service.of({
+      execute: (request) =>
+        withDeduplication(deduplicationKey(request), retryStatusFailures(executeWithCircuitBreaker(request))),
+    })
+  }),
+)
+
 export const defaultLayer = layer.pipe(Layer.provide(FetchHttpClient.layer))
+export const enhancedDefaultLayer = enhancedLayer.pipe(
+  Layer.provide(FetchHttpClient.layer),
+  Layer.provide(ExecutorConfigLayer),
+)
 
 export * as RequestExecutor from "./executor"
