@@ -1056,6 +1056,15 @@ export const ConfigProvidersResult = Schema.Struct({
 })
 export type ConfigProvidersResult = Types.DeepMutable<Schema.Schema.Type<typeof ConfigProvidersResult>>
 
+export const ProviderHealth = Schema.Struct({
+  providerID: ProviderV2.ID,
+  status: Schema.Literals(["healthy", "unhealthy", "unknown"]),
+  lastChecked: Schema.Date,
+  latencyMs: Schema.optional(Schema.Finite),
+  error: Schema.optional(Schema.String),
+}).annotate({ identifier: "ProviderHealth" })
+export type ProviderHealth = Types.DeepMutable<Schema.Schema.Type<typeof ProviderHealth>>
+
 export function toPublicInfo(provider: Info): Info {
   return JSON.parse(JSON.stringify(provider)) as Info
 }
@@ -1129,6 +1138,8 @@ export interface Interface {
   ) => Effect.Effect<{ providerID: ProviderV2.ID; modelID: string } | undefined>
   readonly getSmallModel: (providerID: ProviderV2.ID) => Effect.Effect<Model | undefined>
   readonly defaultModel: () => Effect.Effect<{ providerID: ProviderV2.ID; modelID: ModelV2.ID }, DefaultModelError>
+  readonly checkHealth: (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
+  readonly getHealth: (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
 }
 
 interface State {
@@ -1974,7 +1985,50 @@ export const layer = Layer.effect(
       }
     })
 
-    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel })
+    const checkHealth = Effect.fn("Provider.checkHealth")(function* (providerID: ProviderV2.ID) {
+      const start = Date.now()
+      const provider = yield* getProvider(providerID).pipe(
+        Effect.catchCause((cause) => Effect.fail(new Error("Provider not found"))),
+      )
+      try {
+        const model = yield* Effect.gen(function* () {
+          const [firstModel] = Object.values(provider.models)
+          if (!firstModel) return yield* Effect.fail(new Error("No models available"))
+          return yield* getLanguage(firstModel)
+        }).pipe(Effect.timeout("5 seconds"))
+        yield* model.generateText("health check").pipe(Effect.timeout("10 seconds"))
+        return ProviderHealth.make({
+          providerID,
+          status: "healthy",
+          lastChecked: new Date(),
+          latencyMs: Date.now() - start,
+        })
+      } catch (e) {
+        return ProviderHealth.make({
+          providerID,
+          status: "unhealthy",
+          lastChecked: new Date(),
+          error: e instanceof Error ? e.message : "Unknown error",
+        })
+      }
+    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never, never>
+
+    const getHealth = Effect.fn("Provider.getHealth")(function* (providerID: ProviderV2.ID) {
+      const cached = yield* Effect.cached(
+        checkHealth(providerID).pipe(
+          Effect.catchCause((cause) =>
+            Effect.succeed(ProviderHealth.make({
+              providerID,
+              status: "unknown",
+              lastChecked: new Date(),
+            }))
+          ),
+        ),
+      )
+      return yield* cached
+    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never, never>
+
+    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel, checkHealth, getHealth })
   }),
 )
 

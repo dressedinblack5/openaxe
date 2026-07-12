@@ -74,6 +74,22 @@ export namespace ProviderTest {
           defaultModel: Effect.fn("TestProvider.defaultModel")(() =>
             Effect.succeed({ providerID: row.id, modelID: mdl.id }),
           ),
+          checkHealth: Effect.fn("TestProvider.checkHealth")(() =>
+            Effect.succeed({
+              providerID: row.id,
+              status: "healthy" as const,
+              lastChecked: new Date(),
+              latencyMs: 10,
+            }),
+          ),
+          getHealth: Effect.fn("TestProvider.getHealth")(() =>
+            Effect.succeed({
+              providerID: row.id,
+              status: "healthy" as const,
+              lastChecked: new Date(),
+              latencyMs: 10,
+            }),
+          ),
           ...override,
         }),
       ),
