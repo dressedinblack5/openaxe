@@ -224,9 +224,9 @@ function routeHttpApiWorkspace<E>(
       ? yield* Session.Service.use((svc) => svc.get(sessionID)).pipe(
           Effect.catchIf(
             (error): error is NotFoundError => NotFoundError.isInstance(error),
-            () => Effect.void,
+            () => Effect.succeed(undefined),
           ),
-          Effect.catchDefect(() => Effect.void),
+          Effect.catchDefect(() => Effect.succeed(undefined)),
         )
       : undefined
     const plan = yield* planRequest(request, session)
