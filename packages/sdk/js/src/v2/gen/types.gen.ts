@@ -2875,6 +2875,30 @@ export type ProjectCopyError = {
   }
 }
 
+export type ArtifactSummary = {
+  key: string
+  version: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  size: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  truncated: boolean
+  timeCreated: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  overflowPath?: string
+}
+
+export type ArtifactEntry = {
+  key: string
+  version: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  content: string
+  size: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  truncated: boolean
+  timeCreated: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  overflowPath?: string
+}
+
+export type ArtifactStoreInput = {
+  key: string
+  content: string
+}
+
 export type EffectHttpApiErrorForbidden = {
   _tag: "Forbidden"
 }
@@ -8684,10 +8708,12 @@ export type MemoryGetError = MemoryGetErrors[keyof MemoryGetErrors]
 
 export type MemoryGetResponses = {
   /**
-   * Memory entry value
+   * Memory entry
    */
-  200: unknown
+  200: MemoryEntry
 }
+
+export type MemoryGetResponse = MemoryGetResponses[keyof MemoryGetResponses]
 
 export type ProjectListData = {
   body?: never
@@ -13172,6 +13198,191 @@ export type V2ProjectCopyRefreshResponses = {
 }
 
 export type V2ProjectCopyRefreshResponse = V2ProjectCopyRefreshResponses[keyof V2ProjectCopyRefreshResponses]
+
+export type V2ArtifactListData = {
+  body?: never
+  path?: never
+  query?: {
+    keyPrefix?: string
+  }
+  url: "/api/artifact"
+}
+
+export type V2ArtifactListErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ArtifactListError = V2ArtifactListErrors[keyof V2ArtifactListErrors]
+
+export type V2ArtifactListResponses = {
+  /**
+   * Success
+   */
+  200: Array<ArtifactSummary>
+}
+
+export type V2ArtifactListResponse = V2ArtifactListResponses[keyof V2ArtifactListResponses]
+
+export type V2ArtifactStoreData = {
+  body: ArtifactStoreInput
+  path?: never
+  query?: never
+  url: "/api/artifact"
+}
+
+export type V2ArtifactStoreErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ArtifactStoreError = V2ArtifactStoreErrors[keyof V2ArtifactStoreErrors]
+
+export type V2ArtifactStoreResponses = {
+  /**
+   * ArtifactEntry
+   */
+  200: ArtifactEntry
+}
+
+export type V2ArtifactStoreResponse = V2ArtifactStoreResponses[keyof V2ArtifactStoreResponses]
+
+export type V2ArtifactGetLatestData = {
+  body?: never
+  path: {
+    key: string
+  }
+  query?: never
+  url: "/api/artifact/{key}"
+}
+
+export type V2ArtifactGetLatestErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ArtifactGetLatestError = V2ArtifactGetLatestErrors[keyof V2ArtifactGetLatestErrors]
+
+export type V2ArtifactGetLatestResponses = {
+  /**
+   * Success
+   */
+  200: ArtifactEntry
+}
+
+export type V2ArtifactGetLatestResponse = V2ArtifactGetLatestResponses[keyof V2ArtifactGetLatestResponses]
+
+export type V2ArtifactGetVersionData = {
+  body?: never
+  path: {
+    key: string
+    version: string
+  }
+  query?: never
+  url: "/api/artifact/{key}/{version}"
+}
+
+export type V2ArtifactGetVersionErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ArtifactGetVersionError = V2ArtifactGetVersionErrors[keyof V2ArtifactGetVersionErrors]
+
+export type V2ArtifactGetVersionResponses = {
+  /**
+   * Success
+   */
+  200: ArtifactEntry
+}
+
+export type V2ArtifactGetVersionResponse = V2ArtifactGetVersionResponses[keyof V2ArtifactGetVersionResponses]
+
+export type V2MemoryListData = {
+  body?: never
+  path?: never
+  query?: {
+    kind?: string
+    scope?: string
+    source?: string
+  }
+  url: "/api/memory"
+}
+
+export type V2MemoryListErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2MemoryListError = V2MemoryListErrors[keyof V2MemoryListErrors]
+
+export type V2MemoryListResponses = {
+  /**
+   * Success
+   */
+  200: Array<MemoryEntry>
+}
+
+export type V2MemoryListResponse = V2MemoryListResponses[keyof V2MemoryListResponses]
+
+export type V2MemoryGetData = {
+  body?: never
+  path: {
+    key: string
+  }
+  query?: never
+  url: "/api/memory/{key}"
+}
+
+export type V2MemoryGetErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2MemoryGetError = V2MemoryGetErrors[keyof V2MemoryGetErrors]
+
+export type V2MemoryGetResponses = {
+  /**
+   * Success
+   */
+  200: unknown
+}
 
 export type PtyConnectData = {
   body?: never

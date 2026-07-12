@@ -10,6 +10,7 @@ import type {
   AppLogResponses,
   AppSkillsErrors,
   AppSkillsResponses,
+  ArtifactStoreInput,
   Auth as Auth3,
   AuthRemoveErrors,
   AuthRemoveResponses,
@@ -269,6 +270,14 @@ import type {
   TuiSubmitPromptResponses,
   V2AgentListErrors,
   V2AgentListResponses,
+  V2ArtifactGetLatestErrors,
+  V2ArtifactGetLatestResponses,
+  V2ArtifactGetVersionErrors,
+  V2ArtifactGetVersionResponses,
+  V2ArtifactListErrors,
+  V2ArtifactListResponses,
+  V2ArtifactStoreErrors,
+  V2ArtifactStoreResponses,
   V2CommandListErrors,
   V2CommandListResponses,
   V2CredentialRemoveErrors,
@@ -301,6 +310,10 @@ import type {
   V2IntegrationListResponses,
   V2LocationGetErrors,
   V2LocationGetResponses,
+  V2MemoryGetErrors,
+  V2MemoryGetResponses,
+  V2MemoryListErrors,
+  V2MemoryListResponses,
   V2ModelListErrors,
   V2ModelListResponses,
   V2PermissionRequestListErrors,
@@ -6896,6 +6909,157 @@ export class ProjectCopy2 extends HeyApiClient {
   }
 }
 
+export class Artifact extends HeyApiClient {
+  /**
+   * List artifacts
+   *
+   * List all artifact versions, optionally filtered by key prefix.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      keyPrefix?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "keyPrefix" }] }])
+    return (options?.client ?? this.client).get<V2ArtifactListResponses, V2ArtifactListErrors, ThrowOnError>({
+      url: "/api/artifact",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Store artifact
+   *
+   * Store content as a new version of an artifact key.
+   */
+  public store<ThrowOnError extends boolean = false>(
+    parameters: {
+      artifactStoreInput: ArtifactStoreInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ key: "artifactStoreInput", map: "body" }] }])
+    return (options?.client ?? this.client).post<V2ArtifactStoreResponses, V2ArtifactStoreErrors, ThrowOnError>({
+      url: "/api/artifact",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Get latest artifact
+   *
+   * Get the latest version of an artifact by key.
+   */
+  public getLatest<ThrowOnError extends boolean = false>(
+    parameters: {
+      key: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "key" }] }])
+    return (options?.client ?? this.client).get<V2ArtifactGetLatestResponses, V2ArtifactGetLatestErrors, ThrowOnError>({
+      url: "/api/artifact/{key}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get artifact version
+   *
+   * Get a specific version of an artifact.
+   */
+  public getVersion<ThrowOnError extends boolean = false>(
+    parameters: {
+      key: string
+      version: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "key" },
+            { in: "path", key: "version" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      V2ArtifactGetVersionResponses,
+      V2ArtifactGetVersionErrors,
+      ThrowOnError
+    >({
+      url: "/api/artifact/{key}/{version}",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Memory2 extends HeyApiClient {
+  /**
+   * List memory entries
+   *
+   * List all memory entries, optionally filtered by kind, scope, or source.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      kind?: string
+      scope?: string
+      source?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "kind" },
+            { in: "query", key: "scope" },
+            { in: "query", key: "source" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<V2MemoryListResponses, V2MemoryListErrors, ThrowOnError>({
+      url: "/api/memory",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get memory value
+   *
+   * Get the value of a memory entry by key.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters: {
+      key: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "key" }] }])
+    return (options?.client ?? this.client).get<V2MemoryGetResponses, V2MemoryGetErrors, ThrowOnError>({
+      url: "/api/memory/{key}",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class V2 extends HeyApiClient {
   private _health?: Health
   get health(): Health {
@@ -6980,6 +7144,16 @@ export class V2 extends HeyApiClient {
   private _projectCopy?: ProjectCopy2
   get projectCopy(): ProjectCopy2 {
     return (this._projectCopy ??= new ProjectCopy2({ client: this.client }))
+  }
+
+  private _artifact?: Artifact
+  get artifact(): Artifact {
+    return (this._artifact ??= new Artifact({ client: this.client }))
+  }
+
+  private _memory?: Memory2
+  get memory(): Memory2 {
+    return (this._memory ??= new Memory2({ client: this.client }))
   }
 }
 
