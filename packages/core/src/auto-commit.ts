@@ -27,8 +27,8 @@ export function recordMutation(
 function runGit(cwd: string, args: string[]): Effect.Effect<void> {
   return Effect.callback<void>((resume) => {
     const child = spawn("git", args, { cwd, stdio: "ignore" })
-    child.on("close", () => resume(Effect.succeed(void 0)))
-    child.on("error", () => resume(Effect.succeed(void 0)))
+    child.on("close", () => resume(Effect.void))
+    child.on("error", () => resume(Effect.void))
   })
 }
 

@@ -50,7 +50,7 @@ const resolveEntryPoint = (name: string, dir: string): EntryPoint => {
   let entrypoint: string | undefined
   try {
     entrypoint = typeof Bun !== "undefined" ? import.meta.resolve(name, dir) : import.meta.resolve(dir)
-  } catch {
+  } catch { /* ponytail: package not installed yet, defer to first install */
     entrypoint = undefined
   }
   return {
@@ -116,7 +116,7 @@ export const layer = Layer.effect(
       const name = (() => {
         try {
           return npa(pkg).name ?? pkg
-        } catch {
+        } catch { /* ponytail: npa can fail on edge case package specs, fall back to raw name */
           return pkg
         }
       })()

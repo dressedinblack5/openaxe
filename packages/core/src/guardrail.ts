@@ -191,8 +191,7 @@ function parseCargoDiagnostics(output: string): Diagnostic[] {
         message: msg.message,
         severity: msg.level === "error" ? "error" : "warning",
       })
-    } catch {
-    }
+    } catch { /* ponytail: malformed lint output from edge-case tool, skip unparseable lines */ }
   }
   return result
 }
@@ -213,7 +212,7 @@ function parseRuffDiagnostics(output: string): Diagnostic[] {
           }) as Diagnostic,
       )
       .filter((d: Diagnostic) => d.file)
-  } catch {
+  } catch { /* ponytail: invalid ruff JSON output, treat as empty result */
     return []
   }
 }

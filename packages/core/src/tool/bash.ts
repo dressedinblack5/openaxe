@@ -167,7 +167,7 @@ export const layer = Layer.effectDiscard(
                 })
                 .pipe(
                   Effect.catchTag("AppProcessError", (error) =>
-                    isTimeout(error) ? Effect.succeed(undefined) : Effect.fail(error),
+                    isTimeout(error) ? Effect.void : Effect.fail(error),
                   ),
                 )
               if (!result) {

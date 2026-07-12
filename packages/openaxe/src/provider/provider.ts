@@ -1890,7 +1890,7 @@ export const layer = Layer.effect(
       if (cfg.small_model) {
         const parsed = parseModel(cfg.small_model)
         return yield* getModel(parsed.providerID, parsed.modelID).pipe(
-          Effect.catchTag("ProviderModelNotFoundError", () => Effect.succeed(undefined)),
+          Effect.catchTag("ProviderModelNotFoundError", () => Effect.void),
         )
       }
 

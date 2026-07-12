@@ -38,10 +38,9 @@ import { PermissionNotFoundError } from "../errors"
 import * as SessionError from "./session-errors"
 
 const tryParseJson = (text: string) =>
-  Effect.try({
-    try: () => JSON.parse(text) as unknown,
-    catch: () => new HttpApiError.BadRequest({}),
-  })
+  Schema.decodeUnknownEffect(Schema.UnknownFromJsonString)(text).pipe(
+    Effect.mapError(() => new HttpApiError.BadRequest({})),
+  )
 
 export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", (handlers) =>
   Effect.gen(function* () {
