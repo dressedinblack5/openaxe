@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite"
 import { statSync } from "node:fs"
-import { readFile as readFileAsync } from "node:fs/promises"
+import { readFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 import { Option, Schema } from "effect"
@@ -64,7 +64,7 @@ export async function resolveZedSelection(dbPath: string, cwd = process.cwd()): 
   const text =
     contents.type === "contents" && contents.contents != null
       ? contents.contents
-      : await readFileAsync(row.buffer_path, "utf8").catch(() => undefined)
+      : await readFile(row.buffer_path, "utf8").catch(() => undefined)
   if (text == null) return { type: "unavailable" }
 
   const ranges = byteRanges.map((range) => {

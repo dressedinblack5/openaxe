@@ -24,11 +24,11 @@ export const ConfigApi = HttpApi.make("config")
             description: "Retrieve the current OpenCode configuration settings and preferences.",
           }),
         ),
-        HttpApiEndpoint.patch("update", root, {
+HttpApiEndpoint.patch("update", root, {
           query: WorkspaceRoutingQuery,
           payload: ConfigV1.Info,
           success: described(ConfigV1.Info, "Successfully updated config"),
-          error: HttpApiError.BadRequestNoContent as any as any,
+          error: HttpApiError.BadRequestNoContent as any,
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({

@@ -2493,7 +2493,7 @@ describe("ProviderTransform.message - providerOptions key remapping", () => {
     ] as any[]
 
     const result = ProviderTransform.message(msgs, model, {}) as any[]
-    const part = result[0].content[0] as any
+    const part = result[0].content[0]
 
     expect(result[0].providerOptions?.azure).toEqual({ someOption: "value" })
     expect(result[0].providerOptions?.["azure-cognitive-services"]).toBeUndefined()

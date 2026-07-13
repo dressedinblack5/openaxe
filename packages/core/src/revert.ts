@@ -28,7 +28,7 @@ function getBuffer(): SnapshotEntry[] {
  * Record a snapshot of a file's current content so it can be reverted later.
  * If the file does not exist, content is stored as null (new file → delete on revert).
  */
-export function recordRevertSnapshot(fs: FileSystem.FileSystem, path: string): Effect.Effect<void, never> {
+export function recordRevertSnapshot(fs: FileSystem.FileSystem, path: string): Effect.Effect<void> {
   return Effect.gen(function* () {
     const content: string | null = yield* fs.readFileString(path).pipe(
       Effect.catchTag("PlatformError", () => Effect.succeed(null)),

@@ -185,7 +185,7 @@ export function DialogWorkspaceSelect(props: {
   const sync = useSync()
   const sdk = useSDK()
   const toast = useToast()
-  const [adapters, setAdapters] = createSignal<Adapter[] | undefined>(props.adapters)
+  const [adapters, setAdapters] = createSignal(props.adapters)
   const omittedWorkspaceID = createMemo(() => (route.data.type === "session" ? project.workspace.current() : undefined))
 
   onMount(() => {

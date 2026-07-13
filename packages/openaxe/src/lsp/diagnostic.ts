@@ -1,8 +1,8 @@
-import * as LSPClient from "./client"
+import type { Diagnostic } from "./client"
 
 const MAX_PER_FILE = 20
 
-export function pretty(diagnostic: LSPClient.Diagnostic) {
+export function pretty(diagnostic: Diagnostic) {
   const severityMap = {
     1: "ERROR",
     2: "WARN",
@@ -17,7 +17,7 @@ export function pretty(diagnostic: LSPClient.Diagnostic) {
   return `${severity} [${line}:${col}] ${diagnostic.message}`
 }
 
-export function report(file: string, issues: LSPClient.Diagnostic[]) {
+export function report(file: string, issues: Diagnostic[]) {
   const errors = issues.filter((item) => item.severity === 1)
   if (errors.length === 0) return ""
   const limited = errors.slice(0, MAX_PER_FILE)

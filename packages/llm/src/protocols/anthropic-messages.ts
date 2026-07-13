@@ -19,7 +19,7 @@ import {
 } from "../schema"
 import { JsonObject, optionalArray, optionalNull, ProviderShared } from "./shared"
 import { isContextOverflow } from "../provider-error"
-import * as Cache from "./utils/cache"
+import { type Breakpoints, newBreakpoints, ttlBucket } from "./utils/cache";
 import { Lifecycle } from "./utils/lifecycle"
 import { ToolStream } from "./utils/tool-stream"
 
@@ -238,14 +238,14 @@ const ANTHROPIC_BREAKPOINT_CAP = 4
 const EPHEMERAL_5M = { type: "ephemeral" as const }
 const EPHEMERAL_1H = { type: "ephemeral" as const, ttl: "1h" as const }
 
-const cacheControl = (breakpoints: Cache.Breakpoints, cache: CacheHint | undefined) => {
+const cacheControl = (breakpoints: Breakpoints, cache: CacheHint | undefined) => {
   if (cache?.type !== "ephemeral" && cache?.type !== "persistent") return undefined
   if (breakpoints.remaining <= 0) {
     breakpoints.dropped += 1
     return undefined
   }
   breakpoints.remaining -= 1
-  return Cache.ttlBucket(cache.ttlSeconds) === "1h" ? EPHEMERAL_1H : EPHEMERAL_5M
+  return ttlBucket(cache.ttlSeconds) === "1h" ? EPHEMERAL_1H : EPHEMERAL_5M
 }
 
 const anthropicMetadata = (metadata: Record<string, unknown>): ProviderMetadata => ({ anthropic: metadata })
@@ -256,7 +256,7 @@ const signatureFromMetadata = (metadata: ProviderMetadata | undefined): string |
   return typeof anthropic.signature === "string" ? anthropic.signature : undefined
 }
 
-const lowerTool = (breakpoints: Cache.Breakpoints, tool: ToolDefinition): AnthropicTool => ({
+const lowerTool = (breakpoints: Breakpoints, tool: ToolDefinition): AnthropicTool => ({
   name: tool.name,
   description: tool.description,
   input_schema: tool.inputSchema,
@@ -384,7 +384,7 @@ const splitsLocalToolResults = (messages: LLMRequest["messages"], index: number)
 
 const lowerNativeSystemUpdate = Effect.fn("AnthropicMessages.lowerNativeSystemUpdate")(function* (
   message: LLMRequest["messages"][number],
-  breakpoints: Cache.Breakpoints,
+  breakpoints: Breakpoints,
 ) {
   const content = yield* ProviderShared.systemUpdateText("Anthropic Messages", message)
   return {
@@ -399,7 +399,7 @@ const lowerNativeSystemUpdate = Effect.fn("AnthropicMessages.lowerNativeSystemUp
 
 const lowerMessages = Effect.fn("AnthropicMessages.lowerMessages")(function* (
   request: LLMRequest,
-  breakpoints: Cache.Breakpoints,
+  breakpoints: Breakpoints,
 ) {
   const messages: AnthropicMessage[] = []
 
@@ -507,7 +507,7 @@ const fromRequest = Effect.fn("AnthropicMessages.fromRequest")(function* (reques
   // Allocate the 4-breakpoint budget in invalidation order: tools → system →
   // messages. Tools live highest in the cache hierarchy, so when callers
   // over-mark we keep their tool hints and shed the message-tail ones first.
-  const breakpoints = Cache.newBreakpoints(ANTHROPIC_BREAKPOINT_CAP)
+  const breakpoints = newBreakpoints(ANTHROPIC_BREAKPOINT_CAP)
   const tools =
     request.tools.length === 0 || request.toolChoice?.type === "none"
       ? undefined

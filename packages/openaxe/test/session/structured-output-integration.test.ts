@@ -51,7 +51,7 @@ describe("StructuredOutput Integration", () => {
           expect(result.info.structured).toBeDefined()
           expect(typeof result.info.structured).toBe("object")
 
-          const output = result.info.structured as any
+          const output = result.info.structured
           expect(output.answer).toBe(4)
 
           // Verify no error was set
@@ -109,7 +109,7 @@ describe("StructuredOutput Integration", () => {
         expect(result.info.role).toBe("assistant")
         if (result.info.role === "assistant") {
           expect(result.info.structured).toBeDefined()
-          const output = result.info.structured as any
+          const output = result.info.structured
 
           expect(output.company).toBeDefined()
           expect(output.company.name).toBe("Anthropic")

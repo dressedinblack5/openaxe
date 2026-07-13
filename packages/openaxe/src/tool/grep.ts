@@ -5,8 +5,8 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import DESCRIPTION from "./grep.txt"
-import * as Tool from "./tool"
-
+import type { Context } from "./tool"
+import { define } from "./tool";
 export const Parameters = Schema.Struct({
   pattern: Schema.String.annotate({ description: "The regex pattern to search for in file contents" }),
   path: Schema.optional(Schema.String).annotate({
@@ -17,7 +17,7 @@ export const Parameters = Schema.Struct({
   }),
 })
 
-export const GrepTool = Tool.define(
+export const GrepTool = define(
   "grep",
   Effect.gen(function* () {
     const fs = yield* FSUtil.Service
@@ -25,7 +25,7 @@ export const GrepTool = Tool.define(
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (params: { pattern: string; path?: string; include?: string }, ctx: Tool.Context) =>
+      execute: (params: { pattern: string; path?: string; include?: string }, ctx: Context) =>
         Effect.gen(function* () {
           const empty = {
             title: params.pattern,

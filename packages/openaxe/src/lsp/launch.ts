@@ -19,3 +19,5 @@ export function spawn(cmd: string, argsOrOpts?: string[] | Process.Options, opts
 
   return proc
 }
+
+export * as LspLaunch from "./launch"

@@ -1396,6 +1396,27 @@ export const layer = Layer.effect(
           return true
         }
 
+        // ensure plugin providers are in database even if not in modelsDev or config
+        // so their models() function can be called (which may need auth metadata)
+        for (const hook of plugins) {
+          const p = hook.provider
+          if (!p) continue
+          const providerID = ProviderV2.ID.make(p.id)
+          if (disabled.has(providerID)) continue
+          if (database[providerID]) continue
+          // Don't add plugin providers that exist in modelsDev — they'll be loaded
+          // via env var or auth loading which calls ensureDatabase
+          if (modelsDev[providerID]) continue
+          database[providerID] = {
+            id: providerID,
+            name: (p as { name?: string }).name ?? p.id,
+            source: "custom",
+            env: (p as { env?: string[] }).env ?? [],
+            options: (p as { options?: Record<string, unknown> }).options ?? {},
+            models: {},
+          }
+        }
+
         for (const hook of plugins) {
           const p = hook.provider
           const models = p?.models
@@ -1410,7 +1431,7 @@ export const layer = Layer.effect(
 
           provider.models = yield* Effect.promise(async () => {
             const next = await models(toPublicInfo(provider), { auth: pluginAuth })
-            return Object.fromEntries(
+            const merged = Object.fromEntries(
               Object.entries(next).map(([id, model]) => [
                 id,
                 {
@@ -1420,6 +1441,11 @@ export const layer = Layer.effect(
                 },
               ]),
             )
+            // Also update providers object so the models are visible in list()
+            if (providers[providerID]) {
+              providers[providerID].models = merged
+            }
+            return merged
           })
         }
 
@@ -1533,6 +1559,20 @@ export const layer = Layer.effect(
           })
         }
 
+        // Also set keys for config providers with single env vars
+        for (const [id, provider] of configProviders) {
+          const providerID = ProviderV2.ID.make(id)
+          if (disabled.has(providerID)) continue
+          const envVars = provider.env ?? []
+          if (envVars.length !== 1) continue
+          const apiKey = envs[envVars[0]]
+          if (!apiKey) continue
+          mergeProvider(providerID, {
+            source: "env",
+            key: apiKey,
+          })
+        }
+
         // load apikeys
         const auths = yield* auth.all().pipe(Effect.orDie)
         for (const [id, provider] of Object.entries(auths)) {
@@ -1540,10 +1580,13 @@ export const layer = Layer.effect(
           if (disabled.has(providerID)) continue
           if (provider.type === "api") {
             ensureDatabase(id)
-            mergeProvider(providerID, {
-              source: "api",
-              key: provider.key,
-            })
+            // also merge if provider was added from plugin (not in modelsDev)
+            if (database[providerID] || providers[providerID]) {
+              mergeProvider(providerID, {
+                source: "api",
+                key: provider.key,
+              })
+            }
           }
         }
 
@@ -1566,6 +1609,40 @@ export const layer = Layer.effect(
           const opts = options ?? {}
           const patch: Partial<Info> = providers[providerID] ? { options: opts } : { source: "custom", options: opts }
           mergeProvider(providerID, patch)
+        }
+
+        // run plugin models for providers that were added after the first pass
+        // (e.g., via env var or auth loading)
+        for (const hook of plugins) {
+          const p = hook.provider
+          const models = p?.models
+          if (!p || !models) continue
+
+          const providerID = ProviderV2.ID.make(p.id)
+          if (disabled.has(providerID)) continue
+
+          const provider = database[providerID]
+          if (!provider) continue
+          const pluginAuth = yield* auth.get(providerID).pipe(Effect.orDie)
+
+          provider.models = yield* Effect.promise(async () => {
+            const next = await models(toPublicInfo(provider), { auth: pluginAuth })
+            const merged = Object.fromEntries(
+              Object.entries(next).map(([id, model]) => [
+                id,
+                {
+                  ...model,
+                  id: ModelV2.ID.make(id),
+                  providerID,
+                },
+              ]),
+            )
+            // Also update providers object so the models are visible in list()
+            if (providers[providerID]) {
+              providers[providerID].models = merged
+            }
+            return merged
+          })
         }
 
         for (const [id, fn] of Object.entries(custom(dep))) {
@@ -2014,7 +2091,7 @@ export const layer = Layer.effect(
           error: e instanceof Error ? e.message : "Unknown error",
         })
       }
-    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never, never>
+    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never>
 
     const getHealth = Effect.fn("Provider.getHealth")(function* (providerID: ProviderV2.ID) {
       const cached = yield* Effect.cached(
@@ -2029,7 +2106,7 @@ export const layer = Layer.effect(
         ),
       )
       return yield* cached
-    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never, never>
+    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never>
 
     return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel, checkHealth, getHealth })
   }),

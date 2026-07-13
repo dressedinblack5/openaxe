@@ -6,7 +6,7 @@ import { EventV2 } from "../event"
 import { LocationServiceMap } from "../location-layer"
 import { ProjectV2 } from "../project"
 import { SessionV2 } from "../session"
-import * as SessionExecutionLocal from "../session/execution/local"
+import { layer as sessionExecutionLocalLayer } from "../session/execution/local"
 import { SessionProjector } from "../session/projector"
 import { SessionStore } from "../session/store"
 import { ApplicationTools } from "../tool/application-tools"
@@ -23,7 +23,7 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/pu
 
 const SessionsLayer = SessionV2.layer.pipe(
   Layer.provide(SessionProjector.layer),
-  Layer.provide(SessionExecutionLocal.layer),
+  Layer.provide(sessionExecutionLocalLayer),
   Layer.provide(SessionStore.layer),
   Layer.provide(EventV2.layer),
   Layer.provide(Database.defaultLayer),

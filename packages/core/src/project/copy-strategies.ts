@@ -36,3 +36,5 @@ export function makeGitWorktreeStrategy(input: {
     }),
   } satisfies Strategy
 }
+
+export * as CopyStrategies from "./copy-strategies"

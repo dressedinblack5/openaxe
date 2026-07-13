@@ -1,5 +1,5 @@
 /* oxlint-disable */
-import type * as Effect from "effect/Effect"
+import type { Effect } from "effect/Effect";
 import type { CacheConfig } from "drizzle-orm/cache/core/types"
 import { applyEffectWrapper, type QueryEffectHKTBase } from "drizzle-orm/effect-core/query-effect"
 import { entityKind, is } from "drizzle-orm/entity"
@@ -176,7 +176,7 @@ export interface SQLiteEffectSelectBase<
       TResult,
       TSelectedFields
     >,
-    Effect.Effect<TResult, TEffectHKT["error"], TEffectHKT["context"]> {}
+    Effect<TResult, TEffectHKT["error"], TEffectHKT["context"]> {}
 
 export class SQLiteEffectSelectBase<
     TTableName extends string | undefined,

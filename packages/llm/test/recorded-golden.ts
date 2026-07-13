@@ -1,4 +1,4 @@
-import type { HttpRecorder } from "@opencode-ai/http-recorder"
+import type { RecorderOptions } from "@opencode-ai/http-recorder"
 import { describe } from "bun:test"
 import { Effect } from "effect"
 import type { Model } from "../src"
@@ -29,7 +29,7 @@ type TargetInput = {
   readonly prefix?: string
   readonly tags?: ReadonlyArray<string>
   readonly metadata?: Record<string, unknown>
-  readonly options?: HttpRecorder.RecorderOptions
+  readonly options?: RecorderOptions
   readonly scenarios: ReadonlyArray<ScenarioInput>
 }
 

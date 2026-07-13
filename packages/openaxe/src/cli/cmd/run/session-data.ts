@@ -25,7 +25,7 @@
 //   event arrives, the queue entry is removed and the footer falls back
 //   to the next pending request or to the prompt view.
 import type { Event, Part, PermissionRequest, QuestionRequest, ToolPart } from "@opencode-ai/sdk/v2"
-import * as Locale from "@/util/locale"
+import { number } from "@/util/locale";
 import { toolView } from "./tool"
 import type { FooterOutput, FooterPatch, FooterView, StreamCommit } from "./types"
 
@@ -152,7 +152,7 @@ function formatUsage(
   }
 
   const text =
-    limit && limit > 0 ? `${Locale.number(total)} (${Math.round((total / limit) * 100)}%)` : Locale.number(total)
+    limit && limit > 0 ? `${number(total)} (${Math.round((total / limit) * 100)}%)` : number(total)
 
   if (typeof cost === "number" && cost > 0) {
     return `${text} · ${money.format(cost)}`

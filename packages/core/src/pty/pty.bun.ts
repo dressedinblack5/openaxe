@@ -1,4 +1,4 @@
-import { spawn as create } from "bun-pty"
+import { spawn as create } from "bun-pty" // renamed to avoid conflict with local spawn()
 import type { Opts, Proc } from "./pty"
 
 export type { Disp, Exit, Opts, Proc } from "./pty"

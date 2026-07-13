@@ -1,7 +1,8 @@
 import { Schema } from "effect"
 import { isAbsolute, join, relative } from "path"
 import { Effect } from "effect"
-import * as Tool from "./tool"
+import type { Context } from "./tool"
+import { define } from "./tool";
 import { LSP } from "@/lsp/lsp"
 import { createTwoFilesPatch } from "diff"
 import DESCRIPTION from "./write.txt"
@@ -13,7 +14,7 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import { InstanceState } from "@/effect/instance-state"
 import { trimDiff } from "./edit"
 import { assertExternalDirectoryEffect } from "./external-directory"
-import * as Bom from "@/util/bom"
+import { split, join as bomJoin, readFile, syncFile } from "@/util/bom"
 
 const MAX_PROJECT_DIAGNOSTICS_FILES = 5
 
@@ -24,7 +25,7 @@ export const Parameters = Schema.Struct({
   }),
 })
 
-export const WriteTool = Tool.define(
+export const WriteTool = define(
   "write",
   Effect.gen(function* () {
     const lsp = yield* LSP.Service
@@ -35,15 +36,15 @@ export const WriteTool = Tool.define(
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (params: { content: string; filePath: string }, ctx: Tool.Context) =>
+      execute: (params: { content: string; filePath: string }, ctx: Context) =>
         Effect.gen(function* () {
           const instance = yield* InstanceState.context
           const filepath = isAbsolute(params.filePath) ? params.filePath : join(instance.directory, params.filePath)
           yield* assertExternalDirectoryEffect(ctx, filepath)
 
           const exists = yield* fs.existsSafe(filepath)
-          const source = exists ? yield* Bom.readFile(fs, filepath) : { bom: false, text: "" }
-          const next = Bom.split(params.content)
+          const source = exists ? yield* readFile(fs, filepath) : { bom: false, text: "" }
+          const next = split(params.content)
           const desiredBom = source.bom || next.bom
           const contentOld = source.text
           const contentNew = next.text
@@ -59,9 +60,9 @@ export const WriteTool = Tool.define(
             },
           })
 
-          yield* fs.writeWithDirs(filepath, Bom.join(contentNew, desiredBom))
+          yield* fs.writeWithDirs(filepath, bomJoin(contentNew, desiredBom))
           if (yield* format.file(filepath)) {
-            yield* Bom.syncFile(fs, filepath, desiredBom)
+            yield* syncFile(fs, filepath, desiredBom)
           }
           yield* events.publish(FileSystem.Event.Edited, { file: filepath })
           yield* events.publish(Watcher.Event.Updated, {

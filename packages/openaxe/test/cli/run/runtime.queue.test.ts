@@ -350,7 +350,7 @@ describe("run runtime queue", () => {
     ).toBe(false)
     expect(ui.events.findLast((item) => item.type === "queue")).toEqual({ type: "queue", queue: 1 })
     expect(event?.type === "queued.prompts" ? event.prompts.map((item) => item.prompt.text) : []).toEqual(["two"])
-    if (event?.type === "queued.prompts") ui.removeQueued(event.prompts[0]!.messageID)
+    if (event?.type === "queued.prompts") ui.removeQueued(event.prompts[0].messageID)
     await Promise.resolve()
 
     wake?.()

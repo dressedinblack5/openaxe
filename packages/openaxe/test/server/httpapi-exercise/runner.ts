@@ -47,7 +47,7 @@ export function runScenario(options: Options) {
       ),
       Effect.provide(logLayer),
       Effect.scoped,
-    ) as Effect.Effect<Result>
+    )
   }
 }
 

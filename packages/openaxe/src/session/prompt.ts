@@ -23,7 +23,7 @@ import { LSP } from "@/lsp/lsp"
 import { ulid } from "ulid"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
-import * as Stream from "effect/Stream"
+import { decodeText, filter, map, mkString, runForEach } from "effect/Stream";
 import { Command } from "../command"
 import { pathToFileURL, fileURLToPath } from "url"
 import { Config } from "@/config/config"
@@ -54,7 +54,7 @@ import { SessionMessage } from "@opencode-ai/core/session/message"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { AgentAttachment, FileAttachment, Prompt, Source } from "@opencode-ai/core/session/prompt"
-import * as DateTime from "effect/DateTime"
+import { makeUnsafe } from "effect/DateTime";
 import { eq } from "drizzle-orm"
 import { SessionTable } from "@opencode-ai/core/session/sql"
 import { SessionReminders } from "./reminders"
@@ -238,9 +238,9 @@ export const layer = Layer.effect(
           messages: [{ role: "user", content: "Generate a title for this conversation:\n" }, ...msgs],
         })
         .pipe(
-          Stream.filter(LLMEvent.is.textDelta),
-          Stream.map((e) => e.text),
-          Stream.mkString,
+          filter(LLMEvent.is.textDelta),
+          map((e) => e.text),
+          mkString,
           Effect.orDie,
         )
       const cleaned = text
@@ -523,7 +523,7 @@ export const layer = Layer.effect(
               yield* events.publish(SessionEvent.Shell.Started, {
                 sessionID: input.sessionID,
                 messageID: SessionMessage.ID.create(),
-                timestamp: DateTime.makeUnsafe(started),
+                timestamp: makeUnsafe(started),
                 callID: part.callID,
                 command: input.command,
               })
@@ -546,7 +546,7 @@ export const layer = Layer.effect(
               if (flags.experimentalEventSystem) {
                 yield* events.publish(SessionEvent.Shell.Ended, {
                   sessionID: input.sessionID,
-                  timestamp: DateTime.makeUnsafe(completed),
+                  timestamp: makeUnsafe(completed),
                   callID: part.callID,
                   output,
                 })
@@ -584,7 +584,7 @@ export const layer = Layer.effect(
                 forceKillAfter: "3 seconds",
               })
               const handle = yield* spawner.spawn(cmd)
-              yield* Stream.runForEach(Stream.decodeText(handle.all), (chunk) =>
+              yield* runForEach(decodeText(handle.all), (chunk) =>
                 Effect.gen(function* () {
                   output += chunk
                   if (part.state.status === "running") {
@@ -699,7 +699,7 @@ export const layer = Layer.effect(
         yield* events.publish(SessionEvent.AgentSwitched, {
           sessionID: input.sessionID,
           messageID: SessionMessage.ID.create(),
-          timestamp: DateTime.makeUnsafe(info.time.created),
+          timestamp: makeUnsafe(info.time.created),
           agent: info.agent,
         })
       }
@@ -711,7 +711,7 @@ export const layer = Layer.effect(
         yield* events.publish(SessionEvent.ModelSwitched, {
           sessionID: input.sessionID,
           messageID: SessionMessage.ID.create(),
-          timestamp: DateTime.makeUnsafe(info.time.created),
+          timestamp: makeUnsafe(info.time.created),
           model: {
             id: ModelV2.ID.make(info.model.modelID),
             providerID: ProviderV2.ID.make(info.model.providerID),
@@ -1129,7 +1129,7 @@ export const layer = Layer.effect(
         yield* events.publish(SessionEvent.Prompted, {
           sessionID: input.sessionID,
           messageID: SessionMessage.ID.create(),
-          timestamp: DateTime.makeUnsafe(info.time.created),
+          timestamp: makeUnsafe(info.time.created),
           delivery: "steer",
           prompt: Prompt.make({
             text: nextPrompt.text.join("\n"),
@@ -1143,7 +1143,7 @@ export const layer = Layer.effect(
           yield* events.publish(SessionEvent.Synthetic, {
             sessionID: input.sessionID,
             messageID: SessionMessage.ID.create(),
-            timestamp: DateTime.makeUnsafe(info.time.created),
+            timestamp: makeUnsafe(info.time.created),
             text,
           })
         }

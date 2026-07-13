@@ -1,7 +1,8 @@
 import { NodeFileSystem } from "@effect/platform-node"
 import { Deferred, Effect, Exit, FiberSet, Layer, Ref, Scope, Semaphore } from "effect"
 import { Socket } from "effect/unstable/socket"
-import * as CassetteService from "./cassette.js"
+import { Service, fileSystem } from "./cassette.js"
+import type { Interface } from "./cassette.js"
 import { canonicalizeJson, decodeJson, safeText } from "./matching.js"
 import { makeReplayState, resolveAutoMode } from "./recorder.js"
 import { make, type Redactor } from "./redactor.js"
@@ -118,7 +119,7 @@ const openSnapshot = (request: WebSocketRequest, redactor: Redactor) => {
 
 const makeRecordingSocket = (
   upstream: Socket.Socket,
-  cassette: CassetteService.Interface,
+  cassette: Interface,
   name: string,
   request: WebSocketRequest,
   options: WebSocketRecorderOptions,
@@ -200,7 +201,7 @@ const makeRecordingSocket = (
   })
 
 const makeReplaySocket = (
-  cassette: CassetteService.Interface,
+  cassette: Interface,
   name: string,
   request: WebSocketRequest,
   options: WebSocketRecorderOptions,
@@ -285,12 +286,12 @@ const recordingLayer = (
   request: WebSocketRequest,
   options: WebSocketRecorderOptions,
   forcedMode?: "record" | "replay",
-): Layer.Layer<Socket.Socket, never, Socket.Socket | CassetteService.Service> =>
+): Layer.Layer<Socket.Socket, never, Socket.Socket | Service> =>
   Layer.effect(
     Socket.Socket,
     Effect.gen(function* () {
       const upstream = yield* Socket.Socket
-      const cassette = yield* CassetteService.Service
+      const cassette = yield* Service
       const redactor = make(options.redact)
       if ((forcedMode ?? (yield* resolveAutoMode(cassette, name))) === "record")
         return yield* makeRecordingSocket(upstream, cassette, name, request, options, redactor)
@@ -317,10 +318,10 @@ export const socketLayer = (
   provideCassette(recordingLayer(name, request, options, options.mode), options)
 
 const provideCassette = (
-  layer: Layer.Layer<Socket.Socket, never, Socket.Socket | CassetteService.Service>,
+  layer: Layer.Layer<Socket.Socket, never, Socket.Socket | Service>,
   options: WebSocketRecorderOptions,
 ) =>
   layer.pipe(
-    Layer.provide(CassetteService.fileSystem({ directory: options.directory })),
+    Layer.provide(fileSystem({ directory: options.directory })),
     Layer.provide(NodeFileSystem.layer),
   )

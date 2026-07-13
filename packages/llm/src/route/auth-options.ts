@@ -9,12 +9,12 @@ export type AuthOverride = {
 }
 
 export type OptionalApiKeyAuth = {
-  readonly apiKey?: string | Redacted.Redacted<string> | Config.Config<string | Redacted.Redacted<string>>
+  readonly apiKey?: string | Redacted.Redacted | Config.Config<string | Redacted.Redacted>
   readonly auth?: never
 }
 
 export type RequiredApiKeyAuth = {
-  readonly apiKey: string | Redacted.Redacted<string> | Config.Config<string | Redacted.Redacted<string>>
+  readonly apiKey: string | Redacted.Redacted | Config.Config<string | Redacted.Redacted>
   readonly auth?: never
 }
 

@@ -23,3 +23,5 @@ export type Proc = {
   resize(cols: number, rows: number): void
   kill(signal?: string): void
 }
+
+export * as Pty from "./pty"

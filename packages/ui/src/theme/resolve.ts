@@ -433,7 +433,7 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
   if (colors.compact && "text-weak" in overrides && !("text-weaker" in overrides)) {
     const weak = tokens["text-weak"]
     if (weak.startsWith("#")) {
-      tokens["text-weaker"] = shift(weak as HexColor, { l: isDark ? -0.12 : 0.12, c: 0.75 })
+      tokens["text-weaker"] = shift(weak, { l: isDark ? -0.12 : 0.12, c: 0.75 })
     } else {
       tokens["text-weaker"] = weak
     }

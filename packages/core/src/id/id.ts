@@ -1,4 +1,4 @@
-import { create as createIdentifier } from "@opencode-ai/schema/identifier"
+import { create as createIdentifier } from "@opencode-ai/schema/identifier" // renamed to avoid conflict with local create()
 
 const prefixes = {
   job: "job",

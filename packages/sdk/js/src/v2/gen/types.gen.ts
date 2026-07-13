@@ -1737,15 +1737,15 @@ export type AgentConfig = {
     | {
         [key: string]: unknown
       }
-    | string
-    | "primary"
+     
+     
     | "secondary"
     | "accent"
     | "success"
     | "warning"
     | "error"
     | "info"
-    | number
+     
     | PermissionConfig
     | undefined
 }
@@ -1772,7 +1772,7 @@ export type ProviderConfig = {
      */
     headerTimeout?: number | false
     chunkTimeout?: number
-    [key: string]: unknown | string | boolean | number | false | number | false | number | undefined
+    [key: string]: unknown | string | boolean | number | false       | undefined
   }
   models?: {
     [key: string]: {
@@ -2702,7 +2702,7 @@ export type Workspace = {
   directory?: string | null
   extra?: unknown | null
   projectID: string
-  timeUsed: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  timeUsed: number | "NaN" | "Infinity" | "-Infinity"      
 }
 
 export type WorkspaceCreateError = {
@@ -2877,20 +2877,20 @@ export type ProjectCopyError = {
 
 export type ArtifactSummary = {
   key: string
-  version: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-  size: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  version: number | "NaN" | "Infinity" | "-Infinity"      
+  size: number | "NaN" | "Infinity" | "-Infinity"      
   truncated: boolean
-  timeCreated: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  timeCreated: number | "NaN" | "Infinity" | "-Infinity"      
   overflowPath?: string
 }
 
 export type ArtifactEntry = {
   key: string
-  version: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  version: number | "NaN" | "Infinity" | "-Infinity"      
   content: string
-  size: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  size: number | "NaN" | "Infinity" | "-Infinity"      
   truncated: boolean
-  timeCreated: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  timeCreated: number | "NaN" | "Infinity" | "-Infinity"      
   overflowPath?: string
 }
 
@@ -4204,8 +4204,8 @@ export type IntegrationAttempt = {
   instructions: string
   mode: "auto" | "code"
   time: {
-    created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-    expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    created: number | "NaN" | "Infinity" | "-Infinity"      
+    expires: number | "NaN" | "Infinity" | "-Infinity"      
   }
 }
 
@@ -12106,30 +12106,30 @@ export type V2IntegrationAttemptStatusResponses = {
       | {
           status: "pending"
           time: {
-            created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-            expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+            created: number | "NaN" | "Infinity" | "-Infinity"      
+            expires: number | "NaN" | "Infinity" | "-Infinity"      
           }
         }
       | {
           status: "complete"
           time: {
-            created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-            expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+            created: number | "NaN" | "Infinity" | "-Infinity"      
+            expires: number | "NaN" | "Infinity" | "-Infinity"      
           }
         }
       | {
           status: "failed"
           message: string
           time: {
-            created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-            expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+            created: number | "NaN" | "Infinity" | "-Infinity"      
+            expires: number | "NaN" | "Infinity" | "-Infinity"      
           }
         }
       | {
           status: "expired"
           time: {
-            created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-            expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+            created: number | "NaN" | "Infinity" | "-Infinity"      
+            expires: number | "NaN" | "Infinity" | "-Infinity"      
           }
         }
   }

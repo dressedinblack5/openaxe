@@ -3,13 +3,13 @@ import { GlobalBus } from "@/bus/global"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
 import { WorkspaceContext } from "@/control-plane/workspace-context"
 import { InstanceRef } from "@/effect/instance-ref"
-import { disposeInstance as runDisposers } from "@/effect/instance-registry"
+import { disposeInstance } from "@/effect/instance-registry"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Context, Deferred, Duration, Effect, Exit, Layer, Scope } from "effect"
 import { type InstanceContext } from "./instance-context"
 import { InstanceBootstrap } from "./bootstrap-service"
 import { InstanceBootstrap as InstanceBootstrapGraph } from "./bootstrap"
-import * as Project from "./project"
+import { Project } from "./project"
 
 export interface LoadInput {
   directory: string
@@ -96,7 +96,7 @@ export const layer: Layer.Layer<Service, never, Project.Service | InstanceBootst
       // Emit disposed event before running disposers so listeners don't wait
       // for potentially slow async cleanup (PTY connections, cache invalidation).
       yield* emitDisposed({ directory: ctx.directory, project: ctx.project.id })
-      yield* Effect.promise(() => runDisposers(ctx.directory))
+      yield* Effect.promise(() => disposeInstance(ctx.directory))
     })
 
     const disposeEntry = Effect.fnUntraced(function* (directory: string, entry: Entry, ctx: InstanceContext) {
@@ -136,7 +136,7 @@ export const layer: Layer.Layer<Service, never, Project.Service | InstanceBootst
             yield* Effect.logInfo("reloading instance", { directory: directory })
             if (previous) {
               yield* Deferred.await(previous.deferred).pipe(Effect.ignore)
-              yield* Effect.promise(() => runDisposers(directory))
+              yield* Effect.promise(() => disposeInstance(directory))
               yield* emitDisposed({ directory, project: input.project?.id })
             }
             yield* completeLoad(directory, input, entry)

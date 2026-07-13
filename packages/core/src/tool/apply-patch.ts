@@ -2,7 +2,8 @@ export * as ApplyPatchTool from "./apply-patch"
 
 import { ToolFailure } from "@opencode-ai/llm"
 import { Effect, Layer, Schema } from "effect"
-import * as ts from "typescript"
+import type { Diagnostic } from "typescript"
+import { DiagnosticCategory, ScriptTarget, createSourceFile, flattenDiagnosticMessageText } from "typescript";
 import { Config } from "../config"
 import { FileMutation } from "../file-mutation"
 import { FSUtil } from "../fs-util"
@@ -192,12 +193,12 @@ export const layer = Layer.effectDiscard(
 )
 
 function validateTSContent(path: string, content: string): string[] {
-  const sourceFile = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true)
-  const diagnostics: readonly ts.Diagnostic[] = (sourceFile as any).parseDiagnostics ?? []
+  const sourceFile = createSourceFile(path, content, ScriptTarget.Latest, true)
+  const diagnostics: readonly Diagnostic[] = (sourceFile as unknown as { diagnostics?: readonly Diagnostic[] }).diagnostics ?? []
   return diagnostics
-    .filter((d) => d.category === ts.DiagnosticCategory.Error)
+    .filter((d) => d.category === DiagnosticCategory.Error)
     .map((d) => {
       const pos = d.start !== undefined ? sourceFile.getLineAndCharacterOfPosition(d.start) : { line: 0, character: 0 }
-      return `${ts.flattenDiagnosticMessageText(d.messageText, "\n")} (${pos.line + 1}:${pos.character + 1})`
+      return `${flattenDiagnosticMessageText(d.messageText, "\n")} (${pos.line + 1}:${pos.character + 1})`
     })
 }

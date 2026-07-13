@@ -4,7 +4,7 @@ import path from "path"
 import { mergeDeep, unique } from "remeda"
 import { Cause, Context, Effect, Fiber, Layer } from "effect"
 import { ConfigParse } from "@/config/parse"
-import * as ConfigPaths from "@/config/paths"
+import { files, directories as configDirectories, fileInDirectory } from "@/config/paths"
 import { migrateTuiConfig } from "./tui-migrate"
 import { resolveHostAttentionSoundPaths } from "./tui-host-attention"
 import { Flag } from "@opencode-ai/core/flag/flag"
@@ -91,7 +91,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
       return {
         ...config,
         plugin: yield* Effect.forEach(plugins, (plugin) =>
-          Effect.promise(() => ConfigPlugin.resolvePluginSpec(plugin as ConfigPlugin.Origin["spec"], configFilepath)),
+          Effect.promise(() => ConfigPlugin.resolvePluginSpec(plugin, configFilepath)),
         ),
       }
     })
@@ -159,7 +159,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
       const scope = pluginScope(file, ctx)
       const plugins = ConfigPlugin.deduplicatePluginOrigins([
         ...acc.plugin_origins,
-        ...data.plugin.map((spec) => ({ spec: spec as ConfigPlugin.Origin["spec"], scope, source: file })),
+        ...data.plugin.map((spec) => ({ spec: spec, scope, source: file })),
       ])
       acc.result = {
         ...acc.result,
@@ -170,10 +170,10 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
 
   // Every config dir we may read from: global config dir, any `.openaxe`
   // folders between cwd and home, and OPENCODE_CONFIG_DIR.
-  const directories = yield* ConfigPaths.directories(ctx.directory)
+  const directories = yield* configDirectories(ctx.directory)
   yield* Effect.promise(() => migrateTuiConfig({ directories, cwd: ctx.directory }))
 
-  const projectFiles = Flag.OPENCODE_DISABLE_PROJECT_CONFIG ? [] : yield* ConfigPaths.files("tui", ctx.directory)
+  const projectFiles = Flag.OPENCODE_DISABLE_PROJECT_CONFIG ? [] : yield* files("tui", ctx.directory)
 
   const acc: Acc = {
     result: {},
@@ -181,7 +181,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
   }
 
   // 1. Global tui config (lowest precedence).
-  for (const file of ConfigPaths.fileInDirectory(Global.Path.config, "tui")) {
+  for (const file of fileInDirectory(Global.Path.config, "tui")) {
     yield* mergeFile(acc, file)
   }
 
@@ -206,7 +206,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
   const fileEntries: { file: string; data: Info }[] = yield* Effect.forEach(
     dirs,
     (dir) =>
-      Effect.forEach(ConfigPaths.fileInDirectory(dir, "tui"), (file) =>
+      Effect.forEach(fileInDirectory(dir, "tui"), (file) =>
         loadFile(file).pipe(Effect.map((data) => ({ file, data }))),
       ),
     { concurrency: "unbounded" },
@@ -222,7 +222,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
     const scope = pluginScope(file, ctx)
     const plugins = ConfigPlugin.deduplicatePluginOrigins([
       ...acc.plugin_origins,
-      ...data.plugin.map((spec) => ({ spec: spec as ConfigPlugin.Origin["spec"], scope, source: file })),
+      ...data.plugin.map((spec) => ({ spec: spec, scope, source: file })),
     ])
     acc.result = { ...acc.result, plugin: plugins.map((item) => item.spec) }
     acc.plugin_origins = plugins

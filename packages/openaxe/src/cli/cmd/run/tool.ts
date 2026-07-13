@@ -16,9 +16,9 @@ import os from "os"
 import path from "path"
 const stripAnsi = (s: string) => s.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, "")
 import type { ToolPart } from "@opencode-ai/sdk/v2"
-import type * as Tool from "@/tool/tool"
+import type { InferMetadata, InferParameters, Info } from "@/tool/tool";
 import type { ApplyPatchTool } from "@/tool/apply_patch"
-import type { ShellTool as BashTool } from "@/tool/shell"
+import type { ShellTool } from "@/tool/shell"
 import type { EditTool } from "@/tool/edit"
 import type { GlobTool } from "@/tool/glob"
 import type { GrepTool } from "@/tool/grep"
@@ -34,7 +34,7 @@ import type { WebFetchTool } from "@/tool/webfetch"
 import { webSearchProviderLabel, type WebSearchTool } from "@/tool/websearch"
 import type { WriteTool } from "@/tool/write"
 import { LANGUAGE_EXTENSIONS } from "@/lsp/language"
-import * as Locale from "@/util/locale"
+import { duration, titlecase } from "@/util/locale";
 import type { RunEntryBody, StreamCommit, ToolSnapshot } from "./types"
 
 export type ToolView = {
@@ -73,15 +73,15 @@ export type ToolPermissionInfo = {
   file?: string
 }
 
-export type ToolProps<T = Tool.Info> = {
-  input: Partial<Tool.InferParameters<T>>
-  metadata: Partial<Tool.InferMetadata<T>>
+export type ToolProps<T = Info> = {
+  input: Partial<InferParameters<T>>
+  metadata: Partial<InferMetadata<T>>
   frame: ToolFrame
 }
 
-type ToolPermissionProps<T = Tool.Info> = {
-  input: Partial<Tool.InferParameters<T>>
-  metadata: Partial<Tool.InferMetadata<T>>
+type ToolPermissionProps<T = Info> = {
+  input: Partial<InferParameters<T>>
+  metadata: Partial<InferMetadata<T>>
   patterns: string[]
 }
 
@@ -93,18 +93,18 @@ type ToolPermissionCtx = {
 
 type ToolDefs = {
   invalid: typeof InvalidTool
-  bash: typeof BashTool
+  bash: typeof ShellTool
   write: typeof WriteTool
   edit: typeof EditTool
   apply_patch: typeof ApplyPatchTool
-  batch: Tool.Info
+  batch: Info
   task: typeof TaskTool
   todowrite: typeof TodoWriteTool
   question: typeof QuestionTool
   read: typeof ReadTool
   glob: typeof GlobTool
   grep: typeof GrepTool
-  list: Tool.Info
+  list: Info
   lsp: typeof LspTool
   webfetch: typeof WebFetchTool
   websearch: typeof WebSearchTool
@@ -114,7 +114,7 @@ type ToolDefs = {
 
 type ToolName = keyof ToolDefs
 
-type ToolRule<T = Tool.Info> = {
+type ToolRule<T = Info> = {
   view: ToolView
   run: (props: ToolProps<T>) => ToolInline
   scroll?: Partial<Record<ToolPhase, (props: ToolProps<T>) => string>>
@@ -136,7 +136,7 @@ function dict(v: unknown): ToolDict {
   return { ...v }
 }
 
-function props<T = Tool.Info>(frame: ToolFrame): ToolProps<T> {
+function props<T = Info>(frame: ToolFrame): ToolProps<T> {
   return {
     input: Object.assign(Object.create(null), frame.input),
     metadata: Object.assign(Object.create(null), frame.meta),
@@ -144,7 +144,7 @@ function props<T = Tool.Info>(frame: ToolFrame): ToolProps<T> {
   }
 }
 
-function permission<T = Tool.Info>(ctx: ToolPermissionCtx): ToolPermissionProps<T> {
+function permission<T = Info>(ctx: ToolPermissionCtx): ToolPermissionProps<T> {
   return {
     input: Object.assign(Object.create(null), ctx.input),
     metadata: Object.assign(Object.create(null), ctx.meta),
@@ -196,7 +196,7 @@ function span(state: ToolDict): string {
     return ""
   }
 
-  return Locale.duration(end - start)
+  return duration(end - start)
 }
 
 function fail(ctx: ToolFrame): string {
@@ -364,7 +364,7 @@ function runWebSearch(p: ToolProps<typeof WebSearchTool>): ToolInline {
 }
 
 function runTask(p: ToolProps<typeof TaskTool>): ToolInline {
-  const kind = Locale.titlecase(p.input.subagent_type || "unknown")
+  const kind = titlecase(p.input.subagent_type || "unknown")
   const desc = p.input.description
   const icon = p.frame.status === "error" ? "✗" : p.frame.status === "running" ? "•" : "✓"
   return {
@@ -479,7 +479,7 @@ function runPlanExit(p: ToolProps<typeof PlanExitTool>): ToolInline {
   }
 }
 
-type PatchFile = Tool.InferMetadata<typeof ApplyPatchTool>["files"][number]
+type PatchFile = InferMetadata<typeof ApplyPatchTool>["files"][number]
 
 function patchTitle(file: PatchFile): string {
   const rel = file.relativePath
@@ -569,7 +569,7 @@ function snapPatch(p: ToolProps<typeof ApplyPatchTool>): ToolSnapshot | undefine
 }
 
 function snapTask(p: ToolProps<typeof TaskTool>): ToolSnapshot {
-  const kind = Locale.titlecase(p.input.subagent_type || "general")
+  const kind = titlecase(p.input.subagent_type || "general")
   const desc = p.input.description
   const title = text(p.frame.state.title)
   const rows = [desc || title].filter((item): item is string => Boolean(item))
@@ -621,7 +621,7 @@ function snapQuestion(p: ToolProps<typeof QuestionTool>): ToolSnapshot {
   }
 }
 
-function scrollBashStart(p: ToolProps<typeof BashTool>): string {
+function scrollBashStart(p: ToolProps<typeof ShellTool>): string {
   const cmd = p.input.command ?? ""
   const wd = p.input.workdir ?? ""
   const formatted = wd && wd !== "." ? toolPath(wd) : ""
@@ -637,7 +637,7 @@ function scrollBashStart(p: ToolProps<typeof BashTool>): string {
   return `# Running in ${dir}\n$ ${cmd}`
 }
 
-function scrollBashProgress(p: ToolProps<typeof BashTool>): string {
+function scrollBashProgress(p: ToolProps<typeof ShellTool>): string {
   const out = stripAnsi(p.frame.raw)
   const cmd = (p.input.command ?? "").trim()
   const fmt = (text: string) => {
@@ -670,7 +670,7 @@ function scrollBashProgress(p: ToolProps<typeof BashTool>): string {
   return fmt(out)
 }
 
-function scrollBashFinal(p: ToolProps<typeof BashTool>): string {
+function scrollBashFinal(p: ToolProps<typeof ShellTool>): string {
   const code = p.metadata.exit ?? num(p.frame.meta.exitCode) ?? num(p.frame.meta.exit_code)
   const time = span(p.frame.state)
   if (code === undefined) {
@@ -749,7 +749,7 @@ function scrollPatchFinal(p: ToolProps<typeof ApplyPatchTool>): string {
     return rows.join("\n")
   }
 
-  return patchLine(files[0]!)
+  return patchLine(files[0])
 }
 
 function scrollTaskStart(_: ToolProps<typeof TaskTool>): string {
@@ -779,7 +779,7 @@ function scrollTaskFinal(p: ToolProps<typeof TaskTool>): string {
     return fail(p.frame)
   }
 
-  const kind = Locale.titlecase(p.input.subagent_type || "general")
+  const kind = titlecase(p.input.subagent_type || "general")
   const row = p.input.description || text(p.frame.state.title)
   if (!row) {
     return `# ${kind} Task`
@@ -965,7 +965,7 @@ function permList(p: ToolPermissionProps): ToolPermissionInfo {
   }
 }
 
-function permBash(p: ToolPermissionProps<typeof BashTool>): ToolPermissionInfo {
+function permBash(p: ToolPermissionProps<typeof ShellTool>): ToolPermissionInfo {
   const cmd = p.input.command || ""
   return {
     icon: "#",
@@ -979,7 +979,7 @@ function permTask(p: ToolPermissionProps<typeof TaskTool>): ToolPermissionInfo {
   const desc = p.input.description
   return {
     icon: "#",
-    title: `${Locale.titlecase(type)} Task`,
+    title: `${titlecase(type)} Task`,
     lines: desc ? [`◉ ${desc}`] : [],
   }
 }
@@ -1269,7 +1269,7 @@ export function toolFrame(commit: StreamCommit, raw: string): ToolFrame {
   }
 }
 
-function runBash(p: ToolProps<typeof BashTool>): ToolInline {
+function runBash(p: ToolProps<typeof ShellTool>): ToolInline {
   return {
     icon: "$",
     title: p.input.command || "",

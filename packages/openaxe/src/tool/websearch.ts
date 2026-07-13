@@ -1,7 +1,8 @@
 import { Effect, Schema } from "effect"
 import { HttpClient } from "effect/unstable/http"
-import * as Tool from "./tool"
-import * as McpWebSearch from "./mcp-websearch"
+import type { Context } from "./tool"
+import { define } from "./tool";
+import { EXA_URL, PARALLEL_URL, ParallelSearchArgs, SearchArgs, call } from "./mcp-websearch";
 import DESCRIPTION from "./websearch.txt"
 import { checksum } from "@opencode-ai/core/util/encode"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
@@ -42,7 +43,7 @@ export function webSearchProviderLabel(provider: unknown) {
   return "Web Search"
 }
 
-export function webSearchModelName(extra: Tool.Context["extra"]) {
+export function webSearchModelName(extra: Context["extra"]) {
   const model = extra?.model
   if (!model || typeof model !== "object") return undefined
   const api = "api" in model && model.api && typeof model.api === "object" ? model.api : undefined
@@ -61,14 +62,14 @@ function callProvider(
   http: HttpClient.HttpClient,
   provider: WebSearchProvider,
   params: Schema.Schema.Type<typeof Parameters>,
-  ctx: Tool.Context,
+  ctx: Context,
 ) {
   if (provider === "parallel") {
-    return McpWebSearch.call(
+    return call(
       http,
-      McpWebSearch.PARALLEL_URL,
+      PARALLEL_URL,
       "web_search",
-      McpWebSearch.ParallelSearchArgs,
+      ParallelSearchArgs,
       {
         objective: params.query,
         search_queries: [params.query],
@@ -80,11 +81,11 @@ function callProvider(
     )
   }
 
-  return McpWebSearch.call(
+  return call(
     http,
-    McpWebSearch.EXA_URL,
+    EXA_URL,
     "web_search_exa",
-    McpWebSearch.SearchArgs,
+    SearchArgs,
     {
       query: params.query,
       type: params.type || "auto",
@@ -96,7 +97,7 @@ function callProvider(
   )
 }
 
-export const WebSearchTool = Tool.define(
+export const WebSearchTool = define(
   "websearch",
   Effect.gen(function* () {
     const http = yield* HttpClient.HttpClient
@@ -107,7 +108,7 @@ export const WebSearchTool = Tool.define(
         return DESCRIPTION.replace("{{year}}", new Date().getFullYear().toString())
       },
       parameters: Parameters,
-      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
+      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) =>
         Effect.gen(function* () {
           const provider = selectWebSearchProvider(ctx.sessionID, {
             exa: flags.enableExa,

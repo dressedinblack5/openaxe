@@ -307,7 +307,7 @@ const printStatus = (providers: ReadonlyArray<Provider>, fileEnv: Env) => {
 }
 
 const exitIfCancel = <A>(value: A | symbol): A => {
-  if (!prompts.isCancel(value)) return value as A
+  if (!prompts.isCancel(value)) return value
   prompts.cancel("Cancelled")
   process.exit(130)
 }
@@ -369,7 +369,7 @@ const executeRequest = Effect.fn("RecordingEnv.executeRequest")(function* (
   return yield* http.execute(request).pipe(Effect.flatMap(responseError))
 })
 
-const validateBearer = (url: string, token: Redacted.Redacted<string>, headers: Record<string, string> = {}) =>
+const validateBearer = (url: string, token: Redacted.Redacted, headers: Record<string, string> = {}) =>
   HttpClientRequest.get(url).pipe(
     HttpClientRequest.setHeaders({ ...headers, authorization: `Bearer ${Redacted.value(token)}` }),
     executeRequest,
@@ -377,7 +377,7 @@ const validateBearer = (url: string, token: Redacted.Redacted<string>, headers: 
 
 const validateChat = (input: {
   readonly url: string
-  readonly token: Redacted.Redacted<string>
+  readonly token: Redacted.Redacted
   readonly tokenHeader?: string
   readonly model: string
   readonly headers?: Record<string, string>

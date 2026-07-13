@@ -3,7 +3,7 @@ import { LocationServiceMap } from "@opencode-ai/core/location-layer"
 import { PermissionSaved } from "@opencode-ai/core/permission/saved"
 import { PtyTicket } from "@opencode-ai/core/pty/ticket"
 import { Layer } from "effect"
-import { layer as locationLayer } from "./groups/location"
+import { layer } from "./groups/location"
 import { sessionLocationLayer } from "./middleware/session-location"
 import { MessageHandler } from "./handlers/message"
 import { ModelHandler } from "./handlers/model"
@@ -19,7 +19,7 @@ import { HealthHandler } from "./handlers/health"
 import { PtyHandler } from "./handlers/pty"
 import { QuestionHandler } from "./handlers/question"
 import { ReferenceHandler } from "./handlers/reference"
-import * as SessionExecutionLocal from "@opencode-ai/core/session/execution/local"
+import { defaultLayer } from "@opencode-ai/core/session/execution/local";
 import { LocationHandler } from "./handlers/location"
 import { IntegrationHandler } from "./handlers/integration"
 import { CredentialHandler } from "./handlers/credential"
@@ -53,9 +53,9 @@ export const handlers = Layer.mergeAll(
   MemoryHandler,
 ).pipe(
   Layer.provide(sessionLocationLayer),
-  Layer.provide(locationLayer),
+  Layer.provide(layer),
   Layer.provide(SessionV2.defaultLayer),
-  Layer.provide(SessionExecutionLocal.defaultLayer),
+  Layer.provide(defaultLayer),
   Layer.provide(PermissionSaved.defaultLayer),
   Layer.provide(PtyTicket.defaultLayer),
   Layer.provide(LocationServiceMap.layer),

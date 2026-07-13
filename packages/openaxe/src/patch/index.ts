@@ -1,8 +1,7 @@
 import { Effect, Schema } from "effect"
 import { resolve } from "path"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import * as Bom from "../util/bom"
-
+import { join, split } from "../util/bom";
 export const PatchSchema = Schema.Struct({
   patchText: Schema.String.annotate({ description: "The full patch text that describes all changes to be made" }),
 })
@@ -309,7 +308,7 @@ export function deriveNewContentsFromChunks(
   chunks: UpdateFileChunk[],
   originalText: string,
 ): ApplyPatchFileUpdate {
-  const originalContent = Bom.split(originalText)
+  const originalContent = split(originalText)
 
   let originalLines = originalContent.text.split("\n")
 
@@ -326,7 +325,7 @@ export function deriveNewContentsFromChunks(
     newLines.push("")
   }
 
-  const next = Bom.split(newLines.join("\n"))
+  const next = split(newLines.join("\n"))
   const newContent = next.text
 
   // Generate unified diff
@@ -543,12 +542,12 @@ export const applyHunksToFiles = Effect.fn("Patch.applyHunksToFiles")(function* 
         const fileUpdate = deriveNewContentsFromChunks(hunk.path, hunk.chunks, originalText)
 
         if (hunk.move_path) {
-          yield* fs.writeWithDirs(hunk.move_path, Bom.join(fileUpdate.content, fileUpdate.bom))
+          yield* fs.writeWithDirs(hunk.move_path, join(fileUpdate.content, fileUpdate.bom))
           yield* fs.remove(hunk.path)
           modified.push(hunk.move_path)
           yield* Effect.logInfo(`Moved file: ${hunk.path} -> ${hunk.move_path}`)
         } else {
-          yield* fs.writeWithDirs(hunk.path, Bom.join(fileUpdate.content, fileUpdate.bom))
+          yield* fs.writeWithDirs(hunk.path, join(fileUpdate.content, fileUpdate.bom))
           modified.push(hunk.path)
           yield* Effect.logInfo(`Updated file: ${hunk.path}`)
         }

@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect"
-import * as Tool from "./tool"
+import type { Context } from "./tool"
+import { define } from "./tool";
 import path from "path"
 import { LSP } from "@/lsp/lsp"
 import DESCRIPTION from "./lsp.txt"
@@ -34,7 +35,7 @@ export const Parameters = Schema.Struct({
   }),
 })
 
-export const LspTool = Tool.define(
+export const LspTool = define(
   "lsp",
   Effect.gen(function* () {
     const lsp = yield* LSP.Service
@@ -42,7 +43,7 @@ export const LspTool = Tool.define(
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (args: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
+      execute: (args: Schema.Schema.Type<typeof Parameters>, ctx: Context) =>
         Effect.gen(function* () {
           const instance = yield* InstanceState.context
           const file = path.isAbsolute(args.filePath) ? args.filePath : path.join(instance.directory, args.filePath)

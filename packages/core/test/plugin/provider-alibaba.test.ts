@@ -65,9 +65,9 @@ describe("AlibabaPlugin", () => {
           api: { id: ModelV2.ID.make("qwen"), type: "aisdk", package: "test-provider" },
         }),
         package: "@ai-sdk/alibaba",
-        options: { name: "custom-alibaba", apiKey: "test" },
+        options: { apiKey: "test" },
       })
-      const expected = createAlibaba({ apiKey: "test", ...{ name: "custom-alibaba" } }).languageModel("qwen")
+      const expected = createAlibaba({ apiKey: "test" }).languageModel("qwen")
       const actual = result.sdk?.languageModel("qwen")
       expect(actual?.provider).toBe(expected.provider)
       expect(actual?.modelId).toBe(expected.modelId)

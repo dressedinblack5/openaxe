@@ -1,6 +1,6 @@
 import { Layer, ManagedRuntime } from "effect"
 import { NodeFileSystem } from "@effect/platform-node"
-import * as Observability from "@opencode-ai/core/observability"
+import { layer } from "@opencode-ai/core/observability";
 import { Artifact } from "@opencode-ai/core/artifact"
 
 import { FSUtil } from "@opencode-ai/core/fs-util"
@@ -106,7 +106,7 @@ export const AppLayer = Layer.mergeAll(
 ).pipe(
   Layer.provideMerge(Ripgrep.defaultLayer),
   Layer.provideMerge(InstanceLayer.layer),
-  Layer.provideMerge(Observability.layer),
+  Layer.provideMerge(layer),
   Layer.provideMerge(NodeFileSystem.layer),
 )
 

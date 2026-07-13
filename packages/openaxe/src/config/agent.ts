@@ -5,7 +5,7 @@ import { Exit, Schema } from "effect"
 import { Glob } from "@opencode-ai/core/util/glob"
 import { ConfigAgentV1 } from "@opencode-ai/core/v1/config/agent"
 import { configEntryNameFromPath } from "./entry-name"
-import * as ConfigMarkdown from "./markdown"
+import { parse } from "./markdown";
 import { ConfigParse } from "./parse"
 
 export async function load(dir: string) {
@@ -16,7 +16,7 @@ export async function load(dir: string) {
     dot: true,
     symlink: true,
   })) {
-    const md = await ConfigMarkdown.parse(item).catch(() => undefined)
+    const md = await parse(item).catch(() => undefined)
     if (!md) continue
 
     const name = configEntryNameFromPath(path.relative(dir, item), ["agent/", "agents/"])
@@ -39,7 +39,7 @@ export async function loadMode(dir: string) {
     dot: true,
     symlink: true,
   })) {
-    const md = await ConfigMarkdown.parse(item).catch(() => undefined)
+    const md = await parse(item).catch(() => undefined)
     if (!md) continue
 
     const config = {

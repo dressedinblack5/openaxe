@@ -6,7 +6,7 @@ import { InstanceState } from "@/effect/instance-state"
 import { optionalOmitUndefined } from "@opencode-ai/core/schema"
 import { Plugin } from "../plugin"
 import { ProviderV2 } from "@opencode-ai/core/provider"
-import { Array as Arr, Effect, Layer, Record, Result, Context, Schema } from "effect"
+import { Array as Arr, Effect, Layer, Record, Result, Context, Schema } from "effect" // renamed to avoid conflict with built-in Array
 
 const When = Schema.Struct({
   key: Schema.String,

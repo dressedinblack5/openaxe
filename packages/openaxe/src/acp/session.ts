@@ -3,8 +3,7 @@ import type { Message, Part } from "@opencode-ai/sdk/v2"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { Context, Effect, Layer, Ref } from "effect"
-import * as ACPError from "./error"
-
+import { SessionNotFoundError } from "./error";
 export type SelectedModel = {
   providerID: ProviderV2.ID
   modelID: ModelV2.ID
@@ -62,30 +61,30 @@ export type Interface = {
   readonly create: (input: StoreInput) => Effect.Effect<Info>
   readonly load: (input: StoreInput) => Effect.Effect<Info>
   readonly list: (cwd?: string) => Effect.Effect<readonly Info[]>
-  readonly get: (sessionId: string) => Effect.Effect<Info, ACPError.SessionNotFoundError>
+  readonly get: (sessionId: string) => Effect.Effect<Info, SessionNotFoundError>
   readonly tryGet: (sessionId: string) => Effect.Effect<Info | undefined>
   readonly remove: (sessionId: string) => Effect.Effect<Info | undefined>
   readonly setModel: (
     sessionId: string,
     model: SelectedModel | undefined,
-  ) => Effect.Effect<Info, ACPError.SessionNotFoundError>
-  readonly getModel: (sessionId: string) => Effect.Effect<SelectedModel | undefined, ACPError.SessionNotFoundError>
+  ) => Effect.Effect<Info, SessionNotFoundError>
+  readonly getModel: (sessionId: string) => Effect.Effect<SelectedModel | undefined, SessionNotFoundError>
   readonly setVariant: (
     sessionId: string,
     variant: string | undefined,
-  ) => Effect.Effect<Info, ACPError.SessionNotFoundError>
-  readonly getVariant: (sessionId: string) => Effect.Effect<string | undefined, ACPError.SessionNotFoundError>
+  ) => Effect.Effect<Info, SessionNotFoundError>
+  readonly getVariant: (sessionId: string) => Effect.Effect<string | undefined, SessionNotFoundError>
   readonly setMode: (
     sessionId: string,
     modeId: string | undefined,
-  ) => Effect.Effect<Info, ACPError.SessionNotFoundError>
-  readonly getMode: (sessionId: string) => Effect.Effect<string | undefined, ACPError.SessionNotFoundError>
+  ) => Effect.Effect<Info, SessionNotFoundError>
+  readonly getMode: (sessionId: string) => Effect.Effect<string | undefined, SessionNotFoundError>
   readonly recordPartMetadata: (
     input: RecordPartMetadataInput,
-  ) => Effect.Effect<KnownMessagePartMetadata, ACPError.SessionNotFoundError>
+  ) => Effect.Effect<KnownMessagePartMetadata, SessionNotFoundError>
   readonly getPartMetadata: (
     input: PartMetadataLookupInput,
-  ) => Effect.Effect<KnownMessagePartMetadata | undefined, ACPError.SessionNotFoundError>
+  ) => Effect.Effect<KnownMessagePartMetadata | undefined, SessionNotFoundError>
   readonly tryGetPartMetadata: (input: PartMetadataLookupInput) => Effect.Effect<KnownMessagePartMetadata | undefined>
 }
 
@@ -96,7 +95,7 @@ type State = Map<string, Info>
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-    const sessions = yield* Ref.make<State>(new Map())
+    const sessions = yield* Ref.make(new Map())
 
     const store = Effect.fn("ACP.Session.store")(function* (input: StoreInput) {
       const session = makeSession(input)
@@ -113,7 +112,7 @@ export const layer = Layer.effect(
     const get = Effect.fn("ACP.Session.get")(function* (sessionId: string) {
       const session = yield* tryGet(sessionId)
       if (session) return session
-      return yield* new ACPError.SessionNotFoundError({ sessionId })
+      return yield* new SessionNotFoundError({ sessionId })
     })
 
     const update = Effect.fn("ACP.Session.update")(function* (sessionId: string, fn: (session: Info) => Info) {
@@ -124,7 +123,7 @@ export const layer = Layer.effect(
         return [snapshot(next), new Map(state).set(sessionId, next)] as const
       })
       if (result) return result
-      return yield* new ACPError.SessionNotFoundError({ sessionId })
+      return yield* new SessionNotFoundError({ sessionId })
     })
 
     const remove = Effect.fn("ACP.Session.remove")(function* (sessionId: string) {

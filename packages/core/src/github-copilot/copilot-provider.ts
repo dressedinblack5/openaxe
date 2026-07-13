@@ -98,3 +98,5 @@ export function createOpenaiCompatible(options: OpenaiCompatibleProviderSettings
 
 // Default OpenAI Compatible provider instance
 export const openaiCompatible = createOpenaiCompatible()
+
+export * as CopilotProvider from "./copilot-provider"

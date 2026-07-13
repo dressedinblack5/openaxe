@@ -7,7 +7,7 @@ import {
   printParseErrorCode,
 } from "jsonc-parser"
 
-import * as ConfigPaths from "@/config/paths"
+import { fileInDirectory } from "@/config/paths";
 import { Global } from "@opencode-ai/core/global"
 import { Filesystem } from "@/util/filesystem"
 import { Flock } from "@opencode-ai/core/util/flock"
@@ -85,7 +85,7 @@ const defaultPatchDeps: PatchDeps = {
     await Filesystem.write(file, text)
   },
   exists: (file) => Filesystem.exists(file),
-  files: (dir, name) => ConfigPaths.fileInDirectory(dir, name),
+  files: (dir, name) => fileInDirectory(dir, name),
 }
 
 function pluginSpec(item: unknown) {

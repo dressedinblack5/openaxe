@@ -1,7 +1,7 @@
 import type { RouteDefaultsInput } from "../route/client"
 import { Auth } from "../route/auth"
 import { ProviderID, type ModelID } from "../schema"
-import * as BedrockConverse from "../protocols/bedrock-converse"
+import { route, sigV4Auth } from "../protocols/bedrock-converse";
 import type { BedrockCredentials } from "../protocols/bedrock-converse"
 
 export const id = ProviderID.make("amazon-bedrock")
@@ -15,18 +15,18 @@ export type Config = RouteDefaultsInput & {
   /** Override the computed `https://bedrock-runtime.<region>.amazonaws.com` URL. */
   readonly baseURL?: string
 }
-export const routes = [BedrockConverse.route]
+export const routes = [route]
 
 const bedrockBaseURL = (region: string) => `https://bedrock-runtime.${region}.amazonaws.com`
 
 const configuredRoute = (input: Config) => {
   const { apiKey, credentials, region, baseURL, ...rest } = input
   const resolvedRegion = region ?? credentials?.region ?? "us-east-1"
-  return BedrockConverse.route.with({
+  return route.with({
     ...rest,
     provider: id,
     endpoint: { baseURL: baseURL ?? bedrockBaseURL(resolvedRegion) },
-    auth: apiKey === undefined ? BedrockConverse.sigV4Auth(credentials) : Auth.bearer(apiKey),
+    auth: apiKey === undefined ? sigV4Auth(credentials) : Auth.bearer(apiKey),
   })
 }
 

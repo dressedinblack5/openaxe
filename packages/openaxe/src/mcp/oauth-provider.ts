@@ -212,3 +212,5 @@ export function parseRedirectUri(redirectUri?: string): { port: number; path: st
     return { port: OAUTH_CALLBACK_PORT, path: OAUTH_CALLBACK_PATH }
   }
 }
+
+export * as McpOAuth from "./oauth-provider"

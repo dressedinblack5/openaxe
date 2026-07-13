@@ -956,12 +956,12 @@ export function Prompt(props: PromptProps) {
     if (!agent) return false
     const trimmed = store.prompt.input.trim()
     if (trimmed === "exit" || trimmed === "quit" || trimmed === ":q") {
-      void exit()
+       exit()
       return true
     }
     const selectedModel = local.model.current()
     if (!selectedModel) {
-      void promptModelWarning()
+       promptModelWarning()
       return false
     }
 

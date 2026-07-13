@@ -382,7 +382,7 @@ export const Gopls: Info = {
       bin = path.join(Global.Path.bin, "gopls" + (process.platform === "win32" ? ".exe" : ""))
     }
     return {
-      process: spawn(bin!, {
+      process: spawn(bin, {
         cwd: root,
       }),
     }
@@ -414,7 +414,7 @@ export const Rubocop: Info = {
       bin = path.join(Global.Path.bin, "rubocop" + (process.platform === "win32" ? ".exe" : ""))
     }
     return {
-      process: spawn(bin!, ["--lsp"], {
+      process: spawn(bin, ["--lsp"], {
         cwd: root,
       }),
     }
@@ -1981,3 +1981,5 @@ export const JuliaLS: Info = {
     }
   },
 }
+
+export * as LSPServer from "./server"

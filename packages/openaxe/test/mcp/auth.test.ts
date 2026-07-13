@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { setTimeout as sleep } from "node:timers/promises"
+import { setTimeout } from "node:timers/promises"
 import { Effect, Layer } from "effect"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { EffectFlock } from "@opencode-ai/core/util/effect-flock"
@@ -33,7 +33,7 @@ function authFile() {
                 activeWrites++
                 sawOverlap = sawOverlap || activeWrites > 1
                 raw = ""
-                await sleep(10)
+                await setTimeout(10)
                 const next = JSON.stringify(value, null, 2)
                 raw = sawOverlap ? `${next}\n}` : next
                 activeWrites--

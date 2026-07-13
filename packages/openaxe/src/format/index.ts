@@ -9,7 +9,64 @@ import { mergeDeep } from "remeda"
 import { Config } from "@/config/config"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { errorMessage } from "@/util/error"
-import * as Formatter from "./formatter"
+import type { Info } from "./formatter"
+import {
+  gofmt,
+  mix,
+  prettier,
+  oxfmt,
+  biome,
+  zig,
+  clang,
+  ktlint,
+  ruff,
+  rlang,
+  uvformat,
+  rubocop,
+  standardrb,
+  htmlbeautifier,
+  dart,
+  ocamlformat,
+  terraform,
+  latexindent,
+  gleam,
+  shfmt,
+  nixfmt,
+  rustfmt,
+  pint,
+  ormolu,
+  cljfmt,
+  dfmt,
+} from "./formatter"
+
+const builtInFormatters: Record<string, Info> = {
+  gofmt,
+  mix,
+  prettier,
+  oxfmt,
+  biome,
+  zig,
+  clang,
+  ktlint,
+  ruff,
+  rlang,
+  uvformat,
+  rubocop,
+  standardrb,
+  htmlbeautifier,
+  dart,
+  ocamlformat,
+  terraform,
+  latexindent,
+  gleam,
+  shfmt,
+  nixfmt,
+  rustfmt,
+  pint,
+  ormolu,
+  cljfmt,
+  dfmt,
+}
 
 export const Status = Schema.Struct({
   name: Schema.String,
@@ -38,9 +95,9 @@ export const layer = Layer.effect(
     const state = yield* InstanceState.make(
       Effect.fn("Format.state")(function* (ctx) {
         const commands: Record<string, string[] | false> = {}
-        const formatters: Record<string, Formatter.Info> = {}
+        const formatters: Record<string, Info> = {}
 
-        async function getCommand(item: Formatter.Info) {
+        async function getCommand(item: Info) {
           let cmd = commands[item.name]
           if (cmd === false || cmd === undefined) {
             cmd = await item.enabled({ ...ctx, experimentalOxfmt: flags.experimentalOxfmt })
@@ -49,7 +106,7 @@ export const layer = Layer.effect(
           return cmd
         }
 
-        async function isEnabled(item: Formatter.Info) {
+        async function isEnabled(item: Info) {
           const cmd = await getCommand(item)
           return cmd !== false
         }
@@ -66,7 +123,7 @@ export const layer = Layer.effect(
             }),
           )
           return checks
-            .filter((x): x is { item: Formatter.Info; cmd: string[] } => x.cmd !== false)
+            .filter((x): x is { item: Info; cmd: string[] } => x.cmd !== false)
             .map((x) => ({ item: x.item, cmd: x.cmd }))
         }
 
@@ -83,7 +140,7 @@ export const layer = Layer.effect(
               const dir = yield* InstanceState.directory
               const result = yield* appProcess
                 .run(
-                  ChildProcess.make(replaced[0]!, replaced.slice(1), {
+                  ChildProcess.make(replaced[0], replaced.slice(1), {
                     cwd: dir,
                     env: item.environment,
                     extendEnv: true,
@@ -127,13 +184,13 @@ export const layer = Layer.effect(
           }
         }
 
-        for (const item of Object.values(Formatter)) {
+        for (const item of Object.values(builtInFormatters)) {
           formatters[item.name] = item
         }
 
         if (cfg.formatter !== true) {
           for (const [name, item] of Object.entries(cfg.formatter)) {
-            const builtIn = Formatter[name as keyof typeof Formatter]
+            const builtIn = builtInFormatters[name]
 
             // Ruff and uv are both the same formatter, so disabling either should disable both.
             if (["ruff", "uv"].includes(name) && (cfg.formatter.ruff?.disabled || cfg.formatter.uv?.disabled)) {

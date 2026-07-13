@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import fs from "fs/promises"
 import path from "path"
-import { parse as parseJsonc } from "jsonc-parser"
+import { parse } from "jsonc-parser"
 import { Filesystem } from "@/util/filesystem"
 import { createPlugTask, type PlugCtx, type PlugDeps } from "../../src/cli/cmd/plugin"
 import { tmpdir } from "../fixture/fixture"
@@ -203,8 +203,8 @@ describe("plugin.install.task", () => {
     expect(tuiText).toContain("// tui keep")
     expect(tuiText).toContain("// tui tail")
 
-    const serverJson = parseJsonc(serverText) as { plugin?: unknown[] }
-    const tuiJson = parseJsonc(tuiText) as { plugin?: unknown[] }
+    const serverJson = parse(serverText) as { plugin?: unknown[] }
+    const tuiJson = parse(tuiText) as { plugin?: unknown[] }
     expect(serverJson.plugin).toEqual(["seed@1.0.0", "acme@1.2.3"])
     expect(tuiJson.plugin).toEqual(["seed@1.0.0", "acme@1.2.3"])
   })
@@ -239,7 +239,7 @@ describe("plugin.install.task", () => {
     const text = await fs.readFile(cfg, "utf8")
     expect(text).toContain("// keep this note")
 
-    const json = parseJsonc(text) as { plugin?: unknown[] }
+    const json = parse(text) as { plugin?: unknown[] }
     expect(json.plugin).toEqual(["acme@2.0.0"])
   })
 

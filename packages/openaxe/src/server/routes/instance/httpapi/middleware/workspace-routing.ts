@@ -4,14 +4,14 @@ import { Workspace } from "@/control-plane/workspace"
 import { WorkspaceAdapterRuntime } from "@/control-plane/workspace-adapter-runtime"
 import { Session } from "@/session/session"
 import { HttpApiProxy } from "./proxy"
-import * as Fence from "@/server/shared/fence"
+import { parse, wait } from "@/server/shared/fence";
 import { getWorkspaceRouteSessionID, isLocalWorkspaceRoute, workspaceProxyURL } from "@/server/shared/workspace-routing"
 import { NotFoundError } from "@/storage/storage"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { Context, Data, Effect, Layer, Option, Schema } from "effect"
 import { HttpClient, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiMiddleware } from "effect/unstable/httpapi"
-import * as Socket from "effect/unstable/socket/Socket"
+import { WebSocketConstructor } from "effect/unstable/socket/Socket";
 import { InvalidRequestError } from "../errors"
 
 // Query fields this middleware reads from the URL. Spread into every
@@ -116,7 +116,7 @@ function proxyRemote(
   workspace: Workspace.Info,
   target: RemoteTarget,
   url: URL,
-): Effect.Effect<HttpServerResponse.HttpServerResponse, never, Socket.WebSocketConstructor | Workspace.Service> {
+): Effect.Effect<HttpServerResponse.HttpServerResponse, never, WebSocketConstructor | Workspace.Service> {
   return Effect.gen(function* () {
     const syncing = yield* Workspace.Service.use((svc) => svc.isSyncing(workspace.id))
     if (!syncing) {
@@ -129,9 +129,9 @@ function proxyRemote(
     const headers = request.headers as Record<string, string>
     if (headers["upgrade"]?.toLowerCase() === "websocket") return yield* HttpApiProxy.websocket(request, proxyURL)
     const response = yield* HttpApiProxy.http(client, proxyURL, target.headers, request)
-    const sync = Fence.parse(new Headers(response.headers))
+    const sync = parse(new Headers(response.headers))
     if (sync) {
-      const syncFailure = yield* Fence.wait(
+      const syncFailure = yield* wait(
         workspace.id,
         sync,
         request.source instanceof Request ? request.source.signal : undefined,
@@ -189,7 +189,7 @@ function routeWorkspace<E>(
   client: HttpClient.HttpClient,
   effect: Effect.Effect<HttpServerResponse.HttpServerResponse, E, WorkspaceRouteContext>,
   plan: RequestPlan,
-): Effect.Effect<HttpServerResponse.HttpServerResponse, E, Socket.WebSocketConstructor | Workspace.Service> {
+): Effect.Effect<HttpServerResponse.HttpServerResponse, E, WebSocketConstructor | Workspace.Service> {
   return RequestPlan.$match(plan, {
     InvalidWorkspace: () =>
       Effect.succeed(
@@ -215,7 +215,7 @@ function routeHttpApiWorkspace<E>(
 ): Effect.Effect<
   HttpServerResponse.HttpServerResponse,
   E,
-  Session.Service | Workspace.Service | HttpServerRequest.HttpServerRequest | Socket.WebSocketConstructor
+  Session.Service | Workspace.Service | HttpServerRequest.HttpServerRequest | WebSocketConstructor
 > {
   return Effect.gen(function* () {
     const request = yield* HttpServerRequest.HttpServerRequest
@@ -237,12 +237,12 @@ function routeHttpApiWorkspace<E>(
 export const workspaceRoutingLayer = Layer.effect(
   WorkspaceRoutingMiddleware,
   Effect.gen(function* () {
-    const makeWebSocket = yield* Socket.WebSocketConstructor
+    const makeWebSocket = yield* WebSocketConstructor
     const workspace = yield* Workspace.Service
     const client = yield* HttpClient.HttpClient
     return WorkspaceRoutingMiddleware.of((effect) =>
       routeHttpApiWorkspace(client, effect).pipe(
-        Effect.provideService(Socket.WebSocketConstructor, makeWebSocket),
+        Effect.provideService(WebSocketConstructor, makeWebSocket),
         Effect.provideService(Workspace.Service, workspace),
       ),
     )

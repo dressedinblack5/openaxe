@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, index, primaryKey, real, uniqueIndex } from "drizzle-orm/sqlite-core"
-import * as DatabasePath from "../database/path"
+import { directoryColumn, pathColumn } from "../database/path";
 import { ProjectTable } from "../project/sql"
 import type { SessionMessage } from "./message"
 import type { Prompt } from "./prompt"
@@ -29,8 +29,8 @@ export const SessionTable = sqliteTable(
     workspace_id: text().$type<WorkspaceV2.ID>(),
     parent_id: text().$type<SessionSchema.ID>(),
     slug: text().notNull(),
-    directory: DatabasePath.directoryColumn().notNull(),
-    path: DatabasePath.pathColumn(),
+    directory: directoryColumn().notNull(),
+    path: pathColumn(),
     title: text().notNull(),
     version: text().notNull(),
     share_url: text(),
@@ -173,3 +173,5 @@ export const SessionContextEpochTable = sqliteTable("session_context_epoch", {
   snapshot: text({ mode: "json" }).notNull().$type<SystemContext.Snapshot>(),
   baseline_seq: integer().notNull(),
 })
+
+export * as SessionSql from "./sql"

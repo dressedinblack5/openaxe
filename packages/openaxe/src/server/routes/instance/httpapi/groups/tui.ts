@@ -1,5 +1,5 @@
 import { TuiEvent } from "@/server/tui-event"
-import { TuiRequest as TuiRequestPayload } from "@/server/shared/tui-control"
+import { TuiRequest } from "@/server/shared/tui-control"
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
@@ -174,7 +174,7 @@ export const TuiApi = HttpApi.make("tui")
         ),
         HttpApiEndpoint.get("controlNext", TuiPaths.controlNext, {
           query: WorkspaceRoutingQuery,
-          success: described(TuiRequestPayload, "Next TUI request"),
+          success: described(TuiRequest, "Next TUI request"),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "tui.control.next",

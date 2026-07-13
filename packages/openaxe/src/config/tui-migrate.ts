@@ -1,13 +1,12 @@
 import path from "path"
-import { type ParseError as JsoncParseError, applyEdits, modify, parse as parseJsonc } from "jsonc-parser"
+import { type ParseError, applyEdits, modify, parse } from "jsonc-parser"
 import { unique } from "remeda"
 import { Option, Schema } from "effect"
 import { TuiConfig } from "@opencode-ai/tui/config"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { Global } from "@opencode-ai/core/global"
 import { Filesystem } from "@/util/filesystem"
-import * as ConfigPaths from "@/config/paths"
-
+import { fileInDirectory } from "@/config/paths";
 const TUI_SCHEMA_URL = "https://opencode.ai/tui.json"
 
 const decodeTheme = Schema.decodeUnknownOption(Schema.String)
@@ -31,8 +30,8 @@ export async function migrateTuiConfig(input: MigrateInput) {
   for (const file of opencode) {
     const source = await Filesystem.readText(file).catch(() => undefined)
     if (!source) continue
-    const errors: JsoncParseError[] = []
-    const data = parseJsonc(source, errors, { allowTrailingComma: true })
+    const errors: ParseError[] = []
+    const data = parse(source, errors, { allowTrailingComma: true })
     if (errors.length || !data || typeof data !== "object" || Array.isArray(data)) continue
 
     const theme = decodeTheme("theme" in data ? data.theme : undefined)
@@ -114,11 +113,11 @@ async function backupAndStripLegacy(file: string, source: string) {
 
 async function opencodeFiles(input: { directories: string[]; cwd: string }) {
   const files = [
-    ...ConfigPaths.fileInDirectory(Global.Path.config, "openaxe"),
+    ...fileInDirectory(Global.Path.config, "openaxe"),
     ...(await Filesystem.findUp(["openaxe.json", "openaxe.jsonc"], input.cwd, undefined, { rootFirst: true })),
   ]
   for (const dir of unique(input.directories)) {
-    files.push(...ConfigPaths.fileInDirectory(dir, "openaxe"))
+    files.push(...fileInDirectory(dir, "openaxe"))
   }
   if (Flag.OPENCODE_CONFIG) files.push(Flag.OPENCODE_CONFIG)
 

@@ -13,9 +13,9 @@ import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
 
 import { Effect, Layer, Context } from "effect"
-import * as DateTime from "effect/DateTime"
+import { makeUnsafe } from "effect/DateTime";
 import { InstanceState } from "@/effect/instance-state"
-import { isOverflow as overflow, usable } from "./overflow"
+import { isOverflow as overflow, usable } from "./overflow" // renamed to avoid conflict with local isOverflow
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { EventV2Bridge } from "@/event-v2-bridge"
@@ -123,7 +123,7 @@ function splitTurn(input: {
       if (size > input.budget) continue
       return {
         start,
-        id: input.messages[start]!.info.id,
+        id: input.messages[start].info.id,
       } satisfies Tail
     }
     return undefined
@@ -212,7 +212,7 @@ export const layer = Layer.effect(
       let total = 0
       let keep: Tail | undefined
       for (let i = recent.length - 1; i >= 0; i--) {
-        const turn = recent[i]!
+        const turn = recent[i]
         const size = sizes[i]
         if (total + size <= budget) {
           total += size
@@ -533,7 +533,7 @@ export const layer = Layer.effect(
             yield* events.publish(SessionEvent.Compaction.Ended, {
               sessionID: input.sessionID,
               messageID: SessionMessage.ID.make(input.parentID),
-              timestamp: DateTime.makeUnsafe(Date.now()),
+              timestamp: makeUnsafe(Date.now()),
               reason: input.auto ? "auto" : "manual",
               text: summary ?? "",
               recent,
@@ -571,7 +571,7 @@ export const layer = Layer.effect(
         yield* events.publish(SessionEvent.Compaction.Started, {
           sessionID: input.sessionID,
           messageID: SessionMessage.ID.make(msg.id),
-          timestamp: DateTime.makeUnsafe(Date.now()),
+          timestamp: makeUnsafe(Date.now()),
           reason: input.auto ? "auto" : "manual",
         })
       }

@@ -1,27 +1,29 @@
-import * as Effect from "effect/Effect"
-import * as Command from "effect/unstable/cli/Command"
+import type { Effect } from "effect/Effect"
+import { flatMap, gen, promise } from "effect/Effect";
+import type { Command, Environment } from "effect/unstable/cli/Command"
+import { run as commandRun, withHandler, withSubcommands } from "effect/unstable/cli/Command"
 import { Spec } from "./spec"
 import { Daemon } from "../services/daemon"
 
 export type Input<Value> =
   Value extends Spec.Node<infer _Name, infer Command, infer _Commands>
     ? Input<Command>
-    : Value extends Command.Command<infer _Name, infer Input, infer _Context, infer _Error, infer _Requirements>
+    : Value extends Command<infer _Name, infer Input, infer _Context, infer _Error, infer _Requirements>
       ? Input
       : never
 
-type RuntimeHandler = (input: unknown) => Effect.Effect<void, unknown, Daemon.Service>
+type RuntimeHandler = (input: unknown) => Effect<void, unknown, Daemon.Service>
 type Loader<Node extends Spec.Any> = () => Promise<{
-  default: (input: Input<Node>) => Effect.Effect<void, any, Daemon.Service>
+  default: (input: Input<Node>) => Effect<void, any, Daemon.Service>
 }>
-type ProvidedCommand = Command.Command<string, unknown, unknown, unknown, Daemon.Service>
+type ProvidedCommand = Command<string, unknown, unknown, unknown, Daemon.Service>
 
 export type Handlers<Node extends Spec.Any> = keyof Node["commands"] extends never
   ? Loader<Node>
   : { readonly $?: Loader<Node> } & { readonly [Key in keyof Node["commands"]]: Handlers<Node["commands"][Key]> }
 
 interface LazyHandler {
-  readonly spec: Command.Command.Any
+  readonly spec: Command.Any
   readonly load: () => Promise<{ default: RuntimeHandler }>
 }
 
@@ -34,7 +36,7 @@ type RuntimeHandlers =
 
 export function handler<const Node extends Spec.Any, Error, Requirements>(
   _node: Node,
-  run: (input: Input<Node>) => Effect.Effect<void, Error, Requirements>,
+  run: (input: Input<Node>) => Effect<void, Error, Requirements>,
 ) {
   return run
 }
@@ -56,23 +58,23 @@ export function handlers<const Root extends Spec.Any>(root: Root, handlers: Hand
 }
 
 export function run(commands: Spec.Any, handlers: ReadonlyArray<LazyHandler>, options: { readonly version: string }) {
-  return Command.run(provide(commands, handlers), options) as Effect.Effect<void, unknown, Command.Environment>
+  return commandRun(provide(commands, handlers), options) as Effect<void, unknown, Environment>
 }
 
 function provide(node: Spec.Any, handlers: ReadonlyArray<LazyHandler>): ProvidedCommand {
   const handler = handlers.find((handler) => handler.spec === node.spec)
   const spec = handler
     ? node.spec.pipe(
-        Command.withHandler((input) =>
-          Effect.gen(function* () {
-            yield* Effect.flatMap(Effect.promise(handler.load), (module) => module.default(input))
+        withHandler((input) =>
+          gen(function* () {
+            yield* flatMap(promise(handler.load), (module) => module.default(input))
           }),
         ),
       )
     : node.spec
   if (!Object.keys(node.commands).length) return spec as ProvidedCommand
   return spec.pipe(
-    Command.withSubcommands(Object.values(node.commands).map((child) => provide(child, handlers))),
+    withSubcommands(Object.values(node.commands).map((child) => provide(child, handlers))),
   ) as ProvidedCommand
 }
 

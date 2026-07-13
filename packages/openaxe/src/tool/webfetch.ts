@@ -1,7 +1,8 @@
 import { Effect, Schema } from "effect"
 import { HttpClient, HttpClientRequest } from "effect/unstable/http"
 import { Parser } from "htmlparser2"
-import * as Tool from "./tool"
+import type { Context } from "./tool"
+import { define } from "./tool";
 import TurndownService from "turndown"
 import DESCRIPTION from "./webfetch.txt"
 import { isImageAttachment } from "@/util/media"
@@ -21,7 +22,7 @@ export const Parameters = Schema.Struct({
   timeout: Schema.optional(Schema.Number).annotate({ description: "Optional timeout in seconds (max 120)" }),
 })
 
-export const WebFetchTool = Tool.define(
+export const WebFetchTool = define(
   "webfetch",
   Effect.gen(function* () {
     const http = yield* HttpClient.HttpClient
@@ -30,7 +31,7 @@ export const WebFetchTool = Tool.define(
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
+      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) =>
         Effect.gen(function* () {
           if (!params.url.startsWith("http://") && !params.url.startsWith("https://")) {
             throw new Error("URL must start with http:// or https://")

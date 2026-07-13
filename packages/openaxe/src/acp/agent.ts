@@ -18,19 +18,19 @@ import {
 } from "@agentclientprotocol/sdk"
 import { Effect } from "effect"
 import type { OpencodeClient } from "@opencode-ai/sdk/v2"
-import * as ACPError from "./error"
-import * as ACPService from "./service"
-
+import { fromUnknownDefect, toRequestError } from "./error";
+import type { Error, Interface } from "./service"
+import { make } from "./service";
 export function init({ sdk: _sdk }: { sdk: OpencodeClient }) {
   return {
     create: (connection: AgentSideConnection) => {
-      return new Agent(ACPService.make({ sdk: _sdk, connection }))
+      return new Agent(make({ sdk: _sdk, connection }))
     },
   }
 }
 
 export class Agent implements ACPAgent {
-  constructor(private readonly service: ACPService.Interface) {}
+  constructor(private readonly service: Interface) {}
 
   initialize(params: InitializeRequest) {
     return run(this.service.initialize(params))
@@ -85,10 +85,10 @@ export class Agent implements ACPAgent {
   }
 }
 
-function run<A>(effect: Effect.Effect<A, ACPService.Error>) {
-  return Effect.runPromise(effect.pipe(Effect.mapError(ACPError.toRequestError))).catch((defect: unknown) => {
+function run<A>(effect: Effect.Effect<A, Error>) {
+  return Effect.runPromise(effect.pipe(Effect.mapError(toRequestError))).catch((defect: unknown) => {
     if (defect instanceof RequestError) throw defect
-    throw ACPError.toRequestError(ACPError.fromUnknownDefect(defect))
+    throw toRequestError(fromUnknownDefect(defect))
   })
 }
 

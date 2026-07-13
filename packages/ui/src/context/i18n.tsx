@@ -27,7 +27,7 @@ const fallback: UiI18n = {
   },
 }
 
-const Context = createContext<UiI18n>(fallback)
+const Context = createContext(fallback)
 
 export function I18nProvider(props: ParentProps<{ value: UiI18n }>) {
   return <Context.Provider value={props.value}>{props.children}</Context.Provider>

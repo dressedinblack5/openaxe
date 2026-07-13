@@ -2,6 +2,7 @@ import os from "os"
 import { InstallationVersion } from "../../installation/version"
 import { Effect, Option, Schema } from "effect"
 import { define } from "../internal"
+import type { AiGatewaySettings } from "ai-gateway-provider"
 
 export const CloudflareAIGatewayPlugin = define({
   id: "cloudflare-ai-gateway",
@@ -23,7 +24,7 @@ export const CloudflareAIGatewayPlugin = define({
           gateway: config.gatewayId,
           apiKey: config.apiKey,
           options: gatewayOptions(evt.options, metadata),
-        } as any)
+        } as AiGatewaySettings)
         const unified = createUnified({ apiKey: config.apiKey })
         evt.sdk = {
           languageModel(modelID: string) {

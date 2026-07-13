@@ -31,7 +31,7 @@ export function parse(patchText: string): ReadonlyArray<Hunk> {
   const hunks: Hunk[] = []
   let index = begin + 1
   while (index < end) {
-    const line = lines[index]!
+    const line = lines[index]
     if (line.startsWith("*** Add File:")) {
       const path = line.slice("*** Add File:".length).trim()
       if (!path) throw new Error("Invalid add file path")
@@ -53,7 +53,7 @@ export function parse(patchText: string): ReadonlyArray<Hunk> {
       let next = index + 1
       let movePath: string | undefined
       if (lines[next]?.startsWith("*** Move to:")) {
-        movePath = lines[next]!.slice("*** Move to:".length).trim()
+        movePath = lines[next].slice("*** Move to:".length).trim()
         if (!movePath) throw new Error("Invalid move file path")
         next++
       }
@@ -88,9 +88,9 @@ export function joinBom(text: string, bom: boolean) {
 function parseAdd(lines: ReadonlyArray<string>, start: number) {
   const content: string[] = []
   let index = start
-  while (index < lines.length && !lines[index]!.startsWith("***")) {
-    if (!lines[index]!.startsWith("+")) throw new Error(`Invalid add file line: ${lines[index]}`)
-    content.push(lines[index]!.slice(1))
+  while (index < lines.length && !lines[index].startsWith("***")) {
+    if (!lines[index].startsWith("+")) throw new Error(`Invalid add file line: ${lines[index]}`)
+    content.push(lines[index].slice(1))
     index++
   }
   return { content: content.join("\n"), next: index }
@@ -99,17 +99,17 @@ function parseAdd(lines: ReadonlyArray<string>, start: number) {
 function parseUpdate(lines: ReadonlyArray<string>, start: number) {
   const chunks: UpdateFileChunk[] = []
   let index = start
-  while (index < lines.length && !lines[index]!.startsWith("***")) {
-    if (!lines[index]!.startsWith("@@")) {
+  while (index < lines.length && !lines[index].startsWith("***")) {
+    if (!lines[index].startsWith("@@")) {
       throw new Error(`Invalid update file line: ${lines[index]}`)
     }
-    const changeContext = lines[index]!.slice(2).trim() || undefined
+    const changeContext = lines[index].slice(2).trim() || undefined
     const oldLines: string[] = []
     const newLines: string[] = []
     let endOfFile = false
     index++
-    while (index < lines.length && !lines[index]!.startsWith("@@")) {
-      const line = lines[index]!
+    while (index < lines.length && !lines[index].startsWith("@@")) {
+      const line = lines[index]
       if (line === "*** End of File") {
         endOfFile = true
         index++
@@ -177,7 +177,7 @@ function matches(
   offset: number,
   compare: (left: string, right: string) => boolean,
 ) {
-  return pattern.every((line, index) => compare(lines[offset + index]!, line))
+  return pattern.every((line, index) => compare(lines[offset + index], line))
 }
 
 const exact = (left: string, right: string) => left === right

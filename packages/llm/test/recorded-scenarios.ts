@@ -12,6 +12,7 @@ import {
   type ContentPart,
   type FinishReason,
   type LLMRequest,
+  type MessageContentInput,
   type Model,
 } from "../src"
 import { LLMClient } from "../src/route"
@@ -214,7 +215,7 @@ const encryptedReasoningOptions = {
 
 type AssistantTextExpectation = string | RegExp
 
-type UserStep = { readonly type: "user"; readonly content: Message.ContentInput }
+type UserStep = { readonly type: "user"; readonly content: MessageContentInput }
 type AssistantStep = {
   readonly type: "assistant"
   readonly text?: AssistantTextExpectation
@@ -231,7 +232,7 @@ type AssistantStep = {
 }
 type ConversationStep = UserStep | AssistantStep
 
-const user = (content: Message.ContentInput): ConversationStep => ({ type: "user", content })
+const user = (content: MessageContentInput): ConversationStep => ({ type: "user", content })
 
 const assistant = {
   expectText: (

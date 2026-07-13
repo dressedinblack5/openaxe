@@ -1,7 +1,7 @@
 import { Cause, Context, Effect, Layer, Queue, Stream } from "effect"
 import { Headers } from "effect/unstable/http"
 import { LLMError, TransportReason } from "../../schema"
-import * as HttpTransport from "./http"
+import { jsonRequestParts } from "./http";
 import type { Transport } from "./index"
 
 export interface WebSocketRequest {
@@ -12,7 +12,7 @@ export interface WebSocketRequest {
 export interface WebSocketConnection {
   readonly sendText: (message: string) => Effect.Effect<void, LLMError>
   readonly messages: Stream.Stream<string | Uint8Array, LLMError>
-  readonly close: Effect.Effect<void, never>
+  readonly close: Effect.Effect<void>
 }
 
 export interface Interface {
@@ -141,7 +141,7 @@ export const fromWebSocket = (
 ): Effect.Effect<WebSocketConnection, LLMError> =>
   Effect.gen(function* () {
     yield* waitOpen(ws, input)
-    const messages = yield* Queue.bounded<string | Uint8Array, LLMError | Cause.Done<void>>(128)
+    const messages = yield* Queue.bounded<string | Uint8Array, LLMError | Cause.Done>(128)
 
     const onMessage = (event: MessageEvent) => {
       if (typeof event.data === "string") return Queue.offerUnsafe(messages, event.data)
@@ -315,7 +315,7 @@ export const json = <Body, Message>(input: JsonInput<Body, Message>): JsonTransp
   with: (patch) => json({ ...input, ...patch }),
   prepare: (prepareInput) =>
     Effect.gen(function* () {
-      const parts = yield* HttpTransport.jsonRequestParts({
+      const parts = yield* jsonRequestParts({
         ...prepareInput,
       })
       return {

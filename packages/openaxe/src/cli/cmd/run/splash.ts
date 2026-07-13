@@ -11,7 +11,7 @@ import {
   type ScrollbackSnapshot,
   type ScrollbackWriter,
 } from "@opentui/core"
-import * as Locale from "@/util/locale"
+import { truncate, truncateMiddle } from "@/util/locale";
 import type { RunSplashTheme } from "./theme"
 
 export const SPLASH_TITLE_LIMIT = 50
@@ -58,7 +58,7 @@ function title(text: string | undefined): string {
     return SPLASH_TITLE_FALLBACK
   }
 
-  return Locale.truncate(value, SPLASH_TITLE_LIMIT)
+  return truncate(value, SPLASH_TITLE_LIMIT)
 }
 
 function write(
@@ -117,7 +117,7 @@ function build(input: SplashWriterInput, kind: "entry" | "exit", ctx: Scrollback
     const top = 1
     push(lines, 0, top, "OpenAxe", right, undefined, TextAttributes.BOLD)
     if (input.detail) {
-      push(lines, 0, top + 1, Locale.truncateMiddle(input.detail, Math.max(1, width)), left, undefined)
+      push(lines, 0, top + 1, truncateMiddle(input.detail, Math.max(1, width)), left, undefined)
     }
     height = top + (input.detail ? 2 : 1)
   }

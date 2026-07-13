@@ -1,6 +1,6 @@
 import { Cause, Context, Effect, Layer, Schema, Stream } from "effect"
-import * as Option from "effect/Option"
-import { Auth, type Auth as AuthDef } from "./auth"
+import { getOrUndefined } from "effect/Option";
+import { Auth } from "./auth"
 import { Endpoint, type EndpointPatch } from "./endpoint"
 import { RequestExecutor } from "./executor"
 import type { Framing } from "./framing"
@@ -9,8 +9,18 @@ import type { Transport, TransportRuntime } from "./transport"
 import { WebSocketExecutor } from "./transport"
 import type { Protocol } from "./protocol"
 import { applyCachePolicy } from "../cache-policy"
-import * as ProviderShared from "../protocols/shared"
-import type { LLMError, LLMEvent, PreparedRequestOf, ProtocolID, ProviderOptions } from "../schema"
+import { encodeJson, eventError, validateWith } from "../protocols/shared";
+import type {
+  GenerationOptionsInput,
+  HttpOptionsInput,
+  LLMError,
+  LLMEvent,
+  ModelInput,
+  ModelLimitsInput,
+  PreparedRequestOf,
+  ProtocolID,
+  ProviderOptions,
+} from "../schema"
 import {
   GenerationOptions,
   HttpOptions,
@@ -38,7 +48,7 @@ export interface Route<Body, Prepared = unknown> {
   readonly provider?: ProviderID
   readonly protocol: ProtocolID
   readonly endpoint: Endpoint<Body>
-  readonly auth: AuthDef
+  readonly auth: Auth
   readonly transport: Transport<Body, Prepared, unknown>
   readonly defaults: RouteDefaults
   readonly body: RouteBody<Body>
@@ -58,11 +68,11 @@ export interface Route<Body, Prepared = unknown> {
 // oxlint-disable-next-line typescript-eslint/no-explicit-any
 export type AnyRoute = Route<any, any>
 
-export type HttpOptionsInput = HttpOptions.Input
+export type { HttpOptionsInput }
 
-export type RouteModelInput = Omit<Model.Input, "provider" | "route">
+export type RouteModelInput = Omit<ModelInput, "provider" | "route">
 
-export type RouteRoutedModelInput = Omit<Model.Input, "route">
+export type RouteRoutedModelInput = Omit<ModelInput, "route">
 
 export interface RouteDefaults {
   readonly headers?: Record<string, string>
@@ -74,16 +84,16 @@ export interface RouteDefaults {
 
 export interface RouteDefaultsInput {
   readonly headers?: Record<string, string>
-  readonly limits?: ModelLimits.Input
-  readonly generation?: GenerationOptions.Input
+  readonly limits?: ModelLimitsInput
+  readonly generation?: GenerationOptionsInput
   readonly providerOptions?: ProviderOptions
-  readonly http?: HttpOptions.Input
+  readonly http?: HttpOptionsInput
 }
 
 export interface RoutePatch<Body, Prepared> extends RouteDefaultsInput {
   readonly id?: string
   readonly provider?: string | ProviderID
-  readonly auth?: AuthDef
+  readonly auth?: Auth
   readonly transport?: Transport<Body, Prepared, unknown>
   readonly endpoint?: EndpointPatch<Body>
 }
@@ -130,7 +140,7 @@ const mergeHeaders = (...items: ReadonlyArray<Record<string, string> | undefined
   return Object.fromEntries(entries)
 }
 
-export const generationOptions = (input: GenerationOptions.Input | undefined) =>
+export const generationOptions = (input: GenerationOptionsInput | undefined) =>
   input === undefined ? undefined : GenerationOptions.make(input)
 
 export const httpOptions = (input: HttpOptionsInput | undefined) => {
@@ -182,7 +192,7 @@ export interface MakeInput<Body, Frame, Event, State> {
   /** Where the request is sent. */
   readonly endpoint: Endpoint<Body>
   /** Per-request transport auth. Provider facades override this via `route.with(...)`. */
-  readonly auth?: AuthDef
+  readonly auth?: Auth
   /** Stream framing — bytes -> frames before `protocol.stream.event` decoding. */
   readonly framing: Framing<Frame>
   /** Static / per-request headers added before `auth` runs. */
@@ -201,7 +211,7 @@ export interface MakeTransportInput<Body, Prepared, Frame, Event, State> {
   /** Where the request is sent. */
   readonly endpoint: Endpoint<Body>
   /** Per-request transport auth. Provider facades override this via `route.with(...)`. */
-  readonly auth?: AuthDef
+  readonly auth?: Auth
   /** Static / per-request headers added before `auth` runs. */
   readonly headers?: (input: { readonly request: LLMRequest }) => Record<string, string>
   /** Runnable transport route. */
@@ -213,7 +223,7 @@ export interface MakeTransportInput<Body, Prepared, Frame, Event, State> {
 const streamError = (route: string, message: string, cause: Cause.Cause<unknown>) => {
   const failed = cause.reasons.find(Cause.isFailReason)?.error
   if (failed instanceof LLMErrorClass) return failed
-  return ProviderShared.eventError(route, message, Cause.pretty(cause))
+  return eventError(route, message, Cause.pretty(cause))
 }
 
 function makeFromTransport<Body, Prepared, Frame, Event, State>(
@@ -225,10 +235,10 @@ function makeFromTransport<Body, Prepared, Frame, Event, State>(
   const decodeEvent = (route: string) => (frame: Frame) =>
     decodeEventEffect(frame).pipe(
       Effect.mapError(() =>
-        ProviderShared.eventError(
+        eventError(
           input.id,
           `Invalid ${route} stream event`,
-          typeof frame === "string" ? frame : ProviderShared.encodeJson(frame),
+          typeof frame === "string" ? frame : encodeJson(frame),
         ),
       ),
     )
@@ -340,7 +350,7 @@ const compile = Effect.fn("LLM.compile")(function* (request: LLMRequest) {
 
   const body = yield* route.body
     .from(resolved)
-    .pipe(Effect.flatMap(ProviderShared.validateWith(Schema.decodeUnknownEffect(route.body.schema))))
+    .pipe(Effect.flatMap(validateWith(Schema.decodeUnknownEffect(route.body.schema))))
   const prepared = yield* route.prepareTransport(body, resolved)
 
   return {
@@ -417,7 +427,7 @@ export const layer: Layer.Layer<Service, never, RequestExecutor.Service> = Layer
   Effect.gen(function* () {
     const stream = streamRequestWith({
       http: yield* RequestExecutor.Service,
-      webSocket: Option.getOrUndefined(yield* Effect.serviceOption(WebSocketExecutor.Service)),
+      webSocket: getOrUndefined(yield* Effect.serviceOption(WebSocketExecutor.Service)),
     })
     return Service.of({ prepare: prepareWith as Interface["prepare"], stream, generate: generateWith(stream) })
   }),

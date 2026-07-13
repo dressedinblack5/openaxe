@@ -5,7 +5,7 @@ import { DialogSelect } from "../ui/dialog-select"
 import { useDialog } from "../ui/dialog"
 import { createDialogProviderOptions, DialogProvider } from "./dialog-provider"
 import { DialogVariant } from "./dialog-variant"
-import * as fuzzysort from "fuzzysort"
+import { go } from "fuzzysort";
 import { useConnected } from "./use-connected"
 import { useSync } from "../context/sync"
 
@@ -119,10 +119,10 @@ export function DialogModel(props: { providerID?: string }) {
     if (needle) {
       return [
         ...sortModelOptions(
-          fuzzysort.go(needle, providerOptions, { keys: ["title", "category"] }).map((x) => x.obj),
+          go(needle, providerOptions, { keys: ["title", "category"] }).map((x) => x.obj),
           false,
         ),
-        ...fuzzysort.go(needle, popularProviders, { keys: ["title"] }).map((x) => x.obj),
+        ...go(needle, popularProviders, { keys: ["title"] }).map((x) => x.obj),
       ]
     }
 

@@ -273,7 +273,7 @@ Examples:
     process.exit(0)
   }
 
-  const to = values.to!
+  const to = values.to
   const from = values.from ?? (await latest())
   const list = await commits(from, to)
   console.log(format(from, to, list, await thanks(from, to, !values.from)))

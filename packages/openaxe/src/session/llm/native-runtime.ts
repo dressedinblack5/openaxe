@@ -5,7 +5,8 @@ import { errorMessage } from "@/util/error"
 import { isRecord } from "@/util/record"
 import { asSchema, type ModelMessage, type Tool } from "ai"
 import { Cause, Effect, FiberSet, Queue } from "effect"
-import * as Stream from "effect/Stream"
+import type { Stream } from "effect/Stream"
+import { concat, flatMap, fromEffectDrain, fromQueue, make, provideService, scoped, unwrap } from "effect/Stream";
 import { FetchHttpClient } from "effect/unstable/http"
 import {
   LLMRequest,
@@ -23,7 +24,7 @@ export type RuntimeStatus =
   | { readonly type: "supported"; readonly apiKey: string; readonly baseURL?: string }
   | { readonly type: "unsupported"; readonly reason: string }
 export type StreamResult =
-  | { readonly type: "supported"; readonly stream: Stream.Stream<LLMEvent, unknown> }
+  | { readonly type: "supported"; readonly stream: Stream<LLMEvent, unknown> }
   | { readonly type: "unsupported"; readonly reason: string }
 
 type StreamInput = {
@@ -100,8 +101,8 @@ export function stream(input: StreamInput): StreamResult {
     providerOptions: ProviderTransform.providerOptions(input.model, input.providerOptions ?? {}),
     headers: { ...providerHeaders(input.provider.options.headers), ...input.headers },
   })
-  const stream = Stream.scoped(
-    Stream.unwrap(
+  const stream = scoped(
+    unwrap(
       Effect.gen(function* () {
         const settlements = yield* FiberSet.make<void>()
         const results = yield* Queue.unbounded<LLMEvent, Cause.Done>()
@@ -112,12 +113,12 @@ export function stream(input: StreamInput): StreamResult {
             }),
           )
           .pipe(
-            Stream.flatMap((event) =>
+            flatMap((event) =>
               event.type !== "tool-call" || event.providerExecuted
-                ? Stream.make(event)
-                : Stream.make(event).pipe(
-                    Stream.concat(
-                      Stream.fromEffectDrain(
+                ? make(event)
+                : make(event).pipe(
+                    concat(
+                      fromEffectDrain(
                         ToolRuntime.dispatch(tools, event).pipe(
                           Effect.flatMap((dispatched) => Queue.offerAll(results, dispatched.events)),
                           Effect.catchCause((cause) => Queue.failCause(results, cause)),
@@ -128,20 +129,20 @@ export function stream(input: StreamInput): StreamResult {
                     ),
                   ),
             ),
-            Stream.concat(
-              Stream.fromEffectDrain(
+            concat(
+              fromEffectDrain(
                 FiberSet.awaitEmpty(settlements).pipe(Effect.andThen(Queue.end(results)), Effect.asVoid),
               ),
             ),
           )
-        return provider.pipe(Stream.concat(Stream.fromQueue(results)))
+        return provider.pipe(concat(fromQueue(results)))
       }),
     ),
   )
 
   return {
     ...current,
-    stream: fetch ? stream.pipe(Stream.provideService(FetchHttpClient.Fetch, fetch)) : stream,
+    stream: fetch ? stream.pipe(provideService(FetchHttpClient.Fetch, fetch)) : stream,
   }
 }
 

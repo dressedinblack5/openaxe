@@ -2,11 +2,10 @@ import type { RouteDefaultsInput } from "../route/client"
 import { Auth } from "../route/auth"
 import type { ProviderAuthOption } from "../route/auth-options"
 import { ProviderID, type ModelID } from "../schema"
-import * as AnthropicMessages from "../protocols/anthropic-messages"
-
+import { route } from "../protocols/anthropic-messages";
 export const id = ProviderID.make("anthropic")
 
-export const routes = [AnthropicMessages.route]
+export const routes = [route]
 
 export type Config = RouteDefaultsInput & ProviderAuthOption<"optional"> & { readonly baseURL?: string }
 
@@ -19,7 +18,7 @@ const auth = (options: ProviderAuthOption<"optional">) => {
 
 const configuredRoute = (input: Config) => {
   const { apiKey: _, auth: _auth, baseURL, ...rest } = input
-  return AnthropicMessages.route.with({ ...rest, endpoint: { baseURL }, auth: auth(input) })
+  return route.with({ ...rest, endpoint: { baseURL }, auth: auth(input) })
 }
 
 export const configure = (input: Config = {}) => {

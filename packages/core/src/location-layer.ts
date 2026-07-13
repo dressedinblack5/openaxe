@@ -45,7 +45,7 @@ import { SessionTodo } from "./session/todo"
 import { QuestionV2 } from "./question"
 import { LLMClient } from "@opencode-ai/llm"
 import { RequestExecutor } from "@opencode-ai/llm/route"
-import * as SessionRunnerLLM from "./session/runner/llm"
+import { defaultLayer } from "./session/runner/llm";
 import { SessionRunnerModel } from "./session/runner/model"
 import { SystemContextBuiltIns } from "./system-context/builtins"
 import { FetchHttpClient } from "effect/unstable/http"
@@ -100,7 +100,7 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
       Layer.provide(image),
     )
     const model = SessionRunnerModel.locationLayer.pipe(Layer.provide(services))
-    const runner = SessionRunnerLLM.defaultLayer.pipe(
+    const runner = defaultLayer.pipe(
       Layer.provide(services),
       Layer.provide(model),
       Layer.provide(skillGuidance),

@@ -100,7 +100,7 @@ describe("session messages endpoint", () => {
         expect(cursor).toBeTruthy()
         expect(a.headers["link"]).toContain('rel="next"')
 
-        const b = yield* request(`/session/${session.id}/message?limit=2&before=${encodeURIComponent(cursor!)}`)
+        const b = yield* request(`/session/${session.id}/message?limit=2&before=${encodeURIComponent(cursor)}`)
         expect(b.status).toBe(200)
         const bBody = yield* json<SessionV1.WithParts[]>(b)
         expect(bBody.map((item) => item.info.id)).toEqual(ids.slice(-4, -2))

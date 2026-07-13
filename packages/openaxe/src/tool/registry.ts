@@ -16,9 +16,10 @@ import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
-import * as Tool from "./tool"
+import type { Def, InferDef } from "./tool"
+import { init } from "./tool";
 import { Config } from "@/config/config"
-import { type ToolContext as PluginToolContext, type ToolDefinition } from "@opencode-ai/plugin"
+import { type ToolContext, type ToolDefinition } from "@opencode-ai/plugin"
 import type { JSONSchema7, JSONSchema7Definition } from "@ai-sdk/provider"
 import { Schema } from "effect"
 import z from "zod"
@@ -27,7 +28,7 @@ import { Provider } from "@/provider/provider"
 
 import { WebSearchTool } from "./websearch"
 import { LspTool } from "./lsp"
-import * as Truncate from "./truncate"
+import { Truncate } from "./truncate"
 import { ApplyPatchTool } from "./apply_patch"
 import { Glob } from "@opencode-ai/core/util/glob"
 import path from "path"
@@ -57,25 +58,25 @@ export function webSearchEnabled(providerID: ProviderV2.ID, flags = { exa: false
   return providerID === ProviderV2.ID.opencode || flags.exa || flags.parallel
 }
 
-type TaskDef = Tool.InferDef<typeof TaskTool>
-type ReadDef = Tool.InferDef<typeof ReadTool>
+type TaskDef = InferDef<typeof TaskTool>
+type ReadDef = InferDef<typeof ReadTool>
 
 type State = {
-  custom: Tool.Def[]
-  builtin: Tool.Def[]
+  custom: Def[]
+  builtin: Def[]
   task: TaskDef
   read: ReadDef
 }
 
 export interface Interface {
   readonly ids: () => Effect.Effect<string[]>
-  readonly all: () => Effect.Effect<Tool.Def[]>
+  readonly all: () => Effect.Effect<Def[]>
   readonly named: () => Effect.Effect<{ task: TaskDef; read: ReadDef }>
   readonly tools: (model: {
     providerID: ProviderV2.ID
     modelID: ModelV2.ID
     agent: Agent.Info
-  }) => Effect.Effect<Tool.Def[]>
+  }) => Effect.Effect<Def[]>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/ToolRegistry") {}
@@ -109,9 +110,9 @@ export const layer = Layer.effect(
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("ToolRegistry.state")(function* (ctx) {
-        const custom: Tool.Def[] = []
+        const custom: Def[] = []
 
-        function fromPlugin(id: string, def: ToolDefinition): Tool.Def {
+        function fromPlugin(id: string, def: ToolDefinition): Def {
           // Plugin tools still expose Zod args publicly; keep that compatibility
           // boxed at the registry boundary and give the LLM the original JSON Schema.
           // Normalize missing args to `{}` once — pre-1.14.49 the code was
@@ -134,7 +135,7 @@ export const layer = Layer.effect(
                 // Bridge the host's Effect-based `ask` into a Promise-returning
                 // function for the plugin to make sure context persists
                 const bridge = yield* EffectBridge.make()
-                const pluginCtx: PluginToolContext = {
+                const pluginCtx: ToolContext = {
                   ...toolCtx,
                   ask: (req) => bridge.promise(toolCtx.ask(req)),
                   directory: ctx.directory,
@@ -157,7 +158,7 @@ export const layer = Layer.effect(
                   },
                 }
               }).pipe(
-                Effect.withSpan("Tool.execute", {
+                Effect.withSpan("execute", {
                   attributes: {
                     "tool.name": id,
                     "session.id": toolCtx.sessionID,
@@ -196,22 +197,22 @@ export const layer = Layer.effect(
         const questionEnabled = ["app", "cli", "desktop"].includes(flags.client) || flags.enableQuestionTool
 
         const tool = yield* Effect.all({
-          invalid: Tool.init(invalid),
-          shell: Tool.init(shell),
-          read: Tool.init(read),
-          glob: Tool.init(globtool),
-          grep: Tool.init(greptool),
-          edit: Tool.init(edit),
-          write: Tool.init(writetool),
-          task: Tool.init(task),
-          fetch: Tool.init(webfetch),
-          todo: Tool.init(todo),
-          search: Tool.init(websearch),
-          skill: Tool.init(skilltool),
-          patch: Tool.init(patchtool),
-          question: Tool.init(question),
-          lsp: Tool.init(lsptool),
-          plan: Tool.init(plan),
+          invalid: init(invalid),
+          shell: init(shell),
+          read: init(read),
+          glob: init(globtool),
+          grep: init(greptool),
+          edit: init(edit),
+          write: init(writetool),
+          task: init(task),
+          fetch: init(webfetch),
+          todo: init(todo),
+          search: init(websearch),
+          skill: init(skilltool),
+          patch: init(patchtool),
+          question: init(question),
+          lsp: init(lsptool),
+          plan: init(plan),
         })
 
         return {
@@ -242,7 +243,7 @@ export const layer = Layer.effect(
 
     const all: Interface["all"] = Effect.fn("ToolRegistry.all")(function* () {
       const s = yield* InstanceState.get(state)
-      return [...s.builtin, ...s.custom] as Tool.Def[]
+      return [...s.builtin, ...s.custom] as Def[]
     })
 
     const ids: Interface["ids"] = Effect.fn("ToolRegistry.ids")(function* () {
@@ -280,7 +281,7 @@ export const layer = Layer.effect(
 
       return yield* Effect.forEach(
         filtered,
-        Effect.fnUntraced(function* (tool: Tool.Def) {
+        Effect.fnUntraced(function* (tool: Def) {
           const output = {
             description: tool.description,
             parameters: tool.parameters,

@@ -18,3 +18,5 @@ export const PermissionTable = sqliteTable(
   },
   (table) => [uniqueIndex("permission_project_action_resource_idx").on(table.project_id, table.action, table.resource)],
 )
+
+export * as PermissionSql from "./sql"

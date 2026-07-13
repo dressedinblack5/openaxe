@@ -21,7 +21,7 @@ test("addTheme keeps first theme for duplicate names", () => {
 
   expect(addTheme(name, one)).toBe(true)
   expect(addTheme(name, two)).toBe(false)
-  expect(allThemes()[name]!.theme.primary).toBe("#101010")
+  expect(allThemes()[name].theme.primary).toBe("#101010")
 })
 
 test("addTheme ignores entries without a theme object", () => {

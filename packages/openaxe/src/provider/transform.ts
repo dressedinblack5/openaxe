@@ -1,11 +1,11 @@
 import type { ModelMessage, ToolResultPart } from "ai"
 import { mergeDeep, unique } from "remeda"
 import type { JSONSchema7 } from "@ai-sdk/provider"
-import type * as Provider from "./provider"
-import type * as ModelsDev from "@opencode-ai/core/models-dev"
+import type { Model as ProviderModel } from "./provider"
+import type { Model as ModelsDevModel } from "@opencode-ai/core/models-dev";
 import { iife } from "@/util/iife"
 
-type Modality = NonNullable<ModelsDev.Model["modalities"]>["input"][number]
+type Modality = NonNullable<ModelsDevModel["modalities"]>["input"][number]
 
 function mimeToModality(mime: string): Modality | undefined {
   if (mime.startsWith("image/")) return "image"
@@ -61,7 +61,7 @@ function sdkKey(npm: string): string | undefined {
   return undefined
 }
 
-export function resolveSystemPrompt(model: Provider.Model, authType: string | undefined, systemPrompts: string[]) {
+export function resolveSystemPrompt(model: ProviderModel, authType: string | undefined, systemPrompts: string[]) {
   const isOpenaiOauth = model.providerID === "openai" && authType === "oauth"
   const messages: ModelMessage[] = isOpenaiOauth
     ? []
@@ -228,7 +228,7 @@ const injectDeepseekReasoning = (msgs: ModelMessage[]) => {
   })
 }
 
-const interleaveReasoning = (msgs: ModelMessage[], model: Provider.Model) => {
+const interleaveReasoning = (msgs: ModelMessage[], model: ProviderModel) => {
   const interleaved = model.capabilities.interleaved
   if (typeof interleaved !== "object" || !interleaved.field) return msgs
   const field = interleaved.field
@@ -255,7 +255,7 @@ const interleaveReasoning = (msgs: ModelMessage[], model: Provider.Model) => {
 
 function normalizeMessages(
   msgs: ModelMessage[],
-  model: Provider.Model,
+  model: ProviderModel,
   _options: Record<string, unknown>,
 ): ModelMessage[] {
   let result = sanitizeMessageContent([...msgs])
@@ -290,7 +290,7 @@ function normalizeMessages(
   return result
 }
 
-function applyCaching(msgs: ModelMessage[], model: Provider.Model): ModelMessage[] {
+function applyCaching(msgs: ModelMessage[], model: ProviderModel): ModelMessage[] {
   const system = msgs.filter((msg) => msg.role === "system").slice(0, 2)
   const final = msgs.filter((msg) => msg.role !== "system").slice(-2)
 
@@ -341,7 +341,7 @@ function applyCaching(msgs: ModelMessage[], model: Provider.Model): ModelMessage
   return msgs
 }
 
-function unsupportedParts(msgs: ModelMessage[], model: Provider.Model): ModelMessage[] {
+function unsupportedParts(msgs: ModelMessage[], model: ProviderModel): ModelMessage[] {
   return msgs.map((msg) => {
     if (msg.role !== "user" || !Array.isArray(msg.content)) return msg
 
@@ -397,7 +397,7 @@ function mapProviderOptions(
   })
 }
 
-export function message(msgs: ModelMessage[], model: Provider.Model, options: Record<string, unknown>) {
+export function message(msgs: ModelMessage[], model: ProviderModel, options: Record<string, unknown>) {
   msgs = unsupportedParts(msgs, model)
   msgs = normalizeMessages(msgs, model, options)
   if (
@@ -446,7 +446,7 @@ export function message(msgs: ModelMessage[], model: Provider.Model, options: Re
   return msgs
 }
 
-export function temperature(model: Provider.Model) {
+export function temperature(model: ProviderModel) {
   const id = model.id.toLowerCase()
   if (id.includes("north-mini-code")) return 1.0
   if (id.includes("qwen")) return 0.55
@@ -465,7 +465,7 @@ export function temperature(model: Provider.Model) {
   return undefined
 }
 
-export function topP(model: Provider.Model) {
+export function topP(model: ProviderModel) {
   const id = model.id.toLowerCase()
   if (id.includes("qwen")) return 1
   if (["minimax-m2", "gemini", "kimi-k2.5", "kimi-k2p5", "kimi-k2-5"].some((s) => id.includes(s))) {
@@ -474,7 +474,7 @@ export function topP(model: Provider.Model) {
   return undefined
 }
 
-export function topK(model: Provider.Model) {
+export function topK(model: ProviderModel) {
   const id = model.id.toLowerCase()
   if (id.includes("minimax-m2")) {
     if (["m2.", "m25", "m21"].some((s) => id.includes(s))) return 40
@@ -614,7 +614,7 @@ function wrapInSapModelParams(variants: Record<string, Record<string, any>>): Re
   return Object.fromEntries(Object.entries(variants).map(([k, v]) => [k, { modelParams: v }]))
 }
 
-function googleThinkingVariants(model: Provider.Model): Record<string, Record<string, any>> {
+function googleThinkingVariants(model: ProviderModel): Record<string, Record<string, any>> {
   const id = model.api.id.toLowerCase()
   if (id.includes("2.5")) {
     return {
@@ -632,7 +632,7 @@ function googleThinkingVariants(model: Provider.Model): Record<string, Record<st
   )
 }
 
-export function variants(model: Provider.Model): Record<string, Record<string, any>> {
+export function variants(model: ProviderModel): Record<string, Record<string, any>> {
   if (!model.capabilities.reasoning) return {}
 
   const id = model.id.toLowerCase()
@@ -1035,7 +1035,7 @@ export function variants(model: Provider.Model): Record<string, Record<string, a
 }
 
 export function options(input: {
-  model: Provider.Model
+  model: ProviderModel
   sessionID: string
   providerOptions?: Record<string, any>
 }): Record<string, any> {
@@ -1191,7 +1191,7 @@ export function options(input: {
   return result
 }
 
-export function smallOptions(model: Provider.Model) {
+export function smallOptions(model: ProviderModel) {
   const small = Object.values(model.variants ?? {})[0] ?? {}
   if (
     model.providerID === "openai" ||
@@ -1224,7 +1224,7 @@ const SLUG_OVERRIDES: Record<string, string> = {
   amazon: "bedrock",
 }
 
-export function providerOptions(model: Provider.Model, options: { [x: string]: any }) {
+export function providerOptions(model: ProviderModel, options: { [x: string]: any }) {
   if (model.api.npm === "@ai-sdk/gateway") {
     // Gateway providerOptions are split across two namespaces:
     // - `gateway`: gateway-native routing/caching controls (order, only, byok, etc.)
@@ -1274,7 +1274,7 @@ export function providerOptions(model: Provider.Model, options: { [x: string]: a
   return { [key]: options }
 }
 
-export function maxOutputTokens(model: Provider.Model, outputTokenMax = OUTPUT_TOKEN_MAX): number {
+export function maxOutputTokens(model: ProviderModel, outputTokenMax = OUTPUT_TOKEN_MAX): number {
   return Math.min(model.limit.output, outputTokenMax) || outputTokenMax
 }
 
@@ -1368,7 +1368,7 @@ function sanitizeOpenAISchema(value: unknown): unknown {
   return result
 }
 
-export function schema(model: Provider.Model, schema: JSONSchema7): JSONSchema7 {
+export function schema(model: ProviderModel, schema: JSONSchema7): JSONSchema7 {
   /*
   if (["openai", "azure"].includes(providerID)) {
     if (schema.type === "object" && schema.properties) {

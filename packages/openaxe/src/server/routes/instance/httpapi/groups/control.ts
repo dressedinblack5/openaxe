@@ -40,7 +40,7 @@ export const ControlApi = HttpApi.make("control").add(
         params: AuthParams,
         payload: Auth.Info,
         success: described(Schema.Boolean, "Successfully set authentication credentials"),
-        error: HttpApiError.BadRequestNoContent as any as any,
+        error: HttpApiError.BadRequestNoContent as any,
         disableCodecs: true,
       }).annotateMerge(
         OpenApi.annotations({
@@ -52,7 +52,7 @@ export const ControlApi = HttpApi.make("control").add(
       HttpApiEndpoint.delete("authRemove", ControlPaths.auth, {
         params: AuthParams,
         success: described(Schema.Boolean, "Successfully removed authentication credentials"),
-        error: HttpApiError.BadRequestNoContent as any as any,
+        error: HttpApiError.BadRequestNoContent as any,
         disableCodecs: true,
       }).annotateMerge(
         OpenApi.annotations({
@@ -65,7 +65,7 @@ export const ControlApi = HttpApi.make("control").add(
         query: LogQuery,
         payload: LogInput,
         success: described(Schema.Boolean, "Log entry written successfully"),
-        error: HttpApiError.BadRequestNoContent as any as any,
+        error: HttpApiError.BadRequestNoContent as any,
         disableCodecs: true,
       }).annotateMerge(
         OpenApi.annotations({

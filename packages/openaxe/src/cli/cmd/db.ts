@@ -23,7 +23,7 @@ const QueryCommand = effectCmd({
       })
   },
   handler: Effect.fn("Cli.db.query")(function* (args: { query?: string; format: string }) {
-    const query = args.query as string | undefined
+    const query = args.query
     if (query) {
       const { db } = yield* Database.Service
       const result = yield* db.all<Record<string, unknown>>(sql.raw(query)).pipe(Effect.orDie)

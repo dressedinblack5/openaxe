@@ -333,7 +333,7 @@ describe("session HttpApi", () => {
 
         const listed = yield* requestJson<Session.Info[]>(`${SessionPaths.list}?roots=true`, { headers })
         expect(listed.map((item) => item.id)).toContain(parent.id)
-        expect(Object.hasOwn(listed[0]!, "parentID")).toBe(false)
+        expect(Object.hasOwn(listed[0], "parentID")).toBe(false)
 
         expect(yield* requestJson<Record<string, unknown>>(SessionPaths.status, { headers })).toEqual({})
 

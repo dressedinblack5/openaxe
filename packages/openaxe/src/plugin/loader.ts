@@ -216,7 +216,7 @@ export async function loadExternal<R = Loaded>(input: Input<R>): Promise<R[]> {
     for (let i = 0; i < candidates.length; i++) {
       const previous = out[i]
       if (previous?.value !== undefined) continue
-      if (previous?.retry !== true) continue
+      if (!previous?.retry) continue
 
       // Only pre-import file plugin setup failures are retried. Bun caches failed dynamic imports,
       // so dependency waiting cannot fix load/build/runtime/shape failures in this process.

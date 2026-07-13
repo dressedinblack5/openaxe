@@ -4,10 +4,10 @@ import path from "path"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { Global } from "@opencode-ai/core/global"
 import { unique } from "remeda"
-import * as Effect from "effect/Effect"
+import { fn } from "effect/Effect";
 import { FSUtil } from "@opencode-ai/core/fs-util"
 
-export const files = Effect.fn("ConfigPaths.projectFiles")(function* (
+export const files = fn("ConfigPaths.projectFiles")(function* (
   name: string,
   directory: string,
   worktree?: string,
@@ -20,7 +20,7 @@ export const files = Effect.fn("ConfigPaths.projectFiles")(function* (
   })).toReversed()
 })
 
-export const directories = Effect.fn("ConfigPaths.directories")(function* (directory: string, worktree?: string) {
+export const directories = fn("ConfigPaths.directories")(function* (directory: string, worktree?: string) {
   const afs = yield* FSUtil.Service
   return unique([
     Global.Path.config,

@@ -15,7 +15,7 @@ export interface Context {
   readonly abortSignal?: AbortSignal
 }
 
-export type SchemaType<A> = Schema.Codec<A, any, never, never>
+export type SchemaType<A> = Schema.Codec<A, any, never>
 
 declare const TypeId: unique symbol
 

@@ -413,7 +413,9 @@ export const enhancedLayer: Layer.Layer<Service, never, HttpClient.HttpClient | 
       state: "closed" as "closed" | "open" | "half-open",
       lastStateChange: Date.now(),
     })
-    const deduplicationCache = yield* Ref.make<Map<string, Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError, never>>>(new Map())
+    const deduplicationCache = yield* Ref.make(
+      new Map<string, Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError, any>>()
+    )
 
     const checkCircuitBreaker = Effect.gen(function* () {
       const state = yield* Ref.get(circuitBreakerRef)
@@ -462,10 +464,10 @@ export const enhancedLayer: Layer.Layer<Service, never, HttpClient.HttpClient | 
       })
     })
 
-    const withDeduplication = (
+    const withDeduplication = <R>(
       key: string,
-      effect: Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError>,
-    ): Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError> =>
+      effect: Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError, R>,
+    ): Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError, R> =>
       Effect.gen(function* () {
         const cache = yield* Ref.get(deduplicationCache)
         const cached = cache.get(key)

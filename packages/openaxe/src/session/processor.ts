@@ -3,7 +3,7 @@ import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Image } from "@/image/image"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Cause, Deferred, Effect, Exit, Layer, Context, Scope, Schema } from "effect"
-import * as Stream from "effect/Stream"
+import { runDrain, takeUntil, tap } from "effect/Stream";
 import { Agent } from "@/agent/agent"
 import { Config } from "@/config/config"
 import { Permission } from "@/permission"
@@ -28,7 +28,7 @@ import { SessionEvent } from "@opencode-ai/core/session/event"
 import { SessionMessage } from "@opencode-ai/core/session/message"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
-import * as DateTime from "effect/DateTime"
+import { makeUnsafe } from "effect/DateTime";
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ToolOutput, Usage, type LLMEvent } from "@opencode-ai/llm"
 
@@ -154,7 +154,7 @@ export const layer = Layer.effect(
             variant: ModelV2.VariantID.make(input.assistantMessage.variant ?? "default"),
           },
           snapshot: ctx.snapshot,
-          timestamp: DateTime.makeUnsafe(Date.now()),
+          timestamp: makeUnsafe(Date.now()),
         })
         return ctx.v2AssistantMessageID
       })
@@ -254,7 +254,7 @@ export const layer = Layer.effect(
             reasoningID,
             text: ctx.reasoningMap[reasoningID].text,
             providerMetadata: ctx.reasoningMap[reasoningID].metadata,
-            timestamp: DateTime.makeUnsafe(Date.now()),
+            timestamp: makeUnsafe(Date.now()),
           })
         }
         // oxlint-disable-next-line no-self-assign -- reactivity trigger
@@ -272,7 +272,7 @@ export const layer = Layer.effect(
             assistantMessageID: yield* currentV2AssistantMessage(),
             textID: ctx.currentTextID,
             text: ctx.currentText.text,
-            timestamp: DateTime.makeUnsafe(Date.now()),
+            timestamp: makeUnsafe(Date.now()),
           })
         }
         yield* Effect.forEach(Object.entries(ctx.reasoningMap), ([reasoningID, part]) =>
@@ -284,7 +284,7 @@ export const layer = Layer.effect(
                 reasoningID,
                 text: part.text,
                 providerMetadata: part.metadata,
-                timestamp: DateTime.makeUnsafe(Date.now()),
+                timestamp: makeUnsafe(Date.now()),
               }),
             ),
           ),
@@ -318,7 +318,7 @@ export const layer = Layer.effect(
             assistantMessageID,
             callID: input.id,
             name: input.name,
-            timestamp: DateTime.makeUnsafe(Date.now()),
+            timestamp: makeUnsafe(Date.now()),
           })
         }
         const part = yield* session.updatePart({
@@ -376,7 +376,7 @@ export const layer = Layer.effect(
                 assistantMessageID: yield* ensureV2AssistantMessage(),
                 reasoningID: value.id,
                 providerMetadata: value.providerMetadata,
-                timestamp: DateTime.makeUnsafe(Date.now()),
+                timestamp: makeUnsafe(Date.now()),
               })
             }
             ctx.reasoningMap[value.id] = {
@@ -402,7 +402,7 @@ export const layer = Layer.effect(
                 assistantMessageID: yield* currentV2AssistantMessage(),
                 reasoningID: value.id,
                 delta: value.text,
-                timestamp: DateTime.makeUnsafe(Date.now()),
+                timestamp: makeUnsafe(Date.now()),
               })
             }
             yield* session.updatePartDelta({
@@ -438,7 +438,7 @@ export const layer = Layer.effect(
                   assistantMessageID,
                   callID: value.id,
                   delta: value.text,
-                  timestamp: DateTime.makeUnsafe(Date.now()),
+                  timestamp: makeUnsafe(Date.now()),
                 })
               }
               ctx.toolcalls[value.id] = { ...toolCall.call, raw: toolCall.call.raw + value.text }
@@ -454,7 +454,7 @@ export const layer = Layer.effect(
                 assistantMessageID,
                 callID: value.id,
                 text: toolCall.call.raw,
-                timestamp: DateTime.makeUnsafe(Date.now()),
+                timestamp: makeUnsafe(Date.now()),
               })
             }
             ctx.toolcalls[value.id] = { ...toolCall.call, inputEnded: true }
@@ -475,7 +475,7 @@ export const layer = Layer.effect(
                   assistantMessageID,
                   callID: value.id,
                   text: toolCall.call.raw,
-                  timestamp: DateTime.makeUnsafe(Date.now()),
+                  timestamp: makeUnsafe(Date.now()),
                 })
               }
             }
@@ -491,7 +491,7 @@ export const layer = Layer.effect(
                   executed: toolCall.part.metadata?.providerExecuted === true,
                   ...(value.providerMetadata ? { metadata: value.providerMetadata } : {}),
                 },
-                timestamp: DateTime.makeUnsafe(Date.now()),
+                timestamp: makeUnsafe(Date.now()),
               })
             }
             yield* updateToolCall(value.id, (match) => ({
@@ -556,7 +556,7 @@ export const layer = Layer.effect(
                     executed: value.providerExecuted === true || toolCall?.part.metadata?.providerExecuted === true,
                     ...(value.providerMetadata ? { metadata: value.providerMetadata } : {}),
                   },
-                  timestamp: DateTime.makeUnsafe(Date.now()),
+                  timestamp: makeUnsafe(Date.now()),
                 })
               }
               yield* failToolCall(value.id, value.result.value)
@@ -572,7 +572,7 @@ export const layer = Layer.effect(
                     ),
                     Effect.exit,
                   )
-                : Effect.succeed(Exit.succeed<SessionV1.FilePart>(attachment)),
+                : Effect.succeed(Exit.succeed(attachment)),
             )
             const omitted = normalized.filter(Exit.isFailure).length
             const attachments = normalized.filter(Exit.isSuccess).map((item) => item.value)
@@ -615,7 +615,7 @@ export const layer = Layer.effect(
                     executed: value.providerExecuted === true || toolCall?.part.metadata?.providerExecuted === true,
                     ...(value.providerMetadata ? { metadata: value.providerMetadata } : {}),
                   },
-                  timestamp: DateTime.makeUnsafe(Date.now()),
+                  timestamp: makeUnsafe(Date.now()),
                 })
                 yield* failToolCall(value.id, error)
                 return
@@ -631,7 +631,7 @@ export const layer = Layer.effect(
                     executed: value.providerExecuted === true || toolCall?.part.metadata?.providerExecuted === true,
                     ...(value.providerMetadata ? { metadata: value.providerMetadata } : {}),
                   },
-                  timestamp: DateTime.makeUnsafe(Date.now()),
+                  timestamp: makeUnsafe(Date.now()),
                 })
             }
             yield* completeToolCall(value.id, output)
@@ -654,7 +654,7 @@ export const layer = Layer.effect(
                   executed: toolCall?.part.metadata?.providerExecuted === true,
                   ...(value.providerMetadata ? { metadata: value.providerMetadata } : {}),
                 },
-                timestamp: DateTime.makeUnsafe(Date.now()),
+                timestamp: makeUnsafe(Date.now()),
               })
             }
             yield* failToolCall(value.id, value.error ?? new Error(value.message))
@@ -697,7 +697,7 @@ export const layer = Layer.effect(
                   cost: usage.cost,
                   tokens: usage.tokens,
                   snapshot: completedSnapshot,
-                  timestamp: DateTime.makeUnsafe(Date.now()),
+                  timestamp: makeUnsafe(Date.now()),
                 })
                 ctx.v2AssistantMessageID = undefined
               }
@@ -751,7 +751,7 @@ export const layer = Layer.effect(
                 yield* events.publish(SessionEvent.Text.Started, {
                   sessionID: ctx.sessionID,
                   assistantMessageID: yield* ensureV2AssistantMessage(),
-                  timestamp: DateTime.makeUnsafe(Date.now()),
+                  timestamp: makeUnsafe(Date.now()),
                   textID: value.id,
                 })
               }
@@ -779,7 +779,7 @@ export const layer = Layer.effect(
                 assistantMessageID: yield* currentV2AssistantMessage(),
                 textID: value.id,
                 delta: value.text,
-                timestamp: DateTime.makeUnsafe(Date.now()),
+                timestamp: makeUnsafe(Date.now()),
               })
             }
             yield* session.updatePartDelta({
@@ -810,7 +810,7 @@ export const layer = Layer.effect(
                   sessionID: ctx.sessionID,
                   assistantMessageID: yield* currentV2AssistantMessage(),
                   text: ctx.currentText.text,
-                  timestamp: DateTime.makeUnsafe(Date.now()),
+                  timestamp: makeUnsafe(Date.now()),
                   textID: value.id,
                 })
               }
@@ -880,7 +880,7 @@ export const layer = Layer.effect(
               callID: toolCallID,
               error: { type: "unknown", message: "Tool execution aborted" },
               provider: { executed: part.metadata?.providerExecuted === true },
-              timestamp: DateTime.makeUnsafe(Date.now()),
+              timestamp: makeUnsafe(Date.now()),
             })
           }
           const end = Date.now()
@@ -937,7 +937,7 @@ export const layer = Layer.effect(
                 type: "unknown",
                 message: errorMessage(e),
               },
-              timestamp: DateTime.makeUnsafe(Date.now()),
+              timestamp: makeUnsafe(Date.now()),
             })
           }
         }
@@ -966,9 +966,9 @@ export const layer = Layer.effect(
             const stream = llm.stream(streamInput)
 
             yield* stream.pipe(
-              Stream.tap((event) => handleEvent(event)),
-              Stream.takeUntil(() => ctx.needsCompaction),
-              Stream.runDrain,
+              tap((event) => handleEvent(event)),
+              takeUntil(() => ctx.needsCompaction),
+              runDrain,
             )
           }).pipe(
             Effect.onInterrupt(() =>
@@ -996,7 +996,7 @@ export const layer = Layer.effect(
                           message: info.message,
                           isRetryable: true,
                         },
-                        timestamp: DateTime.makeUnsafe(Date.now()),
+                        timestamp: makeUnsafe(Date.now()),
                       })
                     : Effect.void
                   return flushV2Fragments().pipe(

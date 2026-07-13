@@ -4,7 +4,7 @@ import { MessageV2 } from "../../session/message-v2"
 import { SessionID } from "../../session/schema"
 import { effectCmd, fail } from "../effect-cmd"
 import { UI } from "../ui"
-import * as prompts from "@clack/prompts"
+import { autocomplete, intro, isCancel, log, outro } from "@clack/prompts";
 import { EOL } from "os"
 import { Effect } from "effect"
 
@@ -244,20 +244,20 @@ const run = Effect.fn("Cli.export.body")(function* (args: { sessionID?: string; 
 
   if (!sessionID) {
     UI.empty()
-    prompts.intro("Export session", { output: process.stderr })
+    intro("Export session", { output: process.stderr })
 
     const sessions = yield* svc.list()
 
     if (sessions.length === 0) {
-      prompts.log.error("No sessions found", { output: process.stderr })
-      prompts.outro("Done", { output: process.stderr })
+      log.error("No sessions found", { output: process.stderr })
+      outro("Done", { output: process.stderr })
       return
     }
 
     sessions.sort((a, b) => b.time.updated - a.time.updated)
 
     const selectedSession = yield* Effect.promise(() =>
-      prompts.autocomplete({
+      autocomplete({
         message: "Select session to export",
         maxItems: 10,
         options: sessions.map((session) => ({
@@ -269,24 +269,24 @@ const run = Effect.fn("Cli.export.body")(function* (args: { sessionID?: string; 
       }),
     )
 
-    if (prompts.isCancel(selectedSession)) {
+    if (isCancel(selectedSession)) {
       return yield* Effect.die(new UI.CancelledError())
     }
 
     sessionID = selectedSession
 
-    prompts.outro("Exporting session...", { output: process.stderr })
+    outro("Exporting session...", { output: process.stderr })
   }
 
   // Match legacy try/catch — catches both typed failures and defects
   // (Session.Service.get throws NotFoundError as a defect, not a typed E).
   return yield* Effect.gen(function* () {
-    const sessionInfo = yield* svc.get(sessionID!)
+    const sessionInfo = yield* svc.get(sessionID)
     const messages = yield* svc.messages({ sessionID: sessionInfo.id })
 
     const exportData = { info: sessionInfo, messages }
 
     process.stdout.write(JSON.stringify(args.sanitize ? sanitize(exportData) : exportData, null, 2))
     process.stdout.write(EOL)
-  }).pipe(Effect.catchCause(() => fail(`Session not found: ${sessionID!}`)))
+  }).pipe(Effect.catchCause(() => fail(`Session not found: ${sessionID}`)))
 })

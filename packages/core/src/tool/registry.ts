@@ -92,7 +92,7 @@ const registryLayer = Layer.effect(
           const guardrail = maybeGuardrail.value
           const results = yield* (guardrail.verify(filePaths).pipe(
             Effect.catch(() => Effect.succeed([] as readonly Guardrail.VerifyResult[])),
-          ) as Effect.Effect<readonly Guardrail.VerifyResult[]>)
+          ))
           const failed = results.filter((r) => !r.passed)
           if (failed.length > 0) {
             const lines = failed.flatMap((r) =>

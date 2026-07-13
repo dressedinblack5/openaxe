@@ -93,7 +93,7 @@ describe("SessionProjector", () => {
         sessionID,
         limit: 1,
         order: "asc",
-        cursor: { id: firstPage[0]!.id, direction: "next" },
+        cursor: { id: firstPage[0].id, direction: "next" },
       })
       expect(secondPage.map((message) => (message.type === "user" ? message.text : message.type))).toEqual(["second"])
       expect(
@@ -101,7 +101,7 @@ describe("SessionProjector", () => {
           sessionID,
           limit: 1,
           order: "asc",
-          cursor: { id: secondPage[0]!.id, direction: "previous" },
+          cursor: { id: secondPage[0].id, direction: "previous" },
         })).map((message) => (message.type === "user" ? message.text : message.type)),
       ).toEqual(["first"])
       expect(

@@ -115,7 +115,7 @@ async function generatedMigrations(directory: string) {
 async function generatedSql(directory: string) {
   const generated = await generatedMigrations(directory)
   if (generated.length !== 1) throw new Error(`Expected one full schema migration, found ${generated.length}.`)
-  return Bun.file(path.join(directory, generated[0]!, "migration.sql")).text()
+  return Bun.file(path.join(directory, generated[0], "migration.sql")).text()
 }
 
 async function typescriptMigrations() {

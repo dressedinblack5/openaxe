@@ -10,7 +10,7 @@ import {
   HttpClientResponse,
   UrlParams,
 } from "effect/unstable/http"
-import * as CassetteService from "./cassette.js"
+import { Service, fileSystem } from "./cassette.js";
 import { defaultMatcher, selectSequential } from "./matching.js"
 import { makeReplayState, resolveAutoMode } from "./recorder.js"
 import { make, type Redactor } from "./redactor.js"
@@ -93,12 +93,12 @@ const transportError = (request: HttpClientRequest.HttpClientRequest, descriptio
 export const recordingLayer = (
   name: string,
   options: Omit<RecordReplayOptions, "directory"> = {},
-): Layer.Layer<HttpClient.HttpClient, never, HttpClient.HttpClient | CassetteService.Service> =>
+): Layer.Layer<HttpClient.HttpClient, never, HttpClient.HttpClient | Service> =>
   Layer.effect(
     HttpClient.HttpClient,
     Effect.gen(function* () {
       const upstream = yield* HttpClient.HttpClient
-      const cassetteService = yield* CassetteService.Service
+      const cassetteService = yield* Service
       const redactor = options.redactor ?? make()
       const match = options.match ?? defaultMatcher
       const requested = options.mode ?? "auto"
@@ -183,7 +183,7 @@ export const recordingLayer = (
 
 export const cassetteLayer = (name: string, options: RecordReplayOptions = {}): Layer.Layer<HttpClient.HttpClient> =>
   recordingLayer(name, options).pipe(
-    Layer.provide(CassetteService.fileSystem({ directory: options.directory })),
+    Layer.provide(fileSystem({ directory: options.directory })),
     Layer.provide(FetchHttpClient.layer),
     Layer.provide(NodeFileSystem.layer),
   )

@@ -25,3 +25,5 @@ export const defaultOpenAICompatibleErrorStructure: ProviderErrorStructure<OpenA
   errorSchema: openaiCompatibleErrorDataSchema,
   errorToMessage: (data) => data.error.message,
 }
+
+export * as OpenAICompatibleError from "./openai-compatible-error"

@@ -45,7 +45,7 @@ const run = Effect.fn("Cli.debug.agent.body")(function* (
       process.stderr.write(`Tool ${toolID} not found for agent ${agentName}` + EOL)
       return yield* fail("", 1)
     }
-    if (resolvedTools[toolID] === false) {
+    if (!resolvedTools[toolID]) {
       process.stderr.write(`Tool ${toolID} is disabled for agent ${agentName}` + EOL)
       return yield* fail("", 1)
     }

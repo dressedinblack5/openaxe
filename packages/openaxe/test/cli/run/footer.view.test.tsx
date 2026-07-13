@@ -136,8 +136,8 @@ function subagent(input: {
   } satisfies FooterSubagentTab
 }
 
-function footerState(input: Partial<FooterState> = {}) {
-  return createSignal<FooterState>({
+function footerState(input: Partial<FooterState> = {}): () => FooterState {
+  return createSignal({
     phase: "idle",
     status: "",
     queue: 0,
@@ -148,7 +148,7 @@ function footerState(input: Partial<FooterState> = {}) {
     interrupt: 0,
     exit: 0,
     ...input,
-  })[0]
+  }) as unknown as () => FooterState
 }
 
 async function renderFooter(
@@ -163,16 +163,16 @@ async function renderFooter(
     backgroundSubagents?: boolean
     width?: number
     height?: number
-    state?: Partial<FooterState>
+    state?: FooterState
     onCycle?: () => void
     onSubmit?: (prompt: RunPrompt) => boolean
   } = {},
 ) {
   const [view] = createSignal<FooterView>({ type: "prompt" })
-  const [subagents] = createSignal<FooterSubagentState>(
+  const [subagents] = createSignal(
     input.subagents ?? { tabs: [], details: {}, permissions: [], questions: [] },
   )
-  const state = footerState(input.state)
+  const state = footerState(input.state)()
   const config = input.tuiConfig ?? tuiConfig
   let offKeymap: (() => void) | undefined
 
@@ -193,7 +193,7 @@ async function renderFooter(
           currentModel={() => input.currentModel}
           variants={() => []}
           currentVariant={() => input.currentVariant}
-          state={state}
+          state={() => state}
           view={view}
           subagent={subagents}
           theme={input.theme ?? (() => RUN_THEME_FALLBACK)}
@@ -1074,7 +1074,7 @@ test("direct footer hides the subagent hint when only completed subagents remain
 test("direct footer omits interrupt key hint when interrupt is unbound", async () => {
   const app = await renderFooter({
     tuiConfig: createTuiResolvedConfig({ keybinds: { session_interrupt: "none", input_clear: "ctrl+l" } }),
-    state: { phase: "running" },
+    state: footerState({ phase: "running" })(),
   })
 
   try {
@@ -1090,7 +1090,7 @@ test("direct footer omits interrupt key hint when interrupt is unbound", async (
 
 test("direct footer shows full usage metadata when room is available", async () => {
   const app = await renderFooter({
-    state: { usage: "159.6K (16%) · $4.23" },
+    state: footerState({ usage: "159.6K (16%) · $4.23" })(),
   })
 
   try {

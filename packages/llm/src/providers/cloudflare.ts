@@ -1,5 +1,5 @@
 import type { Config, Redacted } from "effect"
-import * as OpenAICompatibleChat from "../protocols/openai-compatible-chat"
+import { route } from "../protocols/openai-compatible-chat";
 import { Auth } from "../route/auth"
 import { AuthOptions, type AtLeastOne, type ProviderAuthOption } from "../route/auth-options"
 import type { RouteDefaultsInput } from "../route/client"
@@ -60,12 +60,12 @@ const workersAIAuth = (input: WorkersAIOptions) => {
   return AuthOptions.bearer(input, workersAIAuthEnvVars)
 }
 
-export const aiGatewayRoute = OpenAICompatibleChat.route.with({
+export const aiGatewayRoute = route.with({
   id: "cloudflare-ai-gateway",
   provider: aiGatewayID,
 })
 
-export const workersAIRoute = OpenAICompatibleChat.route.with({
+export const workersAIRoute = route.with({
   id: "cloudflare-workers-ai",
   provider: workersAIID,
 })

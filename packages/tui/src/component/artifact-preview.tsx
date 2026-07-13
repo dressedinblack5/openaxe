@@ -60,7 +60,7 @@ export function ArtifactPreview() {
 
   const [entry] = createResource(contentKey, async (key) => {
     const [k, v] = key.split(":")
-    return fetchJson<ArtifactEntry | null>(`${baseUrl()}/api/artifact/${encodeURIComponent(k!)}/${v!}`, doFetch)
+    return fetchJson<ArtifactEntry | null>(`${baseUrl()}/api/artifact/${encodeURIComponent(k)}/${v}`, doFetch)
   })
 
   const [showFull, setShowFull] = createSignal(false)
@@ -129,8 +129,8 @@ export function ArtifactPreview() {
               title="Artifacts"
               options={options()}
               onSelect={(opt) => {
-                const parts = (opt.value as string).split(":")
-                setView({ type: "content", key: parts[0]!, version: Number(parts[1]!) })
+                const parts = (opt.value).split(":")
+                setView({ type: "content", key: parts[0], version: Number(parts[1]) })
               }}
               emptyView={<text fg={theme.textMuted}>No artifacts found</text>}
             />

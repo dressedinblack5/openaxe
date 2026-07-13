@@ -310,7 +310,7 @@ test("holds markdown code blocks until final commit and keeps newline ownership"
     const final = claim(out.renderer)
     try {
       expect(final).toHaveLength(1)
-      expect(final[0]!.trailingNewline).toBe(false)
+      expect(final[0].trailingNewline).toBe(false)
       expect(render(final)).toContain('const message = "Hello, markdown"')
       expect(render(final)).toContain("console.log(message)")
     } finally {
@@ -425,7 +425,7 @@ test("renders todo and question summaries without boilerplate footer copy", asyn
       const commits = claim(out.renderer)
       try {
         expect(commits).toHaveLength(1)
-        const rows = renderRows(commits[0]!)
+        const rows = renderRows(commits[0])
         const output = rows.join("\n")
         expect(output).toContain(item.title)
         for (const line of item.include) {
@@ -452,8 +452,8 @@ test("inserts spacers for new visible groups", async () => {
     const commits = claim(prior.renderer)
     try {
       expect(commits).toHaveLength(2)
-      expect(renderCommit(commits[0]!).trim()).toBe("")
-      expect(renderCommit(commits[1]!).trim()).toBe("› use subagent to explore run.ts")
+      expect(renderCommit(commits[0]).trim()).toBe("")
+      expect(renderCommit(commits[1]).trim()).toBe("› use subagent to explore run.ts")
     } finally {
       destroy(commits)
     }
@@ -487,8 +487,8 @@ test("inserts spacers for new visible groups", async () => {
     const commits = claim(grouped.renderer)
     try {
       expect(commits).toHaveLength(2)
-      expect(renderCommit(commits[0]!).trim()).toBe("")
-      expect(renderCommit(commits[1]!).replace(/ +/g, " ").trim()).toBe('✱ Glob "**/run.ts"')
+      expect(renderCommit(commits[0]).trim()).toBe("")
+      expect(renderCommit(commits[1]).replace(/ +/g, " ").trim()).toBe('✱ Glob "**/run.ts"')
     } finally {
       destroy(commits)
     }

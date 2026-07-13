@@ -96,7 +96,7 @@ describe("QuestionV2", () => {
       const second = Context.get(yield* Layer.buildWithScope(Layer.fresh(questions), secondScope), QuestionV2.Service)
       const fiber = yield* first.ask({ sessionID, questions: [question] }).pipe(Effect.forkScoped)
       yield* Effect.yieldNow
-      const request = (yield* first.list())[0]!
+      const request = (yield* first.list())[0]
 
       expect(yield* second.list()).toEqual([])
       expect(yield* second.reply({ requestID: request.id, answers: [["One"]] }).pipe(Effect.flip)).toEqual(

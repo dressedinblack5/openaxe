@@ -1,6 +1,7 @@
-import * as Command from "effect/unstable/cli/Command"
+import type { Command } from "effect/unstable/cli/Command"
+import { make as makeCommand, withDescription } from "effect/unstable/cli/Command"
 
-type Options<Config extends Command.Command.Config, Commands extends ReadonlyArray<Any>> = {
+type Options<Config extends Command.Config, Commands extends ReadonlyArray<Any>> = {
   readonly description?: string
   readonly params?: Config
   readonly commands?: Commands
@@ -8,7 +9,7 @@ type Options<Config extends Command.Command.Config, Commands extends ReadonlyArr
 
 export interface Node<
   Name extends string,
-  Spec extends Command.Command<Name, any, any, any, any>,
+  Spec extends Command<Name, any, any, any, any>,
   Commands extends Children,
 > {
   readonly name: Name
@@ -16,16 +17,16 @@ export interface Node<
   readonly commands: Commands
 }
 
-export type Any = Node<string, Command.Command<any, any, any, any, any>, Children>
+export type Any = Node<string, Command<any, any, any, any, any>, Children>
 export type Children = Readonly<Record<string, Any>>
 
 export function make<
   const Name extends string,
-  const Config extends Command.Command.Config = {},
+  const Config extends Command.Config = {},
   const Commands extends ReadonlyArray<Any> = [],
 >(name: Name, options: Options<Config, Commands> = {}) {
-  const command = Command.make(name, options.params ?? ({} as Config))
-  const spec = options.description ? command.pipe(Command.withDescription(options.description)) : command
+  const command = makeCommand(name, options.params ?? ({} as Config))
+  const spec = options.description ? command.pipe(withDescription(options.description)) : command
   return {
     name,
     spec,

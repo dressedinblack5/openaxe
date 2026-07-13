@@ -119,256 +119,300 @@ export const Synthetic = Event.define({
 })
 export type Synthetic = typeof Synthetic.Type
 
-export namespace Shell {
-  export const Started = Event.define({
-    type: "session.next.shell.started",
-    ...options,
-    schema: {
-      ...Base,
-      messageID: SessionMessageID.ID,
-      callID: Schema.String,
-      command: Schema.String,
-    },
-  })
-  export type Started = typeof Started.Type
+// -- Shell --
 
-  export const Ended = Event.define({
-    type: "session.next.shell.ended",
-    ...options,
-    schema: {
-      ...Base,
-      callID: Schema.String,
-      output: Schema.String,
-    },
-  })
-  export type Ended = typeof Ended.Type
+const _ShellStarted = Event.define({
+  type: "session.next.shell.started",
+  ...options,
+  schema: {
+    ...Base,
+    messageID: SessionMessageID.ID,
+    callID: Schema.String,
+    command: Schema.String,
+  },
+})
+const _ShellEnded = Event.define({
+  type: "session.next.shell.ended",
+  ...options,
+  schema: {
+    ...Base,
+    callID: Schema.String,
+    output: Schema.String,
+  },
+})
+
+export const Shell = {
+  Started: _ShellStarted,
+  Ended: _ShellEnded,
+} as const
+export type Shell = {
+  readonly Started: typeof _ShellStarted.Type
+  readonly Ended: typeof _ShellEnded.Type
 }
 
-export namespace Step {
-  export const Started = Event.define({
-    type: "session.next.step.started",
-    ...options,
-    schema: {
-      ...Base,
-      assistantMessageID: SessionMessageID.ID,
-      agent: Schema.String,
-      model: Model.Ref,
-      snapshot: Schema.String.pipe(Schema.optional),
-    },
-  })
-  export type Started = typeof Started.Type
+// -- Step --
 
-  export const Ended = Event.define({
-    type: "session.next.step.ended",
-    ...stepSettlementOptions,
-    schema: {
-      ...Base,
-      assistantMessageID: SessionMessageID.ID,
-      finish: Schema.String,
-      cost: Schema.Finite,
-      tokens: Schema.Struct({
-        input: Schema.Finite,
-        output: Schema.Finite,
-        reasoning: Schema.Finite,
-        cache: Schema.Struct({
-          read: Schema.Finite,
-          write: Schema.Finite,
-        }),
-      }),
-      snapshot: Schema.String.pipe(Schema.optional),
-    },
-  })
-  export type Ended = typeof Ended.Type
-
-  export const Failed = Event.define({
-    type: "session.next.step.failed",
-    ...stepSettlementOptions,
-    schema: {
-      ...Base,
-      assistantMessageID: SessionMessageID.ID,
-      error: UnknownError,
-    },
-  })
-  export type Failed = typeof Failed.Type
-}
-
-export namespace Text {
-  export const Started = Event.define({
-    type: "session.next.text.started",
-    ...options,
-    schema: {
-      ...Base,
-      assistantMessageID: SessionMessageID.ID,
-      textID: Schema.String,
-    },
-  })
-  export type Started = typeof Started.Type
-
-  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary.
-  export const Delta = Event.define({
-    type: "session.next.text.delta",
-    schema: {
-      ...Base,
-      assistantMessageID: SessionMessageID.ID,
-      textID: Schema.String,
-      delta: Schema.String,
-    },
-  })
-  export type Delta = typeof Delta.Type
-
-  export const Ended = Event.define({
-    type: "session.next.text.ended",
-    ...options,
-    schema: {
-      ...Base,
-      assistantMessageID: SessionMessageID.ID,
-      textID: Schema.String,
-      text: Schema.String,
-    },
-  })
-  export type Ended = typeof Ended.Type
-}
-
-export namespace Reasoning {
-  export const Started = Event.define({
-    type: "session.next.reasoning.started",
-    ...options,
-    schema: {
-      ...Base,
-      assistantMessageID: SessionMessageID.ID,
-      reasoningID: Schema.String,
-      providerMetadata: ProviderMetadata.pipe(Schema.optional),
-    },
-  })
-  export type Started = typeof Started.Type
-
-  // Stream fragments are live-only; Reasoning.Ended is the replayable full-value boundary.
-  export const Delta = Event.define({
-    type: "session.next.reasoning.delta",
-    schema: {
-      ...Base,
-      assistantMessageID: SessionMessageID.ID,
-      reasoningID: Schema.String,
-      delta: Schema.String,
-    },
-  })
-  export type Delta = typeof Delta.Type
-
-  export const Ended = Event.define({
-    type: "session.next.reasoning.ended",
-    ...options,
-    schema: {
-      ...Base,
-      assistantMessageID: SessionMessageID.ID,
-      reasoningID: Schema.String,
-      text: Schema.String,
-      providerMetadata: ProviderMetadata.pipe(Schema.optional),
-    },
-  })
-  export type Ended = typeof Ended.Type
-}
-
-export namespace Tool {
-  const ToolBase = {
+const _StepStarted = Event.define({
+  type: "session.next.step.started",
+  ...options,
+  schema: {
     ...Base,
     assistantMessageID: SessionMessageID.ID,
-    callID: Schema.String,
-  }
-
-  export namespace Input {
-    export const Started = Event.define({
-      type: "session.next.tool.input.started",
-      ...options,
-      schema: {
-        ...ToolBase,
-        name: Schema.String,
-      },
-    })
-    export type Started = typeof Started.Type
-
-    // Stream fragments are live-only; Input.Ended is the replayable raw-input boundary.
-    export const Delta = Event.define({
-      type: "session.next.tool.input.delta",
-      schema: {
-        ...ToolBase,
-        delta: Schema.String,
-      },
-    })
-    export type Delta = typeof Delta.Type
-
-    export const Ended = Event.define({
-      type: "session.next.tool.input.ended",
-      ...options,
-      schema: {
-        ...ToolBase,
-        text: Schema.String,
-      },
-    })
-    export type Ended = typeof Ended.Type
-  }
-
-  export const Called = Event.define({
-    type: "session.next.tool.called",
-    ...options,
-    schema: {
-      ...ToolBase,
-      tool: Schema.String,
-      input: Schema.Record(Schema.String, Schema.Unknown),
-      provider: Schema.Struct({
-        executed: Schema.Boolean,
-        metadata: ProviderMetadata.pipe(Schema.optional),
+    agent: Schema.String,
+    model: Model.Ref,
+    snapshot: Schema.String.pipe(Schema.optional),
+  },
+})
+const _StepEnded = Event.define({
+  type: "session.next.step.ended",
+  ...stepSettlementOptions,
+  schema: {
+    ...Base,
+    assistantMessageID: SessionMessageID.ID,
+    finish: Schema.String,
+    cost: Schema.Finite,
+    tokens: Schema.Struct({
+      input: Schema.Finite,
+      output: Schema.Finite,
+      reasoning: Schema.Finite,
+      cache: Schema.Struct({
+        read: Schema.Finite,
+        write: Schema.Finite,
       }),
-    },
-  })
-  export type Called = typeof Called.Type
+    }),
+    snapshot: Schema.String.pipe(Schema.optional),
+  },
+})
+const _StepFailed = Event.define({
+  type: "session.next.step.failed",
+  ...stepSettlementOptions,
+  schema: {
+    ...Base,
+    assistantMessageID: SessionMessageID.ID,
+    error: UnknownError,
+  },
+})
 
-  /**
-   * Replayable bounded running-tool state. Tools should checkpoint semantic
-   * transitions or at a bounded cadence, not persist every stdout/stderr chunk.
-   */
-  export const Progress = Event.define({
-    type: "session.next.tool.progress",
-    ...options,
-    schema: {
-      ...ToolBase,
-      structured: Schema.Record(Schema.String, Schema.Any),
-      content: Schema.Array(ToolContent),
-    },
-  })
-  export type Progress = typeof Progress.Type
-
-  export const Success = Event.define({
-    type: "session.next.tool.success",
-    ...options,
-    schema: {
-      ...ToolBase,
-      structured: Schema.Record(Schema.String, Schema.Any),
-      content: Schema.Array(ToolContent),
-      outputPaths: Schema.Array(Schema.String).pipe(Schema.optional),
-      result: Schema.Unknown.pipe(Schema.optional),
-      provider: Schema.Struct({
-        executed: Schema.Boolean,
-        metadata: ProviderMetadata.pipe(Schema.optional),
-      }),
-    },
-  })
-  export type Success = typeof Success.Type
-
-  export const Failed = Event.define({
-    type: "session.next.tool.failed",
-    ...options,
-    schema: {
-      ...ToolBase,
-      error: UnknownError,
-      result: Schema.Unknown.pipe(Schema.optional),
-      provider: Schema.Struct({
-        executed: Schema.Boolean,
-        metadata: ProviderMetadata.pipe(Schema.optional),
-      }),
-    },
-  })
-  export type Failed = typeof Failed.Type
+export const Step = {
+  Started: _StepStarted,
+  Ended: _StepEnded,
+  Failed: _StepFailed,
+} as const
+export type Step = {
+  readonly Started: typeof _StepStarted.Type
+  readonly Ended: typeof _StepEnded.Type
+  readonly Failed: typeof _StepFailed.Type
 }
+
+// -- Text --
+
+const _TextStarted = Event.define({
+  type: "session.next.text.started",
+  ...options,
+  schema: {
+    ...Base,
+    assistantMessageID: SessionMessageID.ID,
+    textID: Schema.String,
+  },
+})
+
+// Stream fragments are live-only; Text.Ended is the replayable full-value boundary.
+const _TextDelta = Event.define({
+  type: "session.next.text.delta",
+  schema: {
+    ...Base,
+    assistantMessageID: SessionMessageID.ID,
+    textID: Schema.String,
+    delta: Schema.String,
+  },
+})
+
+const _TextEnded = Event.define({
+  type: "session.next.text.ended",
+  ...options,
+  schema: {
+    ...Base,
+    assistantMessageID: SessionMessageID.ID,
+    textID: Schema.String,
+    text: Schema.String,
+  },
+})
+
+export const Text = {
+  Started: _TextStarted,
+  Delta: _TextDelta,
+  Ended: _TextEnded,
+} as const
+export type Text = {
+  readonly Started: typeof _TextStarted.Type
+  readonly Delta: typeof _TextDelta.Type
+  readonly Ended: typeof _TextEnded.Type
+}
+
+// -- Reasoning --
+
+const _ReasoningStarted = Event.define({
+  type: "session.next.reasoning.started",
+  ...options,
+  schema: {
+    ...Base,
+    assistantMessageID: SessionMessageID.ID,
+    reasoningID: Schema.String,
+    providerMetadata: ProviderMetadata.pipe(Schema.optional),
+  },
+})
+
+// Stream fragments are live-only; Reasoning.Ended is the replayable full-value boundary.
+const _ReasoningDelta = Event.define({
+  type: "session.next.reasoning.delta",
+  schema: {
+    ...Base,
+    assistantMessageID: SessionMessageID.ID,
+    reasoningID: Schema.String,
+    delta: Schema.String,
+  },
+})
+
+const _ReasoningEnded = Event.define({
+  type: "session.next.reasoning.ended",
+  ...options,
+  schema: {
+    ...Base,
+    assistantMessageID: SessionMessageID.ID,
+    reasoningID: Schema.String,
+    text: Schema.String,
+    providerMetadata: ProviderMetadata.pipe(Schema.optional),
+  },
+})
+
+export const Reasoning = {
+  Started: _ReasoningStarted,
+  Delta: _ReasoningDelta,
+  Ended: _ReasoningEnded,
+} as const
+export type Reasoning = {
+  readonly Started: typeof _ReasoningStarted.Type
+  readonly Delta: typeof _ReasoningDelta.Type
+  readonly Ended: typeof _ReasoningEnded.Type
+}
+
+// -- Tool --
+
+const ToolBase = {
+  ...Base,
+  assistantMessageID: SessionMessageID.ID,
+  callID: Schema.String,
+}
+
+const _ToolInputStarted = Event.define({
+  type: "session.next.tool.input.started",
+  ...options,
+  schema: {
+    ...ToolBase,
+    name: Schema.String,
+  },
+})
+
+// Stream fragments are live-only; Input.Ended is the replayable raw-input boundary.
+const _ToolInputDelta = Event.define({
+  type: "session.next.tool.input.delta",
+  schema: {
+    ...ToolBase,
+    delta: Schema.String,
+  },
+})
+
+const _ToolInputEnded = Event.define({
+  type: "session.next.tool.input.ended",
+  ...options,
+  schema: {
+    ...ToolBase,
+    text: Schema.String,
+  },
+})
+
+const _ToolCalled = Event.define({
+  type: "session.next.tool.called",
+  ...options,
+  schema: {
+    ...ToolBase,
+    tool: Schema.String,
+    input: Schema.Record(Schema.String, Schema.Unknown),
+    provider: Schema.Struct({
+      executed: Schema.Boolean,
+      metadata: ProviderMetadata.pipe(Schema.optional),
+    }),
+  },
+})
+
+/**
+ * Replayable bounded running-tool state. Tools should checkpoint semantic
+ * transitions or at a bounded cadence, not persist every stdout/stderr chunk.
+ */
+const _ToolProgress = Event.define({
+  type: "session.next.tool.progress",
+  ...options,
+  schema: {
+    ...ToolBase,
+    structured: Schema.Record(Schema.String, Schema.Any),
+    content: Schema.Array(ToolContent),
+  },
+})
+
+const _ToolSuccess = Event.define({
+  type: "session.next.tool.success",
+  ...options,
+  schema: {
+    ...ToolBase,
+    structured: Schema.Record(Schema.String, Schema.Any),
+    content: Schema.Array(ToolContent),
+    outputPaths: Schema.Array(Schema.String).pipe(Schema.optional),
+    result: Schema.Unknown.pipe(Schema.optional),
+    provider: Schema.Struct({
+      executed: Schema.Boolean,
+      metadata: ProviderMetadata.pipe(Schema.optional),
+    }),
+  },
+})
+
+const _ToolFailed = Event.define({
+  type: "session.next.tool.failed",
+  ...options,
+  schema: {
+    ...ToolBase,
+    error: UnknownError,
+    result: Schema.Unknown.pipe(Schema.optional),
+    provider: Schema.Struct({
+      executed: Schema.Boolean,
+      metadata: ProviderMetadata.pipe(Schema.optional),
+    }),
+  },
+})
+
+export const Tool = {
+  Input: {
+    Started: _ToolInputStarted,
+    Delta: _ToolInputDelta,
+    Ended: _ToolInputEnded,
+  },
+  Called: _ToolCalled,
+  Progress: _ToolProgress,
+  Success: _ToolSuccess,
+  Failed: _ToolFailed,
+} as const
+export type Tool = {
+  Input: {
+    readonly Started: typeof _ToolInputStarted.Type
+    readonly Delta: typeof _ToolInputDelta.Type
+    readonly Ended: typeof _ToolInputEnded.Type
+  }
+  readonly Called: typeof _ToolCalled.Type
+  readonly Progress: typeof _ToolProgress.Type
+  readonly Success: typeof _ToolSuccess.Type
+  readonly Failed: typeof _ToolFailed.Type
+}
+
+// -- Retry --
 
 export const RetryError = Schema.Struct({
   message: Schema.String,
@@ -393,41 +437,51 @@ export const Retried = Event.define({
 })
 export type Retried = typeof Retried.Type
 
-export namespace Compaction {
-  export const Started = Event.define({
-    type: "session.next.compaction.started",
-    ...options,
-    schema: {
-      ...Base,
-      messageID: SessionMessageID.ID,
-      reason: Schema.Union([Schema.Literal("auto"), Schema.Literal("manual")]),
-    },
-  })
-  export type Started = typeof Started.Type
+// -- Compaction --
 
-  export const Delta = Event.define({
-    type: "session.next.compaction.delta",
-    schema: {
-      ...Base,
-      messageID: SessionMessageID.ID,
-      text: Schema.String,
-    },
-  })
-  export type Delta = typeof Delta.Type
+const _CompactionStarted = Event.define({
+  type: "session.next.compaction.started",
+  ...options,
+  schema: {
+    ...Base,
+    messageID: SessionMessageID.ID,
+    reason: Schema.Union([Schema.Literal("auto"), Schema.Literal("manual")]),
+  },
+})
 
-  export const Ended = Event.define({
-    type: "session.next.compaction.ended",
-    ...options,
-    schema: {
-      ...Base,
-      messageID: SessionMessageID.ID,
-      reason: Started.data.fields.reason,
-      text: Schema.String,
-      recent: Schema.String,
-    },
-  })
-  export type Ended = typeof Ended.Type
+const _CompactionDelta = Event.define({
+  type: "session.next.compaction.delta",
+  schema: {
+    ...Base,
+    messageID: SessionMessageID.ID,
+    text: Schema.String,
+  },
+})
+
+const _CompactionEnded = Event.define({
+  type: "session.next.compaction.ended",
+  ...options,
+  schema: {
+    ...Base,
+    messageID: SessionMessageID.ID,
+    reason: _CompactionStarted.data.fields.reason,
+    text: Schema.String,
+    recent: Schema.String,
+  },
+})
+
+export const Compaction = {
+  Started: _CompactionStarted,
+  Delta: _CompactionDelta,
+  Ended: _CompactionEnded,
+} as const
+export type Compaction = {
+  readonly Started: typeof _CompactionStarted.Type
+  readonly Delta: typeof _CompactionDelta.Type
+  readonly Ended: typeof _CompactionEnded.Type
 }
+
+// -- Event inventories --
 
 export const DurableDefinitions = Event.inventory(
   AgentSwitched,

@@ -53,7 +53,7 @@ export function replaceWithNode<A, E, E2>(
 
 export function replace<A, E, E2>(
   source: Node<A, E>,
-  replacement: Layer.Layer<NoInfer<A>, E2, never> & CheckReplacementErrors<E, NoInfer<E2>>,
+  replacement: Layer.Layer<NoInfer<A>, E2> & CheckReplacementErrors<E, NoInfer<E2>>,
 ): Replacement<A> {
   return { source, replacement: make(replacement as Layer.Layer<A, E2>, []) }
 }
@@ -96,7 +96,7 @@ export function buildLayer<A, E>(node: Node<A, E>, options?: { readonly replacem
     }
   }
 
-  return visit(node) as unknown as Layer.Layer<A, E, never>
+  return visit(node) as unknown as Layer.Layer<A, E>
 }
 
 export * as LayerNode from "./layer-node"

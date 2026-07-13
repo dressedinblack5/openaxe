@@ -1,6 +1,6 @@
 /* oxlint-disable */
-import * as Cause from "effect/Cause"
-import * as Effect from "effect/Effect"
+import { fail } from "effect/Cause";
+import { Effect } from "effect"
 import type { SqlError } from "effect/unstable/sql/SqlError"
 import type { EffectCacheShape } from "drizzle-orm/cache/core/cache-effect"
 import { NoopCache, strategyFor } from "drizzle-orm/cache/core/cache"
@@ -279,7 +279,7 @@ export class SQLiteEffectPreparedQuery<
       assertUnreachable(cacheStrat)
     }).pipe(
       Effect.catch((e) => {
-        return Effect.fail(new EffectDrizzleQueryError({ query: queryString, params, cause: Cause.fail(e) }))
+        return Effect.fail(new EffectDrizzleQueryError({ query: queryString, params, cause: fail(e) }))
       }),
     )
   }

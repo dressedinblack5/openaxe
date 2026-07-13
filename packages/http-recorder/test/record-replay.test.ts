@@ -6,7 +6,7 @@ import { Socket } from "effect/unstable/socket"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
-import { HttpRecorder } from "../src"
+import { HttpRecorder, type RecorderOptions } from "../src"
 import { HttpRecorderInternal } from "../src/internal"
 import { redactedErrorRequest } from "../src/internal-effect"
 import type { Interaction } from "../src/schema"
@@ -38,7 +38,7 @@ const run = <A, E>(effect: Effect.Effect<A, E, HttpClient.HttpClient>) =>
 
 const runWith = <A, E>(
   name: string,
-  options: HttpRecorder.RecorderOptions,
+  options: RecorderOptions,
   effect: Effect.Effect<A, E, HttpClient.HttpClient>,
 ) => Effect.runPromise(effect.pipe(Effect.provide(HttpRecorder.http(name, options))))
 

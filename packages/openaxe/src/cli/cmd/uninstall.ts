@@ -1,6 +1,6 @@
 import type { Argv } from "yargs"
 import { UI } from "../ui"
-import * as prompts from "@clack/prompts"
+import { intro, outro, confirm as promptConfirm, isCancel, spinner as createSpinner, log } from "@clack/prompts"
 import { Installation } from "../../installation"
 import { Global } from "@opencode-ai/core/global"
 import fs from "fs/promises"
@@ -55,35 +55,35 @@ export const UninstallCommand = {
     UI.empty()
     UI.println(UI.logo("  "))
     UI.empty()
-    prompts.intro("Uninstall OpenCode")
+    intro("Uninstall OpenCode")
 
     const method = await Installation.method()
-    prompts.log.info(`Installation method: ${method}`)
+    log.info(`Installation method: ${method}`)
 
     const targets = await collectRemovalTargets(args, method)
 
     await showRemovalSummary(targets, method)
 
     if (!args.force && !args.dryRun) {
-      const confirm = await prompts.confirm({
+      const confirm = await promptConfirm({
         message: "Are you sure you want to uninstall?",
         initialValue: false,
       })
-      if (!confirm || prompts.isCancel(confirm)) {
-        prompts.outro("Cancelled")
+      if (!confirm || isCancel(confirm)) {
+        outro("Cancelled")
         return
       }
     }
 
     if (args.dryRun) {
-      prompts.log.warn("Dry run - no changes made")
-      prompts.outro("Done")
+      log.warn("Dry run - no changes made")
+      outro("Done")
       return
     }
 
     await executeUninstall(method, targets)
 
-    prompts.outro("Done")
+    outro("Done")
   },
 }
 
@@ -102,7 +102,7 @@ async function collectRemovalTargets(args: UninstallArgs, method: Installation.M
 }
 
 async function showRemovalSummary(targets: RemovalTargets, method: Installation.Method) {
-  prompts.log.message("The following will be removed:")
+  log.message("The following will be removed:")
 
   for (const dir of targets.directories) {
     const exists = await fs
@@ -116,15 +116,15 @@ async function showRemovalSummary(targets: RemovalTargets, method: Installation.
     const status = dir.keep ? UI.Style.TEXT_DIM + "(keeping)" : ""
     const prefix = dir.keep ? "○" : "✓"
 
-    prompts.log.info(`  ${prefix} ${dir.label}: ${shortenPath(dir.path)} ${UI.Style.TEXT_DIM}(${sizeStr})${status}`)
+    log.info(`  ${prefix} ${dir.label}: ${shortenPath(dir.path)} ${UI.Style.TEXT_DIM}(${sizeStr})${status}`)
   }
 
   if (targets.binary) {
-    prompts.log.info(`  ✓ Binary: ${shortenPath(targets.binary)}`)
+    log.info(`  ✓ Binary: ${shortenPath(targets.binary)}`)
   }
 
   if (targets.shellConfig) {
-    prompts.log.info(`  ✓ Shell PATH in ${shortenPath(targets.shellConfig)}`)
+    log.info(`  ✓ Shell PATH in ${shortenPath(targets.shellConfig)}`)
   }
 
   if (method !== "curl" && method !== "unknown") {
@@ -137,17 +137,17 @@ async function showRemovalSummary(targets: RemovalTargets, method: Installation.
       choco: "choco uninstall openaxe",
       scoop: "scoop uninstall openaxe",
     }
-    prompts.log.info(`  ✓ Package: ${cmds[method] || method}`)
+    log.info(`  ✓ Package: ${cmds[method] || method}`)
   }
 }
 
 async function executeUninstall(method: Installation.Method, targets: RemovalTargets) {
-  const spinner = prompts.spinner()
+  const spinner = createSpinner()
   const errors: string[] = []
 
   for (const dir of targets.directories) {
     if (dir.keep) {
-      prompts.log.step(`Skipping ${dir.label} (--keep-${dir.label.toLowerCase()})`)
+      log.step(`Skipping ${dir.label} (--keep-${dir.label.toLowerCase()})`)
       continue
     }
 
@@ -199,9 +199,9 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
         spinner.stop(`Package manager uninstall failed: exit code ${result.code}`, 1)
         const text = `${result.stdout.toString("utf8")}\n${result.stderr.toString("utf8")}`
         if (method === "choco" && text.includes("not running from an elevated command shell")) {
-          prompts.log.warn(`You may need to run '${cmd.join(" ")}' from an elevated command shell`)
+          log.warn(`You may need to run '${cmd.join(" ")}' from an elevated command shell`)
         } else {
-          prompts.log.warn(`You may need to run manually: ${cmd.join(" ")}`)
+          log.warn(`You may need to run manually: ${cmd.join(" ")}`)
         }
       } else {
         spinner.stop("Package removed")
@@ -211,25 +211,25 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
 
   if (method === "curl" && targets.binary) {
     UI.empty()
-    prompts.log.message("To finish removing the binary, run:")
-    prompts.log.info(`  rm "${targets.binary}"`)
+    log.message("To finish removing the binary, run:")
+    log.info(`  rm "${targets.binary}"`)
 
     const binDir = path.dirname(targets.binary)
     if (binDir.includes(".openaxe")) {
-      prompts.log.info(`  rmdir "${binDir}" 2>/dev/null`)
+      log.info(`  rmdir "${binDir}" 2>/dev/null`)
     }
   }
 
   if (errors.length > 0) {
     UI.empty()
-    prompts.log.warn("Some operations failed:")
+    log.warn("Some operations failed:")
     for (const err of errors) {
-      prompts.log.error(`  ${err}`)
+      log.error(`  ${err}`)
     }
   }
 
   UI.empty()
-  prompts.log.success("Thank you for using OpenCode!")
+  log.success("Thank you for using OpenCode!")
 }
 
 async function getShellConfigFile(): Promise<string | null> {

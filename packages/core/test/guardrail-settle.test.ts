@@ -56,7 +56,7 @@ function baseLayers(directory: string) {
   return Layer.mergeAll(registry, resolution, mutation, edit)
 }
 
-function withTool<A, E>(directory: string, guardrailLayer: Layer.Layer<never, never, never>, body: (registry: ToolRegistry.Interface) => Effect.Effect<A, E, never>) {
+function withTool<A, E>(directory: string, guardrailLayer: Layer.Layer<never, never>, body: (registry: ToolRegistry.Interface) => Effect.Effect<A, E>) {
   return Effect.gen(function* () {
     return yield* body(yield* ToolRegistry.Service)
   }).pipe(Effect.provide(Layer.mergeAll(baseLayers(directory), guardrailLayer)))

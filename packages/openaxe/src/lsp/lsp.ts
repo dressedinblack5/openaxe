@@ -1,13 +1,14 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { EventV2Bridge } from "@/event-v2-bridge"
-import * as LSPClient from "./client"
+import type { Info as ClientInfo, Diagnostic } from "./client"
+import { create } from "./client"
 import path from "path"
 import { pathToFileURL, fileURLToPath } from "url"
-import * as LSPServer from "./server"
+import { LSPServer, type Info as ServerInfo } from "./server"
 import { Config } from "@/config/config"
 import { Process } from "@/util/process"
-import { spawn as lspspawn } from "./launch"
+import { spawn } from "./launch"
 import { Effect, Layer, Context, Schema } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import { containsPath } from "@/project/instance-context"
@@ -95,7 +96,7 @@ const kinds = [
   SymbolKind.Enum,
 ]
 
-const filterExperimentalServers = (servers: Record<string, LSPServer.Info>, flags: RuntimeFlags.Info) => {
+const filterExperimentalServers = (servers: Record<string, ServerInfo>, flags: RuntimeFlags.Info) => {
   if (flags.experimentalLspTy) {
     if (servers["pyright"]) {
       delete servers["pyright"]
@@ -110,10 +111,10 @@ const filterExperimentalServers = (servers: Record<string, LSPServer.Info>, flag
 type LocInput = { file: string; line: number; character: number }
 
 interface State {
-  clients: LSPClient.Info[]
-  servers: Record<string, LSPServer.Info>
+  clients: ClientInfo[]
+  servers: Record<string, ServerInfo>
   broken: Set<string>
-  spawning: Map<string, Promise<LSPClient.Info | undefined>>
+  spawning: Map<string, Promise<ClientInfo | undefined>>
 }
 
 export interface Interface {
@@ -121,7 +122,7 @@ export interface Interface {
   readonly status: () => Effect.Effect<Status[]>
   readonly hasClients: (file: string) => Effect.Effect<boolean>
   readonly touchFile: (input: string, diagnostics?: "document" | "full") => Effect.Effect<void>
-  readonly diagnostics: () => Effect.Effect<Record<string, LSPClient.Diagnostic[]>>
+  readonly diagnostics: () => Effect.Effect<Record<string, Diagnostic[]>>
   readonly hover: (input: LocInput) => Effect.Effect<any>
   readonly definition: (input: LocInput) => Effect.Effect<any[]>
   readonly references: (input: LocInput) => Effect.Effect<any[]>
@@ -146,14 +147,12 @@ export const layer = Layer.effect(
       Effect.fn("LSP.state")(function* (ctx) {
         const cfg = yield* config.get()
 
-        const servers: Record<string, LSPServer.Info> = {}
+        const servers: Record<string, ServerInfo> = {}
 
         if (!cfg.lsp) {
           yield* Effect.logInfo("all LSPs are disabled")
         } else {
-          for (const server of Object.values(LSPServer)) {
-            servers[server.id] = server
-          }
+          for (const [key, server] of Object.entries(LSPServer)) if (key !== "LSPServer") servers[(server as ServerInfo).id] = server as ServerInfo
 
           filterExperimentalServers(servers, flags)
 
@@ -171,7 +170,7 @@ export const layer = Layer.effect(
                 root: existing?.root ?? (async (_file, ctx) => ctx.directory),
                 extensions: item.extensions ?? existing?.extensions ?? [],
                 spawn: async (root) => ({
-                  process: lspspawn(item.command[0], item.command.slice(1), {
+                  process: spawn(item.command[0], item.command.slice(1), {
                     cwd: root,
                     env: { ...process.env, ...item.env },
                   }),
@@ -207,14 +206,14 @@ export const layer = Layer.effect(
 
     const getClients = Effect.fnUntraced(function* (file: string) {
       const ctx = yield* InstanceState.context
-      if (!containsPath(file, ctx)) return [] as LSPClient.Info[]
+      if (!containsPath(file, ctx)) return [] as ClientInfo[]
       const s = yield* InstanceState.get(state)
       const clients = yield* Effect.promise(async () => {
         const extension = path.parse(file).ext || file
-        const result: LSPClient.Info[] = []
+        const result: ClientInfo[] = []
         let updated = 0
 
-        async function schedule(server: LSPServer.Info, root: string, key: string) {
+        async function schedule(server: ServerInfo, root: string, key: string) {
           const handle = await server
             .spawn(root, ctx, flags)
             .then((value) => {
@@ -227,7 +226,7 @@ export const layer = Layer.effect(
             })
 
           if (!handle) return undefined
-          const client = await LSPClient.create({
+          const client = await create({
             serverID: server.id,
             server: handle,
             root,
@@ -296,12 +295,12 @@ export const layer = Layer.effect(
       return clients.result
     })
 
-    const run = Effect.fnUntraced(function* <T>(file: string, fn: (client: LSPClient.Info) => Promise<T>) {
+    const run = Effect.fnUntraced(function* <T>(file: string, fn: (client: ClientInfo) => Promise<T>) {
       const clients = yield* getClients(file)
       return yield* Effect.promise(() => Promise.all(clients.map((x) => fn(x))))
     })
 
-    const runAll = Effect.fnUntraced(function* <T>(fn: (client: LSPClient.Info) => Promise<T>) {
+    const runAll = Effect.fnUntraced(function* <T>(fn: (client: ClientInfo) => Promise<T>) {
       const s = yield* InstanceState.get(state)
       return yield* Effect.promise(() => Promise.all(s.clients.map((x) => fn(x))))
     })
@@ -362,7 +361,7 @@ export const layer = Layer.effect(
     })
 
     const diagnostics = Effect.fn("LSP.diagnostics")(function* () {
-      const results: Record<string, LSPClient.Diagnostic[]> = {}
+      const results: Record<string, Diagnostic[]> = {}
       const all = yield* runAll(async (client) => client.diagnostics)
       for (const result of all) {
         for (const [p, diags] of result.entries()) {

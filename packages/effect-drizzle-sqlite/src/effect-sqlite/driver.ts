@@ -1,6 +1,6 @@
 /* oxlint-disable */
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
+import { fn, provide } from "effect/Effect";
+import { merge } from "effect/Layer";
 import { SqlClient } from "effect/unstable/sql/SqlClient"
 import { EffectCache } from "drizzle-orm/cache/core/cache-effect"
 import { EffectLogger } from "drizzle-orm/effect-core"
@@ -25,7 +25,7 @@ export type EffectDrizzleSQLiteConfig<TRelations extends AnyRelations = EmptyRel
   "cache" | "logger" | "schema"
 >
 
-export const DefaultServices = Layer.merge(EffectCache.Default, EffectLogger.Default)
+export const DefaultServices = merge(EffectCache.Default, EffectLogger.Default)
 
 /**
  * Creates an EffectSQLiteDatabase instance.
@@ -37,16 +37,16 @@ export const DefaultServices = Layer.merge(EffectCache.Default, EffectLogger.Def
  * @example
  * ```ts
  * import { SqliteClient } from '@effect/sql-sqlite-node';
- * import * as SQLiteDrizzle from 'drizzle-orm/effect-sqlite';
- * import * as Effect from 'effect/Effect';
+ * import { make, DefaultServices } from 'drizzle-orm/effect-sqlite';
+ * import { provide } from 'effect/Effect';
  *
- * const db = yield* SQLiteDrizzle.make({ relations }).pipe(
- *   Effect.provide(SQLiteDrizzle.DefaultServices),
- *   Effect.provide(SqliteClient.layer({ filename: 'sqlite.db' })),
+ * const db = yield* make({ relations }).pipe(
+ *   provide(DefaultServices),
+ *   provide(SqliteClient.layer({ filename: 'sqlite.db' })),
  * );
  * ```
  */
-export const make = Effect.fn("SQLiteDrizzle.make")(function* <TRelations extends AnyRelations = EmptyRelations>(
+export const make = fn("SQLiteDrizzle.make")(function* <TRelations extends AnyRelations = EmptyRelations>(
   config: EffectDrizzleSQLiteConfig<TRelations> = {},
 ) {
   const client = yield* SqlClient
@@ -74,4 +74,4 @@ export const make = Effect.fn("SQLiteDrizzle.make")(function* <TRelations extend
  */
 export const makeWithDefaults = <TRelations extends AnyRelations = EmptyRelations>(
   config: EffectDrizzleSQLiteConfig<TRelations> = {},
-) => make(config).pipe(Effect.provide(DefaultServices))
+) => make(config).pipe(provide(DefaultServices))

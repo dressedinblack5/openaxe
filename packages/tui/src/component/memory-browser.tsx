@@ -113,7 +113,7 @@ export function MemoryBrowser() {
               title="Memory Browser"
               options={options()}
               onSelect={(opt) => {
-                setView({ type: "content", key: opt.value as string })
+                setView({ type: "content", key: opt.value })
               }}
               emptyView={<text fg={theme.textMuted}>No memory entries found</text>}
             />

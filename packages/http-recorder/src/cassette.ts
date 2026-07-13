@@ -1,10 +1,10 @@
 import { Context, Effect, FileSystem, Layer, Schema, Semaphore } from "effect"
-import * as fs from "node:fs"
-import * as path from "node:path"
+import { existsSync } from "node:fs"
+import { resolve, join, relative, dirname, isAbsolute, win32 } from "node:path"
 import { secretFindings, SecretFindingSchema, type SecretFinding } from "./redaction.js"
 import { CassetteSchema, encodeCassette, type Cassette, type CassetteMetadata, type Interaction } from "./schema.js"
 
-const DEFAULT_RECORDINGS_DIR = path.resolve(process.cwd(), "test", "fixtures", "recordings")
+const DEFAULT_RECORDINGS_DIR = resolve(process.cwd(), "test", "fixtures", "recordings")
 
 export class CassetteNotFoundError extends Schema.TaggedErrorClass<CassetteNotFoundError>()("CassetteNotFoundError", {
   cassetteName: Schema.String,
@@ -39,18 +39,18 @@ export interface Interface {
 export class Service extends Context.Service<Service, Interface>()("@opencode-ai/http-recorder/Cassette") {}
 
 const cassettePath = (directory: string, name: string) => {
-  if (!name || path.isAbsolute(name) || path.win32.isAbsolute(name) || name.split(/[\\/]/).includes(".."))
+  if (!name || isAbsolute(name) || win32.isAbsolute(name) || name.split(/[\\/]/).includes(".."))
     throw new Error(`Invalid cassette name "${name}"`)
-  const root = path.resolve(directory)
-  const target = path.resolve(root, `${name}.json`)
-  const relative = path.relative(root, target)
-  if (!relative || relative.startsWith("..") || path.isAbsolute(relative))
+  const root = resolve(directory)
+  const target = resolve(root, `${name}.json`)
+  const rel = relative(root, target)
+  if (!rel || rel.startsWith("..") || isAbsolute(rel))
     throw new Error(`Invalid cassette name "${name}"`)
   return target
 }
 
 export const hasCassetteSync = (name: string, options: { readonly directory?: string } = {}) =>
-  fs.existsSync(cassettePath(options.directory ?? DEFAULT_RECORDINGS_DIR, name))
+  existsSync(cassettePath(options.directory ?? DEFAULT_RECORDINGS_DIR, name))
 
 const buildCassette = (
   name: string,
@@ -86,7 +86,7 @@ export const fileSystem = (
         Effect.gen(function* () {
           const entries = yield* fs.readDirectory(current).pipe(Effect.catch(() => Effect.succeed([] as string[])))
           const nested = yield* Effect.forEach(entries, (entry) => {
-            const full = path.join(current, entry)
+            const full = join(current, entry)
             return fs.stat(full).pipe(
               Effect.flatMap((stat) => (stat.type === "Directory" ? walk(full) : Effect.succeed([full]))),
               Effect.catch(() => Effect.succeed([] as string[])),
@@ -111,7 +111,7 @@ export const fileSystem = (
               const findings = [...interactionFindings, ...secretFindings(cassette.metadata ?? {})]
               yield* failIfUnsafe(name, findings)
               const target = pathFor(name)
-              yield* fs.makeDirectory(path.dirname(target), { recursive: true }).pipe(Effect.orDie)
+              yield* fs.makeDirectory(dirname(target), { recursive: true }).pipe(Effect.orDie)
               const temporary = `${target}.${crypto.randomUUID()}.tmp`
               yield* fs.writeFileString(temporary, formatCassette(cassette)).pipe(
                 Effect.flatMap(() => fs.rename(temporary, target)),
@@ -132,8 +132,7 @@ export const fileSystem = (
               files
                 .filter((file) => file.endsWith(".json"))
                 .map((file) =>
-                  path
-                    .relative(directory, file)
+                  relative(directory, file)
                     .replace(/\\/g, "/")
                     .replace(/\.json$/, ""),
                 )

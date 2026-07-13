@@ -166,7 +166,7 @@ const jsonPayloads = (body: string) =>
     })
 
 const usageFromResponseBody = (body: string) =>
-  jsonPayloads(body).reduce<Usage>((usage, payload) => {
+  jsonPayloads(body).reduce((usage: Usage, payload) => {
     if (!isRecord(payload)) return usage
     return addUsage(
       usage,
@@ -196,7 +196,7 @@ const rowFor = (models: JsonRecord, file: string, cassette: unknown): Row | unde
   if (!first || !isRecord(first.request)) return undefined
   const provider = providerFromUrl(asString(first.request.url) ?? "")
   const model = modelFromRequest(first.request)
-  const usage = cassette.interactions.filter(isRecord).reduce<Usage>((total, interaction) => {
+  const usage = cassette.interactions.filter(isRecord).reduce((total: Usage, interaction) => {
     if (!isRecord(interaction.response)) return total
     const responseBody = asString(interaction.response.body)
     if (!responseBody) return total

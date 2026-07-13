@@ -180,34 +180,45 @@ export const ContentPart = Schema.Union([TextPart, MediaPart, ToolCallPart, Tool
 )
 export type ContentPart = Schema.Schema.Type<typeof ContentPart>
 
+export type MessageContentInput = string | ContentPart | ReadonlyArray<ContentPart>
+
+export type MessageSystemContentInput = string | TextPart | ReadonlyArray<TextPart>
+
+export type MessageInput = Omit<ConstructorParameters<typeof Message>[0], "content"> & {
+  readonly content: MessageContentInput
+}
+
 export class Message extends Schema.Class<Message>("LLM.Message")({
   id: Schema.optional(Schema.String),
   role: MessageRole,
   content: Schema.Array(ContentPart),
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
   native: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
-}) {}
-
-export namespace Message {
-  export type ContentInput = string | ContentPart | ReadonlyArray<ContentPart>
-  export type SystemContentInput = string | TextPart | ReadonlyArray<TextPart>
-  export type Input = Omit<ConstructorParameters<typeof Message>[0], "content"> & {
-    readonly content: ContentInput
+}) {
+  static text(value: string): ContentPart {
+    return { type: "text", text: value }
   }
 
-  export const text = (value: string): ContentPart => ({ type: "text", text: value })
+  static content(input: MessageContentInput) {
+    return typeof input === "string"
+      ? [Message.text(input)]
+      : Array.isArray(input)
+        ? [...input]
+        : [input]
+  }
 
-  export const content = (input: ContentInput) =>
-    typeof input === "string" ? [text(input)] : Array.isArray(input) ? [...input] : [input]
-
-  export const make = (input: Message | Input) => {
+  static override make(input: Message | MessageInput) {
     if (input instanceof Message) return input
-    return new Message({ ...input, content: content(input.content) })
+    return new Message({ ...input, content: Message.content(input.content) })
   }
 
-  export const user = (content: ContentInput) => make({ role: "user", content })
+  static user(content: MessageContentInput) {
+    return Message.make({ role: "user", content })
+  }
 
-  export const assistant = (content: ContentInput) => make({ role: "assistant", content })
+  static assistant(content: MessageContentInput) {
+    return Message.make({ role: "assistant", content })
+  }
 
   /**
    * Add an operator-authored instruction at this chronological point in the
@@ -215,11 +226,19 @@ export namespace Message {
    * prompt. Keep raw retrieved, tool, and web content out of privileged system
    * updates; pass that untrusted content through ordinary user/tool channels.
    */
-  export const system = (content: SystemContentInput) => make({ role: "system", content })
+  static system(content: MessageSystemContentInput) {
+    return Message.make({ role: "system", content })
+  }
 
-  export const tool = (result: ToolResultPart | Parameters<typeof ToolResultPart.make>[0]) =>
-    make({ role: "tool", content: ["type" in result ? result : ToolResultPart.make(result)] })
+  static tool(result: ToolResultPart | Parameters<typeof ToolResultPart.make>[0]) {
+    return Message.make({
+      role: "tool",
+      content: ["type" in result ? result : ToolResultPart.make(result)],
+    })
+  }
 }
+
+export type ToolDefinitionInput = ToolDefinition | ConstructorParameters<typeof ToolDefinition>[0]
 
 export class ToolDefinition extends Schema.Class<ToolDefinition>("LLM.ToolDefinition")({
   name: Schema.String,
@@ -229,34 +248,34 @@ export class ToolDefinition extends Schema.Class<ToolDefinition>("LLM.ToolDefini
   cache: Schema.optional(CacheHint),
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
   native: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
-}) {}
-
-export namespace ToolDefinition {
-  export type Input = ToolDefinition | ConstructorParameters<typeof ToolDefinition>[0]
-
+}) {
   /** Normalize tool definition input into the canonical `ToolDefinition` class. */
-  export const make = (input: Input) => (input instanceof ToolDefinition ? input : new ToolDefinition(input))
+  static override make(input: ToolDefinitionInput) {
+    return input instanceof ToolDefinition ? input : new ToolDefinition(input)
+  }
 }
+
+export type ToolChoiceMode = Exclude<ToolChoice["type"], "tool">
+
+export type ToolChoiceInput = ToolChoice | ConstructorParameters<typeof ToolChoice>[0] | ToolDefinition | string
+
+const isMode = (value: string): value is ToolChoiceMode =>
+  value === "auto" || value === "none" || value === "required"
 
 export class ToolChoice extends Schema.Class<ToolChoice>("LLM.ToolChoice")({
   type: Schema.Literals(["auto", "none", "required", "tool"]),
   name: Schema.optional(Schema.String),
-}) {}
-
-export namespace ToolChoice {
-  export type Mode = Exclude<ToolChoice["type"], "tool">
-  export type Input = ToolChoice | ConstructorParameters<typeof ToolChoice>[0] | ToolDefinition | string
-
-  const isMode = (value: string): value is Mode => value === "auto" || value === "none" || value === "required"
-
+}) {
   /** Select a specific named tool. */
-  export const named = (value: string) => new ToolChoice({ type: "tool", name: value })
+  static named(value: string) {
+    return new ToolChoice({ type: "tool", name: value })
+  }
 
   /** Normalize ergonomic tool-choice inputs into the canonical `ToolChoice` class. */
-  export const make = (input: Input) => {
+  static override make(input: ToolChoiceInput) {
     if (input instanceof ToolChoice) return input
-    if (input instanceof ToolDefinition) return named(input.name)
-    if (typeof input === "string") return isMode(input) ? new ToolChoice({ type: input }) : named(input)
+    if (input instanceof ToolDefinition) return ToolChoice.named(input.name)
+    if (typeof input === "string") return isMode(input) ? new ToolChoice({ type: input }) : ToolChoice.named(input)
     return new ToolChoice(input)
   }
 }
@@ -267,6 +286,8 @@ export const ResponseFormat = Schema.Union([
   Schema.Struct({ type: Schema.Literal("tool"), tool: ToolDefinition }),
 ]).pipe(Schema.toTaggedUnion("type"))
 export type ResponseFormat = Schema.Schema.Type<typeof ResponseFormat>
+
+export type LLMRequestInput = ConstructorParameters<typeof LLMRequest>[0]
 
 export class LLMRequest extends Schema.Class<LLMRequest>("LLM.Request")({
   id: Schema.optional(Schema.String),
@@ -281,30 +302,28 @@ export class LLMRequest extends Schema.Class<LLMRequest>("LLM.Request")({
   responseFormat: Schema.optional(ResponseFormat),
   cache: Schema.optional(CachePolicy),
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
-}) {}
+}) {
+  static input(request: LLMRequest): LLMRequestInput {
+    return {
+      id: request.id,
+      model: request.model,
+      system: request.system,
+      messages: request.messages,
+      tools: request.tools,
+      toolChoice: request.toolChoice,
+      generation: request.generation,
+      providerOptions: request.providerOptions,
+      http: request.http,
+      responseFormat: request.responseFormat,
+      cache: request.cache,
+      metadata: request.metadata,
+    }
+  }
 
-export namespace LLMRequest {
-  export type Input = ConstructorParameters<typeof LLMRequest>[0]
-
-  export const input = (request: LLMRequest): Input => ({
-    id: request.id,
-    model: request.model,
-    system: request.system,
-    messages: request.messages,
-    tools: request.tools,
-    toolChoice: request.toolChoice,
-    generation: request.generation,
-    providerOptions: request.providerOptions,
-    http: request.http,
-    responseFormat: request.responseFormat,
-    cache: request.cache,
-    metadata: request.metadata,
-  })
-
-  export const update = (request: LLMRequest, patch: Partial<Input>) => {
+  static update(request: LLMRequest, patch: Partial<LLMRequestInput>) {
     if (Object.keys(patch).length === 0) return request
     return new LLMRequest({
-      ...input(request),
+      ...LLMRequest.input(request),
       ...patch,
       model: patch.model ?? request.model,
     })
