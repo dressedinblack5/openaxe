@@ -148,7 +148,7 @@ function footerState(input: Partial<FooterState> = {}): () => FooterState {
     interrupt: 0,
     exit: 0,
     ...input,
-  }) as unknown as () => FooterState
+  })[0] as () => FooterState
 }
 
 async function renderFooter(
