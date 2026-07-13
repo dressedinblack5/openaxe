@@ -307,7 +307,7 @@ describe("HttpApi Server.listen", () => {
     expect(output).not.toContain("Sent HTTP response")
   })
 
-  test("plugin client requests reuse the listening server instance", async () => {
+  testPty("plugin client requests reuse the listening server instance", async () => {
     await using tmp = await tmpdir({
       init: async (directory) => {
         const plugin = path.join(directory, "plugin.ts")
