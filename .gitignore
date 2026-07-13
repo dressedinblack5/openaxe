@@ -32,5 +32,35 @@ target
 opencode-dev
 UPCOMING_CHANGELOG.md
 logs/
+/AXE.md
 *.bun-build
 tsconfig.tsbuildinfo
+
+# npm pack artifacts
+*.tgz
+
+# Test coverage
+coverage/
+
+# Generic tool cache
+.cache/
+
+# Editor swap files (not covered by *~)
+*.swp
+*.swo
+
+# OS thumbnails/config
+Thumbs.db
+Desktop.ini
+
+# Python cache (common in dev environments)
+__pycache__/
+
+# direnv env file (dir already covered by .direnv/)
+.envrc
+
+# Private keys and credentials
+*.pem
+*.key
+packages/core/.openaxe/
+packages/openaxe/bin/openaxe

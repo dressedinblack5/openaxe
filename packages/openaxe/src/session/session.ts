@@ -338,10 +338,8 @@ export const getUsage = (input: { model: Provider.Model; usage: Usage; metadata?
         // google-vertex-anthropic returns metadata under "vertex" key
         // (AnthropicMessagesLanguageModel custom provider key from 'vertex.anthropic.messages')
         input.metadata?.["vertex"]?.["cacheCreationInputTokens"] ??
-        // @ts-expect-error
-        input.metadata?.["bedrock"]?.["usage"]?.["cacheWriteInputTokens"] ??
-        // @ts-expect-error
-        input.metadata?.["venice"]?.["usage"]?.["cacheCreationInputTokens"] ??
+        (input.metadata as Record<string, Record<string, Record<string, number>>>)?.["bedrock"]?.["usage"]?.["cacheWriteInputTokens"] ??
+        (input.metadata as Record<string, Record<string, Record<string, number>>>)?.["venice"]?.["usage"]?.["cacheCreationInputTokens"] ??
         0,
     ),
   )
@@ -519,7 +517,7 @@ export const layer: Layer.Layer<
 
     const get = Effect.fn("Session.get")(function* (id: SessionID) {
       const row = yield* db.select().from(SessionTable).where(eq(SessionTable.id, id)).get().pipe(Effect.orDie)
-      if (!row) return yield* Effect.fail(new NotFoundError({ message: `Session not found: ${id}` }))
+      if (!row) return yield* new NotFoundError({ message: `Session not found: ${id}` })
       return fromRow(row)
     })
 
@@ -948,7 +946,7 @@ function listByProject(
 
       conditions.push(
         input.directory
-          ? or(...conds, and(isNull(SessionTable.path), eq(SessionTable.directory, input.directory))!)!
+          ? or(...conds, and(isNull(SessionTable.path), eq(SessionTable.directory, input.directory)))!
           : or(...conds)!,
       )
     }

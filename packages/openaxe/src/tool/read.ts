@@ -1,7 +1,8 @@
 import { Effect, Option, Schema, Scope, Stream } from "effect"
 import { NonNegativeInt } from "@opencode-ai/core/schema"
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "path"
-import * as Tool from "./tool"
+import type { Context } from "./tool"
+import { define } from "./tool";
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { LSP } from "@/lsp/lsp"
 import DESCRIPTION from "./read.txt"
@@ -61,7 +62,7 @@ type Metadata = {
   display?: Display
 }
 
-export const ReadTool = Tool.define<
+export const ReadTool = define<
   typeof Parameters,
   Metadata,
   FSUtil.Service | Instruction.Service | LSP.Service | Scope.Scope
@@ -228,7 +229,7 @@ export const ReadTool = Tool.define<
 
     const run = Effect.fn("ReadTool.execute")(function* (
       params: Schema.Schema.Type<typeof Parameters>,
-      ctx: Tool.Context<Metadata>,
+      ctx: Context<Metadata>,
     ) {
       const instance = yield* InstanceState.context
       let filepath = params.filePath
@@ -243,7 +244,7 @@ export const ReadTool = Tool.define<
       const stat = yield* fs.stat(filepath).pipe(
         Effect.catchIf(
           (err) => "reason" in err && err.reason._tag === "NotFound",
-          () => Effect.succeed(undefined),
+          () => Effect.void,
         ),
       )
 
@@ -379,7 +380,7 @@ export const ReadTool = Tool.define<
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context<Metadata>) =>
+      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context<Metadata>) =>
         run(params, ctx).pipe(Effect.orDie),
     }
   }),

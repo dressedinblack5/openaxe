@@ -2,9 +2,11 @@ export * as SystemContextBuiltIns from "./builtins"
 
 import { DateTime, Effect, Layer, Schema } from "effect"
 import { Location } from "../location"
+import { Memory } from "../memory"
 import { SystemContext } from "./index"
 import { InstructionContext } from "../instruction-context"
 import { SystemContextRegistry } from "./registry"
+import { unavailable } from "./index"
 
 const builtIns = Layer.effectDiscard(
   Effect.gen(function* () {
@@ -33,6 +35,18 @@ const builtIns = Layer.effectDiscard(
         load: DateTime.nowAsDate.pipe(Effect.map((date) => date.toDateString())),
         baseline: (date) => `Today's date: ${date}`,
         update: (_previous, date) => `Today's date is now: ${date}`,
+      }),
+SystemContext.make({
+        key: SystemContext.Key.make("core/memory"),
+        codec: Schema.toCodecJson(Schema.String),
+        load: Effect.gen(function* () {
+          const memory = yield* Memory.Service
+          const entries = yield* memory.list(undefined, "project", "axe-md")
+          if (entries.length === 0) return "No project memory configured."
+          return entries.map((e) => `${e.key}:\n${e.value}`).join("\n\n")
+        }).pipe(Effect.provide(Memory.defaultLayer)),
+        baseline: (text) => ["<memory>", text, "</memory>"].join("\n"),
+        update: (_prev, text) => ["<memory>", text, "</memory>"].join("\n"),
       }),
     ])
 

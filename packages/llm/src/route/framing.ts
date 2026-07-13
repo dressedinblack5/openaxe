@@ -1,5 +1,5 @@
 import type { Stream } from "effect"
-import * as ProviderShared from "../protocols/shared"
+import { sseFraming } from "../protocols/shared";
 import type { LLMError } from "../schema"
 
 /**
@@ -22,6 +22,6 @@ export interface Framing<Frame> {
 }
 
 /** Server-Sent Events framing. Used by every JSON-streaming HTTP provider. */
-export const sse: Framing<string> = { id: "sse", frame: ProviderShared.sseFraming }
+export const sse: Framing<string> = { id: "sse", frame: sseFraming }
 
 export * as Framing from "./framing"

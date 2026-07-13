@@ -1,5 +1,5 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { BackgroundJob as CoreBackgroundJob } from "@opencode-ai/core/background-job"
+import { BackgroundJob } from "@opencode-ai/core/background-job"
 import { InstanceState } from "@/effect/instance-state"
 import { Effect, Layer } from "effect"
 
@@ -16,10 +16,10 @@ export {
 
 /** Keeps the legacy service instance-scoped while sharing the core registry engine. */
 export const layer = Layer.effect(
-  CoreBackgroundJob.Service,
+  BackgroundJob.Service,
   Effect.gen(function* () {
-    const state = yield* InstanceState.make(() => CoreBackgroundJob.make)
-    return CoreBackgroundJob.Service.of({
+    const state = yield* InstanceState.make(() => BackgroundJob.make)
+    return BackgroundJob.Service.of({
       list: () => InstanceState.useEffect(state, (jobs) => jobs.list()),
       get: (id) => InstanceState.useEffect(state, (jobs) => jobs.get(id)),
       start: (input) => InstanceState.useEffect(state, (jobs) => jobs.start(input)),

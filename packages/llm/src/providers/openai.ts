@@ -1,15 +1,15 @@
 import { AuthOptions, type ProviderAuthOption } from "../route/auth-options"
 import type { Route, RouteDefaultsInput } from "../route/client"
 import { ProviderID, type ModelID } from "../schema"
-import * as OpenAIChat from "../protocols/openai-chat"
-import * as OpenAIResponses from "../protocols/openai-responses"
+import { route as chatRouteImport } from "../protocols/openai-chat";
+import { route, webSocketRoute } from "../protocols/openai-responses";
 import { withOpenAIOptions, type OpenAIProviderOptionsInput } from "./openai-options"
 
 export type { OpenAIOptionsInput, OpenAIResponseIncludable } from "./openai-options"
 
 export const id = ProviderID.make("openai")
 
-export const routes = [OpenAIResponses.route, OpenAIResponses.webSocketRoute, OpenAIChat.route]
+export const routes = [route, webSocketRoute, chatRouteImport]
 
 // This provider facade wraps the lower-level Responses and Chat model factories
 // with OpenAI-specific conveniences: typed options, API-key sugar, env fallback,
@@ -35,9 +35,9 @@ const configuredRoute = <Body, Prepared>(route: Route<Body, Prepared>, input: Co
   })
 
 export const configure = (input: Config = {}) => {
-  const responsesRoute = configuredRoute(OpenAIResponses.route, input)
-  const responsesWebSocketRoute = configuredRoute(OpenAIResponses.webSocketRoute, input)
-  const chatRoute = configuredRoute(OpenAIChat.route, input)
+  const responsesRoute = configuredRoute(route, input)
+  const responsesWebSocketRoute = configuredRoute(webSocketRoute, input)
+  const chatRoute = configuredRoute(chatRouteImport, input)
   const modelDefaults = defaults(input)
   const responses = (id: string | ModelID) =>
     responsesRoute.with(withOpenAIOptions(id, modelDefaults, { textVerbosity: true })).model({ id })

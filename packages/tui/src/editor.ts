@@ -33,7 +33,7 @@ export async function openEditor(input: { value: string; renderer: CliRenderer; 
   try {
     await new Promise<void>((resolve, reject) => {
       const parts = editor.split(" ")
-      const child = spawn(parts[0]!, [...parts.slice(1), file], {
+      const child = spawn(parts[0], [...parts.slice(1), file], {
         cwd: input.cwd && existsSync(input.cwd) ? input.cwd : process.cwd(),
         stdio: [input.stdin ?? "inherit", "inherit", "inherit"],
         shell: process.platform === "win32",

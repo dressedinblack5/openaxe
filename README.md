@@ -33,6 +33,40 @@
 | Extend openaxe | [External Plugins](#external-plugins) |
 | See how it differs from upstream | [Advantages](#advantages-over-official-opencode) |
 
+---
+
+## ✨ Features
+
+- **Multi-provider LLM support** — 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, and more)
+- **Rich TUI** — SolidJS terminal UI with session management, conversation history, keyboard-driven workflow
+- **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
+- **Plugin system** — Extend behavior with plugins from npm, local paths, or git URLs
+- **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, fork/continue
+- **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
+- **Headless server** — Run as background server with HTTP API and optional web UI
+- **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
+- **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, persists across sessions
+- **Auto-verification guardrails** — automatic `tsc`/`cargo`/`ruff`/`go vet` after every file mutation
+- **Versioned artifact store** with TUI preview
+- **Auto-commit**, **error journal**, **/revert** — productivity trio for AI change management
+
+---
+
+## 🔒 Security
+
+- **Plugin permission system** — every capability (bash, file I/O, network, MCP) declared in config and enforced at runtime. No escalation beyond declared scope.
+- **Zero phone-home** — no telemetry, no crash reporting, no analytics. LLM calls go directly to your configured provider endpoint.
+- **BYO-key only** — no managed API keys. Credentials in `~/.local/share/openaxe/auth.json` (permissions 600). Prefer env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
+- **MCP subprocess isolation** — MCP servers run as separate OS processes with no access to session database or config.
+- **Session data locality** — all data in local SQLite. No cloud sync. Full export/import control.
+- **OpenTelemetry** — optional OTLP tracing for audit trails. Opt-in, never on by default.
+- **Explicit upgrades** — `openaxe upgrade` is manual. No silent background updates.
+- **No network by default** — server binds to `127.0.0.1:0` (random port). No daemon unless started.
+- **`--pure` mode** — run without plugins to eliminate all third-party code.
+- **Supply chain** — native deps use `node-gyp rebuild` during install. For defense-in-depth: `bun install --ignore-scripts` + `bun audit`.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -110,17 +144,6 @@ openaxe                  # launch TUI
 openaxe run "summarize this codebase"  # non-interactive
 ```
 
-## Features
-
-- **Multi-provider LLM support** — 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, and more)
-- **Rich TUI** — SolidJS terminal UI with session management, conversation history, keyboard-driven workflow
-- **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
-- **Plugin system** — Extend behavior with plugins from npm, local paths, or git URLs
-- **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, fork/continue
-- **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
-- **Headless server** — Run as background server with HTTP API and optional web UI
-- **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
-
 ## Preinstalled Plugins
 
 openaxe ships with auth plugins for these providers — no npm install needed, just run `openaxe providers login <provider>`:
@@ -162,7 +185,6 @@ Auto-configured on first run. They auto-install the first time you run `openaxe`
 |---|---|
 | **oh-my-openagent** | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents |
 | **opencode-plugin-selector** | Interactive plugin manager for discovering and installing plugins |
-| **superpowers** | Skill system — pluggable agent capabilities (brainstorming, TDD, debugging, etc.) |
 | **opencode-vibeguard** | Safety guardrails for agent actions |
 | **@tarquinen/opencode-dcp** | Context compression — stay under context limits during long sessions |
 | **ecc-universal** | Everything Claude Code — battle-tested agents, skills, hooks, MCP, and rules |
@@ -196,18 +218,5 @@ Configure via `.openaxe/openaxe.jsonc` in your project root. See the [full guide
 | **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
 | **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
 | **Startup** | Lazy-loaded CLI commands | Eager imports |
-
-## Security
-
-- **Plugin permission system** — every capability (bash, file I/O, network, MCP) declared in config and enforced at runtime. No escalation beyond declared scope.
-- **Zero phone-home** — no telemetry, no crash reporting, no analytics. LLM calls go directly to your configured provider endpoint.
-- **BYO-key only** — no managed API keys. Credentials in `~/.local/share/openaxe/auth.json` (permissions 600). Prefer env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
-- **MCP subprocess isolation** — MCP servers run as separate OS processes with no access to session database or config.
-- **Session data locality** — all data in local SQLite. No cloud sync. Full export/import control.
-- **OpenTelemetry** — optional OTLP tracing for audit trails. Opt-in, never on by default.
-- **Explicit upgrades** — `openaxe upgrade` is manual. No silent background updates.
-- **No network by default** — server binds to `127.0.0.1:0` (random port). No daemon unless started.
-- **`--pure` mode** — run without plugins to eliminate all third-party code.
-- **Supply chain** — native deps use `node-gyp rebuild` during install. For defense-in-depth: `bun install --ignore-scripts` + `bun audit`.
 
 <p align="center"><a href="https://github.com/dressedinblack5/openaxe">dressedinblack5/openaxe</a></p>

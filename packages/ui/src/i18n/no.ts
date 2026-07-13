@@ -1,4 +1,4 @@
-import { dict as en } from "./en"
+import { dict as en } from "./en" // renamed to avoid conflict with local dict export
 type Keys = keyof typeof en
 
 export const dict: Record<Keys, string> = {

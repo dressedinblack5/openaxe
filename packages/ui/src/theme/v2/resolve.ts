@@ -49,7 +49,7 @@ function generateV2HueScale(seed: HexColor, isDark: boolean): HexColor[] {
   return lightSteps.map((l, i) =>
     oklchToHex({
       l,
-      c: base.c * chromaMultipliers[i]! * chromaBoost,
+      c: base.c * chromaMultipliers[i] * chromaBoost,
       h: base.h,
     }),
   )

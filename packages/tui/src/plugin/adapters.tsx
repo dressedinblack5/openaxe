@@ -14,7 +14,7 @@ import { DialogPrompt } from "../ui/dialog-prompt"
 import { DialogSelect, type DialogSelectOption as SelectOption } from "../ui/dialog-select"
 import { Prompt } from "../component/prompt"
 import type { useToast } from "../ui/toast"
-import * as Keymap from "../keymap"
+import { formatKeyBindings, formatKeySequence, getOpencodeModeStack } from "../keymap";
 import { createCommandShim } from "./command-shim"
 import type { PluginRoutes } from "./api"
 export type { RouteMap } from "./api"
@@ -178,19 +178,19 @@ export function createTuiApiAdapters(input: Input): Omit<TuiPluginApi, "lifecycl
     command: createCommandShim(input.keymap, input.dialog, input.tuiConfig.keybinds),
     keys: {
       formatSequence(parts) {
-        return Keymap.formatKeySequence(parts, input.tuiConfig)
+        return formatKeySequence(parts, input.tuiConfig)
       },
       formatBindings(bindings) {
-        return Keymap.formatKeyBindings(bindings, input.tuiConfig)
+        return formatKeyBindings(bindings, input.tuiConfig)
       },
     },
     keymap: input.keymap,
     mode: {
       current() {
-        return Keymap.getOpencodeModeStack(input.keymap).current()
+        return getOpencodeModeStack(input.keymap).current()
       },
       push(mode) {
-        return Keymap.getOpencodeModeStack(input.keymap).push(mode)
+        return getOpencodeModeStack(input.keymap).push(mode)
       },
     },
     route: {

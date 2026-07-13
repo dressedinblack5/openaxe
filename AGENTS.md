@@ -1,12 +1,12 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-07-01 20:01 UTC
-**Commit:** `e05112e`
+**Generated:** 2026-07-12 03:50 UTC
+**Commit:** `44587ad`
 **Branch:** `dev`
 
 ## OVERVIEW
 
-Monorepo for **openaxe** — a lean TUI/CLI AI coding assistant built on Effect v4, with 13 packages, ~3,900 files, and 371K lines of TypeScript. Security-first, zero Electron, 52% fewer packages than upstream.
+Monorepo for **openaxe** — a lean TUI/CLI AI coding assistant built on Effect v4, with 13 packages, ~4,440 files, and 385K lines of TypeScript. Security-first, zero Electron, 52% fewer packages than upstream.
 
 **Core stack:** TypeScript (Bun), Effect v4, OpenTUI (SolidJS), Drizzle ORM + SQLite.
 
@@ -23,10 +23,10 @@ Monorepo for **openaxe** — a lean TUI/CLI AI coding assistant built on Effect 
 │   ├── server/            HTTP server and API
 │   ├── plugin/            Plugin system — tool, TUI, effect, promise entry points
 │   ├── schema/            Data validation schemas (Effect)
-│   ├── sdk/               Generated JS SDK
+│   ├── sdk/               Generated JS SDK [AGENTS.md]
 │   ├── cli/               Alternative Effect-runtime CLI
 │   ├── effect-drizzle-sqlite/  SQLite layer — Drizzle ORM + Effect [AGENTS.md]
-│   ├── http-recorder/     Record/replay HTTP for testing
+│   ├── http-recorder/     Record/replay HTTP for testing [AGENTS.md]
 │   └── script/            Utility package
 └── AGENTS.md / AGENTS.md (package-level per subdir)
 
@@ -44,6 +44,8 @@ Monorepo for **openaxe** — a lean TUI/CLI AI coding assistant built on Effect 
 | HTTP API | `packages/server/src/handlers/` | HttpApi groups and handlers |
 | Plugin system | `packages/plugin/src/` | Plugin resolution, loading, runtime |
 | Database migrations | `packages/core/src/database/migration/` | Drizzle SQLite migrations |
+| JS SDK | `packages/sdk/js/` | Generated TypeScript API client, codegen pipeline |
+| HTTP recorder | `packages/http-recorder/` | Record/replay HTTP for testing |
 | Test fixtures | `packages/openaxe/test/` | tmpdir, testEffect, LLM server |
 
 ## CODE MAP

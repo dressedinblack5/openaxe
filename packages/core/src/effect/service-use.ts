@@ -41,3 +41,5 @@ export const serviceUse = <Identifier, Shape>(tag: Context.Service<Identifier, S
   // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Proxy implements the mapped accessor surface lazily.
   return access as ServiceUse<Identifier, Shape>
 }
+
+export * as ServiceUse from "./service-use"

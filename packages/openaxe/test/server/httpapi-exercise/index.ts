@@ -1650,6 +1650,72 @@ const scenarios: Scenario[] = [
     .probe({ path: "/global/upgrade", body: { target: 1 } })
     .at(() => ({ path: "/global/upgrade", body: { target: 1 } }))
     .status(400),
+
+  http.protected.get("/memory", "memory.list").json(200, array),
+
+  http.protected
+    .get("/memory/{key}", "memory.get")
+    .seeded((ctx) => ctx.memorySet("test-key", "test-value", "session", "agent"))
+    .at((ctx) => ({ path: "/memory/test-key", headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.key === "test-key", "should return memory entry with key")
+    }),
+
+  http.protected
+    .post("/memory", "memory.set")
+    .mutating()
+    .at((ctx) => ({ path: "/memory", headers: ctx.headers(), body: { key: "test-key", value: "test-value", scope: "session", source: "agent" } }))
+    .json(200, (body) => {
+      object(body)
+      check(body.key === "test-key", "should return set memory entry")
+      check(body.value === "test-value", "should return set value")
+    }),
+
+  http.protected
+    .delete("/memory/{key}", "memory.remove")
+    .mutating()
+    .at((ctx) => ({ path: "/memory/test-delete-key", headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.removed === true, "should return removed: true")
+    }),
+
+  http.protected.get("/api/artifact", "artifact.list").json(200, array),
+
+  http.protected
+    .get("/api/artifact/{key}", "artifact.getLatest")
+    .seeded((ctx) => ctx.artifactStore("test-artifact", "test content"))
+    .at((ctx) => ({ path: "/api/artifact/test-artifact", headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.key === "string", "should return artifact with key")
+    }),
+
+  http.protected
+    .get("/api/artifact/{key}/{version}", "artifact.getVersion")
+    .seeded((ctx) => ctx.artifactStore("test-artifact-version", "test content"))
+    .at((ctx) => ({ path: "/api/artifact/test-artifact-version/1", headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.key === "string", "should return artifact version")
+    }),
+
+  http.protected
+    .post("/api/artifact", "artifact.store")
+    .mutating()
+    .at((ctx) => ({ path: "/api/artifact", headers: ctx.headers(), body: { key: "test-artifact-new", content: "test content" } }))
+    .json(200, (body) => {
+      object(body)
+      check(body.key === "test-artifact-new", "should return stored artifact")
+      check(typeof body.content === "string", "should return content")
+    }),
+
+  http.protected.get("/api/memory", "v2.memory.list").json(200, array),
+
+  http.protected.get("/api/memory/{key}", "v2.memory.get").json(200, (body) => {
+    check(typeof body === "object" || body === null || body === undefined, "should return memory value")
+  }),
 ]
 
 const llmScenarios = new Set([

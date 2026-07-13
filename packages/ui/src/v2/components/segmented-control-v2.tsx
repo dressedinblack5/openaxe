@@ -57,7 +57,7 @@ export function SegmentedControlV2(props: SegmentedControlV2Props) {
     "ref",
   ])
 
-  const [internal, setInternal] = createSignal<string | null>(local.defaultValue ?? null)
+  const [internal, setInternal] = createSignal(local.defaultValue ?? null)
 
   const selected = createMemo(() => (isControlled() ? (local.value ?? null) : internal()))
 

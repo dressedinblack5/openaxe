@@ -16,7 +16,7 @@ import {
   WithParts,
 } from "@opencode-ai/core/v1/session"
 
-import { APICallError, convertToModelMessages, LoadAPIKeyError, type ModelMessage, type UIMessage } from "ai"
+import { APICallError, convertToModelMessages, LoadAPIKeyError, type ModelMessage, type ToolSet, type UIMessage } from "ai"
 import { Database } from "@opencode-ai/core/database/database"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { NotFoundError } from "@/storage/storage"
@@ -408,8 +408,7 @@ export const toModelMessagesEffect = Effect.fnUntraced(function* (
     convertToModelMessages(
       result.filter((msg) => msg.parts.some((part) => part.type !== "step-start")),
       {
-        //@ts-expect-error (convertToModelMessages expects a ToolSet but only actually needs tools[name]?.toModelOutput)
-        tools,
+        tools: tools as ToolSet,
       },
     ),
   )
@@ -452,6 +451,7 @@ export const page = Effect.fn("MessageV2.page")(function* (input: {
     return {
       items: [] as WithParts[],
       more: false,
+      cursor: undefined,
     }
   }
 
@@ -703,7 +703,9 @@ export function fromError(
             responseBody: parsed.responseBody,
           }).toObject() as NonNullable<SessionV1.Assistant["error"]>
         }
-      } catch {}
+      } catch {
+        // expected when error body is not valid JSON
+      }
       return { name: "UnknownError" as const, data: { message: JSON.stringify(e) } }
   }
 }

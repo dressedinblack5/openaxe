@@ -37,7 +37,7 @@ export const layer = Layer.effect(
     const active = new Map<ID, Scope.Closeable>()
     const loading = new Set<ID>()
     const waiters = new Map<ID, Set<Deferred.Deferred<void>>>()
-    const failures = new Map<ID, Exit.Exit<void, never>>()
+    const failures = new Map<ID, Exit.Exit<void>>()
     let host: Parameters<Plugin["effect"]>[0]
 
     const add = Effect.fn("Plugin.add")(function* (id: ID, effect: Plugin["effect"]) {

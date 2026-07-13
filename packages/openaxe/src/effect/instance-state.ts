@@ -2,6 +2,7 @@ import { Effect, ScopedCache, Scope } from "effect"
 import type { InstanceContext } from "@/project/instance-context"
 import { InstanceRef, WorkspaceRef } from "./instance-ref"
 import { registerDisposer } from "./instance-registry"
+import "./axe-sync-disposer"
 import { WorkspaceContext } from "@/control-plane/workspace-context"
 
 const TypeId = "~opencode/InstanceState"

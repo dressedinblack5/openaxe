@@ -1,8 +1,7 @@
 export * as AccountV2 from "./account"
 
 import { Schema } from "effect"
-import type * as HttpClientError from "effect/unstable/http/HttpClientError"
-
+import type { TransportError } from "effect/unstable/http/HttpClientError";
 export const ID = Schema.String.pipe(Schema.brand("AccountID"))
 export type ID = Schema.Schema.Type<typeof ID>
 
@@ -49,7 +48,7 @@ export class AccountTransportError extends Schema.TaggedErrorClass<AccountTransp
   description: Schema.optional(Schema.String),
   cause: Schema.optional(Schema.Defect()),
 }) {
-  static fromHttpClientError(error: HttpClientError.TransportError): AccountTransportError {
+  static fromHttpClientError(error: TransportError): AccountTransportError {
     return new AccountTransportError({
       method: error.request.method,
       url: error.request.url,

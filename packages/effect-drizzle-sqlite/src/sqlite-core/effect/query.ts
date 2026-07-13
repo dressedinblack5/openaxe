@@ -1,5 +1,5 @@
 /* oxlint-disable */
-import type * as Effect from "effect/Effect"
+import type { Effect } from "effect/Effect";
 import { applyEffectWrapper, type QueryEffectHKTBase } from "drizzle-orm/effect-core/query-effect"
 import { entityKind } from "drizzle-orm/entity"
 import {
@@ -69,7 +69,7 @@ export class SQLiteEffectRelationalQueryBuilder<
 }
 
 export interface SQLiteEffectRelationalQuery<TResult, TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase>
-  extends Effect.Effect<TResult, TEffectHKT["error"], TEffectHKT["context"]>,
+  extends Effect<TResult, TEffectHKT["error"], TEffectHKT["context"]>,
     RunnableQuery<TResult, "sqlite">,
     SQLWrapper {}
 

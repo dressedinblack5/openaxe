@@ -1737,15 +1737,15 @@ export type AgentConfig = {
     | {
         [key: string]: unknown
       }
-    | string
-    | "primary"
+     
+     
     | "secondary"
     | "accent"
     | "success"
     | "warning"
     | "error"
     | "info"
-    | number
+     
     | PermissionConfig
     | undefined
 }
@@ -1772,7 +1772,7 @@ export type ProviderConfig = {
      */
     headerTimeout?: number | false
     chunkTimeout?: number
-    [key: string]: unknown | string | boolean | number | false | number | false | number | undefined
+    [key: string]: unknown | string | boolean | number | false       | undefined
   }
   models?: {
     [key: string]: {
@@ -2394,6 +2394,10 @@ export type FormatterStatus = {
   enabled: boolean
 }
 
+export type McpStatusPending = {
+  status: "pending"
+}
+
 export type McpStatusConnected = {
   status: "connected"
 }
@@ -2417,6 +2421,7 @@ export type McpStatusNeedsClientRegistration = {
 }
 
 export type McpStatus =
+  | McpStatusPending
   | McpStatusConnected
   | McpStatusDisabled
   | McpStatusFailed
@@ -2431,6 +2436,14 @@ export type McpServerNotFoundError = {
   _tag: "McpServerNotFoundError"
   name: string
   message: string
+}
+
+export type MemoryEntry = {
+  key: string
+  value: unknown
+  kind: string
+  scope: string
+  source: string
 }
 
 export type Project = {
@@ -2689,7 +2702,7 @@ export type Workspace = {
   directory?: string | null
   extra?: unknown | null
   projectID: string
-  timeUsed: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  timeUsed: number | "NaN" | "Infinity" | "-Infinity"      
 }
 
 export type WorkspaceCreateError = {
@@ -2860,6 +2873,30 @@ export type ProjectCopyError = {
     message: string
     forceRequired?: boolean
   }
+}
+
+export type ArtifactSummary = {
+  key: string
+  version: number | "NaN" | "Infinity" | "-Infinity"      
+  size: number | "NaN" | "Infinity" | "-Infinity"      
+  truncated: boolean
+  timeCreated: number | "NaN" | "Infinity" | "-Infinity"      
+  overflowPath?: string
+}
+
+export type ArtifactEntry = {
+  key: string
+  version: number | "NaN" | "Infinity" | "-Infinity"      
+  content: string
+  size: number | "NaN" | "Infinity" | "-Infinity"      
+  truncated: boolean
+  timeCreated: number | "NaN" | "Infinity" | "-Infinity"      
+  overflowPath?: string
+}
+
+export type ArtifactStoreInput = {
+  key: string
+  content: string
 }
 
 export type EffectHttpApiErrorForbidden = {
@@ -4167,8 +4204,8 @@ export type IntegrationAttempt = {
   instructions: string
   mode: "auto" | "code"
   time: {
-    created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-    expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    created: number | "NaN" | "Infinity" | "-Infinity"      
+    expires: number | "NaN" | "Infinity" | "-Infinity"      
   }
 }
 
@@ -8555,6 +8592,129 @@ export type McpDisconnectResponses = {
 
 export type McpDisconnectResponse = McpDisconnectResponses[keyof McpDisconnectResponses]
 
+export type MemoryListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory"
+}
+
+export type MemoryListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryListError = MemoryListErrors[keyof MemoryListErrors]
+
+export type MemoryListResponses = {
+  /**
+   * All memory entries
+   */
+  200: Array<MemoryEntry>
+}
+
+export type MemoryListResponse = MemoryListResponses[keyof MemoryListResponses]
+
+export type MemorySetData = {
+  body?: {
+    key: string
+    value: unknown
+    scope?: string
+    source?: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory"
+}
+
+export type MemorySetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemorySetError = MemorySetErrors[keyof MemorySetErrors]
+
+export type MemorySetResponses = {
+  /**
+   * Memory entry set
+   */
+  200: MemoryEntry
+}
+
+export type MemorySetResponse = MemorySetResponses[keyof MemorySetResponses]
+
+export type MemoryRemoveData = {
+  body?: never
+  path: {
+    key: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/{key}"
+}
+
+export type MemoryRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryRemoveError = MemoryRemoveErrors[keyof MemoryRemoveErrors]
+
+export type MemoryRemoveResponses = {
+  /**
+   * Memory entry removed
+   */
+  200: {
+    removed: boolean
+  }
+}
+
+export type MemoryRemoveResponse = MemoryRemoveResponses[keyof MemoryRemoveResponses]
+
+export type MemoryGetData = {
+  body?: never
+  path: {
+    key: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/{key}"
+}
+
+export type MemoryGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryGetError = MemoryGetErrors[keyof MemoryGetErrors]
+
+export type MemoryGetResponses = {
+  /**
+   * Memory entry
+   */
+  200: MemoryEntry
+}
+
+export type MemoryGetResponse = MemoryGetResponses[keyof MemoryGetResponses]
+
 export type ProjectListData = {
   body?: never
   path?: never
@@ -11946,30 +12106,30 @@ export type V2IntegrationAttemptStatusResponses = {
       | {
           status: "pending"
           time: {
-            created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-            expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+            created: number | "NaN" | "Infinity" | "-Infinity"      
+            expires: number | "NaN" | "Infinity" | "-Infinity"      
           }
         }
       | {
           status: "complete"
           time: {
-            created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-            expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+            created: number | "NaN" | "Infinity" | "-Infinity"      
+            expires: number | "NaN" | "Infinity" | "-Infinity"      
           }
         }
       | {
           status: "failed"
           message: string
           time: {
-            created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-            expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+            created: number | "NaN" | "Infinity" | "-Infinity"      
+            expires: number | "NaN" | "Infinity" | "-Infinity"      
           }
         }
       | {
           status: "expired"
           time: {
-            created: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-            expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+            created: number | "NaN" | "Infinity" | "-Infinity"      
+            expires: number | "NaN" | "Infinity" | "-Infinity"      
           }
         }
   }
@@ -13038,6 +13198,191 @@ export type V2ProjectCopyRefreshResponses = {
 }
 
 export type V2ProjectCopyRefreshResponse = V2ProjectCopyRefreshResponses[keyof V2ProjectCopyRefreshResponses]
+
+export type V2ArtifactListData = {
+  body?: never
+  path?: never
+  query?: {
+    keyPrefix?: string
+  }
+  url: "/api/artifact"
+}
+
+export type V2ArtifactListErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ArtifactListError = V2ArtifactListErrors[keyof V2ArtifactListErrors]
+
+export type V2ArtifactListResponses = {
+  /**
+   * Success
+   */
+  200: Array<ArtifactSummary>
+}
+
+export type V2ArtifactListResponse = V2ArtifactListResponses[keyof V2ArtifactListResponses]
+
+export type V2ArtifactStoreData = {
+  body: ArtifactStoreInput
+  path?: never
+  query?: never
+  url: "/api/artifact"
+}
+
+export type V2ArtifactStoreErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ArtifactStoreError = V2ArtifactStoreErrors[keyof V2ArtifactStoreErrors]
+
+export type V2ArtifactStoreResponses = {
+  /**
+   * ArtifactEntry
+   */
+  200: ArtifactEntry
+}
+
+export type V2ArtifactStoreResponse = V2ArtifactStoreResponses[keyof V2ArtifactStoreResponses]
+
+export type V2ArtifactGetLatestData = {
+  body?: never
+  path: {
+    key: string
+  }
+  query?: never
+  url: "/api/artifact/{key}"
+}
+
+export type V2ArtifactGetLatestErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ArtifactGetLatestError = V2ArtifactGetLatestErrors[keyof V2ArtifactGetLatestErrors]
+
+export type V2ArtifactGetLatestResponses = {
+  /**
+   * Success
+   */
+  200: ArtifactEntry
+}
+
+export type V2ArtifactGetLatestResponse = V2ArtifactGetLatestResponses[keyof V2ArtifactGetLatestResponses]
+
+export type V2ArtifactGetVersionData = {
+  body?: never
+  path: {
+    key: string
+    version: string
+  }
+  query?: never
+  url: "/api/artifact/{key}/{version}"
+}
+
+export type V2ArtifactGetVersionErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ArtifactGetVersionError = V2ArtifactGetVersionErrors[keyof V2ArtifactGetVersionErrors]
+
+export type V2ArtifactGetVersionResponses = {
+  /**
+   * Success
+   */
+  200: ArtifactEntry
+}
+
+export type V2ArtifactGetVersionResponse = V2ArtifactGetVersionResponses[keyof V2ArtifactGetVersionResponses]
+
+export type V2MemoryListData = {
+  body?: never
+  path?: never
+  query?: {
+    kind?: string
+    scope?: string
+    source?: string
+  }
+  url: "/api/memory"
+}
+
+export type V2MemoryListErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2MemoryListError = V2MemoryListErrors[keyof V2MemoryListErrors]
+
+export type V2MemoryListResponses = {
+  /**
+   * Success
+   */
+  200: Array<MemoryEntry>
+}
+
+export type V2MemoryListResponse = V2MemoryListResponses[keyof V2MemoryListResponses]
+
+export type V2MemoryGetData = {
+  body?: never
+  path: {
+    key: string
+  }
+  query?: never
+  url: "/api/memory/{key}"
+}
+
+export type V2MemoryGetErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2MemoryGetError = V2MemoryGetErrors[keyof V2MemoryGetErrors]
+
+export type V2MemoryGetResponses = {
+  /**
+   * Success
+   */
+  200: unknown
+}
 
 export type PtyConnectData = {
   body?: never

@@ -177,10 +177,10 @@ describe("diff viewer file tree utilities", () => {
   test("moves selection across visible rows and clamps to bounds", () => {
     const rows = flattenFileTree(buildFileTree([{ file: "src/config/tui.ts" }, { file: "README.md" }]))
 
-    expect(moveFileTreeSelection(rows, undefined, 1)).toBe(rows[0]!.id)
-    expect(moveFileTreeSelection(rows, rows[0]!.id, 1)).toBe(rows[1]!.id)
-    expect(moveFileTreeSelection(rows, rows[1]!.id, 99)).toBe(rows[rows.length - 1]!.id)
-    expect(moveFileTreeSelection(rows, rows[1]!.id, -99)).toBe(rows[0]!.id)
+    expect(moveFileTreeSelection(rows, undefined, 1)).toBe(rows[0].id)
+    expect(moveFileTreeSelection(rows, rows[0].id, 1)).toBe(rows[1].id)
+    expect(moveFileTreeSelection(rows, rows[1].id, 99)).toBe(rows[rows.length - 1].id)
+    expect(moveFileTreeSelection(rows, rows[1].id, -99)).toBe(rows[0].id)
     expect(moveFileTreeSelection([], undefined, 1)).toBeUndefined()
   })
 
@@ -245,7 +245,7 @@ describe("diff viewer file tree utilities", () => {
     expect(selection?.highlightedNode).toBe(
       tree.nodes.find((node) => node.kind === "file" && node.name === "index.ts")?.id,
     )
-    expect([...selection!.expandedNodes].map((id) => tree.nodes[id]!.name)).toEqual(["session", "src"])
+    expect([...selection!.expandedNodes].map((id) => tree.nodes[id].name)).toEqual(["session", "src"])
     expect(fileTreeFileSelection(tree, 99)).toBeUndefined()
   })
 

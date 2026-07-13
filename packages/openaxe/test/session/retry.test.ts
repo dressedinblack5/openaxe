@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { APICallError } from "ai"
-import { setTimeout as sleep } from "node:timers/promises"
+import { setTimeout } from "node:timers/promises"
 import { Effect, Schedule } from "effect"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
@@ -163,7 +163,7 @@ describe("session.retry.retryable", () => {
   test("retries transport timeout errors", () => {
     const request = MessageV2.fromError(new ProviderError.HeaderTimeoutError(10000), { providerID })
     expect(request!.name).toBe("APIError")
-    expect(SessionRetry.retryable(request!, retryProvider)).toEqual({
+    expect(SessionRetry.retryable(request, retryProvider)).toEqual({
       message: "Provider response headers timed out after 10000ms",
     })
   })
@@ -339,7 +339,7 @@ describe("session.message-v2.fromError", () => {
             new ReadableStream({
               async pull(controller) {
                 controller.enqueue("Hello,")
-                await sleep(10000)
+                await setTimeout(10000)
                 controller.enqueue(" World!")
                 controller.close()
               },

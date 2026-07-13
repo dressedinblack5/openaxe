@@ -99,8 +99,8 @@ describe("Storage", () => {
       const { root, svc } = yield* scope()
       const key = [...root, "overwrite", "test"]
 
-      yield* svc.write<{ v: number }>(key, { v: 1 })
-      yield* svc.write<{ v: number }>(key, { v: 2 })
+      yield* svc.write(key, { v: 1 })
+      yield* svc.write(key, { v: 2 })
 
       expect(yield* svc.read<{ v: number }>(key)).toEqual({ v: 2 })
     }),
@@ -258,7 +258,7 @@ describe("Storage", () => {
         const svc = yield* Storage.Service
         const projects = yield* svc.list(["project"])
         expect(projects).toHaveLength(1)
-        const project = projects[0]![1]
+        const project = projects[0][1]
 
         expect(yield* svc.list(["session", project])).toEqual([["session", project, "ses_legacy"]])
         expect(yield* svc.read<{ id: string; title: string }>(["session", project, "ses_legacy"])).toEqual({

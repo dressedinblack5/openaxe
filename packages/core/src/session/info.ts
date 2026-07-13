@@ -45,3 +45,5 @@ export function fromRow(row: typeof SessionTable.$inferSelect): SessionSchema.In
     },
   })
 }
+
+export * as SessionInfo from "./info"

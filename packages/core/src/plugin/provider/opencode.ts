@@ -148,7 +148,7 @@ export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | S
             if (config.variants !== undefined) {
               model.variants = Object.entries(config.variants).map(([id, options]) => ({
                 id: ModelV2.VariantID.make(id),
-                headers: { ...(options.headers ?? {}) },
+                headers: { ...options.headers },
                 body: lowerer.request(withoutCredentials(options)),
               }))
             }

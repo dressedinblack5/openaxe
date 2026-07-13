@@ -89,6 +89,12 @@ openaxe run "explain this codebase"
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Background HTTP API server with optional web interface
 - **All major platforms** — Linux, macOS, Windows (native binaries, AVX2/musl detection)
+- **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, survives across sessions
+- **Auto-verification guardrails** — automatic `tsc`/`cargo`/`ruff`/`go vet` after every file mutation, plus bracket balance and import validation
+- **Versioned artifact store** — content-versioned storage for build outputs and generated files with TUI preview
+- **Auto-commit** — automatic git commits at each AI mutation turn
+- **Error journal** — tool errors logged to `.openaxe/errors.jsonl` for debugging
+- **/revert** — undo AI file changes via snapshot-based rollback
 
 ## User Guide
 
@@ -103,8 +109,8 @@ openaxe --help
 | `openaxe` [project] | Start the TUI (default) |
 | `openaxe run <message>` | Run with a prompt, non-interactive |
 | `openaxe serve` | Start headless server |
-| `openaxe web` | Start server with web UI |
 | `openaxe attach <url>` | Attach to a running server |
+| `openaxe memory <action>` | Manage project memory (AXE.md) — list, set, get, remove |
 
 ### Providers & Models
 
@@ -186,7 +192,6 @@ Auto-configured on first run. They auto-install the first time you run `openaxe`
 |---|---|
 | **oh-my-openagent** | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents |
 | **opencode-plugin-selector** | Interactive plugin manager |
-| **superpowers** | Skill system — brainstorming, TDD, debugging, and more |
 | **opencode-vibeguard** | Safety guardrails for agent actions |
 | **@tarquinen/opencode-dcp** | Context compression for long sessions |
 | **ecc-universal** | Everything Claude Code — agents, skills, hooks, MCP, and rules |
@@ -260,6 +265,8 @@ The monorepo ships 13 packages:
 | **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
 | **Startup** | Lazy-loaded CLI commands | Eager imports |
 | **Identity** | Renamed project-wide (`openaxe`) | N/A |
+
+Contributions welcome — see `AGENTS.md` for development guidelines.
 
 ## Links
 

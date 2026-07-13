@@ -13,7 +13,7 @@ import { PluginTestLayer } from "./fixture"
 
 const it = testEffect(PluginTestLayer)
 
-const addPlugin = Effect.fn(function* (definition: typeof GoogleVertexAnthropicPlugin | typeof GoogleVertexPlugin) {
+const addPlugin = Effect.fn(function* (definition: typeof GoogleVertexAnthropicPlugin  ) {
   const plugin = yield* PluginV2.Service
   const aisdk = yield* AISDK.Service
   const host = yield* PluginHost.make(plugin)

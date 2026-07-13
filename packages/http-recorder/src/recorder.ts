@@ -1,5 +1,5 @@
 import { Effect, Scope, SynchronizedRef } from "effect"
-import type * as CassetteService from "./cassette.js"
+import type { Interface } from "./cassette.js";
 import type { CassetteNotFoundError } from "./cassette.js"
 import type { Interaction } from "./schema.js"
 
@@ -9,7 +9,7 @@ const isCI = () => {
 }
 
 export const resolveAutoMode = (
-  cassette: CassetteService.Interface,
+  cassette: Interface,
   name: string,
 ): Effect.Effect<"record" | "replay" | "passthrough"> =>
   Effect.gen(function* () {
@@ -24,7 +24,7 @@ export interface ReplayState<T> {
 }
 
 export const makeReplayState = <T>(
-  cassette: CassetteService.Interface,
+  cassette: Interface,
   name: string,
   project: (interactions: ReadonlyArray<Interaction>) => ReadonlyArray<T>,
 ): Effect.Effect<ReplayState<T>, never, Scope.Scope> =>

@@ -119,3 +119,5 @@ export const LANGUAGE_EXTENSIONS: Record<string, string> = {
   ".typ": "typst",
   ".typc": "typst",
 } as const
+
+export * as LspLanguage from "./language"

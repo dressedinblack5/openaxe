@@ -138,8 +138,8 @@ export const it = make<never, never>(testEnv, liveEnv)
 
 export const testEffect = <R, E, A>(layer: Layer.Layer<R, E, A>) =>
   make<R, E>(
-    Layer.provideMerge(layer as Layer.Layer<R, E, never>, testEnv),
-    Layer.provideMerge(layer as Layer.Layer<R, E, never>, liveEnv),
+    Layer.provideMerge(layer as Layer.Layer<R, E>, testEnv),
+    Layer.provideMerge(layer as Layer.Layer<R, E>, liveEnv),
   )
 
 // Variant of `testEffect` that builds the test layer through the shared
@@ -148,8 +148,8 @@ export const testEffect = <R, E, A>(layer: Layer.Layer<R, E, A>) =>
 // an in-process HTTP server — most tests should stick with `testEffect`.
 export const testEffectShared = <R, E, A>(layer: Layer.Layer<R, E, A>) =>
   make<R, E>(
-    Layer.provideMerge(layer as Layer.Layer<R, E, never>, testEnv),
-    Layer.provideMerge(layer as Layer.Layer<R, E, never>, liveEnv),
+    Layer.provideMerge(layer as Layer.Layer<R, E>, testEnv),
+    Layer.provideMerge(layer as Layer.Layer<R, E>, liveEnv),
     sharedRun,
   )
 

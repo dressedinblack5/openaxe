@@ -1,19 +1,19 @@
 import { Config } from "@/config/config"
-import { GlobalBus, type GlobalEvent as GlobalBusEvent } from "@/bus/global"
+import { GlobalBus, type GlobalEvent } from "@/bus/global"
 import { EffectBridge } from "@/effect/bridge"
 import { EventV2 } from "@opencode-ai/core/event"
 import { Installation } from "@/installation"
 import { disposeAllInstancesAndEmitGlobalDisposed } from "@/server/global-lifecycle"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Effect, Queue, Schema } from "effect"
-import * as Stream from "effect/Stream"
+import { callback, concat, drop, encodeText, ensuring, make, map, merge, pipeThroughChannel, tick } from "effect/Stream";
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
-import * as Sse from "effect/unstable/encoding/Sse"
+import { Event, encode } from "effect/unstable/encoding/Sse";
 import { RootHttpApi } from "../api"
 import { GlobalUpgradeInput } from "../groups/global"
 
-function eventData(data: unknown): Sse.Event {
+function eventData(data: unknown): Event {
   return {
     _tag: "Event",
     event: "message",
@@ -33,25 +33,25 @@ function parseBody(body: string) {
 function eventResponse() {
   return Effect.gen(function* () {
     yield* Effect.logInfo("global event connected")
-    const events = Stream.callback<GlobalBusEvent>((queue) => {
-      const handler = (event: GlobalBusEvent) => Queue.offerUnsafe(queue, event)
+    const events = callback<GlobalEvent>((queue) => {
+      const handler = (event: GlobalEvent) => Queue.offerUnsafe(queue, event)
       return Effect.acquireRelease(
         Effect.sync(() => GlobalBus.on("event", handler)),
         () => Effect.sync(() => GlobalBus.off("event", handler)),
       )
     })
-    const heartbeat = Stream.tick("10 seconds").pipe(
-      Stream.drop(1),
-      Stream.map(() => ({ payload: { id: EventV2.ID.create(), type: "server.heartbeat", properties: {} } })),
+    const heartbeat = tick("10 seconds").pipe(
+      drop(1),
+      map(() => ({ payload: { id: EventV2.ID.create(), type: "server.heartbeat", properties: {} } })),
     )
 
     return HttpServerResponse.stream(
-      Stream.make({ payload: { id: EventV2.ID.create(), type: "server.connected", properties: {} } }).pipe(
-        Stream.concat(events.pipe(Stream.merge(heartbeat, { haltStrategy: "left" }))),
-        Stream.map(eventData),
-        Stream.pipeThroughChannel(Sse.encode()),
-        Stream.encodeText,
-        Stream.ensuring(Effect.logInfo("global event disconnected")),
+      make({ payload: { id: EventV2.ID.create(), type: "server.connected", properties: {} } }).pipe(
+        concat(events.pipe(merge(heartbeat, { haltStrategy: "left" }))),
+        map(eventData),
+        pipeThroughChannel(encode()),
+        encodeText,
+        ensuring(Effect.logInfo("global event disconnected")),
       ),
       {
         contentType: "text/event-stream",

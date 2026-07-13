@@ -1,7 +1,7 @@
 import { ProxyUtil } from "@/server/proxy-util"
 import { Effect, Stream } from "effect"
 import { HttpBody, HttpClient, HttpClientRequest, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
-import * as Socket from "effect/unstable/socket/Socket"
+import { CloseEvent, Socket, WebSocketConstructor, makeWebSocket } from "effect/unstable/socket/Socket";
 import { WebSocketTracker } from "../websocket-tracker"
 
 function requestBody(request: HttpServerRequest.HttpServerRequest) {
@@ -14,16 +14,16 @@ function requestBody(request: HttpServerRequest.HttpServerRequest) {
 export function websocket(
   request: HttpServerRequest.HttpServerRequest,
   target: string | URL,
-): Effect.Effect<HttpServerResponse.HttpServerResponse, never, Socket.WebSocketConstructor> {
+): Effect.Effect<HttpServerResponse.HttpServerResponse, never, WebSocketConstructor> {
   return Effect.scoped(
     Effect.gen(function* () {
       const inbound = yield* Effect.orDie(request.upgrade)
-      const outbound = yield* Socket.makeWebSocket(ProxyUtil.websocketTargetURL(target), {
+      const outbound = yield* makeWebSocket(ProxyUtil.websocketTargetURL(target), {
         protocols: ProxyUtil.websocketProtocols(request.headers),
       })
       const writeInbound = yield* inbound.writer
       const writeOutbound = yield* outbound.writer
-      const closeSocket = (socket: Socket.Socket, write: (event: Socket.CloseEvent) => Effect.Effect<void, unknown>) =>
+      const closeSocket = (socket: Socket, write: (event: CloseEvent) => Effect.Effect<void, unknown>) =>
         socket
           .runRaw(() => Effect.void, {
             onOpen: write(WebSocketTracker.SERVER_CLOSING_EVENT()).pipe(Effect.catch(() => Effect.void)),
@@ -55,10 +55,10 @@ export function websocket(
         .runRaw((message) => writeInbound(message))
         .pipe(
           Effect.catchReason("SocketError", "SocketCloseError", (reason) =>
-            writeInbound(new Socket.CloseEvent(reason.code, reason.closeReason)).pipe(Effect.catch(() => Effect.void)),
+            writeInbound(new CloseEvent(reason.code, reason.closeReason)).pipe(Effect.catch(() => Effect.void)),
           ),
           Effect.catch(() =>
-            writeInbound(new Socket.CloseEvent(1011, "proxy error")).pipe(Effect.catch(() => Effect.void)),
+            writeInbound(new CloseEvent(1011, "proxy error")).pipe(Effect.catch(() => Effect.void)),
           ),
           Effect.forkScoped,
         )
@@ -69,7 +69,7 @@ export function websocket(
         })
         .pipe(
           Effect.catch(() => Effect.void),
-          Effect.ensuring(writeOutbound(new Socket.CloseEvent()).pipe(Effect.catch(() => Effect.void))),
+          Effect.ensuring(writeOutbound(new CloseEvent()).pipe(Effect.catch(() => Effect.void))),
         )
       return HttpServerResponse.empty()
     }).pipe(Effect.orDie),

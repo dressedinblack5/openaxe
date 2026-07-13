@@ -1,9 +1,9 @@
 import { Auth } from "../route/auth"
 import { type AtLeastOne, type ProviderAuthOption } from "../route/auth-options"
-import type { Route as RouteDef, RouteDefaultsInput } from "../route/client"
+import type { Route, RouteDefaultsInput } from "../route/client"
 import { ProviderID, type ModelID } from "../schema"
-import * as OpenAIChat from "../protocols/openai-chat"
-import * as OpenAIResponses from "../protocols/openai-responses"
+import { route as chatRouteImport } from "../protocols/openai-chat";
+import { route } from "../protocols/openai-responses";
 import { withOpenAIOptions, type OpenAIProviderOptionsInput } from "./openai-options"
 
 export const id = ProviderID.make("azure")
@@ -25,7 +25,7 @@ export type Config = ModelOptions
 
 const resourceBaseURL = (resourceName: string) => `https://${resourceName.trim()}.openai.azure.com/openai/v1`
 
-const responsesRoute = OpenAIResponses.route.with({
+const responsesRoute = route.with({
   id: "azure-openai-responses",
   provider: id,
   auth: routeAuth,
@@ -34,7 +34,7 @@ const responsesRoute = OpenAIResponses.route.with({
   },
 })
 
-const chatRoute = OpenAIChat.route.with({
+const chatRoute = chatRouteImport.with({
   id: "azure-openai-chat",
   provider: id,
   auth: routeAuth,
@@ -71,7 +71,7 @@ const auth = (input: Config) => {
   )
 }
 
-const configuredRoute = <Body, Prepared>(route: RouteDef<Body, Prepared>, input: Config) =>
+const configuredRoute = <Body, Prepared>(route: Route<Body, Prepared>, input: Config) =>
   route.with({
     auth: auth(input),
     endpoint: {

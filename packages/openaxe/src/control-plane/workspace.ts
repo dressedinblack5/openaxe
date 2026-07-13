@@ -19,7 +19,7 @@ import { ProjectV2 } from "@opencode-ai/core/project"
 import { Slug } from "@opencode-ai/core/util/slug"
 import { WorkspaceTable } from "@opencode-ai/core/control-plane/workspace.sql"
 import { getAdapter, registeredAdapters } from "./adapters"
-import { type Target, type WorkspaceInfo, WorkspaceInfo as WorkspaceInfoSchema } from "./types"
+import { type Target, WorkspaceInfo } from "./types"
 import { WorkspaceV2 } from "@opencode-ai/core/workspace"
 import { Session } from "@/session/session"
 import { SessionPrompt } from "@/session/prompt"
@@ -36,7 +36,7 @@ import { WorkspaceAdapterRuntime } from "./workspace-adapter-runtime"
 import { WorkspaceEvent } from "@opencode-ai/schema/workspace-event"
 
 export const Info = Schema.Struct({
-  ...WorkspaceInfoSchema.fields,
+  ...WorkspaceInfo.fields,
   timeUsed: Schema.Number,
 }).annotate({ identifier: "Workspace" })
 export type Info = WorkspaceInfo & { timeUsed: number }

@@ -40,8 +40,8 @@ function cost(input: ModelsDev.Model["cost"]) {
 function variants(model: ModelsDev.Model) {
   return Object.entries(model.experimental?.modes ?? {}).map(([id, item]) => ({
     id: ModelV2.VariantID.make(id),
-    headers: { ...(item.provider?.headers ?? {}) },
-    body: { ...(item.provider?.body ?? {}) },
+    headers: { ...item.provider?.headers },
+    body: { ...item.provider?.body },
   }))
 }
 

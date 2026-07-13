@@ -1,8 +1,8 @@
 import { AuthOptions, type ProviderAuthOption } from "../route/auth-options"
 import type { RouteDefaultsInput } from "../route/client"
 import { ProviderID, type ModelID } from "../schema"
-import * as OpenAIChat from "../protocols/openai-chat"
-import * as OpenAIResponses from "../protocols/openai-responses"
+import { route as chatRouteImport } from "../protocols/openai-chat";
+import { route } from "../protocols/openai-responses";
 import { withOpenAIOptions, type OpenAIProviderOptionsInput } from "./openai-options"
 
 export const id = ProviderID.make("github-copilot")
@@ -22,10 +22,10 @@ export const shouldUseResponsesApi = (modelID: string | ModelID) => {
   return Number(match[1]) >= 5 && !model.startsWith("gpt-5-mini")
 }
 
-export const routes = [OpenAIResponses.route, OpenAIChat.route]
+export const routes = [chatRouteImport, route]
 
-const chatRoute = OpenAIChat.route.with({ provider: id })
-const responsesRoute = OpenAIResponses.route.with({ provider: id })
+const chatRoute = chatRouteImport.with({ provider: id })
+const responsesRoute = route.with({ provider: id })
 
 const defaults = (options: ModelOptions) => {
   const { apiKey: _, auth: _auth, baseURL: _baseURL, ...rest } = options

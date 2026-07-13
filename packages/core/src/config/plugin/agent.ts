@@ -47,7 +47,7 @@ export const Plugin = define({
             return yield* Effect.forEach(files, (file) =>
               fs.readFileStringSafe(file.filepath).pipe(
                 Effect.map((content) => content && decode(file, content)),
-                Effect.catch(() => Effect.succeed(undefined)),
+                Effect.catch(() => Effect.void),
               ),
             ).pipe(
               Effect.map((documents) =>

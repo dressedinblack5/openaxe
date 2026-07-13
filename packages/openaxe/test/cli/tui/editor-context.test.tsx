@@ -61,8 +61,8 @@ function createWebSocketImpl(...sockets: FakeWebSocket[]) {
       const socket = sockets[index]
       index += 1
       expect(socket).toBeDefined()
-      expect(url).toBe(socket!.url)
-      expect(options).toEqual(socket!.options)
+      expect(url).toBe(socket.url)
+      expect(options).toEqual(socket.options)
       return socket as unknown as object
     }
   } as unknown as typeof WebSocket

@@ -1,10 +1,10 @@
-import * as pty from "@lydell/node-pty"
+import { spawn as ptySpawn } from "@lydell/node-pty"
 import type { Opts, Proc } from "./pty"
 
 export type { Disp, Exit, Opts, Proc } from "./pty"
 
 export function spawn(file: string, args: string[], opts: Opts): Proc {
-  const proc = pty.spawn(file, args, opts)
+  const proc = ptySpawn(file, args, opts)
   return {
     pid: proc.pid,
     onData(listener) {

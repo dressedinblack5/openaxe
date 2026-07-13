@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
-import * as NodeRuntime from "@effect/platform-node/NodeRuntime"
-import * as NodeServices from "@effect/platform-node/NodeServices"
-import * as Effect from "effect/Effect"
+import { runMain } from "@effect/platform-node/NodeRuntime";
+import { layer } from "@effect/platform-node/NodeServices";
+import { provide, scoped } from "effect/Effect";
 import { Commands } from "./commands/commands"
 import { Runtime } from "./framework/runtime"
 import { Daemon } from "./services/daemon"
@@ -25,8 +25,8 @@ const Handlers = Runtime.handlers(Commands, {
 })
 
 Runtime.run(Commands, Handlers, { version: "local" }).pipe(
-  Effect.provide(Daemon.defaultLayer),
-  Effect.provide(NodeServices.layer),
-  Effect.scoped,
-  NodeRuntime.runMain,
+  provide(Daemon.defaultLayer),
+  provide(layer),
+  scoped,
+  runMain,
 )

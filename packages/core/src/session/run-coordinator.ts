@@ -14,7 +14,7 @@ export interface Coordinator<Key, E> {
 
 type Entry<E> = {
   readonly done: Deferred.Deferred<void, E>
-  owner?: Fiber.Fiber<void, never>
+  owner?: Fiber.Fiber<void>
   pendingWake: boolean
   stopping: boolean
   readonly createdAt: number

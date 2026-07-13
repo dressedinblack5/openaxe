@@ -19,6 +19,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js"
 import { Config } from "@/config/config"
 import { ConfigMCPV1 } from "@opencode-ai/core/v1/config/mcp"
+import { ConfigMCP } from "@opencode-ai/core/config/mcp"
 import { NamedError } from "@opencode-ai/core/util/error"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { withTimeout } from "@/util/timeout"
@@ -94,12 +95,17 @@ const StatusFailed = Schema.Struct({ status: Schema.Literal("failed"), error: Sc
 const StatusNeedsAuth = Schema.Struct({ status: Schema.Literal("needs_auth") }).annotate({
   identifier: "MCPStatusNeedsAuth",
 })
+const StatusPending = Schema.Struct({ status: Schema.Literal("pending") }).annotate({
+  identifier: "MCPStatusPending",
+})
+
 const StatusNeedsClientRegistration = Schema.Struct({
   status: Schema.Literal("needs_client_registration"),
   error: Schema.String,
 }).annotate({ identifier: "MCPStatusNeedsClientRegistration" })
 
 export const Status = Schema.Union([
+  StatusPending,
   StatusConnected,
   StatusDisabled,
   StatusFailed,
@@ -120,6 +126,14 @@ type McpEntry = NonNullable<ConfigV1.Info["mcp"]>[string]
 
 function isMcpConfigured(entry: McpEntry): entry is ConfigMCPV1.Info {
   return typeof entry === "object" && entry !== null && "type" in entry
+}
+
+function getMcpServers(mcp: unknown): Record<string, McpEntry> {
+  if (!mcp || typeof mcp !== "object") return {}
+  if ("servers" in mcp && mcp.servers && typeof mcp.servers === "object") {
+    return mcp.servers as Record<string, McpEntry>
+  }
+  return mcp as Record<string, McpEntry>
 }
 
 function remoteURL(value: string) {
@@ -147,6 +161,7 @@ interface State {
   clients: Record<string, MCPClient>
   defs: Record<string, MCPToolDef[]>
   instructions: Record<string, string>
+  connecting: Set<string>
 }
 
 export interface ServerInstructions {
@@ -323,7 +338,7 @@ export const layer = Layer.effect(
 
       return {
         client: undefined as MCPClient | undefined,
-        status: (lastStatus ?? { status: "failed", error: "Unknown error" }) as Status,
+        status: (lastStatus ?? { status: "failed", error: "Unknown error" }),
       }
     })
 
@@ -360,8 +375,10 @@ export const layer = Layer.effect(
       )
     })
 
+    let createCounter = 0
     const create = Effect.fn("MCP.create")(
       function* (key: string, mcp: ConfigMCPV1.Info) {
+        createCounter++
         if (mcp.enabled === false) {
           return DISABLED_RESULT
         }
@@ -484,12 +501,13 @@ export const layer = Layer.effect(
       Effect.fn("MCP.state")(function* () {
         const cfg = yield* cfgSvc.get()
         const bridge = yield* EffectBridge.make()
-        const config = cfg.mcp ?? {}
+        const servers = getMcpServers(cfg.mcp)
 
         // ponytail: inject CodeGraph as built-in MCP when installed; user config overrides
-        // Only auto-inject when user hasn't set any mcp config (cfg.mcp undefined).
-        // Explicit mcp: {} means "no MCP servers", not "inject defaults".
-        if (cfg.mcp === undefined && !config.codegraph) {
+        // Only auto-inject when user hasn't set any mpc config at all (undefined).
+        // Explicit mcp: {} or mcp: { ... } means "user configured MCP", don't inject defaults.
+        const mcpConfigured = cfg.mcp != null
+        if (!servers.codegraph && !mcpConfigured) {
           const tryResolve = Option.liftThrowable(() =>
             createRequire(import.meta.url).resolve(
               `@colbymchenry/codegraph-${process.platform}-${process.arch}/bin/codegraph`,
@@ -497,7 +515,7 @@ export const layer = Layer.effect(
           )
           const codegraphBin = tryResolve()
           if (Option.isSome(codegraphBin)) {
-            config.codegraph = {
+            servers.codegraph = {
               type: "local",
               command: [codegraphBin.value, "serve", "--mcp"],
             } satisfies ConfigMCPV1.Info
@@ -510,10 +528,13 @@ export const layer = Layer.effect(
           clients: {},
           defs: {},
           instructions: {},
+          connecting: new Set(),
         }
 
+        // Defer MCP server connections — just record configs as pending.
+        // Actual connection happens lazily on first access via ensurePendingConnections().
         yield* Effect.forEach(
-          Object.entries(config),
+          Object.entries(servers),
           ([key, mcp]) =>
             Effect.gen(function* () {
               if (!isMcpConfigured(mcp)) {
@@ -529,14 +550,8 @@ export const layer = Layer.effect(
                 return
               }
 
-              const result = yield* create(key, mcp)
-              s.status[key] = result.status
-              if (result.mcpClient) {
-                s.clients[key] = result.mcpClient
-                s.defs[key] = result.defs!
-                if (result.instructions) s.instructions[key] = result.instructions
-                watch(s, key, result.mcpClient, bridge, mcp.timeout)
-              }
+              s.config[key] = mcp
+              s.status[key] = { status: "pending" }
             }),
           { concurrency: "unbounded" },
         )
@@ -557,7 +572,9 @@ export const layer = Layer.effect(
                     for (const dpid of pids) {
                       try {
                         process.kill(dpid, "SIGTERM")
-                      } catch {}
+                      } catch {
+                        // cleanup is best-effort, process may already be gone
+                      }
                     }
                   }
                   yield* Effect.tryPromise(() => client.close()).pipe(Effect.ignore)
@@ -601,14 +618,48 @@ export const layer = Layer.effect(
       return s.status[name]
     })
 
+    // ── Lazy connection helpers ──────────────────────────────────────────────
+    // Connects a single pending MCP server by name. Idempotent — skips if
+    // already connected, disabled, or missing from config.
+    const connectOne = Effect.fn("MCP.connectOne")(function* (name: string) {
+      const s = yield* InstanceState.get(state)
+      const current = s.status[name]
+      if (!current || current.status !== "pending") return
+      if (s.connecting.has(name)) return
+      const mcp = s.config[name]
+      if (!mcp) return
+      s.connecting.add(name)
+      const result = yield* create(name, mcp).pipe(
+        Effect.ensuring(Effect.sync(() => s.connecting.delete(name))),
+      )
+      s.status[name] = result.status
+      if (result.mcpClient) {
+        s.clients[name] = result.mcpClient
+        s.defs[name] = result.defs!
+        if (result.instructions) s.instructions[name] = result.instructions
+        watch(s, name, result.mcpClient, yield* EffectBridge.make(), mcp.timeout)
+      }
+    })
+
+    // Connects all servers still in pending status. Uses connectOne per server.
+    const connectAll = Effect.fn("MCP.connectAll")(function* () {
+      const s = yield* InstanceState.get(state)
+      const pending = Object.keys(s.status).filter(
+        (name) => s.status[name]?.status === "pending"
+      )
+      for (const name of pending) {
+        yield* connectOne(name)
+      }
+    })
     const status = Effect.fn("MCP.status")(function* () {
+      yield* connectAll()
       const s = yield* InstanceState.get(state)
 
       const cfg = yield* cfgSvc.get()
-      const config = cfg.mcp ?? {}
+      const servers = getMcpServers(cfg.mcp)
       const result: Record<string, Status> = {}
 
-      for (const [key, mcp] of Object.entries(config)) {
+      for (const [key, mcp] of Object.entries(servers)) {
         if (!isMcpConfigured(mcp)) continue
         result[key] = s.status[key] ?? { status: "disabled" }
       }
@@ -621,11 +672,13 @@ export const layer = Layer.effect(
     })
 
     const clients = Effect.fn("MCP.clients")(function* () {
+      yield* connectAll()
       const s = yield* InstanceState.get(state)
       return s.clients
     })
 
     const instructions = Effect.fn("MCP.instructions")(function* () {
+      yield* connectAll()
       const s = yield* InstanceState.get(state)
       return Object.entries(s.instructions)
         .filter(([name]) => s.status[name]?.status === "connected")
@@ -677,16 +730,17 @@ export const layer = Layer.effect(
     }
 
     const tools = Effect.fn("MCP.tools")(function* () {
+      yield* connectAll()
       const result: Record<string, Tool> = {}
       const s = yield* InstanceState.get(state)
 
       const cfg = yield* cfgSvc.get()
-      const config = cfg.mcp ?? {}
+      const servers = getMcpServers(cfg.mcp)
       const defaultTimeout = cfg.experimental?.mcp_timeout
 
       for (const [clientName, client] of Object.entries(s.clients)) {
         if (s.status[clientName]?.status !== "connected") continue
-        const mcpConfig = config[clientName]
+        const mcpConfig = servers[clientName]
         const listed = s.defs[clientName]
         if (!listed) {
           yield* Effect.logWarning("missing cached tools for connected server", { clientName })
@@ -698,9 +752,9 @@ export const layer = Layer.effect(
           result[key] = McpCatalog.convertTool(mcpTool, client, timeout)
         }
       }
+
       return result
     })
-
     function collectFromConnected<T extends { name: string }>(
       s: State,
       listFn: (c: Client, timeout?: number) => Promise<T[]>,
@@ -709,7 +763,9 @@ export const layer = Layer.effect(
       targetClientName?: string,
     ) {
       return Effect.gen(function* () {
+        yield* connectAll()
         const cfg = yield* cfgSvc.get()
+        const servers = getMcpServers(cfg.mcp)
         return yield* Effect.forEach(
           Object.entries(s.clients).filter(
             ([name]) => s.status[name]?.status === "connected" && (!targetClientName || name === targetClientName),
@@ -718,7 +774,7 @@ export const layer = Layer.effect(
             McpCatalog.fetch(
               clientName,
               client,
-              (c) => listFn(c, requestTimeout(s, clientName, cfg.mcp?.[clientName], cfg.experimental?.mcp_timeout)),
+              (c) => listFn(c, requestTimeout(s, clientName, servers[clientName], cfg.experimental?.mcp_timeout)),
               label,
               key,
             ).pipe(Effect.map((items) => Object.entries(items ?? {}))),
@@ -758,14 +814,16 @@ export const layer = Layer.effect(
       meta?: Record<string, unknown>,
     ) {
       const s = yield* InstanceState.get(state)
+      yield* connectOne(clientName)
       const client = s.clients[clientName]
       if (!client) {
         yield* Effect.logWarning(`client not found for ${label}`, { clientName })
         return undefined
       }
       const cfg = yield* cfgSvc.get()
+      const servers = getMcpServers(cfg.mcp)
       return yield* Effect.tryPromise({
-        try: () => fn(client, requestTimeout(s, clientName, cfg.mcp?.[clientName], cfg.experimental?.mcp_timeout)),
+        try: () => fn(client, requestTimeout(s, clientName, servers[clientName], cfg.experimental?.mcp_timeout)),
         catch: (error) => error,
       }).pipe(
         Effect.tapError((error) =>
@@ -806,7 +864,8 @@ export const layer = Layer.effect(
       if (s.config[mcpName]) return s.config[mcpName]
 
       const cfg = yield* cfgSvc.get()
-      const mcpConfig = cfg.mcp?.[mcpName]
+      const servers = getMcpServers(cfg.mcp)
+      const mcpConfig = servers[mcpName]
       if (!mcpConfig || !isMcpConfigured(mcpConfig)) return undefined
       return mcpConfig
     })

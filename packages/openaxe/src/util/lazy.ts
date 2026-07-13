@@ -6,7 +6,7 @@ export function lazy<T>(fn: () => T) {
     if (loaded) return value as T
     value = fn()
     loaded = true
-    return value as T
+    return value
   }
 
   result.reset = () => {

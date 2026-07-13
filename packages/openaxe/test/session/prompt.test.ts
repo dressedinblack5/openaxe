@@ -900,7 +900,7 @@ it.instance("subtask child inherits parent session external_directory allow", ()
 
     const kids = yield* sessions.children(chat.id)
     expect(kids).toHaveLength(1)
-    const child = kids[0]!
+    const child = kids[0]
     const rules = child.permission ?? []
     expect(rules).toEqual(
       expect.arrayContaining([{ permission: "external_directory", pattern: "/tmp/allowed/*", action: "allow" }]),

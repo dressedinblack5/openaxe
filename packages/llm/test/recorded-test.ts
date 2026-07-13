@@ -1,5 +1,5 @@
 import { NodeFileSystem } from "@effect/platform-node"
-import { HttpRecorder } from "@opencode-ai/http-recorder"
+import { HttpRecorder, type RecorderOptions } from "@opencode-ai/http-recorder"
 import { HttpRecorderInternal } from "@opencode-ai/http-recorder/internal"
 import { Layer } from "effect"
 import { FetchHttpClient } from "effect/unstable/http"
@@ -22,16 +22,16 @@ const FIXTURES_DIR = path.resolve(__dirname, "fixtures", "recordings")
 type RecordedEnv = RequestExecutorService | WebSocketExecutorService | LLMClientService
 
 type RecordedTestsOptions = RecordedGroupOptions & {
-  readonly options?: HttpRecorder.RecorderOptions
+  readonly options?: RecorderOptions
 }
 
 type RecordedCaseOptions = RunnerCaseOptions & {
-  readonly options?: HttpRecorder.RecorderOptions
+  readonly options?: RecorderOptions
 }
 
 const mergeOptions = (
-  base: HttpRecorder.RecorderOptions | undefined,
-  override: HttpRecorder.RecorderOptions | undefined,
+  base: RecorderOptions | undefined,
+  override: RecorderOptions | undefined,
 ) => {
   if (!base) return override
   if (!override) return base

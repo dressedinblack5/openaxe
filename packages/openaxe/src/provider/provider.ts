@@ -894,7 +894,9 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
                 delete body.max_tokens
                 init = { ...init, body: JSON.stringify(body) }
               }
-            } catch {}
+            } catch {
+              // expected when body is not parseable JSON
+            }
           }
 
           const response = await fetch(url, init)
@@ -911,7 +913,9 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
                   { status: 200, headers: new Headers({ "content-type": "application/json" }) },
                 )
               }
-            } catch {}
+            } catch {
+              // expected when error response is not JSON
+            }
           }
 
           if (response.body && response.headers.get("content-type")?.includes("text/event-stream")) {
@@ -1056,6 +1060,15 @@ export const ConfigProvidersResult = Schema.Struct({
 })
 export type ConfigProvidersResult = Types.DeepMutable<Schema.Schema.Type<typeof ConfigProvidersResult>>
 
+export const ProviderHealth = Schema.Struct({
+  providerID: ProviderV2.ID,
+  status: Schema.Literals(["healthy", "unhealthy", "unknown"]),
+  lastChecked: Schema.Date,
+  latencyMs: Schema.optional(Schema.Finite),
+  error: Schema.optional(Schema.String),
+}).annotate({ identifier: "ProviderHealth" })
+export type ProviderHealth = Types.DeepMutable<Schema.Schema.Type<typeof ProviderHealth>>
+
 export function toPublicInfo(provider: Info): Info {
   return JSON.parse(JSON.stringify(provider)) as Info
 }
@@ -1129,6 +1142,8 @@ export interface Interface {
   ) => Effect.Effect<{ providerID: ProviderV2.ID; modelID: string } | undefined>
   readonly getSmallModel: (providerID: ProviderV2.ID) => Effect.Effect<Model | undefined>
   readonly defaultModel: () => Effect.Effect<{ providerID: ProviderV2.ID; modelID: ModelV2.ID }, DefaultModelError>
+  readonly checkHealth: (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
+  readonly getHealth: (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
 }
 
 interface State {
@@ -1307,8 +1322,33 @@ export const layer = Layer.effect(
         const bridge = yield* EffectBridge.make()
         const cfg = yield* config.get()
         const modelsDev = yield* modelsDevSvc.get()
-        const catalog = mapValues(modelsDev, fromModelsDevProvider)
-        const database = mapValues(catalog, toPublicInfo)
+
+        // ── Prune models-dev to configured providers ──────────────────────────
+        // Only eagerly convert providers the user has configured. Unconfigured
+        // providers are lazily converted on first access via getProvider/getModel.
+        const configuredIds = new Set(Object.keys(cfg.provider ?? {}))
+        if (cfg.enabled_providers) {
+          for (const id of cfg.enabled_providers) configuredIds.add(id)
+        }
+
+        const catalog: Record<string, Info> = {}
+        const database: Record<string, Info> = {}
+        for (const [id, raw] of Object.entries(modelsDev)) {
+          if (configuredIds.has(id)) {
+            catalog[id] = fromModelsDevProvider(raw)
+            database[id] = toPublicInfo(catalog[id])
+          }
+        }
+
+        // Helper to lazily convert a provider from raw models-dev data
+        function ensureDatabase(id: string): Info | undefined {
+          if (database[id]) return database[id]
+          const raw = modelsDev[id]
+          if (!raw) return undefined
+          catalog[id] = fromModelsDevProvider(raw)
+          database[id] = toPublicInfo(catalog[id])
+          return database[id]
+        }
 
         const providers: Record<ProviderV2.ID, Info> = {} as Record<ProviderV2.ID, Info>
         const languages = new Map<string, LanguageModelV3>()
@@ -1333,14 +1373,12 @@ export const layer = Layer.effect(
         function mergeProvider(providerID: ProviderV2.ID, provider: Partial<Info>) {
           const existing = providers[providerID]
           if (existing) {
-            // @ts-expect-error
-            providers[providerID] = mergeDeep(existing, provider)
+            providers[providerID] = mergeDeep(existing, provider) as Info
             return
           }
           const match = database[providerID]
           if (!match) return
-          // @ts-expect-error
-          providers[providerID] = mergeDeep(match, provider)
+          providers[providerID] = mergeDeep(match, provider) as Info
         }
 
         // load plugins first so config() hook runs before reading cfg.provider
@@ -1358,6 +1396,27 @@ export const layer = Layer.effect(
           return true
         }
 
+        // ensure plugin providers are in database even if not in modelsDev or config
+        // so their models() function can be called (which may need auth metadata)
+        for (const hook of plugins) {
+          const p = hook.provider
+          if (!p) continue
+          const providerID = ProviderV2.ID.make(p.id)
+          if (disabled.has(providerID)) continue
+          if (database[providerID]) continue
+          // Don't add plugin providers that exist in modelsDev — they'll be loaded
+          // via env var or auth loading which calls ensureDatabase
+          if (modelsDev[providerID]) continue
+          database[providerID] = {
+            id: providerID,
+            name: (p as { name?: string }).name ?? p.id,
+            source: "custom",
+            env: (p as { env?: string[] }).env ?? [],
+            options: (p as { options?: Record<string, unknown> }).options ?? {},
+            models: {},
+          }
+        }
+
         for (const hook of plugins) {
           const p = hook.provider
           const models = p?.models
@@ -1372,7 +1431,7 @@ export const layer = Layer.effect(
 
           provider.models = yield* Effect.promise(async () => {
             const next = await models(toPublicInfo(provider), { auth: pluginAuth })
-            return Object.fromEntries(
+            const merged = Object.fromEntries(
               Object.entries(next).map(([id, model]) => [
                 id,
                 {
@@ -1382,6 +1441,11 @@ export const layer = Layer.effect(
                 },
               ]),
             )
+            // Also update providers object so the models are visible in list()
+            if (providers[providerID]) {
+              providers[providerID].models = merged
+            }
+            return merged
           })
         }
 
@@ -1479,16 +1543,33 @@ export const layer = Layer.effect(
           database[providerID] = parsed
         }
 
-        // load env
+        // load env — check raw modelsDev so providers discovered via env vars
+        // auto-activate even when not explicitly configured.
         const envs = yield* env.all()
-        for (const [id, provider] of Object.entries(database)) {
+        for (const [id, raw] of Object.entries(modelsDev)) {
           const providerID = ProviderV2.ID.make(id)
           if (disabled.has(providerID)) continue
-          const apiKey = provider.env.map((item) => envs[item]).find(Boolean)
+          const envVars = raw.env ?? []
+          const apiKey = envVars.map((item) => envs[item]).find(Boolean)
+          if (!apiKey) continue
+          ensureDatabase(id)
+          mergeProvider(providerID, {
+            source: "env",
+            key: envVars.length === 1 ? apiKey : undefined,
+          })
+        }
+
+        // Also set keys for config providers with single env vars
+        for (const [id, provider] of configProviders) {
+          const providerID = ProviderV2.ID.make(id)
+          if (disabled.has(providerID)) continue
+          const envVars = provider.env ?? []
+          if (envVars.length !== 1) continue
+          const apiKey = envs[envVars[0]]
           if (!apiKey) continue
           mergeProvider(providerID, {
             source: "env",
-            key: provider.env.length === 1 ? apiKey : undefined,
+            key: apiKey,
           })
         }
 
@@ -1498,10 +1579,14 @@ export const layer = Layer.effect(
           const providerID = ProviderV2.ID.make(id)
           if (disabled.has(providerID)) continue
           if (provider.type === "api") {
-            mergeProvider(providerID, {
-              source: "api",
-              key: provider.key,
-            })
+            ensureDatabase(id)
+            // also merge if provider was added from plugin (not in modelsDev)
+            if (database[providerID] || providers[providerID]) {
+              mergeProvider(providerID, {
+                source: "api",
+                key: provider.key,
+              })
+            }
           }
         }
 
@@ -1526,10 +1611,44 @@ export const layer = Layer.effect(
           mergeProvider(providerID, patch)
         }
 
+        // run plugin models for providers that were added after the first pass
+        // (e.g., via env var or auth loading)
+        for (const hook of plugins) {
+          const p = hook.provider
+          const models = p?.models
+          if (!p || !models) continue
+
+          const providerID = ProviderV2.ID.make(p.id)
+          if (disabled.has(providerID)) continue
+
+          const provider = database[providerID]
+          if (!provider) continue
+          const pluginAuth = yield* auth.get(providerID).pipe(Effect.orDie)
+
+          provider.models = yield* Effect.promise(async () => {
+            const next = await models(toPublicInfo(provider), { auth: pluginAuth })
+            const merged = Object.fromEntries(
+              Object.entries(next).map(([id, model]) => [
+                id,
+                {
+                  ...model,
+                  id: ModelV2.ID.make(id),
+                  providerID,
+                },
+              ]),
+            )
+            // Also update providers object so the models are visible in list()
+            if (providers[providerID]) {
+              providers[providerID].models = merged
+            }
+            return merged
+          })
+        }
+
         for (const [id, fn] of Object.entries(custom(dep))) {
           const providerID = ProviderV2.ID.make(id)
           if (disabled.has(providerID)) continue
-          const data = database[providerID]
+          const data = ensureDatabase(id)
           if (!data) {
             continue
           }
@@ -1564,7 +1683,9 @@ export const layer = Layer.effect(
                   providers[gitlab].models[modelID] = model
                 }
               }
-            } catch (e) {}
+            } catch (e) {
+              // expected for non-standard provider responses
+            }
           })
         }
 
@@ -1617,6 +1738,12 @@ export const layer = Layer.effect(
           }
         }
 
+        // Prune catalog to only active providers
+        for (const id of Object.keys(catalog)) {
+          if (!providers[ProviderV2.ID.make(id)]) {
+            delete catalog[id]
+          }
+        }
         return {
           models: languages,
           providers,
@@ -1719,9 +1846,8 @@ export const layer = Layer.effect(
 
           const res = await fetchFn(input, {
             ...opts,
-            // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
             timeout: false,
-          }).finally(() => headerTimeoutCtl?.clear())
+          } as unknown as RequestInit).finally(() => headerTimeoutCtl?.clear())
 
           if (!chunkAbortCtl) return res
           return wrapSSE(res, chunkTimeout, chunkAbortCtl)
@@ -1939,7 +2065,50 @@ export const layer = Layer.effect(
       }
     })
 
-    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel })
+    const checkHealth = Effect.fn("Provider.checkHealth")(function* (providerID: ProviderV2.ID) {
+      const start = Date.now()
+      const provider = yield* getProvider(providerID).pipe(
+        Effect.catchCause((cause) => Effect.fail(new Error("Provider not found"))),
+      )
+      try {
+        const model = yield* Effect.gen(function* () {
+          const [firstModel] = Object.values(provider.models)
+          if (!firstModel) return yield* Effect.fail(new Error("No models available"))
+          return yield* getLanguage(firstModel)
+        }).pipe(Effect.timeout("5 seconds"))
+        yield* model.generateText("health check").pipe(Effect.timeout("10 seconds"))
+        return ProviderHealth.make({
+          providerID,
+          status: "healthy",
+          lastChecked: new Date(),
+          latencyMs: Date.now() - start,
+        })
+      } catch (e) {
+        return ProviderHealth.make({
+          providerID,
+          status: "unhealthy",
+          lastChecked: new Date(),
+          error: e instanceof Error ? e.message : "Unknown error",
+        })
+      }
+    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never>
+
+    const getHealth = Effect.fn("Provider.getHealth")(function* (providerID: ProviderV2.ID) {
+      const cached = yield* Effect.cached(
+        checkHealth(providerID).pipe(
+          Effect.catchCause((cause) =>
+            Effect.succeed(ProviderHealth.make({
+              providerID,
+              status: "unknown",
+              lastChecked: new Date(),
+            }))
+          ),
+        ),
+      )
+      return yield* cached
+    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never>
+
+    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel, checkHealth, getHealth })
   }),
 )
 

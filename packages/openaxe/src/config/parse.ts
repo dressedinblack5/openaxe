@@ -1,13 +1,13 @@
 export * as ConfigParse from "./parse"
 
-import { type ParseError as JsoncParseError, parse as parseJsoncImpl, printParseErrorCode } from "jsonc-parser"
-import { Cause, Exit, Schema as EffectSchema, SchemaIssue } from "effect"
+import { type ParseError, parse, printParseErrorCode } from "jsonc-parser"
+import { Cause, Exit, Schema, SchemaIssue } from "effect"
 import type { DeepMutable } from "@opencode-ai/core/schema"
 import { InvalidError, JsonError } from "@opencode-ai/core/v1/config/error"
 
 export function jsonc(text: string, filepath: string): unknown {
-  const errors: JsoncParseError[] = []
-  const data = parseJsoncImpl(text, errors, { allowTrailingComma: true })
+  const errors: ParseError[] = []
+  const data = parse(text, errors, { allowTrailingComma: true })
   if (errors.length) {
     const lines = text.split("\n")
     const issues = errors
@@ -32,7 +32,7 @@ export function jsonc(text: string, filepath: string): unknown {
   return data
 }
 
-export function schema<S extends EffectSchema.Decoder<unknown, never>>(
+export function schema<S extends Schema.Decoder<unknown>>(
   schema: S,
   data: unknown,
   source: string,
@@ -52,13 +52,13 @@ export function schema<S extends EffectSchema.Decoder<unknown, never>>(
     })
   }
 
-  const decoded = EffectSchema.decodeUnknownExit(schema)(data, { errors: "all", propertyOrder: "original" })
+  const decoded = Schema.decodeUnknownExit(schema)(data, { errors: "all", propertyOrder: "original" })
   if (Exit.isSuccess(decoded)) return decoded.value as DeepMutable<S["Type"]>
   const error = Cause.squash(decoded.cause)
 
   throw new InvalidError({
     path: source,
-    issues: EffectSchema.isSchemaError(error)
+    issues: Schema.isSchemaError(error)
       ? SchemaIssue.makeFormatterStandardSchemaV1()(error.issue).issues.map((issue) => ({
           ...issue,
           message: issue.message,
@@ -68,7 +68,7 @@ export function schema<S extends EffectSchema.Decoder<unknown, never>>(
   })
 }
 
-function topLevelExtraKeys(schema: EffectSchema.Top, data: unknown) {
+function topLevelExtraKeys(schema: Schema.Top, data: unknown) {
   if (typeof data !== "object" || data === null || Array.isArray(data)) return []
   if (schema.ast._tag !== "Objects" || schema.ast.indexSignatures.length > 0) return []
   const known = new Set(schema.ast.propertySignatures.map((item) => String(item.name)))

@@ -5,8 +5,8 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import DESCRIPTION from "./glob.txt"
-import * as Tool from "./tool"
-
+import type { Context } from "./tool"
+import { define } from "./tool";
 export const Parameters = Schema.Struct({
   pattern: Schema.String.annotate({ description: "The glob pattern to match files against" }),
   path: Schema.optional(Schema.String).annotate({
@@ -14,7 +14,7 @@ export const Parameters = Schema.Struct({
   }),
 })
 
-export const GlobTool = Tool.define(
+export const GlobTool = define(
   "glob",
   Effect.gen(function* () {
     const fs = yield* FSUtil.Service
@@ -22,7 +22,7 @@ export const GlobTool = Tool.define(
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (params: { pattern: string; path?: string }, ctx: Tool.Context) =>
+      execute: (params: { pattern: string; path?: string }, ctx: Context) =>
         Effect.gen(function* () {
           const ins = yield* InstanceState.context
           yield* ctx.ask({
@@ -37,7 +37,7 @@ export const GlobTool = Tool.define(
 
           let search = params.path ?? ins.directory
           search = path.isAbsolute(search) ? search : path.resolve(ins.directory, search)
-          const info = yield* fs.stat(search).pipe(Effect.catch(() => Effect.succeed(undefined)))
+          const info = yield* fs.stat(search).pipe(Effect.catch(() => Effect.void))
           if (info?.type === "File") {
             throw new Error(`glob path must be a directory: ${search}`)
           }

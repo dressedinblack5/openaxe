@@ -103,7 +103,7 @@ export const GlobalApi = HttpApi.make("global").add(
       HttpApiEndpoint.patch("configUpdate", GlobalPaths.config, {
         payload: ConfigV1.Info,
         success: described(ConfigV1.Info, "Successfully updated global config"),
-        error: HttpApiError.BadRequest as any as any,
+        error: HttpApiError.BadRequest as any,
       }).annotateMerge(
         OpenApi.annotations({
           identifier: "global.config.update",
@@ -123,7 +123,7 @@ export const GlobalApi = HttpApi.make("global").add(
       HttpApiEndpoint.post("upgrade", GlobalPaths.upgrade, {
         payload: [HttpApiSchema.NoContent, GlobalUpgradeInput],
         success: described(GlobalUpgradeResult, "Upgrade result"),
-        error: HttpApiError.BadRequest as any as any,
+        error: HttpApiError.BadRequest as any,
       }).annotateMerge(
         OpenApi.annotations({
           identifier: "global.upgrade",

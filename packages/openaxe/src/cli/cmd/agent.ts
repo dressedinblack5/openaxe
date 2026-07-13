@@ -1,5 +1,5 @@
 import { cmd } from "./cmd"
-import * as prompts from "@clack/prompts"
+import { intro, select, isCancel, text, spinner as createSpinner, multiselect, log, outro } from "@clack/prompts"
 import { UI } from "../ui"
 import { Global } from "@opencode-ai/core/global"
 import path from "path"
@@ -78,7 +78,7 @@ const AgentCreateCommand = effectCmd({
 
       if (!isFullyNonInteractive) {
         UI.empty()
-        prompts.intro("Create agent")
+        intro("Create agent")
       }
 
       const project = ctx.project
@@ -90,7 +90,7 @@ const AgentCreateCommand = effectCmd({
       } else {
         let scope: "global" | "project" = "global"
         if (project.vcs === "git") {
-          const scopeResult = await prompts.select({
+          const scopeResult = await select({
             message: "Location",
             options: [
               {
@@ -105,7 +105,7 @@ const AgentCreateCommand = effectCmd({
               },
             ],
           })
-          if (prompts.isCancel(scopeResult)) throw new UI.CancelledError()
+          if (isCancel(scopeResult)) throw new UI.CancelledError()
           scope = scopeResult
         }
         targetPath = path.join(scope === "global" ? Global.Path.config : path.join(ctx.worktree, ".openaxe"), "agents")
@@ -116,17 +116,17 @@ const AgentCreateCommand = effectCmd({
       if (cliDescription) {
         description = cliDescription
       } else {
-        const query = await prompts.text({
+        const query = await text({
           message: "Description",
           placeholder: "What should this agent do?",
           validate: (x) => (x && x.length > 0 ? undefined : "Required"),
         })
-        if (prompts.isCancel(query)) throw new UI.CancelledError()
+        if (isCancel(query)) throw new UI.CancelledError()
         description = query
       }
 
       // Generate agent
-      const spinner = prompts.spinner()
+      const spinner = createSpinner()
       spinner.start("Generating agent configuration...")
       const model = args.model ? Provider.parseModel(args.model) : undefined
       const generated = await runLocalEffect(agentSvc.generate({ description, model })).catch((error) => {
@@ -141,7 +141,7 @@ const AgentCreateCommand = effectCmd({
       if (perms !== undefined) {
         selected = perms ? perms.split(",").map((t) => t.trim()) : AVAILABLE_PERMISSIONS
       } else {
-        const result = await prompts.multiselect({
+        const result = await multiselect({
           message: "Select permissions to allow (Space to toggle)",
           options: AVAILABLE_PERMISSIONS.map((permission) => ({
             label: permission,
@@ -149,7 +149,7 @@ const AgentCreateCommand = effectCmd({
           })),
           initialValues: AVAILABLE_PERMISSIONS,
         })
-        if (prompts.isCancel(result)) throw new UI.CancelledError()
+        if (isCancel(result)) throw new UI.CancelledError()
         selected = result
       }
 
@@ -158,7 +158,7 @@ const AgentCreateCommand = effectCmd({
       if (cliMode) {
         mode = cliMode
       } else {
-        const modeResult = await prompts.select({
+        const modeResult = await select({
           message: "Agent mode",
           options: [
             {
@@ -179,7 +179,7 @@ const AgentCreateCommand = effectCmd({
           ],
           initialValue: "all" as const,
         })
-        if (prompts.isCancel(modeResult)) throw new UI.CancelledError()
+        if (isCancel(modeResult)) throw new UI.CancelledError()
         mode = modeResult
       }
 
@@ -215,7 +215,7 @@ const AgentCreateCommand = effectCmd({
           console.error(`Error: Agent file already exists: ${filePath}`)
           process.exit(1)
         }
-        prompts.log.error(`Agent file already exists: ${filePath}`)
+        log.error(`Agent file already exists: ${filePath}`)
         throw new UI.CancelledError()
       }
 
@@ -224,8 +224,8 @@ const AgentCreateCommand = effectCmd({
       if (isFullyNonInteractive) {
         console.log(filePath)
       } else {
-        prompts.log.success(`Agent created: ${filePath}`)
-        prompts.outro("Done")
+        log.success(`Agent created: ${filePath}`)
+        outro("Done")
       }
     })
   }),

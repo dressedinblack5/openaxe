@@ -445,12 +445,12 @@ export const layer: Layer.Layer<Service, never, FSUtil.Service | AppProcess.Serv
               const clash = (a: string, b: string) => a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`)
 
               for (let i = 0; i < ops.length; ) {
-                const first = ops[i]!
+                const first = ops[i]
                 const run = [first]
                 let j = i + 1
                 // Only batch adjacent files when their paths cannot affect each other.
                 while (j < ops.length && run.length < 100) {
-                  const next = ops[j]!
+                  const next = ops[j]
                   if (next.hash !== first.hash) break
                   if (run.some((item) => clash(item.rel, next.rel))) break
                   run.push(next)

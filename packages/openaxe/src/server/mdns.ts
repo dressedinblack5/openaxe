@@ -26,7 +26,9 @@ export function publish(port: number, domain?: string) {
     if (bonjour) {
       try {
         bonjour.destroy()
-      } catch {}
+      } catch {
+        // cleanup is best-effort
+      }
     }
     bonjour = undefined
     currentPort = undefined
@@ -38,7 +40,9 @@ export function unpublish() {
     try {
       bonjour.unpublishAll()
       bonjour.destroy()
-    } catch {}
+    } catch {
+      // cleanup is best-effort
+    }
     bonjour = undefined
     currentPort = undefined
   }

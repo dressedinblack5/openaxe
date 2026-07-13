@@ -94,7 +94,9 @@ export function contentBlockToParts(block: ContentBlock): PromptPart[] {
               },
             ]
           }
-        } catch {}
+        } catch {
+          // expected when URL is not a file protocol
+        }
         return [{ type: "text", text: `[${block.resource.uri}]\n${block.resource.text}` }]
       }
       if (block.resource.mimeType) {

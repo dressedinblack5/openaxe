@@ -28,3 +28,5 @@ export const collectBoundedResponseBody = (
     })
     return body.subarray(0, size)
   })
+
+export * as HttpBody from "./http-body"

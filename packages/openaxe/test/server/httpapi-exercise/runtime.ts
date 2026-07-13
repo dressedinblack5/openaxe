@@ -13,6 +13,8 @@ export type Runtime = {
   disposeAllInstances: (typeof import("../../fixture/fixture"))["disposeAllInstances"]
   tmpdir: (typeof import("../../fixture/fixture"))["tmpdir"]
   resetDatabase: (typeof import("../../fixture/db"))["resetDatabase"]
+  Memory: (typeof import("@opencode-ai/core/memory"))["Memory"]
+  Artifact: (typeof import("@opencode-ai/core/artifact"))["Artifact"]
 }
 
 let runtimePromise: Promise<Runtime> | undefined
@@ -32,6 +34,8 @@ export function runtime() {
     const tui = await import("../../../src/server/shared/tui-control")
     const fixture = await import("../../fixture/fixture")
     const db = await import("../../fixture/db")
+    const memory = await import("@opencode-ai/core/memory")
+    const artifact = await import("@opencode-ai/core/artifact")
     return {
       PublicApi: publicApi.PublicApi,
       HttpApiApp: httpApiServer.HttpApiApp,
@@ -47,6 +51,8 @@ export function runtime() {
       disposeAllInstances: fixture.disposeAllInstances,
       tmpdir: fixture.tmpdir,
       resetDatabase: db.resetDatabase,
+      Memory: memory.Memory,
+      Artifact: artifact.Artifact,
     }
   })())
 }

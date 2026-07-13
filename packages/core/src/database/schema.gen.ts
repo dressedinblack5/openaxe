@@ -24,6 +24,17 @@ export default {
         );
       `)
       yield* tx.run(`
+        CREATE TABLE \`memory\` (
+          \`key\` text PRIMARY KEY,
+          \`value\` text,
+          \`kind\` text DEFAULT 'general' NOT NULL,
+          \`scope\` text DEFAULT 'session' NOT NULL,
+          \`source\` text DEFAULT 'agent' NOT NULL,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`account_state\` (
           \`id\` integer PRIMARY KEY,
           \`active_account_id\` text,

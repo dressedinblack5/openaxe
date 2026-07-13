@@ -197,7 +197,7 @@ function createKnightRiderTrail(options: AdvancedGradientOptions): ColorGenerato
  * @returns Array of RGBA colors with alpha-based trail fade (background-independent)
  */
 export function deriveTrailColors(brightColor: ColorInput, steps: number = 6): RGBA[] {
-  const baseRgba = brightColor instanceof RGBA ? brightColor : RGBA.fromHex(brightColor as string)
+  const baseRgba = brightColor instanceof RGBA ? brightColor : RGBA.fromHex(brightColor)
 
   const colors: RGBA[] = []
 
@@ -237,7 +237,7 @@ export function deriveTrailColors(brightColor: ColorInput, steps: number = 6): R
  * @returns The same color with reduced alpha for background-independent dimming
  */
 export function deriveInactiveColor(brightColor: ColorInput, factor: number = 0.2): RGBA {
-  const baseRgba = brightColor instanceof RGBA ? brightColor : RGBA.fromHex(brightColor as string)
+  const baseRgba = brightColor instanceof RGBA ? brightColor : RGBA.fromHex(brightColor)
 
   // Use the full color brightness but adjust alpha for background-independent dimming
   return RGBA.fromValues(baseRgba.r, baseRgba.g, baseRgba.b, factor)

@@ -5,7 +5,7 @@ import { Location } from "@opencode-ai/core/location"
 import { Effect, Queue } from "effect"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder, HttpApiSchema } from "effect/unstable/httpapi"
-import * as Socket from "effect/unstable/socket/Socket"
+import { CloseEvent } from "effect/unstable/socket/Socket";
 import { Api } from "../api"
 import { CorsConfig, isAllowedRequestOrigin } from "../cors"
 import { ForbiddenError, PtyNotFoundError } from "../errors"
@@ -160,7 +160,7 @@ export const PtyHandler = HttpApiBuilder.group(Api, "server.pty", (handlers) =>
 
           const socket = yield* Effect.orDie(ctx.request.upgrade)
           const write = yield* socket.writer
-          const closeAccepted = (event: Socket.CloseEvent) =>
+          const closeAccepted = (event: CloseEvent) =>
             socket
               .runRaw(() => Effect.void, { onOpen: write(event).pipe(Effect.catch(() => Effect.void)) })
               .pipe(
@@ -172,19 +172,19 @@ export const PtyHandler = HttpApiBuilder.group(Api, "server.pty", (handlers) =>
           // Outbound frames flow through one queue drained by a single writer so replay, live
           // output, and the close frame keep their order.
           // TODO: Integrate graceful-shutdown socket tracking before clients migrate to this route.
-          const outbox = yield* Queue.unbounded<string | Uint8Array | Socket.CloseEvent>()
+          const outbox = yield* Queue.unbounded<string | Uint8Array | CloseEvent>()
           const attachment = yield* pty
             .attach(ctx.params.ptyID, {
               cursor,
               onData: (chunk) => Queue.offerUnsafe(outbox, chunk),
-              onEnd: () => Queue.offerUnsafe(outbox, new Socket.CloseEvent(1000)),
+              onEnd: () => Queue.offerUnsafe(outbox, new CloseEvent(1000)),
             })
             .pipe(
               Effect.catchTags({
                 "Pty.NotFoundError": () =>
-                  closeAccepted(new Socket.CloseEvent(4404, "session not found")).pipe(Effect.as(undefined)),
+                  closeAccepted(new CloseEvent(4404, "session not found")).pipe(Effect.as(undefined)),
                 "Pty.ExitedError": () =>
-                  closeAccepted(new Socket.CloseEvent(4404, "session exited")).pipe(Effect.as(undefined)),
+                  closeAccepted(new CloseEvent(4404, "session exited")).pipe(Effect.as(undefined)),
               }),
             )
           if (!attachment) return HttpServerResponse.empty()
@@ -197,7 +197,7 @@ export const PtyHandler = HttpApiBuilder.group(Api, "server.pty", (handlers) =>
             while (true) {
               const item = yield* Queue.take(outbox)
               yield* write(item)
-              if (item instanceof Socket.CloseEvent) return
+              if (item instanceof CloseEvent) return
             }
           })
 

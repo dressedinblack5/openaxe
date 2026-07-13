@@ -6,7 +6,7 @@ const palette = ["#15161e", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7
 
 function terminalColors(input: Partial<TerminalColors> = {}): TerminalColors {
   return {
-    palette: Array.from({ length: 256 }, (_, index) => input.palette?.[index] ?? palette[index % palette.length]!),
+    palette: Array.from({ length: 256 }, (_, index) => input.palette?.[index] ?? palette[index % palette.length]),
     defaultBackground: input.defaultBackground ?? "#1a1b26",
     defaultForeground: input.defaultForeground ?? "#c0caf5",
     cursorColor: input.cursorColor ?? "#ff9e64",

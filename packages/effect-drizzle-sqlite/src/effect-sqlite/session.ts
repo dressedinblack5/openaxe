@@ -1,8 +1,9 @@
 /* oxlint-disable */
-import * as Context from "effect/Context"
-import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
-import * as Scope from "effect/Scope"
+import { add, getOption } from "effect/Context";
+import { Effect } from "effect"
+import { fail, isSuccess } from "effect/Exit";
+import type { Closeable } from "effect/Scope"
+import { close, make, provide } from "effect/Scope";
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
 import type { SqlError } from "effect/unstable/sql/SqlError"
 import type { EffectCacheShape } from "drizzle-orm/cache/core/cache-effect"
@@ -119,19 +120,19 @@ export class EffectSQLiteSession<TRelations extends AnyRelations> extends SQLite
     return Effect.uninterruptibleMask((restore) =>
       Effect.withFiber<A, E | SqlError, R>((fiber) => {
         const services = fiber.context
-        const connectionOption = Context.getOption(services, this.client.transactionService)
+        const connectionOption = getOption(services, this.client.transactionService)
         const connection: Effect.Effect<
-          readonly [Scope.Closeable | undefined, Effect.Success<SqlClient["reserve"]>],
+          readonly [Closeable | undefined, Effect.Success<SqlClient["reserve"]>],
           SqlError
         > =
           connectionOption._tag === "Some"
             ? Effect.succeed([undefined, connectionOption.value[0]] as const)
-            : Scope.make().pipe(
+            : make().pipe(
                 Effect.flatMap((scope) =>
-                  Scope.provide(this.client.reserve, scope).pipe(
+                  provide(this.client.reserve, scope).pipe(
                     Effect.map((connection) => [scope, connection] as const),
                     Effect.catch((error) =>
-                      Scope.close(scope, Exit.fail(error)).pipe(Effect.andThen(Effect.fail(error))),
+                      close(scope, fail(error)).pipe(Effect.andThen(Effect.fail(error))),
                     ),
                   ),
                 ),
@@ -147,11 +148,11 @@ export class EffectSQLiteSession<TRelations extends AnyRelations> extends SQLite
               Effect.flatMap(() =>
                 Effect.provideContext(
                   restore(effect),
-                  Context.add(services, this.client.transactionService, [connection, id]),
+                  add(services, this.client.transactionService, [connection, id]),
                 ).pipe(
                   Effect.exit,
                   Effect.flatMap((exit) => {
-                    const finalize = Exit.isSuccess(exit)
+                    const finalize = isSuccess(exit)
                       ? id === 0
                         ? this.executeTransactionStatement(connection, "commit").pipe(
                             // SQLite keeps the transaction open after deferred constraint commit failures.
@@ -179,7 +180,7 @@ export class EffectSQLiteSession<TRelations extends AnyRelations> extends SQLite
 
             return scope === undefined
               ? transaction
-              : transaction.pipe(Effect.onExit((exit) => Scope.close(scope, exit)))
+              : transaction.pipe(Effect.onExit((exit) => close(scope, exit)))
           }),
         )
       }),

@@ -1,6 +1,6 @@
 import { Agent } from "@/agent/agent"
 import { Command } from "@/command"
-import * as InstanceState from "@/effect/instance-state"
+import { context } from "@/effect/instance-state";
 import { Format } from "@/format"
 import { Global } from "@opencode-ai/core/global"
 import { LSP } from "@/lsp/lsp"
@@ -22,12 +22,12 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
     const vcs = yield* Vcs.Service
 
     const dispose = Effect.fn("InstanceHttpApi.dispose")(function* () {
-      yield* markInstanceForDisposal(yield* InstanceState.context)
+      yield* markInstanceForDisposal(yield* context)
       return true
     })
 
     const getPath = Effect.fn("InstanceHttpApi.path")(function* () {
-      const ctx = yield* InstanceState.context
+      const ctx = yield* context
       return {
         home: Global.Path.home,
         state: Global.Path.state,

@@ -16,14 +16,22 @@ import {
   type ContentPart,
   ToolResultPart,
 } from "./schema"
-import { make as makeTool, toDefinitions, type ToolSchema } from "./tool"
+import { make, toDefinitions, type ToolSchema } from "./tool"
+import type {
+  MessageInput as MessageInputT,
+  ToolChoiceInput as ToolChoiceInputT,
+  ToolChoiceMode as ToolChoiceModeT,
+  ToolDefinitionInput,
+  GenerationOptionsInput,
+  HttpOptionsInput,
+} from "./schema"
 
 export type ModelInput = SchemaModelInput
 
-export type MessageInput = Message.Input
+export type MessageInput = MessageInputT
 
-export type ToolChoiceInput = ToolChoice.Input
-export type ToolChoiceMode = ToolChoice.Mode
+export type ToolChoiceInput = ToolChoiceInputT
+export type ToolChoiceMode = ToolChoiceModeT
 
 export type ToolResultInput = Parameters<typeof ToolResultPart.make>[0]
 
@@ -35,11 +43,11 @@ export type RequestInput = Omit<
   readonly system?: string | SystemPart | ReadonlyArray<SystemPart>
   readonly prompt?: string | ContentPart | ReadonlyArray<ContentPart>
   readonly messages?: ReadonlyArray<Message | MessageInput>
-  readonly tools?: ReadonlyArray<ToolDefinition.Input>
+  readonly tools?: ReadonlyArray<ToolDefinitionInput>
   readonly toolChoice?: ToolChoiceInput
-  readonly generation?: GenerationOptions.Input
+  readonly generation?: GenerationOptionsInput
   readonly providerOptions?: ConstructorParameters<typeof LLMRequest>[0]["providerOptions"]
-  readonly http?: HttpOptions.Input
+  readonly http?: HttpOptionsInput
 }
 
 export const generate = LLMClient.generate
@@ -109,7 +117,7 @@ export interface GenerateObjectDynamicOptions extends GenerateObjectBase {
 
 const runGenerateObject = Effect.fn("LLM.generateObject")(function* (
   options: GenerateObjectBase,
-  tool: ReturnType<typeof makeTool>,
+  tool: ReturnType<typeof make>,
 ) {
   const baseRequest = request(options)
   const generateRequest = LLMRequest.update(baseRequest, {
@@ -166,7 +174,7 @@ export function generateObject(options: GenerateObjectOptions<ToolSchema<any>> |
     const { schema, ...rest } = options
     return runGenerateObject(
       rest,
-      makeTool({
+      make({
         description: GENERATE_OBJECT_TOOL_DESCRIPTION,
         parameters: schema,
         success: Schema.Unknown as ToolSchema<unknown>,
@@ -177,7 +185,7 @@ export function generateObject(options: GenerateObjectOptions<ToolSchema<any>> |
   const { jsonSchema, ...rest } = options
   return runGenerateObject(
     rest,
-    makeTool({
+    make({
       description: GENERATE_OBJECT_TOOL_DESCRIPTION,
       jsonSchema,
       execute: () => Effect.void,

@@ -2,20 +2,21 @@ import path from "path"
 import { Effect, Schema } from "effect"
 import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { Skill } from "../skill"
-import * as Tool from "./tool"
+import type { Context, ExecuteResult } from "./tool"
+import { define } from "./tool";
 import DESCRIPTION from "./skill.txt"
 
 export const Parameters = Schema.Struct({
   name: Schema.String.annotate({ description: "The name of the skill from available_skills" }),
 })
 
-export const SkillTool = Tool.define(
+export const SkillTool = define(
   "skill",
   Effect.gen(function* () {
     const skill = yield* Skill.Service
     const ripgrep = yield* Ripgrep.Service
 
-    const execute = (params: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
+    const execute = (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) =>
       Effect.gen(function* () {
         const info = yield* skill.require(params.name)
 
@@ -59,7 +60,7 @@ export const SkillTool = Tool.define(
             dir,
           },
         }
-      }) as Effect.Effect<Tool.ExecuteResult<{ name: string; dir: string }>>
+      }) as Effect.Effect<ExecuteResult<{ name: string; dir: string }>>
 
     return {
       description: DESCRIPTION,

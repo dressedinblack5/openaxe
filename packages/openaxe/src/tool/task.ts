@@ -1,4 +1,5 @@
-import * as Tool from "./tool"
+import type { Context } from "./tool"
+import { define } from "./tool";
 import DESCRIPTION from "./task.txt"
 import { ToolJsonSchema } from "./json-schema"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
@@ -80,7 +81,7 @@ function renderOutput(input: {
   ].join("\n")
 }
 
-export const TaskTool = Tool.define(
+export const TaskTool = define(
   id,
   Effect.gen(function* () {
     const agent = yield* Agent.Service
@@ -93,7 +94,7 @@ export const TaskTool = Tool.define(
 
     const run = Effect.fn("TaskTool.execute")(function* (
       params: Schema.Schema.Type<typeof Parameters>,
-      ctx: Tool.Context,
+      ctx: Context,
     ) {
       const cfg = yield* config.get()
       const runInBackground = params.background === true
@@ -121,7 +122,7 @@ export const TaskTool = Tool.define(
       }
 
       const session = params.task_id
-        ? yield* sessions.get(SessionID.make(params.task_id)).pipe(Effect.catchCause(() => Effect.succeed(undefined)))
+        ? yield* sessions.get(SessionID.make(params.task_id)).pipe(Effect.catchCause(() => Effect.void))
         : undefined
       const parent = yield* sessions.get(ctx.sessionID)
       const childPermission = deriveSubagentSessionPermission({
@@ -342,7 +343,7 @@ export const TaskTool = Tool.define(
         : DESCRIPTION,
       parameters: Parameters,
       jsonSchema: flags.experimentalBackgroundSubagents ? undefined : ToolJsonSchema.fromSchema(BaseParameters),
-      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
+      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) =>
         run(params, ctx).pipe(Effect.orDie),
     }
   }),

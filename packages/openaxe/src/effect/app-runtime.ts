@@ -35,19 +35,19 @@ const wrap = (effect: Effect.Effect<any, any, any>) => attach(effect) as never
 
 export const AppRuntime = {
   runSync<A>(effect: Effect.Effect<A, any, any>): A {
-    return getRuntime().runSync(wrap(effect) as Effect.Effect<A, any, never>)
+    return getRuntime().runSync(wrap(effect) as Effect.Effect<A, any>)
   },
   runPromise<A>(effect: Effect.Effect<A, any, any>, options?: Effect.RunOptions): Promise<A> {
-    return getRuntime().runPromise(wrap(effect) as Effect.Effect<A, any, never>, options) as Promise<A>
+    return getRuntime().runPromise(wrap(effect) as Effect.Effect<A, any>, options)
   },
   runPromiseExit<A, E>(effect: Effect.Effect<A, E, any>, options?: Effect.RunOptions): Promise<Exit<A, E>> {
-    return getRuntime().runPromiseExit(wrap(effect) as Effect.Effect<A, E, never>, options) as Promise<Exit<A, E>>
+    return getRuntime().runPromiseExit(wrap(effect) as Effect.Effect<A, E>, options) as Promise<Exit<A, E>>
   },
   runFork(effect: Effect.Effect<any, any, any>) {
-    return getRuntime().runFork(wrap(effect) as Effect.Effect<any, any, never>)
+    return getRuntime().runFork(wrap(effect) as Effect.Effect<any, any>)
   },
   runCallback(effect: Effect.Effect<any, any, any>) {
-    return getRuntime().runCallback(wrap(effect) as Effect.Effect<any, any, never>)
+    return getRuntime().runCallback(wrap(effect) as Effect.Effect<any, any>)
   },
   dispose() {
     getRuntime().dispose()

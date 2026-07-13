@@ -5,7 +5,8 @@ import { Provider } from "@/provider/provider"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
 import { Context, Effect, Layer } from "effect"
-import * as Stream from "effect/Stream"
+import type { Stream } from "effect/Stream"
+import { flatMap, fromAsyncIterable, fromIterable, mapEffect, scoped, unwrap } from "effect/Stream";
 import { streamText, wrapLanguageModel, type ModelMessage, type Tool } from "ai"
 import type { LLMEvent } from "@opencode-ai/llm"
 import { LLMClient, RequestExecutor, WebSocketExecutor } from "@opencode-ai/llm/route"
@@ -24,8 +25,8 @@ import { SessionID } from "@/session/schema"
 import { Auth } from "@/auth"
 import { EffectBridge } from "@/effect/bridge"
 import { RuntimeFlags } from "@/effect/runtime-flags"
-import * as Option from "effect/Option"
-import * as OtelTracer from "@effect/opentelemetry/Tracer"
+import { getOrUndefined } from "effect/Option";
+import { OtelTracer } from "@effect/opentelemetry/Tracer";
 import { LLMAISDK } from "./llm/ai-sdk"
 import { LLMNativeRuntime } from "./llm/native-runtime"
 import { LLMRequestPrep } from "./llm/request"
@@ -52,7 +53,7 @@ export type StreamRequest = StreamInput & {
 }
 
 export interface Interface {
-  readonly stream: (input: StreamInput) => Stream.Stream<LLMEvent, unknown>
+  readonly stream: (input: StreamInput) => Stream<LLMEvent, unknown>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/LLM") {}
@@ -130,7 +131,7 @@ const live: Layer.Layer<
             return { result: "", error: `Unknown tool: ${toolName}` }
           }
           try {
-            const result = await t.execute!(JSON.parse(argsJson), {
+            const result = await t.execute(JSON.parse(argsJson), {
               toolCallId: _requestID,
               messages: input.messages,
               abortSignal: input.abort,
@@ -206,7 +207,7 @@ const live: Layer.Layer<
       }
 
       const tracer = cfg.experimental?.openTelemetry
-        ? Option.getOrUndefined(yield* Effect.serviceOption(OtelTracer.OtelTracer))
+        ? getOrUndefined(yield* Effect.serviceOption(OtelTracer))
         : undefined
       const telemetryTracer = tracer
         ? new Proxy(tracer, {
@@ -330,8 +331,7 @@ const live: Layer.Layer<
                 specificationVersion: "v3" as const,
                 async transformParams(args) {
                   if (args.type === "stream") {
-                    // @ts-expect-error
-                    args.params.prompt = ProviderTransform.message(
+                    (args.params as { prompt: unknown }).prompt = ProviderTransform.message(
                       args.params.prompt,
                       input.model,
                       prepared.messageTransformOptions,
@@ -356,8 +356,8 @@ const live: Layer.Layer<
     })
 
     const stream: Interface["stream"] = (input) =>
-      Stream.scoped(
-        Stream.unwrap(
+      scoped(
+        unwrap(
           Effect.gen(function* () {
             const ctrl = yield* Effect.acquireRelease(
               Effect.sync(() => new AbortController()),
@@ -371,11 +371,11 @@ const live: Layer.Layer<
             // Adapter seam: both runtimes expose the same LLMEvent stream. Native
             // already returns one; AI SDK streams are converted here.
             const state = LLMAISDK.adapterState()
-            return Stream.fromAsyncIterable(result.result.fullStream, (e) =>
+            return fromAsyncIterable(result.result.fullStream, (e) =>
               e instanceof Error ? e : new Error(String(e)),
             ).pipe(
-              Stream.mapEffect((event) => LLMAISDK.toLLMEvents(state, event)),
-              Stream.flatMap((events) => Stream.fromIterable(events)),
+              mapEffect((event) => LLMAISDK.toLLMEvents(state, event)),
+              flatMap((events) => fromIterable(events)),
             )
           }),
         ),

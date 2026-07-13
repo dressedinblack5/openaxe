@@ -30,9 +30,11 @@ export function makeGitWorktreeStrategy(input: {
       return yield* Effect.forEach(entries, (entry) =>
         input.canonical(entry).pipe(
           Effect.map((directory) => ({ directory, type: entry === core ? "root" : "copy" }) as const),
-          Effect.catchTag("ProjectCopy.DirectoryUnavailableError", () => Effect.succeed(undefined)),
+          Effect.catchTag("ProjectCopy.DirectoryUnavailableError", () => Effect.void),
         ),
       ).pipe(Effect.map((items) => items.filter((item): item is ListEntry => item !== undefined)))
     }),
   } satisfies Strategy
 }
+
+export * as CopyStrategies from "./copy-strategies"

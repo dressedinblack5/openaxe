@@ -196,7 +196,7 @@ describe("run runtime boot", () => {
       connected: [],
     }
     const configured = {
-      providers: [data.all[0]!],
+      providers: [data.all[0]],
       default: {},
     }
     const list = spyOn(sdk.provider, "list").mockImplementation(() =>

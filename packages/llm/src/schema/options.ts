@@ -54,14 +54,13 @@ export class HttpOptions extends Schema.Class<HttpOptions>("LLM.HttpOptions")({
   body: Schema.optional(JsonSchema),
   headers: Schema.optional(Schema.Record(Schema.String, Schema.String)),
   query: Schema.optional(Schema.Record(Schema.String, Schema.String)),
-}) {}
-
-export namespace HttpOptions {
-  export type Input = HttpOptions | ConstructorParameters<typeof HttpOptions>[0]
-
-  /** Normalize HTTP option input into the canonical `HttpOptions` class. */
-  export const make = (input: Input) => (input instanceof HttpOptions ? input : new HttpOptions(input))
+}) {
+  static override make(input: HttpOptionsInput) {
+    return input instanceof HttpOptions ? input : new HttpOptions(input)
+  }
 }
+
+export type HttpOptionsInput = HttpOptions | ConstructorParameters<typeof HttpOptions>[0]
 
 export const mergeHttpOptions = (...items: ReadonlyArray<HttpOptions | undefined>): HttpOptions | undefined => {
   const body = mergeJsonRecords(...items.map((item) => item?.body))
@@ -80,13 +79,10 @@ export class GenerationOptions extends Schema.Class<GenerationOptions>("LLM.Gene
   presencePenalty: Schema.optional(Schema.Number),
   seed: Schema.optional(Schema.Number),
   stop: Schema.optional(Schema.Array(Schema.String)),
-}) {}
-
-export namespace GenerationOptions {
-  export type Input = GenerationOptions | ConstructorParameters<typeof GenerationOptions>[0]
-
-  /** Normalize generation option input into the canonical `GenerationOptions` class. */
-  export const make = (input: Input = {}) => (input instanceof GenerationOptions ? input : new GenerationOptions(input))
+}) {
+  static override make(input: GenerationOptionsInput = {}) {
+    return input instanceof GenerationOptions ? input : new GenerationOptions(input)
+  }
 }
 
 export type GenerationOptionsFields = {
@@ -124,14 +120,23 @@ export const mergeGenerationOptions = (...items: ReadonlyArray<GenerationOptions
 export class ModelLimits extends Schema.Class<ModelLimits>("LLM.ModelLimits")({
   context: Schema.optional(Schema.Number),
   output: Schema.optional(Schema.Number),
-}) {}
+}) {
+  static override make(input: ModelLimitsInput | undefined) {
+    return input instanceof ModelLimits ? input : new ModelLimits(input ?? {})
+  }
+}
 
-export namespace ModelLimits {
-  export type Input = ModelLimits | ConstructorParameters<typeof ModelLimits>[0]
+export type ModelLimitsInput = ModelLimits | ConstructorParameters<typeof ModelLimits>[0]
 
-  /** Normalize model limit input into the canonical `ModelLimits` class. */
-  export const make = (input: Input | undefined) =>
-    input instanceof ModelLimits ? input : new ModelLimits(input ?? {})
+export type ModelConstructorInput = {
+  readonly id: ModelID
+  readonly provider: ProviderID
+  readonly route: AnyRoute
+}
+
+export type ModelInput = Omit<ModelConstructorInput, "id" | "provider"> & {
+  readonly id: string | ModelID
+  readonly provider: string | ProviderID
 }
 
 export class Model {
@@ -139,13 +144,13 @@ export class Model {
   readonly provider: ProviderID
   readonly route: AnyRoute
 
-  constructor(input: Model.ConstructorInput) {
+  constructor(input: ModelConstructorInput) {
     this.id = input.id
     this.provider = input.provider
     this.route = input.route
   }
 
-  static make(input: Model.Input) {
+  static make(input: ModelInput) {
     return new Model({
       id: ModelID.make(input.id),
       provider: ProviderID.make(input.provider),
@@ -153,7 +158,7 @@ export class Model {
     })
   }
 
-  static input(model: Model): Model.ConstructorInput {
+  static input(model: Model): ModelConstructorInput {
     return {
       id: model.id,
       provider: model.provider,
@@ -161,7 +166,7 @@ export class Model {
     }
   }
 
-  static update(model: Model, patch: Partial<Model.Input>) {
+  static update(model: Model, patch: Partial<ModelInput>) {
     if (Object.keys(patch).length === 0) return model
     return Model.make({
       ...Model.input(model),
@@ -169,21 +174,6 @@ export class Model {
     })
   }
 }
-
-export namespace Model {
-  export type ConstructorInput = {
-    readonly id: ModelID
-    readonly provider: ProviderID
-    readonly route: AnyRoute
-  }
-
-  export type Input = Omit<ConstructorInput, "id" | "provider"> & {
-    readonly id: string | ModelID
-    readonly provider: string | ProviderID
-  }
-}
-
-export type ModelInput = Model.Input
 
 export const ModelSchema = Schema.declare((value): value is Model => value instanceof Model, { expected: "LLM.Model" })
 

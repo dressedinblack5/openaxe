@@ -24,7 +24,7 @@ function isHostSlotPlugin(value: unknown): value is HostSlotPlugin<Record<string
 
 export function createSlots() {
   const empty: SlotView = () => null
-  const [view, setView] = createSignal<SlotView>(empty)
+  const [view, setView] = createSignal(empty)
   const Slot: SlotView = (props) => view()(props)
 
   return {
@@ -46,7 +46,7 @@ export function createSlots() {
         },
       )
       const slot = createSlot<RuntimeSlotMap, TuiSlotContext>(registry)
-      setView(() => (props: TuiSlotProps<string>) => slot(props))
+      setView(() => (props: TuiSlotProps) => slot(props))
 
       return {
         register(plugin: HostSlotPlugin) {

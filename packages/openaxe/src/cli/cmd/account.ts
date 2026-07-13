@@ -4,7 +4,7 @@ import { UI } from "../ui"
 import { Account } from "@/account/account"
 import { AccountID, OrgID, PollExpired, type PollResult, type AccountError } from "@/account/schema"
 import { effectCmd } from "../effect-cmd"
-import * as Prompt from "../effect/prompt"
+import { intro, log, outro, select, spinner } from "../effect/prompt";
 import open from "open"
 
 const openBrowser = (url: string) => Effect.promise(() => open(url).catch(() => undefined))
@@ -41,14 +41,14 @@ const isActiveOrgChoice = (
 const loginEffect = Effect.fn("login")(function* (url: string) {
   const service = yield* Account.Service
 
-  yield* Prompt.intro("Log in")
+  yield* intro("Log in")
   const login = yield* service.login(url)
 
-  yield* Prompt.log.info("Go to: " + login.url)
-  yield* Prompt.log.info("Enter code: " + login.user)
+  yield* log.info("Go to: " + login.url)
+  yield* log.info("Enter code: " + login.user)
   yield* openBrowser(login.url)
 
-  const s = Prompt.spinner()
+  const s = spinner()
   yield* s.start("Waiting for authorization...")
 
   const poll = (wait: Duration.Duration): Effect.Effect<PollResult, AccountError> =>
@@ -71,12 +71,12 @@ const loginEffect = Effect.fn("login")(function* (url: string) {
         // If there are multiple orgs, prompt user to select one
         let selectedOrgID: OrgID
         if (r.orgs.length > 1) {
-          yield* Prompt.log.info("Multiple organizations found. Please select one:")
+          yield* log.info("Multiple organizations found. Please select one:")
           const opts = r.orgs.map((org) => ({
             value: org,
             label: org.name,
           }))
-          const selected = yield* Prompt.select<{ id: string; name: string }>({
+          const selected = yield* select<{ id: string; name: string }>({
             message: "Select organization",
             options: opts,
           })
@@ -97,7 +97,7 @@ const loginEffect = Effect.fn("login")(function* (url: string) {
           orgID: selectedOrgID,
         })
         yield* s.stop("Logged in as " + r.email)
-        yield* Prompt.outro("Done")
+        yield* outro("Done")
       }),
     PollExpired: () => s.stop("Device code expired", 1),
     PollDenied: () => s.stop("Authorization denied", 1),
@@ -116,14 +116,14 @@ const logoutEffect = Effect.fn("logout")(function* (email?: string) {
     const match = accounts.find((a) => a.email === email)
     if (!match) return yield* println("Account not found: " + email)
     yield* service.remove(match.id)
-    yield* Prompt.outro("Logged out from " + email)
+    yield* outro("Logged out from " + email)
     return
   }
 
   const active = yield* service.active()
   const activeID = Option.map(active, (a) => a.id)
 
-  yield* Prompt.intro("Log out")
+  yield* intro("Log out")
 
   const opts = accounts.map((a) => {
     const isActive = Option.isSome(activeID) && activeID.value === a.id
@@ -133,11 +133,11 @@ const logoutEffect = Effect.fn("logout")(function* (email?: string) {
     }
   })
 
-  const selected = yield* Prompt.select({ message: "Select account to log out", options: opts })
+  const selected = yield* select({ message: "Select account to log out", options: opts })
   if (Option.isNone(selected)) return
 
   yield* service.remove(selected.value.id)
-  yield* Prompt.outro("Logged out from " + selected.value.email)
+  yield* outro("Logged out from " + selected.value.email)
 })
 
 interface OrgChoice {
@@ -165,14 +165,14 @@ const switchEffect = Effect.fn("switch")(function* () {
   )
   if (opts.length === 0) return yield* println("No orgs found")
 
-  yield* Prompt.intro("Switch org")
+  yield* intro("Switch org")
 
-  const selected = yield* Prompt.select<OrgChoice>({ message: "Select org", options: opts })
+  const selected = yield* select<OrgChoice>({ message: "Select org", options: opts })
   if (Option.isNone(selected)) return
 
   const choice = selected.value
   yield* service.use(choice.accountID, Option.some(choice.orgID))
-  yield* Prompt.outro("Switched to " + choice.label)
+  yield* outro("Switched to " + choice.label)
 })
 
 const orgsEffect = Effect.fn("orgs")(function* () {
@@ -199,7 +199,7 @@ const openEffect = Effect.fn("open")(function* () {
 
   const url = active.value.url
   yield* openBrowser(url)
-  yield* Prompt.outro("Opened " + url)
+  yield* outro("Opened " + url)
 })
 
 export const LoginCommand = effectCmd({

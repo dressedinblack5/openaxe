@@ -1,4 +1,4 @@
-import * as Locale from "@/util/locale"
+import { duration, titlecase } from "@/util/locale";
 import type { SessionMessages } from "./session.shared"
 import type { RunProvider, StreamCommit } from "./types"
 
@@ -39,9 +39,9 @@ export function messageTurnSummaryCommit(
   const model = providers?.find((item) => item.id === info.providerID)?.models[info.modelID]?.name
 
   return turnSummaryCommit({
-    agent: Locale.titlecase(info.agent),
+    agent: titlecase(info.agent),
     model: model ?? info.modelID,
-    duration: Locale.duration(completed - info.time.created),
+    duration: duration(completed - info.time.created),
     messageID: info.id,
   })
 }

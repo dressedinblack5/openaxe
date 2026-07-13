@@ -162,7 +162,7 @@ async function fixKnownLockfileIssues() {
 
   const removed = txt
     .split("\n")
-    .map((line) => line.match(/^    "(opentui-spinner\/@opentui\/[^\"]+)": /)?.[1])
+    .map((line) => line.match(/^    "(opentui-spinner\/@opentui\/[^"]+)": /)?.[1])
     .filter((item): item is string => item !== undefined)
 
   if (removed.length === 0) return []

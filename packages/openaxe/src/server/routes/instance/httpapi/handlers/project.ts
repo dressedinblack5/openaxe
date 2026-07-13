@@ -1,4 +1,4 @@
-import * as InstanceState from "@/effect/instance-state"
+import { context } from "@/effect/instance-state";
 import { Project } from "@/project/project"
 import { ProjectV2 } from "@opencode-ai/core/project"
 import { Effect } from "effect"
@@ -17,11 +17,11 @@ export const projectHandlers = HttpApiBuilder.group(InstanceHttpApi, "project", 
     })
 
     const current = Effect.fn("ProjectHttpApi.current")(function* () {
-      return (yield* InstanceState.context).project
+      return (yield* context).project
     })
 
     const initGit = Effect.fn("ProjectHttpApi.initGit")(function* () {
-      const ctx = yield* InstanceState.context
+      const ctx = yield* context
       const next = yield* svc.initGit({ directory: ctx.directory, project: ctx.project })
       if (next.id === ctx.project.id && next.vcs === ctx.project.vcs && next.worktree === ctx.project.worktree)
         return next

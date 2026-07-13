@@ -1,18 +1,26 @@
-import type * as Arr from "effect/Array"
-import { NodeFileSystem, NodeSink, NodeStream } from "@effect/platform-node"
-import * as NodePath from "@effect/platform-node/NodePath"
-import * as Deferred from "effect/Deferred"
-import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
-import * as FileSystem from "effect/FileSystem"
-import * as Layer from "effect/Layer"
-import * as Path from "effect/Path"
-import * as PlatformError from "effect/PlatformError"
-import * as Predicate from "effect/Predicate"
-import type * as Scope from "effect/Scope"
-import * as Sink from "effect/Sink"
-import * as Stream from "effect/Stream"
-import * as ChildProcess from "effect/unstable/process/ChildProcess"
+import type { NonEmptyReadonlyArray } from "effect/Array";
+import { NodeFileSystem, NodeSink, NodeStream, NodePath } from "@effect/platform-node"
+import { Deferred, Effect, FileSystem, Layer, Path, PlatformError, Sink, Stream } from "effect"
+import { succeed } from "effect/Exit";
+import { isNotNull, isNotUndefined, isUndefined } from "effect/Predicate";
+import type { Scope } from "effect"
+import {
+  type Command,
+  type StandardCommand,
+  type PipeOptions,
+  type CommandInput,
+  type CommandOutput,
+  type StdinConfig,
+  type StdoutConfig,
+  type StderrConfig,
+  type AdditionalFdConfig,
+  type CommandOptions,
+  type KillOptions,
+  type PipeFromOption,
+  parseFdName,
+  make as makeCommand,
+  fdName,
+} from "effect/unstable/process/ChildProcess"
 import type { ChildProcessHandle } from "effect/unstable/process/ChildProcessSpawner"
 import {
   ChildProcessSpawner,
@@ -21,7 +29,7 @@ import {
   makeHandle,
   ProcessId,
 } from "effect/unstable/process/ChildProcessSpawner"
-import * as NodeChildProcess from "node:child_process"
+import { exec, type ChildProcess, type IOType, type SpawnOptions, type StdioOptions } from "node:child_process"
 import { PassThrough } from "node:stream"
 import launch from "cross-spawn"
 import { LayerNode } from "./effect/layer-node"
@@ -50,11 +58,11 @@ const toTag = (err: NodeJS.ErrnoException): PlatformError.SystemErrorTag => {
   }
 }
 
-const flatten = (command: ChildProcess.Command) => {
-  const commands: Array<ChildProcess.StandardCommand> = []
-  const opts: Array<ChildProcess.PipeOptions> = []
+const flatten = (command: Command) => {
+  const commands: Array<StandardCommand> = []
+  const opts: Array<PipeOptions> = []
 
-  const walk = (cmd: ChildProcess.Command): void => {
+  const walk = (cmd: Command): void => {
     switch (cmd._tag) {
       case "StandardCommand":
         commands.push(cmd)
@@ -71,7 +79,7 @@ const flatten = (command: ChildProcess.Command) => {
   if (commands.length === 0) throw new Error("flatten produced empty commands array")
   const [head, ...tail] = commands
   return {
-    commands: [head, ...tail] as Arr.NonEmptyReadonlyArray<ChildProcess.StandardCommand>,
+    commands: [head, ...tail] as NonEmptyReadonlyArray<StandardCommand>,
     opts,
   }
 }
@@ -79,7 +87,7 @@ const flatten = (command: ChildProcess.Command) => {
 const toPlatformError = (
   method: string,
   err: NodeJS.ErrnoException,
-  command: ChildProcess.Command,
+  command: Command,
 ): PlatformError.PlatformError => {
   const cmd = flatten(command)
     .commands.map((x) => `${x.command} ${x.args.join(" ")}`)
@@ -100,24 +108,24 @@ export const make = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
 
-  const cwd = Effect.fnUntraced(function* (opts: ChildProcess.CommandOptions) {
-    if (Predicate.isUndefined(opts.cwd)) return undefined
+  const cwd = Effect.fnUntraced(function* (opts: CommandOptions) {
+    if (isUndefined(opts.cwd)) return undefined
     yield* fs.access(opts.cwd)
     return path.resolve(opts.cwd)
   })
 
-  const env = (opts: ChildProcess.CommandOptions) =>
+  const env = (opts: CommandOptions) =>
     opts.extendEnv ? { ...globalThis.process.env, ...opts.env } : opts.env
 
-  const input = (x: ChildProcess.CommandInput | undefined): NodeChildProcess.IOType | undefined =>
+  const input = (x: CommandInput | undefined): IOType | undefined =>
     Stream.isStream(x) ? "pipe" : x
 
-  const output = (x: ChildProcess.CommandOutput | undefined): NodeChildProcess.IOType | undefined =>
+  const output = (x: CommandOutput | undefined): IOType | undefined =>
     Sink.isSink(x) ? "pipe" : x
 
-  const stdin = (opts: ChildProcess.CommandOptions): ChildProcess.StdinConfig => {
-    const cfg: ChildProcess.StdinConfig = { stream: "pipe", encoding: "utf-8", endOnDone: true }
-    if (Predicate.isUndefined(opts.stdin)) return cfg
+  const stdin = (opts: CommandOptions): StdinConfig => {
+    const cfg: StdinConfig = { stream: "pipe", encoding: "utf-8", endOnDone: true }
+    if (isUndefined(opts.stdin)) return cfg
     if (typeof opts.stdin === "string") return { ...cfg, stream: opts.stdin }
     if (Stream.isStream(opts.stdin)) return { ...cfg, stream: opts.stdin }
     return {
@@ -127,48 +135,48 @@ export const make = Effect.gen(function* () {
     }
   }
 
-  const stdio = (opts: ChildProcess.CommandOptions, key: "stdout" | "stderr"): ChildProcess.StdoutConfig => {
+  const stdio = (opts: CommandOptions, key: "stdout" | "stderr"): StdoutConfig => {
     const cfg = opts[key]
-    if (Predicate.isUndefined(cfg)) return { stream: "pipe" }
+    if (isUndefined(cfg)) return { stream: "pipe" }
     if (typeof cfg === "string") return { stream: cfg }
     if (Sink.isSink(cfg)) return { stream: cfg }
     return { stream: cfg.stream }
   }
 
-  const fds = (opts: ChildProcess.CommandOptions) => {
-    if (Predicate.isUndefined(opts.additionalFds)) return []
+  const fds = (opts: CommandOptions) => {
+    if (isUndefined(opts.additionalFds)) return []
     return Object.entries(opts.additionalFds)
       .flatMap(([name, config]) => {
-        const fd = ChildProcess.parseFdName(name)
-        return Predicate.isUndefined(fd) ? [] : [{ fd, config }]
+        const fd = parseFdName(name)
+        return isUndefined(fd) ? [] : [{ fd, config }]
       })
       .toSorted((a, b) => a.fd - b.fd)
   }
 
   const stdios = (
-    sin: ChildProcess.StdinConfig,
-    sout: ChildProcess.StdoutConfig,
-    serr: ChildProcess.StderrConfig,
-    extra: ReadonlyArray<{ fd: number; config: ChildProcess.AdditionalFdConfig }>,
-  ): NodeChildProcess.StdioOptions => {
-    const pipe = (x: NodeChildProcess.IOType | undefined) =>
+    sin: StdinConfig,
+    sout: StdoutConfig,
+    serr: StderrConfig,
+    extra: ReadonlyArray<{ fd: number; config: AdditionalFdConfig }>,
+  ): StdioOptions => {
+    const pipe = (x: IOType | undefined) =>
       process.platform === "win32" && x === "pipe" ? "overlapped" : x
-    const arr: Array<NodeChildProcess.IOType | undefined> = [
+    const arr: Array<IOType | undefined> = [
       pipe(input(sin.stream)),
       pipe(output(sout.stream)),
       pipe(output(serr.stream)),
     ]
-    if (extra.length === 0) return arr as NodeChildProcess.StdioOptions
+    if (extra.length === 0) return arr as StdioOptions
     const max = extra.reduce((acc, x) => Math.max(acc, x.fd), 2)
     for (let i = 3; i <= max; i++) arr[i] = "ignore"
     for (const x of extra) arr[x.fd] = pipe("pipe")
-    return arr as NodeChildProcess.StdioOptions
+    return arr as StdioOptions
   }
 
   const setupFds = Effect.fnUntraced(function* (
-    command: ChildProcess.StandardCommand,
-    proc: NodeChildProcess.ChildProcess,
-    extra: ReadonlyArray<{ fd: number; config: ChildProcess.AdditionalFdConfig }>,
+    command: StandardCommand,
+    proc: ChildProcess,
+    extra: ReadonlyArray<{ fd: number; config: AdditionalFdConfig }>,
   ) {
     if (extra.length === 0) {
       return {
@@ -221,13 +229,13 @@ export const make = Effect.gen(function* () {
   })
 
   const setupStdin = (
-    command: ChildProcess.StandardCommand,
-    proc: NodeChildProcess.ChildProcess,
-    cfg: ChildProcess.StdinConfig,
+    command: StandardCommand,
+    proc: ChildProcess,
+    cfg: StdinConfig,
   ) =>
     Effect.suspend(() => {
       let sink: Sink.Sink<void, unknown, never, PlatformError.PlatformError> = Sink.drain
-      if (Predicate.isNotNull(proc.stdin)) {
+      if (isNotNull(proc.stdin)) {
         sink = NodeSink.fromWritable({
           evaluate: () => proc.stdin!,
           onError: (err) => toPlatformError("fromWritable(stdin)", toError(err), command),
@@ -240,10 +248,10 @@ export const make = Effect.gen(function* () {
     })
 
   const setupOutput = (
-    command: ChildProcess.StandardCommand,
-    proc: NodeChildProcess.ChildProcess,
-    out: ChildProcess.StdoutConfig,
-    err: ChildProcess.StderrConfig,
+    command: StandardCommand,
+    proc: ChildProcess,
+    out: StdoutConfig,
+    err: StderrConfig,
   ) => {
     let stdout = proc.stdout
       ? NodeStream.fromReadable({
@@ -264,8 +272,8 @@ export const make = Effect.gen(function* () {
     return { stdout, stderr, all: Stream.merge(stdout, stderr) }
   }
 
-  const spawn = (command: ChildProcess.StandardCommand, opts: NodeChildProcess.SpawnOptions) =>
-    Effect.callback<readonly [NodeChildProcess.ChildProcess, ExitSignal], PlatformError.PlatformError>((resume) => {
+  const spawn = (command: StandardCommand, opts: SpawnOptions) =>
+    Effect.callback<readonly [ChildProcess, ExitSignal], PlatformError.PlatformError>((resume) => {
       const signal = Deferred.makeUnsafe<readonly [code: number | null, signal: NodeJS.Signals | null]>()
       const proc = launch(command.command, command.args, opts)
       let end = false
@@ -279,7 +287,7 @@ export const make = Effect.gen(function* () {
       proc.on("close", (...args) => {
         if (end) return
         end = true
-        Deferred.doneUnsafe(signal, Exit.succeed(exit ?? args))
+        Deferred.doneUnsafe(signal, succeed(exit ?? args))
       })
       proc.on("spawn", () => {
         resume(Effect.succeed([proc, signal]))
@@ -290,13 +298,13 @@ export const make = Effect.gen(function* () {
     })
 
   const killGroup = (
-    command: ChildProcess.StandardCommand,
-    proc: NodeChildProcess.ChildProcess,
+    command: StandardCommand,
+    proc: ChildProcess,
     signal: NodeJS.Signals,
   ) => {
     if (globalThis.process.platform === "win32") {
       return Effect.callback<void, PlatformError.PlatformError>((resume) => {
-        NodeChildProcess.exec(`taskkill /pid ${proc.pid} /T /F`, { windowsHide: true }, (err) => {
+        exec(`taskkill /pid ${proc.pid} /T /F`, { windowsHide: true }, (err) => {
           if (err) return resume(Effect.fail(toPlatformError("kill", toError(err), command)))
           resume(Effect.void)
         })
@@ -312,8 +320,8 @@ export const make = Effect.gen(function* () {
   }
 
   const killOne = (
-    command: ChildProcess.StandardCommand,
-    proc: NodeChildProcess.ChildProcess,
+    command: StandardCommand,
+    proc: ChildProcess,
     signal: NodeJS.Signals,
   ) =>
     Effect.suspend(() => {
@@ -323,26 +331,26 @@ export const make = Effect.gen(function* () {
 
   const timeout =
     (
-      proc: NodeChildProcess.ChildProcess,
-      command: ChildProcess.StandardCommand,
-      opts: ChildProcess.KillOptions | undefined,
+      proc: ChildProcess,
+      command: StandardCommand,
+      opts: KillOptions | undefined,
     ) =>
     <A, E, R>(
       f: (
-        command: ChildProcess.StandardCommand,
-        proc: NodeChildProcess.ChildProcess,
+        command: StandardCommand,
+        proc: ChildProcess,
         signal: NodeJS.Signals,
       ) => Effect.Effect<A, E, R>,
     ) => {
       const signal = opts?.killSignal ?? "SIGTERM"
-      if (Predicate.isUndefined(opts?.forceKillAfter)) return f(command, proc, signal)
+      if (isUndefined(opts?.forceKillAfter)) return f(command, proc, signal)
       return Effect.timeoutOrElse(f(command, proc, signal), {
         duration: opts.forceKillAfter,
         orElse: () => f(command, proc, "SIGKILL"),
       })
     }
 
-  const source = (handle: ChildProcessHandle, from: ChildProcess.PipeFromOption | undefined) => {
+  const source = (handle: ChildProcessHandle, from: PipeFromOption | undefined) => {
     const opt = from ?? "stdout"
     switch (opt) {
       case "stdout":
@@ -352,14 +360,14 @@ export const make = Effect.gen(function* () {
       case "all":
         return handle.all
       default: {
-        const fd = ChildProcess.parseFdName(opt)
-        return Predicate.isNotUndefined(fd) ? handle.getOutputFd(fd) : handle.stdout
+        const fd = parseFdName(opt)
+        return isNotUndefined(fd) ? handle.getOutputFd(fd) : handle.stdout
       }
     }
   }
 
   const spawnCommand: (
-    command: ChildProcess.Command,
+    command: Command,
   ) => Effect.Effect<ChildProcessHandle, PlatformError.PlatformError, Scope.Scope> = Effect.fnUntraced(
     function* (command) {
       switch (command._tag) {
@@ -385,7 +393,7 @@ export const make = Effect.gen(function* () {
               if (done) {
                 const [code] = yield* Deferred.await(signal)
                 if (process.platform === "win32") return yield* Effect.void
-                if (code !== 0 && Predicate.isNotNull(code)) return yield* Effect.ignore(kill(killGroup))
+                if (code !== 0 && isNotNull(code)) return yield* Effect.ignore(kill(killGroup))
                 return yield* Effect.void
               }
               const send = (s: NodeJS.Signals) =>
@@ -415,7 +423,7 @@ export const make = Effect.gen(function* () {
             getOutputFd: fd.getOutputFd,
             isRunning: Effect.map(Deferred.isDone(signal), (done) => !done),
             exitCode: Effect.flatMap(Deferred.await(signal), ([code, signal]) => {
-              if (Predicate.isNotNull(code)) return Effect.succeed(ExitCode(code))
+              if (isNotNull(code)) return Effect.succeed(ExitCode(code))
               return Effect.fail(
                 toPlatformError(
                   "exitCode",
@@ -424,7 +432,7 @@ export const make = Effect.gen(function* () {
                 ),
               )
             }),
-            kill: (opts?: ChildProcess.KillOptions) => {
+            kill: (opts?: KillOptions) => {
               const sig = opts?.killSignal ?? "SIGTERM"
               const send = (s: NodeJS.Signals) =>
                 Effect.catch(killGroup(command, proc, s), () => killOne(command, proc, s))
@@ -461,17 +469,17 @@ export const make = Effect.gen(function* () {
             const to = opts.to ?? "stdin"
             if (to === "stdin") {
               handle = spawnCommand(
-                ChildProcess.make(next.command, next.args, {
+                makeCommand(next.command, next.args, {
                   ...next.options,
                   stdin: { ...sin, stream },
                 }),
               )
               continue
             }
-            const fd = ChildProcess.parseFdName(to)
-            if (Predicate.isUndefined(fd)) {
+            const fd = parseFdName(to)
+            if (isUndefined(fd)) {
               handle = spawnCommand(
-                ChildProcess.make(next.command, next.args, {
+                makeCommand(next.command, next.args, {
                   ...next.options,
                   stdin: { ...sin, stream },
                 }),
@@ -479,11 +487,11 @@ export const make = Effect.gen(function* () {
               continue
             }
             handle = spawnCommand(
-              ChildProcess.make(next.command, next.args, {
+              makeCommand(next.command, next.args, {
                 ...next.options,
                 additionalFds: {
                   ...next.options.additionalFds,
-                  [ChildProcess.fdName(fd) as `fd${number}`]: { type: "input", stream },
+                  [fdName(fd) as `fd${number}`]: { type: "input", stream },
                 },
               }),
             )

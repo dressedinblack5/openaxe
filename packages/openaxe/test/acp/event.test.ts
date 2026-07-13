@@ -599,7 +599,7 @@ describe("acp event routing", () => {
       content: [{ type: "content", content: { type: "text", text: "same" } }],
     })
     expect(updates[2]?.update).toMatchObject({ sessionUpdate: "tool_call_update", status: "in_progress" })
-    expect("content" in updates[2]!.update).toBe(false)
+    expect("content" in updates[2].update).toBe(false)
   })
 
   it("clears shell snapshot marker when a tool returns to pending", async () => {

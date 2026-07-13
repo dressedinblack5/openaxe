@@ -230,8 +230,8 @@ type WithUsage<Event extends { readonly usage?: Usage }> = Omit<Event, "type" | 
   readonly usage?: UsageInput
 }
 
-const contentBlockID = (value: ContentBlockID | string) => ContentBlockID.make(value)
-const toolCallID = (value: ToolCallID | string) => ToolCallID.make(value)
+const contentBlockID = (value: ContentBlockID  ) => ContentBlockID.make(value)
+const toolCallID = (value: ToolCallID  ) => ToolCallID.make(value)
 
 /**
  * camelCase aliases for `LLMEvent.guards` (provided by `Schema.toTaggedUnion`).
@@ -335,6 +335,8 @@ const responseUsage = (events: ReadonlyArray<LLMEvent>) =>
     undefined,
   )
 
+export type LLMResponseOutput = LLMResponse | { readonly events: ReadonlyArray<LLMEvent>; readonly usage?: Usage }
+
 export class LLMResponse extends Schema.Class<LLMResponse>("LLM.Response")({
   events: Schema.Array(LLMEvent),
   usage: Schema.optional(Usage),
@@ -353,20 +355,18 @@ export class LLMResponse extends Schema.Class<LLMResponse>("LLM.Response")({
   get toolCalls() {
     return this.events.filter(LLMEvent.is.toolCall)
   }
-}
-
-export namespace LLMResponse {
-  export type Output = LLMResponse | { readonly events: ReadonlyArray<LLMEvent>; readonly usage?: Usage }
 
   /** Concatenate assistant text from a response or collected event list. */
-  export const text = (response: Output) => responseText(response.events)
-
+  static text: (response: LLMResponseOutput) => string
   /** Return response usage, falling back to the latest usage-bearing event. */
-  export const usage = (response: Output) => response.usage ?? responseUsage(response.events)
-
+  static usage: (response: LLMResponseOutput) => Usage | undefined
   /** Return completed tool calls from a response or collected event list. */
-  export const toolCalls = (response: Output) => response.events.filter(LLMEvent.is.toolCall)
-
+  static toolCalls: (response: LLMResponseOutput) => ReadonlyArray<ToolCall>
   /** Concatenate reasoning text from a response or collected event list. */
-  export const reasoning = (response: Output) => responseReasoning(response.events)
+  static reasoning: (response: LLMResponseOutput) => string
 }
+
+LLMResponse.text = (response: LLMResponseOutput) => responseText(response.events)
+LLMResponse.usage = (response: LLMResponseOutput) => response.usage ?? responseUsage(response.events)
+LLMResponse.toolCalls = (response: LLMResponseOutput) => response.events.filter(LLMEvent.is.toolCall)
+LLMResponse.reasoning = (response: LLMResponseOutput) => responseReasoning(response.events)

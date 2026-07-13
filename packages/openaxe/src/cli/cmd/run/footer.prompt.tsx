@@ -12,7 +12,7 @@ import { normalizePromptContent } from "@opencode-ai/tui/editor"
 import fuzzysort from "fuzzysort"
 import path from "path"
 import { createEffect, createMemo, createResource, createSignal, onCleanup, onMount, type Accessor } from "solid-js"
-import * as Locale from "@/util/locale"
+import { truncateMiddle } from "@/util/locale";
 import {
   createPromptHistory,
   displayCharAt,
@@ -336,7 +336,7 @@ export function createPromptState(input: PromptInput): PromptState {
   const resources = createMemo<Auto[]>(() => {
     return input.resources().map((item) => ({
       kind: "mention",
-      display: Locale.truncateMiddle(`@${item.name} (${item.uri})`, width()),
+      display: truncateMiddle(`@${item.name} (${item.uri})`, width()),
       value: item.name,
       description: item.description,
       part: {
@@ -379,7 +379,7 @@ export function createPromptState(input: PromptInput): PromptState {
 
         return {
           kind: "mention",
-          display: Locale.truncateMiddle("@" + filename, width()),
+          display: truncateMiddle("@" + filename, width()),
           value: filename,
           directory: item.endsWith("/"),
           part: {

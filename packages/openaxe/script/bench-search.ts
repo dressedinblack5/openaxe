@@ -18,7 +18,7 @@ const GLOB_LIMIT = 50
 const run = <A, R>(effect: Effect.Effect<A, unknown, R>) =>
   AppRuntime.runPromise(
     InstanceStore.Service.use((store) => store.provide({ directory: dir }, effect as never)),
-  ) as Promise<A>
+  )
 
 // --- raw Fff picker ---
 const t0 = performance.now()
@@ -75,19 +75,19 @@ console.log("--- Search service (warm) ---")
 
 for (const q of FILE_QUERIES) {
   const t = performance.now()
-  const r = await run(FileSystem.Service.use((svc) => svc.find({ query: q, limit: FILE_LIMIT })))
+  const r = await run(FileSystem.Service.use((svc) => svc.find({ query: q, limit: FILE_LIMIT }))) as string[]
   console.log(`[Search.find] "${q}": ${(performance.now() - t).toFixed(1)}ms (${r.length} results)`)
 }
 
 for (const q of GREP_QUERIES) {
   const t = performance.now()
-  const r = await run(FileSystem.Service.use((svc) => svc.grep({ pattern: q, limit: GREP_LIMIT })))
+  const r = await run(FileSystem.Service.use((svc) => svc.grep({ pattern: q, limit: GREP_LIMIT }))) as string[]
   console.log(`[Search.grep] "${q}": ${(performance.now() - t).toFixed(1)}ms (${r.length} matches)`)
 }
 
 for (const q of GLOB_QUERIES) {
   const t = performance.now()
-  const r = await run(FileSystem.Service.use((svc) => svc.glob({ pattern: q, limit: GLOB_LIMIT })))
+  const r = await run(FileSystem.Service.use((svc) => svc.glob({ pattern: q, limit: GLOB_LIMIT }))) as string[]
   console.log(`[Search.glob] "${q}": ${(performance.now() - t).toFixed(1)}ms (${r.length} files)`)
 }
 

@@ -1,6 +1,6 @@
 import { Filesystem } from "@/util/filesystem"
 import { FrontmatterError } from "@opencode-ai/core/v1/config/error"
-import { ConfigMarkdown as ConfigMarkdownCore } from "@opencode-ai/core/config/markdown"
+import { ConfigMarkdown } from "@opencode-ai/core/config/markdown"
 
 export const FILE_REGEX = /(?<![\w`])@(\.?[^\s`,.]*(?:\.[^\s`,.]+)*)/g
 export const SHELL_REGEX = /!`([^`]+)`/g
@@ -15,13 +15,13 @@ export function shell(template: string) {
 
 // other coding agents like claude code allow invalid yaml in their
 // frontmatter, we need to fallback to a more permissive parser for those cases
-export const fallbackSanitization = ConfigMarkdownCore.sanitize
+export const fallbackSanitization = ConfigMarkdown.sanitize
 
 export async function parse(filePath: string) {
   const template = await Filesystem.readText(filePath)
 
   try {
-    return ConfigMarkdownCore.parse(template)
+    return ConfigMarkdown.parse(template)
   } catch (err) {
     throw new FrontmatterError({
       path: filePath,

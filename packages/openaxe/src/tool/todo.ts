@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect"
-import * as Tool from "./tool"
+import type { Context, DefWithoutID } from "./tool"
+import { define } from "./tool";
 import DESCRIPTION_WRITE from "./todowrite.txt"
 import { Todo } from "../session/todo"
 
@@ -22,7 +23,7 @@ type Metadata = {
   todos: Todo.Info[]
 }
 
-export const TodoWriteTool = Tool.define<typeof Parameters, Metadata, Todo.Service>(
+export const TodoWriteTool = define<typeof Parameters, Metadata, Todo.Service>(
   "todowrite",
   Effect.gen(function* () {
     const todo = yield* Todo.Service
@@ -30,7 +31,7 @@ export const TodoWriteTool = Tool.define<typeof Parameters, Metadata, Todo.Servi
     return {
       description: DESCRIPTION_WRITE,
       parameters: Parameters,
-      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context<Metadata>) =>
+      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context<Metadata>) =>
         Effect.gen(function* () {
           yield* ctx.ask({
             permission: "todowrite",
@@ -52,6 +53,6 @@ export const TodoWriteTool = Tool.define<typeof Parameters, Metadata, Todo.Servi
             },
           }
         }),
-    } satisfies Tool.DefWithoutID<typeof Parameters, Metadata>
+    } satisfies DefWithoutID<typeof Parameters, Metadata>
   }),
 )

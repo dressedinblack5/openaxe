@@ -1,7 +1,7 @@
 import type { Plugin } from "@opencode-ai/plugin"
 import { rename, writeFile } from "node:fs/promises"
 import { randomInt } from "node:crypto"
-import { setTimeout as sleep } from "node:timers/promises"
+import { setTimeout } from "node:timers/promises"
 
 const DEV_DATA_FILE = "/tmp/opencode-workspace-dev-data.json"
 const DEV_DATA_TEMP_FILE = `${DEV_DATA_FILE}.tmp`
@@ -16,9 +16,11 @@ async function waitForHealth(port: number) {
       if (response.ok) {
         return
       }
-    } catch {}
+    } catch {
+      // expected during startup, retry loop handles it
+    }
 
-    await sleep(250)
+    await setTimeout(250)
   }
 
   throw new Error(`Timed out waiting for debug server health check at ${url}`)

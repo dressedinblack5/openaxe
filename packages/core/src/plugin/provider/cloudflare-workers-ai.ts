@@ -3,6 +3,7 @@ import { InstallationVersion } from "../../installation/version"
 import { Effect } from "effect"
 import { define } from "../internal"
 import { ProviderV2 } from "../../provider"
+import type { OpenAICompatibleProviderSettings } from "@ai-sdk/openai-compatible"
 
 const providerID = ProviderV2.ID.make("cloudflare-workers-ai")
 
@@ -33,7 +34,7 @@ export const CloudflareWorkersAIPlugin = define({
           sdkOptions({
             ...evt.options,
             baseURL: evt.options.baseURL ?? (accountId ? workersEndpoint(accountId) : undefined),
-          }) as any,
+          }) as OpenAICompatibleProviderSettings,
         )
       }),
     )

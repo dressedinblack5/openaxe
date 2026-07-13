@@ -1,7 +1,10 @@
 import { Layer, ManagedRuntime } from "effect"
-import * as Observability from "@opencode-ai/core/observability"
+import { NodeFileSystem } from "@effect/platform-node"
+import { layer } from "@opencode-ai/core/observability";
+import { Artifact } from "@opencode-ai/core/artifact"
 
 import { FSUtil } from "@opencode-ai/core/fs-util"
+import { Memory } from "@opencode-ai/core/memory"
 import { Database } from "@opencode-ai/core/database/database"
 import { Auth } from "@/auth"
 import { Account } from "@/account/account"
@@ -98,10 +101,13 @@ export const AppLayer = Layer.mergeAll(
   Installation.defaultLayer,
   ShareNext.defaultLayer,
   SessionShare.defaultLayer,
+    Memory.defaultLayer,
+    Artifact.defaultLayer,
 ).pipe(
   Layer.provideMerge(Ripgrep.defaultLayer),
   Layer.provideMerge(InstanceLayer.layer),
-  Layer.provideMerge(Observability.layer),
+  Layer.provideMerge(layer),
+  Layer.provideMerge(NodeFileSystem.layer),
 )
 
 // ponytail: module-scoped ManagedRuntime.make would eagerly evaluate layers

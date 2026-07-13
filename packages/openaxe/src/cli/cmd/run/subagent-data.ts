@@ -1,5 +1,5 @@
 import type { Event, Message, Part, PermissionRequest, QuestionRequest, ToolPart } from "@opencode-ai/sdk/v2"
-import * as Locale from "@/util/locale"
+import { titlecase } from "@/util/locale";
 import {
   bootstrapSessionData,
   createSessionData,
@@ -309,7 +309,7 @@ function taskStatus(part: ToolPart): FooterSubagentTab["status"] {
 }
 
 function taskTab(part: ToolPart, sessionID: string): FooterSubagentTab {
-  const label = Locale.titlecase(text(part.state.input.subagent_type) ?? "general")
+  const label = titlecase(text(part.state.input.subagent_type) ?? "general")
   const description = text(part.state.input.description) ?? stateTitle(part) ?? inputLabel(part.state.input) ?? ""
 
   return {
@@ -463,7 +463,7 @@ function ensureBlockerTab(
     sessionID,
     partID: `bootstrap:${sessionID}`,
     callID: `bootstrap:${sessionID}`,
-    label: text(title) ?? Locale.titlecase(kind),
+    label: text(title) ?? titlecase(kind),
     description: kind === "permission" ? "Pending permission" : "Pending question",
     status: "running",
     lastUpdatedAt: Date.now(),

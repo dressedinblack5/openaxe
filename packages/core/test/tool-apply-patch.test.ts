@@ -2,8 +2,10 @@ import fs from "fs/promises"
 import path from "path"
 import { describe, expect } from "bun:test"
 import { Deferred, Effect, Exit, Fiber, Layer } from "effect"
+import { Config } from "@opencode-ai/core/config"
 import { FileMutation } from "@opencode-ai/core/file-mutation"
 import { FSUtil } from "@opencode-ai/core/fs-util"
+import { Global } from "@opencode-ai/core/global"
 import { Location } from "@opencode-ai/core/location"
 import { LocationMutation } from "@opencode-ai/core/location-mutation"
 import { PermissionV2 } from "@opencode-ai/core/permission"
@@ -91,7 +93,12 @@ const withTool = <A, E, R>(directory: string, body: (registry: ToolRegistry.Inte
   const resolution = LocationMutation.layer.pipe(Layer.provide(filesystem), Layer.provide(activeLocation))
   const mutation = FileMutation.layer.pipe(Layer.provide(filesystem))
   const registry = ToolRegistry.defaultLayer.pipe(Layer.provide(permission))
+  const config = Config.locationLayer.pipe(
+    Layer.provide(activeLocation),
+    Layer.provide(Global.defaultLayer),
+  )
   const patch = ApplyPatchTool.layer.pipe(
+    Layer.provide(config),
     Layer.provide(registry),
     Layer.provide(permission),
     Layer.provide(resolution),

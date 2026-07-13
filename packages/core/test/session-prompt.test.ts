@@ -185,7 +185,7 @@ describe("SessionV2.prompt", () => {
       expect(
         Array.from(
           yield* session
-            .events({ sessionID, after: streamed[0]!.durable?.seq })
+            .events({ sessionID, after: streamed[0].durable?.seq })
             .pipe(Stream.take(1), Stream.runCollect),
         ).map((event) => [event.durable?.seq, event.type]),
       ).toEqual([[1, "session.next.prompt.admitted"]])

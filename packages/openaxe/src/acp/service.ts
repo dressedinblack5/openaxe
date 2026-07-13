@@ -32,7 +32,7 @@ import {
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import type { Message, OpencodeClient, SessionMessageResponse } from "@opencode-ai/sdk/v2"
 import { Context, Effect, Layer, ManagedRuntime } from "effect"
-import * as ACPError from "./error"
+import { type Error as ErrorUnion, UnknownAuthMethodError, InvalidConfigOptionError, InvalidModelError, InvalidEffortError, InvalidModeError, AuthRequiredError, ServiceFailureError } from "./error"
 import { buildConfigOptions, parseModelSelection } from "./config-option"
 import { promptContentToParts } from "./content"
 import { Directory } from "./directory"
@@ -47,7 +47,7 @@ import type { Command } from "@/command"
 
 export const AuthMethodID = "opencode-login"
 
-export type Error = ACPError.Error
+export type Error = ErrorUnion
 type ServiceConnection = Pick<AgentSideConnection, "sessionUpdate"> &
   Partial<Pick<AgentSideConnection, "requestPermission" | "writeTextFile">>
 
@@ -137,7 +137,7 @@ export function make(input: {
 
   const authenticate = Effect.fn("ACP.authenticate")(function* (params: AuthenticateRequest) {
     if (params.methodId !== AuthMethodID) {
-      return yield* new ACPError.UnknownAuthMethodError({ methodId: params.methodId })
+      return yield* new UnknownAuthMethodError({ methodId: params.methodId })
     }
     return {}
   })
@@ -401,7 +401,7 @@ export function make(input: {
     const current = yield* session.get(params.sessionId)
     const snapshot = yield* configSnapshot(current)
     if (typeof params.value !== "string") {
-      return yield* new ACPError.InvalidConfigOptionError({ configId: params.configId })
+      return yield* new InvalidConfigOptionError({ configId: params.configId })
     }
 
     if (params.configId === "model") {
@@ -423,7 +423,7 @@ export function make(input: {
       const model = current.model ?? selectDefaultModel(snapshot)
       const variants = Directory.variants(snapshot, model)
       if (!variants || !Object.keys(variants).includes(params.value)) {
-        return yield* new ACPError.InvalidEffortError({ effort: params.value })
+        return yield* new InvalidEffortError({ effort: params.value })
       }
       const state = yield* session.setVariant(params.sessionId, params.value)
       return {
@@ -437,7 +437,7 @@ export function make(input: {
 
     if (params.configId === "mode") {
       if (!snapshot.availableModes.some((mode) => mode.id === params.value)) {
-        return yield* new ACPError.InvalidModeError({ mode: params.value })
+        return yield* new InvalidModeError({ mode: params.value })
       }
       const state = yield* session.setMode(params.sessionId, params.value)
       return {
@@ -449,14 +449,14 @@ export function make(input: {
       }
     }
 
-    return yield* new ACPError.InvalidConfigOptionError({ configId: params.configId })
+    return yield* new InvalidConfigOptionError({ configId: params.configId })
   })
 
   const setSessionMode = Effect.fn("ACP.setSessionMode")(function* (params: SetSessionModeRequest) {
     const current = yield* session.get(params.sessionId)
     const snapshot = yield* configSnapshot(current)
     if (!snapshot.availableModes.some((mode) => mode.id === params.modeId)) {
-      return yield* new ACPError.InvalidModeError({ mode: params.modeId })
+      return yield* new InvalidModeError({ mode: params.modeId })
     }
     yield* session.setMode(params.sessionId, params.modeId)
     return {}
@@ -730,10 +730,10 @@ async function loadDirectorySnapshot(sdk: OpencodeClient, directory: string) {
         sdk.config.get({ directory }, { throwOnError: true }).catch(() => undefined),
       ),
     ])
-    const providersData = providersResponse.data!
-    const agents = agentsResponse.data!
-    const commandsData = commandsResponse.data!
-    const skills = skillsResponse.data!
+    const providersData = providersResponse.data
+    const agents = agentsResponse.data
+    const commandsData = commandsResponse.data
+    const skills = skillsResponse.data
     const providers = Object.fromEntries(providersData.providers.map((provider) => [provider.id, provider])) as Record<
       ProviderV2.ID,
       Provider.Info
@@ -858,14 +858,14 @@ function parseSelectedModel(snapshot: Directory.Snapshot, modelId: string) {
   const model = provider?.models[ModelV2.ID.make(selected.model.modelID)]
   if (!model) {
     return Effect.fail(
-      new ACPError.InvalidModelError({
+      new InvalidModelError({
         providerId: selected.model.providerID,
         modelId,
       }),
     )
   }
   if (selected.variant && !model.variants?.[selected.variant]) {
-    return Effect.fail(new ACPError.InvalidEffortError({ effort: selected.variant }))
+    return Effect.fail(new InvalidEffortError({ effort: selected.variant }))
   }
   return Effect.succeed({
     model: {
@@ -1008,9 +1008,9 @@ function isSdkResponse<T>(value: T | SdkResponse<T>): value is SdkResponse<T> {
 function fromUnknownError(error: unknown, service?: string): Error {
   if (isACPError(error)) return error
   if (isAuthRequired(error)) {
-    return new ACPError.AuthRequiredError({ providerId: findProviderID(error) })
+    return new AuthRequiredError({ providerId: findProviderID(error) })
   }
-  return new ACPError.ServiceFailureError({ safeMessage: "OpenCode service failure", service })
+  return new ServiceFailureError({ safeMessage: "OpenCode service failure", service })
 }
 
 function isACPError(error: unknown): error is Error {

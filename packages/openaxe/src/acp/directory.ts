@@ -6,8 +6,7 @@ import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { Provider } from "@/provider/provider"
 import { Context, Effect, Layer, SynchronizedRef } from "effect"
-import type * as ACPError from "./error"
-
+import type { Error } from "./error";
 export type ModelOption = {
   readonly providerID: ProviderV2.ID
   readonly providerName: string
@@ -40,12 +39,12 @@ export type Snapshot = {
 }
 
 export interface LoaderInterface {
-  readonly load: (directory: string) => Effect.Effect<Snapshot, ACPError.Error>
+  readonly load: (directory: string) => Effect.Effect<Snapshot, Error>
 }
 
 export interface Interface {
-  readonly get: (directory: string) => Effect.Effect<Snapshot, ACPError.Error>
-  readonly refresh: (directory: string) => Effect.Effect<Snapshot, ACPError.Error>
+  readonly get: (directory: string) => Effect.Effect<Snapshot, Error>
+  readonly refresh: (directory: string) => Effect.Effect<Snapshot, Error>
   readonly variants: (snapshot: Snapshot, model: DefaultModel) => ModelVariants | undefined
 }
 
@@ -143,7 +142,7 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const loader = yield* Loader
-    const snapshots = yield* SynchronizedRef.make(new Map<string, Effect.Effect<Snapshot, ACPError.Error>>())
+    const snapshots = yield* SynchronizedRef.make(new Map<string, Effect.Effect<Snapshot, Error>>())
 
     const cached = Effect.fnUntraced(function* (directory: string) {
       return yield* SynchronizedRef.modifyEffect(

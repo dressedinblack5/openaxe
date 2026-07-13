@@ -2,7 +2,7 @@ import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import type { Model } from "@opencode-ai/sdk/v2"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { iife } from "@/util/iife"
-import { setTimeout as sleep } from "node:timers/promises"
+import { setTimeout } from "node:timers/promises"
 import { CopilotModels } from "./models"
 import { MessageV2 } from "@/session/message-v2"
 
@@ -153,7 +153,9 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
                     isAgent: !(last?.role === "user" && hasNonToolCalls) || imgMsg(last),
                   }
                 }
-              } catch {}
+              } catch {
+                // expected for non-conforming messages, fall through to defaults
+              }
               return { isVision: false, isAgent: false }
             })
 
@@ -226,7 +228,7 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
 
             if (deploymentType === "enterprise") {
               const enterpriseUrl = inputs.enterpriseUrl
-              domain = normalizeDomain(enterpriseUrl!)
+              domain = normalizeDomain(enterpriseUrl)
             }
 
             const urls = getUrls(domain)
@@ -306,7 +308,7 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
                   }
 
                   if (data.error === "authorization_pending") {
-                    await sleep(deviceData.interval * 1000 + OAUTH_POLLING_SAFETY_MARGIN_MS)
+                    await setTimeout(deviceData.interval * 1000 + OAUTH_POLLING_SAFETY_MARGIN_MS)
                     continue
                   }
 
@@ -322,13 +324,13 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
                       newInterval = serverInterval * 1000
                     }
 
-                    await sleep(newInterval + OAUTH_POLLING_SAFETY_MARGIN_MS)
+                    await setTimeout(newInterval + OAUTH_POLLING_SAFETY_MARGIN_MS)
                     continue
                   }
 
                   if (data.error) return { type: "failed" as const }
 
-                  await sleep(deviceData.interval * 1000 + OAUTH_POLLING_SAFETY_MARGIN_MS)
+                  await setTimeout(deviceData.interval * 1000 + OAUTH_POLLING_SAFETY_MARGIN_MS)
                   continue
                 }
               },

@@ -5,7 +5,7 @@ import { Observability } from "../observability"
 export function makeRuntime<I, S, E>(service: Context.Service<I, S>, layer: Layer.Layer<I, E>) {
   let rt: ManagedRuntime.ManagedRuntime<I, E> | undefined
   const getRuntime = () =>
-    (rt ??= ManagedRuntime.make(Layer.provideMerge(layer, Observability.layer) as Layer.Layer<I, E>, {
+    (rt ??= ManagedRuntime.make(Layer.provideMerge(layer, Observability.layer), {
       memoMap,
     }))
 
@@ -19,3 +19,5 @@ export function makeRuntime<I, S, E>(service: Context.Service<I, S>, layer: Laye
     runCallback: <A, Err>(fn: (svc: S) => Effect.Effect<A, Err, I>) => getRuntime().runCallback(service.use(fn)),
   }
 }
+
+export * as EffectRuntime from "./runtime"

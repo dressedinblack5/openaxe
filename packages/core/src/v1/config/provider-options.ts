@@ -16,7 +16,7 @@ export interface Lowerer {
 
 export function get(packageName?: string): Lowerer {
   const key = packageName ?? ""
-  return Object.hasOwn(lowerers, key) ? lowerers[key]! : raw
+  return Object.hasOwn(lowerers, key) ? lowerers[key] : raw
 }
 
 const raw: Lowerer = {

@@ -5,11 +5,11 @@ import { Framing } from "../route/framing"
 import { Protocol } from "../route/protocol"
 import { AuthOptions, type ProviderAuthOption } from "../route/auth-options"
 import { ProviderID, type ModelID, type ProviderOptions } from "../schema"
-import * as OpenAICompatibleProfiles from "./openai-compatible-profile"
-import * as OpenAIChat from "../protocols/openai-chat"
+import { profiles } from "./openai-compatible-profile";
+import { bodyFields, protocol as chatProtocol } from "../protocols/openai-chat";
 import { isRecord } from "../protocols/shared"
 
-export const profile = OpenAICompatibleProfiles.profiles.openrouter
+export const profile = profiles.openrouter
 export const id = ProviderID.make(profile.provider)
 const ADAPTER = "openrouter"
 
@@ -30,7 +30,7 @@ export type ModelOptions = Omit<RouteDefaultsInput, "providerOptions"> &
     readonly providerOptions?: OpenRouterProviderOptionsInput
   }
 
-const OpenRouterBody = Schema.StructWithRest(Schema.Struct(OpenAIChat.bodyFields), [
+const OpenRouterBody = Schema.StructWithRest(Schema.Struct(bodyFields), [
   Schema.Record(Schema.String, Schema.Any),
 ])
 export type OpenRouterBody = Schema.Schema.Type<typeof OpenRouterBody>
@@ -40,7 +40,7 @@ export const protocol = Protocol.make({
   body: {
     schema: OpenRouterBody,
     from: (request) =>
-      OpenAIChat.protocol.body.from(request).pipe(
+      chatProtocol.body.from(request).pipe(
         Effect.map(
           (body) =>
             ({
@@ -50,7 +50,7 @@ export const protocol = Protocol.make({
         ),
       ),
   },
-  stream: OpenAIChat.protocol.stream,
+  stream: chatProtocol.stream,
 })
 
 const bodyOptions = (input: unknown) => {

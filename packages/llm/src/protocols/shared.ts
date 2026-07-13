@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer"
 import { Effect, JsonSchema, Schema, Stream } from "effect"
-import * as Sse from "effect/unstable/encoding/Sse"
+import { decode } from "effect/unstable/encoding/Sse";
 import { Headers, HttpClientRequest } from "effect/unstable/http"
 import {
   InvalidProviderOutputReason,
@@ -220,7 +220,7 @@ export const validateMedia = Effect.fn("ProviderShared.validateMedia")(function*
   } else if (part.data.startsWith("data:")) {
     const match = /^data:([^;,]+);base64,([A-Za-z0-9+/]*={0,2})$/s.exec(part.data)
     if (!match) return yield* invalidRequest(`${route} media data URL must contain valid base64`)
-    if (match[1]!.toLowerCase() !== mime)
+    if (match[1].toLowerCase() !== mime)
       return yield* invalidRequest(`${route} media type ${part.mediaType} does not match data URL type ${match[1]}`)
     base64 = match[2]!
   } else {
@@ -275,7 +275,7 @@ export const errorText = (error: unknown) => {
 export const sseFraming = (bytes: Stream.Stream<Uint8Array, LLMError>): Stream.Stream<string, LLMError> =>
   bytes.pipe(
     Stream.decodeText(),
-    Stream.pipeThroughChannel(Sse.decode()),
+    Stream.pipeThroughChannel(decode()),
     Stream.catchTag("Retry", () => Stream.empty),
     Stream.filter((event) => event.data.length > 0 && event.data !== "[DONE]"),
     Stream.map((event) => event.data),

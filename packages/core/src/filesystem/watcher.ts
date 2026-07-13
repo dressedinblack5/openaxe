@@ -1,6 +1,6 @@
 export * as Watcher from "./watcher"
 
-// @ts-ignore
+// @ts-expect-error @parcel/watcher/wrapper is an internal subpath of @parcel/watcher; no types exist for it.
 import { createWrapper } from "@parcel/watcher/wrapper"
 import type ParcelWatcher from "@parcel/watcher"
 import { Cause, Context, Effect, Layer } from "effect"

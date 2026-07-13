@@ -189,7 +189,7 @@ describe("Truncate", () => {
         expect(result.outputPath).toContain("tool_")
 
         const fsys = yield* FSUtil.Service
-        const written = yield* fsys.readFileString(result.outputPath!)
+        const written = yield* fsys.readFileString(result.outputPath)
         expect(written).toBe(lines)
       }),
     )

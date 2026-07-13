@@ -14,8 +14,8 @@ import { createDefaultOpenTuiKeymap } from "@opentui/keymap/opentui"
 import { Global } from "@opencode-ai/core/global"
 import { openEditor } from "@opencode-ai/tui/editor"
 import { registerOpencodeKeymap } from "@opencode-ai/tui/keymap"
-import { Session as SessionApi } from "@/session/session"
-import * as Locale from "@/util/locale"
+import { Session } from "@/session/session"
+import { titlecase } from "@/util/locale";
 import { resolveInteractiveStdin } from "./runtime.stdin"
 import { entrySplash, exitSplash, splashMeta } from "./splash"
 import { resolveRunTheme } from "./theme"
@@ -108,7 +108,7 @@ function shutdown(renderer: CliRenderer): void {
 }
 
 function splashInfo(title: string | undefined, history: RunPrompt[]) {
-  if (title && !SessionApi.isDefaultTitle(title)) {
+  if (title && !Session.isDefaultTitle(title)) {
     return {
       title,
       showSession: true,
@@ -123,7 +123,7 @@ function splashInfo(title: string | undefined, history: RunPrompt[]) {
 }
 
 function footerLabels(input: Pick<RunInput, "agent" | "model" | "variant">): FooterLabels {
-  const agentLabel = Locale.titlecase(input.agent ?? "build")
+  const agentLabel = titlecase(input.agent ?? "build")
 
   if (!input.model) {
     return {

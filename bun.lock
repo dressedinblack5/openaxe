@@ -195,7 +195,7 @@
     },
     "packages/openaxe": {
       "name": "openaxe",
-      "version": "1.2.5",
+      "version": "1.2.6",
       "bin": {
         "openaxe": "./bin/openaxe",
       },
@@ -313,7 +313,6 @@
         "@types/turndown": "5.0.5",
         "@types/yargs": "17.0.33",
         "@typescript/native-preview": "7.0.0-dev.20251207.1",
-        "drizzle-orm": "1.0.0-rc.2",
         "prettier": "3.6.2",
         "strip-ansi": "7.1.2",
         "typescript": "5.8.2",
@@ -352,6 +351,7 @@
     },
     "packages/schema": {
       "name": "@opencode-ai/schema",
+      "version": "1.2.6",
       "dependencies": {
         "effect": "4.0.0-beta.82",
       },
@@ -363,6 +363,7 @@
     },
     "packages/script": {
       "name": "@opencode-ai/script",
+      "version": "1.2.6",
       "dependencies": {
         "semver": "catalog:",
       },

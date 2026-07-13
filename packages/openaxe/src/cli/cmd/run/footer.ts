@@ -248,13 +248,13 @@ export class RunFooter implements FooterApi {
     const [resources, setResources] = createSignal(options.resources)
     this.resources = resources
     this.setResources = setResources
-    const [commands, setCommands] = createSignal<RunCommand[] | undefined>(options.commands)
+    const [commands, setCommands] = createSignal(options.commands)
     this.commands = commands
     this.setCommands = setCommands
     const [providers, setProviders] = createSignal<RunProvider[] | undefined>()
     this.providers = providers
     this.setProviders = setProviders
-    const [currentModel, setCurrentModel] = createSignal<RunInput["model"]>(options.model)
+    const [currentModel, setCurrentModel] = createSignal(options.model)
     this.currentModel = currentModel
     this.setCurrentModel = setCurrentModel
     const [variants, setVariants] = createSignal<string[]>([])

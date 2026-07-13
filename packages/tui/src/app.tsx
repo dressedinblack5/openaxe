@@ -7,7 +7,7 @@ import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { ClipboardProvider, useClipboard } from "./context/clipboard"
 import { ExitProvider, useExit } from "./context/exit"
 import { EpilogueProvider } from "./context/epilogue"
-import * as Selection from "./util/selection"
+import { copy, handleSelectionKey } from "./util/selection";
 import { createCliRenderer, MouseButton, type CliRenderer } from "@opentui/core"
 import { RouteProvider, useRoute } from "./context/route"
 import {
@@ -78,8 +78,10 @@ import {
 
 import type { EventSource } from "./context/sdk"
 import { DialogVariant } from "./component/dialog-variant"
+import { ArtifactPreview } from "./component/artifact-preview"
+import { MemoryBrowser } from "./component/memory-browser"
 import { createTuiAttention } from "./attention"
-import * as TuiAudio from "./audio"
+import { dispose } from "./audio";
 import { win32DisableProcessedInput, win32FlushInputBuffer } from "./terminal-win32"
 import { destroyRenderer } from "./util/renderer"
 import { cliErrorMessage, errorFormat } from "./util/error"
@@ -123,6 +125,7 @@ const appBindingCommands = [
   "workspace.list",
   "app.debug",
   "app.console",
+  "artifacts.list",
   "app.heap_snapshot",
   "terminal.suspend",
   "terminal.title.toggle",
@@ -218,7 +221,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
           }
         }),
       )
-      yield* Effect.addFinalizer(() => Effect.sync(TuiAudio.dispose))
+      yield* Effect.addFinalizer(() => Effect.sync(dispose))
       const shutdown = yield* Deferred.make<unknown>()
       const onSighup = () => destroyRenderer(renderer)
       yield* Effect.acquireRelease(
@@ -414,7 +417,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
     "key",
     ({ event }) => {
       if (!Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
-      Selection.handleSelectionKey(renderer, toast, event, clipboard)
+      handleSelectionKey(renderer, toast, event, clipboard)
     },
     { priority: 1 },
   )
@@ -844,6 +847,54 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         },
       },
       {
+        name: "artifacts.list",
+        title: "View artifacts",
+        category: "System",
+        slashName: "artifacts",
+        run: () => {
+          dialog.replace(() => <ArtifactPreview />)
+        },
+      },
+      {
+        name: "revert.undo",
+        title: "Revert last AI change",
+        category: "System",
+        slashName: "revert",
+        run: async () => {
+          try {
+            const response = await sdk.fetch(`${sdk.url}/api/revert`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ count: 1 }),
+            })
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const result: { reverted: number } = await response.json()
+            toast.show({
+              variant: "info",
+              message: `Reverted ${result.reverted} file(s)`,
+              duration: 3000,
+            })
+          } catch (error) {
+            toast.show({
+              variant: "error",
+              title: "Revert failed",
+              message: errorMessage(error),
+              duration: 5000,
+            })
+          }
+          dialog.clear()
+        },
+      },
+      {
+        name: "memory.browse",
+        title: "Browse memory",
+        category: "System",
+        slashName: "memory",
+        run: () => {
+          dialog.replace(() => <MemoryBrowser />)
+        },
+      },
+      {
         name: "app.heap_snapshot",
         title: "Write heap snapshot",
         category: "System",
@@ -1056,7 +1107,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       `Successfully updated to OpenAxe v${result.data.version}. Please restart the application.`,
     )
 
-    void exit()
+     exit()
   })
 
   const plugin = createMemo(() => {
@@ -1077,13 +1128,13 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         if (!Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
         if (evt.button !== MouseButton.RIGHT) return
 
-        if (!Selection.copy(renderer, toast, clipboard)) return
+        if (!copy(renderer, toast, clipboard)) return
         evt.preventDefault()
         evt.stopPropagation()
       }}
       onMouseUp={
         !Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT
-          ? () => Selection.copy(renderer, toast, clipboard)
+          ? () => copy(renderer, toast, clipboard)
           : undefined
       }
     >

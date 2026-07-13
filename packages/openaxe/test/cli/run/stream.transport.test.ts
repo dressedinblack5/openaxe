@@ -122,7 +122,7 @@ function feed<T, R = never>(returnValue: R = StreamClosed) {
 
       yield next
     }
-    return returnValue as R
+    return returnValue
   })()
 
   return {
@@ -597,7 +597,7 @@ describe("run stream transport", () => {
   test("skips buffered pre-bootstrap deltas already covered by replay history", async () => {
     const src = eventFeed()
     const ui = footer()
-    const gate = defer<void>()
+    const gate = defer()
     let transport: Awaited<ReturnType<typeof createSessionTransport>> | undefined
     const task = createSessionTransport({
       sdk: sdk({
@@ -646,7 +646,7 @@ describe("run stream transport", () => {
   test("applies buffered pre-bootstrap deltas not yet persisted", async () => {
     const src = eventFeed()
     const ui = footer()
-    const gate = defer<void>()
+    const gate = defer()
     let transport: Awaited<ReturnType<typeof createSessionTransport>> | undefined
     const task = createSessionTransport({
       sdk: sdk({
@@ -1555,7 +1555,7 @@ describe("run stream transport", () => {
   test("replays child events buffered during bootstrap once the tab is known", async () => {
     const global = globalFeed()
     const ui = footer()
-    const gate = defer<void>()
+    const gate = defer()
     let transport: Awaited<ReturnType<typeof createSessionTransport>> | undefined
     const task = createSessionTransport({
       sdk: sdk({

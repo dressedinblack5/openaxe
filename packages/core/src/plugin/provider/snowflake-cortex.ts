@@ -1,6 +1,7 @@
 import { Effect } from "effect"
 import { define } from "../internal"
 import { ProviderV2 } from "../../provider"
+import type { OpenAICompatibleProviderSettings } from "@ai-sdk/openai-compatible"
 
 type FetchLike = (url: string | URL | Request, init?: RequestInit) => Promise<Response>
 
@@ -82,7 +83,7 @@ export const SnowflakeCortexPlugin = define({
           ...evt.options,
           ...(token ? { apiKey: token } : {}),
           fetch: cortexFetch(upstream) as typeof fetch,
-        } as any)
+        } as OpenAICompatibleProviderSettings)
       }),
     )
   }),

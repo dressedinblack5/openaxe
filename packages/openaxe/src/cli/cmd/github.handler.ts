@@ -1,12 +1,12 @@
 import path from "path"
 import { exec } from "child_process"
 import { Filesystem } from "@/util/filesystem"
-import * as prompts from "@clack/prompts"
+import { intro, isCancel, log, outro, select, spinner } from "@clack/prompts";
 import { map, pipe, sortBy, values } from "remeda"
 import { Octokit } from "@octokit/rest"
 import { graphql } from "@octokit/graphql"
-import * as core from "@actions/core"
-import * as github from "@actions/github"
+import { getIDToken, setFailed, setOutput } from "@actions/core";
+import { context as ghContext } from "@actions/github"
 import type { Context } from "@actions/github/lib/context"
 import type {
   IssueCommentEvent,
@@ -30,7 +30,7 @@ import { EventV2Bridge } from "@/event-v2-bridge"
 import { EventV2 } from "@opencode-ai/core/event"
 import { SessionPrompt } from "@/session/prompt"
 import { Git } from "@/git"
-import { setTimeout as sleep } from "node:timers/promises"
+import { setTimeout } from "node:timers/promises"
 import { Process } from "@/util/process"
 import { parseGitHubRemote } from "@/util/repository"
 import { Effect } from "effect"
@@ -162,7 +162,7 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
   yield* Effect.promise(async () => {
     {
       UI.empty()
-      prompts.intro("Install GitHub agent")
+      intro("Install GitHub agent")
       const app = await getAppInfo()
       await installGitHubApp()
 
@@ -196,7 +196,7 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
           ].join("\n")
         }
 
-        prompts.outro(
+        outro(
           [
             "Next steps:",
             "",
@@ -213,7 +213,7 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
       async function getAppInfo() {
         const project = ctx.project
         if (project.vcs !== "git") {
-          prompts.log.error(`Could not find git repository. Please run this command from a git repository.`)
+          log.error(`Could not find git repository. Please run this command from a git repository.`)
           throw new UI.CancelledError()
         }
 
@@ -223,7 +223,7 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
         )
         const parsed = parseGitHubRemote(info)
         if (!parsed) {
-          prompts.log.error(`Could not find git repository. Please run this command from a git repository.`)
+          log.error(`Could not find git repository. Please run this command from a git repository.`)
           throw new UI.CancelledError()
         }
         return { owner: parsed.owner, repo: parsed.repo, root: ctx.worktree }
@@ -236,7 +236,7 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
           openai: 2,
           google: 3,
         }
-        let provider = await prompts.select({
+        let provider = await select({
           message: "Select provider",
           maxItems: 8,
           options: pipe(
@@ -254,15 +254,15 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
           ),
         })
 
-        if (prompts.isCancel(provider)) throw new UI.CancelledError()
+        if (isCancel(provider)) throw new UI.CancelledError()
 
         return provider
       }
 
       async function promptModel() {
-        const providerData = providers[provider]!
+        const providerData = providers[provider]
 
-        const model = await prompts.select({
+        const model = await select({
           message: "Select model",
           maxItems: 8,
           options: pipe(
@@ -276,12 +276,12 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
           ),
         })
 
-        if (prompts.isCancel(model)) throw new UI.CancelledError()
+        if (isCancel(model)) throw new UI.CancelledError()
         return model
       }
 
       async function installGitHubApp() {
-        const s = prompts.spinner()
+        const s = spinner()
         s.start("Installing GitHub app")
 
         // Get installation
@@ -299,7 +299,7 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
 
         exec(command, (error) => {
           if (error) {
-            prompts.log.warn(`Could not open browser. Please visit: ${url}`)
+            log.warn(`Could not open browser. Please visit: ${url}`)
           }
         })
 
@@ -319,7 +319,7 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
           }
 
           retries++
-          await sleep(1000)
+          await setTimeout(1000)
         } while (true) // oxlint-disable-line no-constant-condition
 
         s.stop("Installed GitHub app")
@@ -372,7 +372,7 @@ jobs:
           model: ${provider}/${model}`,
         )
 
-        prompts.log.success(`Added workflow file: "${WORKFLOW_FILE}"`)
+        log.success(`Added workflow file: "${WORKFLOW_FILE}"`)
       }
     }
   })
@@ -391,9 +391,9 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
   yield* Effect.promise(async () => {
     const isMock = args.token || args.event
 
-    const context = isMock ? (JSON.parse(args.event!) as Context) : github.context
+    const context = isMock ? (JSON.parse(args.event!) as Context) : ghContext
     if (!SUPPORTED_EVENTS.includes(context.eventName as (typeof SUPPORTED_EVENTS)[number])) {
-      core.setFailed(`Unsupported event type: ${context.eventName}`)
+      setFailed(`Unsupported event type: ${context.eventName}`)
       process.exit(1)
     }
 
@@ -646,9 +646,9 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
         await createComment(`${msg}${footer()}`)
         await removeReaction(commentType)
       }
-      core.setFailed(msg)
+      setFailed(msg)
       // Also output the clean error message for the action to capture
-      //core.setOutput("prepare_error", e.message);
+      //setOutput("prepare_error", e.message);
     } finally {
       if (!useGithubToken) {
         await restoreGitConfig()
@@ -980,7 +980,7 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
 
     async function getOidcToken() {
       try {
-        return await core.getIDToken("opencode-github-action")
+        return await getIDToken("opencode-github-action")
       } catch (error) {
         console.error("Failed to get OIDC token:", error instanceof Error ? error.message : error)
         throw new Error(
@@ -1188,14 +1188,14 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
           return await octoRest.rest.reactions.createForPullRequestReviewComment({
             owner,
             repo,
-            comment_id: triggerCommentId!,
+            comment_id: triggerCommentId,
             content: AGENT_REACTION,
           })
         }
         return await octoRest.rest.reactions.createForIssueComment({
           owner,
           repo,
-          comment_id: triggerCommentId!,
+          comment_id: triggerCommentId,
           content: AGENT_REACTION,
         })
       }
@@ -1215,7 +1215,7 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
           const reactions = await octoRest.rest.reactions.listForPullRequestReviewComment({
             owner,
             repo,
-            comment_id: triggerCommentId!,
+            comment_id: triggerCommentId,
             content: AGENT_REACTION,
           })
 
@@ -1225,7 +1225,7 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
           return await octoRest.rest.reactions.deleteForPullRequestComment({
             owner,
             repo,
-            comment_id: triggerCommentId!,
+            comment_id: triggerCommentId,
             reaction_id: eyesReaction.id,
           })
         }
@@ -1233,7 +1233,7 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
         const reactions = await octoRest.rest.reactions.listForIssueComment({
           owner,
           repo,
-          comment_id: triggerCommentId!,
+          comment_id: triggerCommentId,
           content: AGENT_REACTION,
         })
 
@@ -1243,7 +1243,7 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
         return await octoRest.rest.reactions.deleteForIssueComment({
           owner,
           repo,
-          comment_id: triggerCommentId!,
+          comment_id: triggerCommentId,
           reaction_id: eyesReaction.id,
         })
       }
@@ -1340,7 +1340,7 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
       } catch (e) {
         if (retries > 0) {
           console.log(`Retrying after ${delayMs}ms...`)
-          await sleep(delayMs)
+          await setTimeout(delayMs)
           return withRetry(fn, retries - 1, delayMs)
         }
         throw e

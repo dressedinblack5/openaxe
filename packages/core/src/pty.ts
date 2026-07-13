@@ -123,7 +123,7 @@ export const layer = Layer.effect(
         }
         try {
           subscriber.onEnd(event)
-        } catch {}
+        } catch { /* ponytail: one subscriber's callback must not crash the whole pty session */ }
       }
       session.subscribers.clear()
     }
@@ -134,7 +134,7 @@ export const layer = Layer.effect(
       if (session.info.status === "running") {
         try {
           session.process.kill()
-        } catch {}
+        } catch { /* ponytail: process already dead on teardown is expected */ }
       }
       notifyEnd(session, {})
     }

@@ -2,7 +2,7 @@ import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { OAUTH_DUMMY_KEY } from "../../auth"
 import os from "os"
-import { setTimeout as sleep } from "node:timers/promises"
+import { setTimeout as sleep } from "node:timers/promises" // renamed to avoid conflict with global setTimeout
 import { createServer } from "http"
 import { OpenAIWebSocketPool } from "./ws-pool"
 import { escapeHtml } from "@/util/html"

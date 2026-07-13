@@ -3,10 +3,11 @@ import { Effect, Schema, Stream } from "effect"
 import { LLM } from "../src"
 import { Route, Endpoint, LLMClient, Protocol, type FramingDef } from "../src/route"
 import { Model } from "../src/schema"
+import type { ModelInput } from "../src/schema"
 import { testEffect } from "./lib/effect"
 import { dynamicResponse } from "./lib/http"
 
-const updateModel = (model: Model, patch: Partial<Model.Input>) => Model.update(model, patch)
+const updateModel = (model: Model, patch: Partial<ModelInput>) => Model.update(model, patch)
 
 const Json = Schema.fromJsonString(Schema.Unknown)
 const encodeJson = Schema.encodeSync(Json)

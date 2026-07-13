@@ -5,7 +5,7 @@ import type { Diagnostic as VSCodeDiagnostic } from "vscode-languageserver-types
 import { Process } from "@/util/process"
 import { LANGUAGE_EXTENSIONS } from "./language"
 import { Effect, Schema } from "effect"
-import type * as LSPServer from "./server"
+import type { Handle } from "./server";
 import { withTimeout } from "../util/timeout"
 import { Filesystem } from "@/util/filesystem"
 import type { InstanceContext } from "@/project/instance-context"
@@ -106,7 +106,7 @@ function dedupeDiagnostics(items: Diagnostic[]) {
 
 function configurationValue(settings: unknown, section?: string) {
   if (!section) return settings ?? null
-  const result = section.split(".").reduce<unknown>((acc, key) => {
+  const result = section.split(".").reduce((acc, key) => {
     if (!acc || typeof acc !== "object" || !(key in acc)) return undefined
     return (acc as Record<string, unknown>)[key]
   }, settings)
@@ -122,7 +122,7 @@ function shouldSeedDiagnosticsOnFirstPush(serverID: string) {
 
 export async function create(input: {
   serverID: string
-  server: LSPServer.Handle
+  server: Handle
   root: string
   directory: string
   instance: InstanceContext

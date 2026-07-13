@@ -1,4 +1,4 @@
-import * as InstanceState from "@/effect/instance-state"
+import { context } from "@/effect/instance-state";
 import { registerDisposer } from "@/effect/instance-registry"
 import { InstanceRef, WorkspaceRef } from "@/effect/instance-ref"
 import { Plugin } from "@/plugin"
@@ -19,9 +19,9 @@ import {
 import { Effect, Layer, Option, Queue, Schema } from "effect"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
-import * as Socket from "effect/unstable/socket/Socket"
+import { CloseEvent } from "effect/unstable/socket/Socket";
 import { InstanceHttpApi } from "../api"
-import * as ApiError from "../errors"
+import { PtyForbiddenError, PtyNotFoundError } from "../errors";
 import { CursorQuery, PtyConnectApi } from "../groups/pty"
 import { WebSocketTracker } from "../websocket-tracker"
 
@@ -52,7 +52,7 @@ export const ptyHandlers = HttpApiBuilder.group(InstanceHttpApi, "pty", (handler
     const pty = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
       return yield* effect.pipe(
         Effect.provide(
-          locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* InstanceState.context).directory) })),
+          locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* context).directory) })),
         ),
       )
     })
@@ -67,7 +67,7 @@ export const ptyHandlers = HttpApiBuilder.group(InstanceHttpApi, "pty", (handler
     })
 
     const create = Effect.fn("PtyHttpApi.create")(function* (ctx: { payload: typeof Pty.CreateInput.Type }) {
-      const cwd = ctx.payload.cwd || (yield* InstanceState.context).directory
+      const cwd = ctx.payload.cwd || (yield* context).directory
       const shell = yield* plugin.trigger("shell.env", { cwd }, { env: {} as Record<string, string> })
       return yield* pty(
         Pty.Service.use((service) =>
@@ -86,7 +86,7 @@ export const ptyHandlers = HttpApiBuilder.group(InstanceHttpApi, "pty", (handler
         Effect.catchTag(
           "Pty.NotFoundError",
           (error) =>
-            new ApiError.PtyNotFoundError({
+            new PtyNotFoundError({
               ptyID: error.ptyID,
               message: `PTY session not found: ${error.ptyID}`,
             }),
@@ -94,7 +94,7 @@ export const ptyHandlers = HttpApiBuilder.group(InstanceHttpApi, "pty", (handler
         Effect.flatMap((info) =>
           info.status === "running"
             ? Effect.succeed(info)
-            : new ApiError.PtyNotFoundError({
+            : new PtyNotFoundError({
                 ptyID: ctx.params.ptyID,
                 message: `PTY session not found: ${ctx.params.ptyID}`,
               }),
@@ -118,7 +118,7 @@ export const ptyHandlers = HttpApiBuilder.group(InstanceHttpApi, "pty", (handler
         Effect.catchTag(
           "Pty.NotFoundError",
           (error) =>
-            new ApiError.PtyNotFoundError({
+            new PtyNotFoundError({
               ptyID: error.ptyID,
               message: `PTY session not found: ${error.ptyID}`,
             }),
@@ -132,7 +132,7 @@ export const ptyHandlers = HttpApiBuilder.group(InstanceHttpApi, "pty", (handler
         Effect.catchTag(
           "Pty.NotFoundError",
           (error) =>
-            new ApiError.PtyNotFoundError({
+            new PtyNotFoundError({
               ptyID: error.ptyID,
               message: `PTY session not found: ${error.ptyID}`,
             }),
@@ -144,7 +144,7 @@ export const ptyHandlers = HttpApiBuilder.group(InstanceHttpApi, "pty", (handler
     const connectToken = Effect.fn("PtyHttpApi.connectToken")(function* (ctx: { params: { ptyID: PtyID } }) {
       const request = yield* HttpServerRequest.HttpServerRequest
       if (request.headers[PTY_CONNECT_TOKEN_HEADER] !== PTY_CONNECT_TOKEN_HEADER_VALUE || !validOrigin(request, cors))
-        return yield* new ApiError.PtyForbiddenError({ message: "Invalid PTY connect token request" })
+        return yield* new PtyForbiddenError({ message: "Invalid PTY connect token request" })
       yield* get(ctx)
       return yield* tickets.issue({ ptyID: ctx.params.ptyID, ...(yield* ticketScope) })
     })
@@ -173,7 +173,7 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
     const pty = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
       return yield* effect.pipe(
         Effect.provide(
-          locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* InstanceState.context).directory) })),
+          locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* context).directory) })),
         ),
       )
     })
@@ -206,7 +206,7 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
             : undefined
         const socket = yield* Effect.orDie(ctx.request.upgrade)
         const write = yield* socket.writer
-        const closeAccepted = (event: Socket.CloseEvent) =>
+        const closeAccepted = (event: CloseEvent) =>
           socket
             .runRaw(() => Effect.void, { onOpen: write(event).pipe(Effect.catch(() => Effect.void)) })
             .pipe(
@@ -222,21 +222,21 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
 
         // Outbound frames flow through one queue drained by a single writer so replay, live
         // output, and the close frame keep their order.
-        const outbox = yield* Queue.unbounded<string | Uint8Array | Socket.CloseEvent>()
+        const outbox = yield* Queue.unbounded<string | Uint8Array | CloseEvent>()
         const attachment = yield* pty(
           Pty.Service.use((service) =>
             service.attach(ctx.params.ptyID, {
               cursor,
               onData: (chunk) => Queue.offerUnsafe(outbox, chunk),
-              onEnd: () => Queue.offerUnsafe(outbox, new Socket.CloseEvent(1000)),
+              onEnd: () => Queue.offerUnsafe(outbox, new CloseEvent(1000)),
             }),
           ),
         ).pipe(
           Effect.catchTags({
             "Pty.NotFoundError": () =>
-              closeAccepted(new Socket.CloseEvent(4404, "session not found")).pipe(Effect.as(undefined)),
+              closeAccepted(new CloseEvent(4404, "session not found")).pipe(Effect.as(undefined)),
             "Pty.ExitedError": () =>
-              closeAccepted(new Socket.CloseEvent(4404, "session not found")).pipe(Effect.as(undefined)),
+              closeAccepted(new CloseEvent(4404, "session not found")).pipe(Effect.as(undefined)),
           }),
         )
         if (!attachment) return HttpServerResponse.empty()
@@ -249,7 +249,7 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
           while (true) {
             const item = yield* Queue.take(outbox)
             yield* write(item)
-            if (item instanceof Socket.CloseEvent) return
+            if (item instanceof CloseEvent) return
           }
         })
 

@@ -478,12 +478,12 @@ describe("LSPClient interop", () => {
         })
 
         await client.connection.sendRequest("test/configure-pull-diagnostics", {
-          registerOn: "didOpen",
           registrations: [{ identifier: "WorkspaceDocumentsAndProject", workspaceDiagnostics: true }],
           workspaceDiagnosticsByIdentifier: {
             WorkspaceDocumentsAndProject: [],
           },
         })
+        await client.connection.sendRequest("test/register-configured-pull-diagnostics", {})
 
         const version = await client.notify.open({ path: file })
         const started = Date.now()

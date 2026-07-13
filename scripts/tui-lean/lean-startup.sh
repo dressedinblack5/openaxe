@@ -91,7 +91,7 @@ if [ -f "$INSTALL_DIR/perf-enabled" ] && command -v jq >/dev/null 2>&1; then
   "timestamp": "$(date -Iseconds)",
   "exit_code": $exit_code,
   "architecture": "TUI/CLI-only",
-  "plugins_loaded": "oh-my-openagent, opencode-plugin-selector, superpowers, ponytail, vibeguard, ecc-universal"
+  "plugins_loaded": "oh-my-openagent, opencode-plugin-selector, ponytail, vibeguard, ecc-universal"
 }
 EOF
   

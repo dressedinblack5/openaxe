@@ -5,7 +5,8 @@
 
 import { isAbsolute, join, relative } from "path"
 import { Effect, Schema, Semaphore } from "effect"
-import * as Tool from "./tool"
+import type { Context } from "./tool"
+import { define } from "./tool";
 import { LSP } from "@/lsp/lsp"
 import { createTwoFilesPatch, diffLines } from "diff"
 import DESCRIPTION from "./edit.txt"
@@ -17,7 +18,7 @@ import { InstanceState } from "@/effect/instance-state"
 import { Snapshot } from "@/snapshot"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import * as Bom from "@/util/bom"
+import { split, join as bomJoin, readFile, syncFile } from "@/util/bom"
 
 function normalizeLineEndings(text: string): string {
   return text.replaceAll("\r\n", "\n")
@@ -55,7 +56,7 @@ export const Parameters = Schema.Struct({
   }),
 })
 
-export const EditTool = Tool.define(
+export const EditTool = define(
   "edit",
   Effect.gen(function* () {
     const lsp = yield* LSP.Service
@@ -66,7 +67,7 @@ export const EditTool = Tool.define(
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
+      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) =>
         Effect.gen(function* () {
           if (!params.filePath) {
             throw new Error("filePath is required")
@@ -92,7 +93,7 @@ export const EditTool = Tool.define(
                     "oldString cannot be empty when editing an existing file. Provide the exact text to replace, or use write for an intentional full-file replacement.",
                   )
                 }
-                const next = Bom.split(params.newString)
+                const next = split(params.newString)
                 const desiredBom = next.bom
                 contentOld = ""
                 contentNew = next.text
@@ -106,9 +107,9 @@ export const EditTool = Tool.define(
                     diff,
                   },
                 })
-                yield* afs.writeWithDirs(filePath, Bom.join(contentNew, desiredBom))
+yield* afs.writeWithDirs(filePath, bomJoin(contentNew, desiredBom))
                 if (yield* format.file(filePath)) {
-                  contentNew = yield* Bom.syncFile(afs, filePath, desiredBom)
+                  contentNew = yield* syncFile(afs, filePath, desiredBom)
                 }
                 yield* events.publish(FileSystem.Event.Edited, { file: filePath })
                 yield* events.publish(Watcher.Event.Updated, {
@@ -118,17 +119,17 @@ export const EditTool = Tool.define(
                 return
               }
 
-              const info = yield* afs.stat(filePath).pipe(Effect.catch(() => Effect.succeed(undefined)))
+              const info = yield* afs.stat(filePath).pipe(Effect.catch(() => Effect.void))
               if (!info) throw new Error(`File ${filePath} not found`)
               if (info.type === "Directory") throw new Error(`Path is a directory, not a file: ${filePath}`)
-              const source = yield* Bom.readFile(afs, filePath)
+              const source = yield* readFile(afs, filePath)
               contentOld = source.text
 
               const ending = detectLineEnding(contentOld)
               const old = convertToLineEnding(normalizeLineEndings(params.oldString), ending)
               const replacement = convertToLineEnding(normalizeLineEndings(params.newString), ending)
 
-              const next = Bom.split(replace(contentOld, old, replacement, params.replaceAll))
+              const next = split(replace(contentOld, old, replacement, params.replaceAll))
               const desiredBom = source.bom || next.bom
               contentNew = next.text
 
@@ -150,9 +151,9 @@ export const EditTool = Tool.define(
                 },
               })
 
-              yield* afs.writeWithDirs(filePath, Bom.join(contentNew, desiredBom))
+              yield* afs.writeWithDirs(filePath, bomJoin(contentNew, desiredBom))
               if (yield* format.file(filePath)) {
-                contentNew = yield* Bom.syncFile(afs, filePath, desiredBom)
+                contentNew = yield* syncFile(afs, filePath, desiredBom)
               }
               yield* events.publish(FileSystem.Event.Edited, { file: filePath })
               yield* events.publish(Watcher.Event.Updated, {

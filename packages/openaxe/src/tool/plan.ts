@@ -1,7 +1,8 @@
 import path from "path"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Effect, Schema } from "effect"
-import * as Tool from "./tool"
+import type { Context } from "./tool"
+import { define } from "./tool";
 import { Question } from "../question"
 import { Session } from "@/session/session"
 import { MessageV2 } from "../session/message-v2"
@@ -12,7 +13,7 @@ import EXIT_DESCRIPTION from "./plan-exit.txt"
 
 export const Parameters = Schema.Struct({})
 
-export const PlanExitTool = Tool.define(
+export const PlanExitTool = define(
   "plan_exit",
   Effect.gen(function* () {
     const session = yield* Session.Service
@@ -22,7 +23,7 @@ export const PlanExitTool = Tool.define(
     return {
       description: EXIT_DESCRIPTION,
       parameters: Parameters,
-      execute: (_params: {}, ctx: Tool.Context) =>
+      execute: (_params: {}, ctx: Context) =>
         Effect.gen(function* () {
           const instance = yield* InstanceState.context
           const info = yield* session.get(ctx.sessionID)

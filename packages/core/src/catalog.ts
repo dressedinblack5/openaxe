@@ -106,7 +106,7 @@ export const layer = Layer.effect(
       draft: (draft) => {
         const result: Draft = {
           provider: {
-            list: () => Array.fromIterable(draft.providers.values()) as ProviderRecord[],
+            list: () => Array.fromIterable(draft.providers.values()),
             get: (providerID) => draft.providers.get(providerID),
             update: (providerID, fn) => {
               let current = draft.providers.get(providerID)

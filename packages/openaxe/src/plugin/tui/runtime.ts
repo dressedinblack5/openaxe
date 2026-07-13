@@ -1,4 +1,4 @@
-import { runtimeModules as keymapRuntimeModules } from "@opentui/keymap/runtime-modules"
+import { runtimeModules } from "@opentui/keymap/runtime-modules"
 import { ensureRuntimePluginSupport } from "@opentui/solid/runtime-plugin-support/configure"
 import {
   type TuiDispose,
@@ -43,7 +43,7 @@ import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Effect } from "effect"
 import { createPluginRuntime, type PluginRuntime, type TuiPluginHost } from "@opencode-ai/tui/plugin/runtime"
 
-ensureRuntimePluginSupport({ additional: keymapRuntimeModules })
+ensureRuntimePluginSupport({ additional: runtimeModules })
 
 type PluginLoad = {
   options: ConfigPluginV1.Options | undefined
@@ -681,7 +681,7 @@ async function resolveExternalPlugins(list: ConfigPlugin.Origin[], wait: () => P
     },
     finish: async (loaded, origin, retry) => {
       const mod = await Promise.resolve()
-        .then(() => readV1Plugin(loaded.mod as Record<string, unknown>, loaded.spec, "tui") as TuiPluginModule)
+        .then(() => readV1Plugin(loaded.mod, loaded.spec, "tui") as TuiPluginModule)
         .catch((error) => {
           fail("failed to load tui plugin", {
             path: loaded.spec,

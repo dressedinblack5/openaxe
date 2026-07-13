@@ -256,7 +256,7 @@ function nearestIndexed(indexed: RGBA[], rgba: RGBA): RGBA {
     },
     {
       dist: Number.POSITIVE_INFINITY,
-      item: indexed[0]!,
+      item: indexed[0],
     },
   )
 
@@ -310,7 +310,7 @@ export function resolveTheme(theme: ThemeJson, pick: "dark" | "light"): TuiTheme
   const resolved = Object.fromEntries(
     Object.entries(theme.theme)
       .filter(([key]) => key !== "selectedListItemText" && key !== "backgroundMenu" && key !== "thinkingOpacity")
-      .map(([key, value]) => [key, resolveColor(value as ColorValue)]),
+      .map(([key, value]) => [key, resolveColor(value)]),
   ) as Partial<Record<ThemeColor, RGBA>>
 
   return {

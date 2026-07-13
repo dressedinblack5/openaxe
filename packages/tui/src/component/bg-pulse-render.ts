@@ -270,7 +270,7 @@ export class GoUpsellArtPainter {
 
     this.logoIndexes = new Int32Array(LOGO_TEMPLATE.length)
     for (let i = 0; i < LOGO_TEMPLATE.length; i++) {
-      const cell = LOGO_TEMPLATE[i]!
+      const cell = LOGO_TEMPLATE[i]
       const index = (this.logoY + cell.y) * this.geometryWidth + this.logoX + cell.x
       this.logoIndexes[i] = index
       buffers.attributes[index] = cell.attributes
@@ -391,8 +391,8 @@ export class GoUpsellArtPainter {
     const head1 = phase1 * LOGO_REACH
 
     for (let i = 0; i < LOGO_TEMPLATE.length; i++) {
-      const cell = LOGO_TEMPLATE[i]!
-      const index = this.logoIndexes[i]!
+      const cell = LOGO_TEMPLATE[i]
+      const index = this.logoIndexes[i]
       const offset = index * 4
       this.setLogoPulse(cell.topDist, head0, eased0, head1, eased1)
       const topPeak = this.pulsePeak

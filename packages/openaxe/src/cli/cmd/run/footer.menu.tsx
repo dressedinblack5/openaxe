@@ -3,8 +3,7 @@ import { TextAttributes, type ColorInput } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, type Accessor } from "solid-js"
 import { transparent, type RunFooterTheme } from "./theme"
-import * as Locale from "@/util/locale"
-
+import { truncate } from "@/util/locale";
 export const FOOTER_MENU_ROWS = 8
 
 export type RunFooterMenuItem = {
@@ -221,7 +220,7 @@ export function RunFooterMenu(props: {
       descriptionColumn() -
       footerWidth -
       4
-    return Locale.truncate(item.description, Math.max(12, available))
+    return truncate(item.description, Math.max(12, available))
   }
   return (
     <box

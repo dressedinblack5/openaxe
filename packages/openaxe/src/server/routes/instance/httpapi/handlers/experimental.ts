@@ -12,7 +12,7 @@ import { ToolJsonSchema } from "@/tool/json-schema"
 import { ToolRegistry } from "@/tool/registry"
 import { Worktree } from "@/worktree"
 import { Effect, Option } from "effect"
-import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
+import { jsonUnsafe } from "effect/unstable/http/HttpServerResponse";
 import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
 import { ConsoleSwitchPayload, SessionListQuery, ToolListQuery, WorktreeApiError } from "../groups/experimental"
@@ -147,7 +147,7 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
         archived: ctx.query.archived,
       })
       const list = all.length > limit ? all.slice(0, limit) : all
-      return HttpServerResponse.jsonUnsafe(list, {
+      return jsonUnsafe(list, {
         headers:
           all.length > limit && list.length > 0
             ? { "x-next-cursor": String(list[list.length - 1].time.updated) }

@@ -1,9 +1,9 @@
 export * as NpmConfig from "./npm-config"
 
 import { fileURLToPath } from "url"
-// @ts-expect-error npm does not publish types for this internal config API.
+// @ts-expect-error @npmcli/config ships no types; it's an npm internal with no public TS declarations.
 import Config from "@npmcli/config"
-// @ts-expect-error npm does not publish types for this internal config API.
+// @ts-expect-error @npmcli/config/lib/definitions/*.js is a private subpath with no types.
 import { definitions, flatten, nerfDarts, shorthands } from "@npmcli/config/lib/definitions/index.js"
 import { Effect } from "effect"
 

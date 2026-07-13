@@ -1,5 +1,5 @@
 import { Workspace } from "@/control-plane/workspace"
-import * as InstanceState from "@/effect/instance-state"
+import { InstanceState } from "@/effect/instance-state"
 import { Session } from "@/session/session"
 import { Database } from "@opencode-ai/core/database/database"
 import { EventV2 } from "@opencode-ai/core/event"
