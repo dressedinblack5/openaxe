@@ -1,6 +1,6 @@
 # openaxe GitHub Action
 
-A GitHub Action that integrates [openaxe](https://opencode.ai) directly into your GitHub workflow.
+A GitHub Action that integrates [openaxe](https://openaxe.ai) directly into your GitHub workflow.
 
 Mention `/openaxe` in your comment, and openaxe will execute tasks within your GitHub Actions runner.
 

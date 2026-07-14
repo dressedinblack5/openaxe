@@ -41,7 +41,7 @@ https://github.com/anomalyco/models.dev
 
 ### Running against a different directory
 
-By default, `bun dev` runs openaxe in the `packages/opencode` directory. To run it against a different directory or repository:
+By default, `bun dev` runs openaxe in the `packages/openaxe` directory. To run it against a different directory or repository:
 
 ```bash
 bun dev <directory>
@@ -58,22 +58,20 @@ bun dev .
 To compile a standalone executable:
 
 ```bash
-./packages/opencode/script/build.ts --single
+./packages/openaxe/script/build.ts --single
 ```
 
 Then run it with:
 
 ```bash
-./packages/opencode/dist/opencode-<platform>/bin/opencode
+./packages/openaxe/dist/openaxe-<platform>/bin/openaxe
 ```
 
 Replace `<platform>` with your platform (e.g., `darwin-arm64`, `linux-x64`).
 
 - Core pieces:
-  - `packages/opencode`: openaxe core business logic & server.
-  - `packages/opencode/src/cli/cmd/tui/`: The TUI code, written in SolidJS with [opentui](https://github.com/sst/opentui)
-  - `packages/app`: The shared web UI components, written in SolidJS
-  - `packages/desktop`: The native desktop app, built with Electron (wraps `packages/app`)
+  - `packages/openaxe`: openaxe core business logic & server.
+  - `packages/tui`: The TUI code, written in SolidJS with [opentui](https://github.com/sst/opentui)
   - `packages/plugin`: Source for `@opencode-ai/plugin`
 
 ### Understanding bun dev vs openaxe
@@ -139,7 +137,7 @@ bun run --cwd packages/desktop package
 ```
 
 > [!NOTE]
-> If you make changes to the API or SDK (e.g. `packages/opencode/src/server/server.ts`), run `./script/generate.ts` to regenerate the SDK and related files.
+> If you make changes to the API or SDK (e.g. `packages/openaxe/src/server/server.ts`), run `./script/generate.ts` to regenerate the SDK and related files.
 
 Please try to follow the [style guide](./AGENTS.md)
 
@@ -223,16 +221,16 @@ PR titles should follow conventional commit standards:
 You can optionally include a scope to indicate which package is affected:
 
 - `feat(app):` feature in the app package
-- `fix(desktop):` bug fix in the desktop package
-- `chore(opencode):` maintenance in the opencode package
+- `fix(tui):` bug fix in the tui package
+- `chore(openaxe):` maintenance in the openaxe package
 
 Examples:
 
 - `docs: update contributing guidelines`
 - `fix: resolve crash on startup`
 - `feat: add dark mode support`
-- `feat(app): add dark mode support`
-- `fix(desktop): resolve crash on startup`
+- `feat(openaxe): add dark mode support`
+- `fix(tui): resolve crash on startup`
 - `chore: bump dependency versions`
 
 ### Style Preferences
@@ -259,7 +257,7 @@ This project uses [vouch](https://github.com/mitchellh/vouch) to manage contribu
 ### How it works
 
 - **Vouched users** are explicitly trusted contributors.
-- **Denounced users** are explicitly blocked. Issues and pull requests from denounced users are automatically closed. If you have been denounced, you can request to be unvouched by reaching out to a maintainer on [Discord](https://opencode.ai/discord)
+- **Denounced users** are explicitly blocked. Issues and pull requests from denounced users are automatically closed. If you have been denounced, you can request to be unvouched by reaching out to a maintainer on [Discord](https://discord.gg/dressedinblack5/openaxe)
 - **Everyone else** can participate normally — you don't need to be vouched to open issues or PRs.
 
 ### For maintainers
