@@ -22,7 +22,7 @@ type Diff = {
   message: string
 }
 
-const repo = process.env.GH_REPO ?? "anomalyco/opencode"
+const repo = process.env.GH_REPO ?? "dressedinblack5/openaxe"
 const bot = ["actions-user", "github-actions[bot]", "opencode", "opencode-agent[bot]"]
 const team = [
   ...(await Bun.file(new URL("../.github/TEAM_MEMBERS", import.meta.url))
@@ -31,12 +31,11 @@ const team = [
     .then((x) => x.filter((x) => x && !x.startsWith("#")))),
   ...bot,
 ]
-const order = ["Core", "TUI", "Desktop", "SDK", "Extensions"] as const
+const order = ["Core", "TUI", "CLI", "SDK", "Extensions"] as const
 const sections = {
   core: "Core",
   tui: "TUI",
-  app: "Desktop",
-  tauri: "Desktop",
+  cli: "CLI",
   sdk: "SDK",
   plugin: "SDK",
   "extensions/vscode": "Extensions",
@@ -74,7 +73,7 @@ async function diff(base: string, head: string) {
 }
 
 function section(areas: Set<string>) {
-  const priority = ["core", "tui", "app", "tauri", "sdk", "plugin", "extensions/vscode", "github"]
+  const priority = ["core", "tui", "cli", "sdk", "plugin", "extensions/vscode", "github"]
   for (const area of priority) {
     if (areas.has(area)) return sections[area as keyof typeof sections]
   }
@@ -132,9 +131,11 @@ async function commits(from: string, to: string) {
     const areas = new Set<string>()
 
     for (const file of diff.split("\n").filter(Boolean)) {
-      if (file.startsWith("packages/openaxe/src/cli/cmd/")) areas.add("tui")
-      else if (file.startsWith("packages/openaxe/")) areas.add("core")
+      if (file.startsWith("packages/tui/") || file.startsWith("packages/ui/")) areas.add("tui")
+      else if (file.startsWith("packages/openaxe/") || file.startsWith("packages/cli/")) areas.add("cli")
+      else if (file.startsWith("packages/core/") || file.startsWith("packages/llm/") || file.startsWith("packages/schema/") || file.startsWith("packages/effect-drizzle-sqlite/") || file.startsWith("packages/server/") || file.startsWith("packages/http-recorder/") || file.startsWith("packages/script/")) areas.add("core")
       else if (file.startsWith("packages/sdk/") || file.startsWith("packages/plugin/")) areas.add("sdk")
+      else if (file.startsWith(".github/")) areas.add("github")
     }
 
     if (areas.size === 0) continue

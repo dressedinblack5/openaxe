@@ -235,3 +235,95 @@ sudo sysctl --system
 Electron on KDE/Wayland: the `LinuxDisplayBackend` setting ("auto"/"wayland") is stored in electron-store. If the window flickers or renders black, launch with `--disable-gpu` or `--use-gl=swiftshader`.
 
 The TUI (primary mode) has no Electron dependencies. Run via `bun dev` from `packages/openaxe`.
+
+## Workflows
+
+### Fork Sync — merging upstream (anomalyco/opencode) into openaxe
+
+openaxe is a fork of [anomalyco/opencode](https://github.com/anomalyco/opencode). Keeping in sync with upstream:
+
+```bash
+# Add upstream remote (one-time)
+git remote add upstream https://github.com/anomalyco/opencode.git
+
+# Fetch latest upstream
+git fetch upstream
+
+# Merge into dev branch
+git checkout dev
+git merge upstream/dev --no-edit
+
+# Resolve conflicts — common areas:
+# - package.json: keep openaxe's package name, repo URL, dependencies
+# - AGENTS.md: regenerate with updated commit hash
+# - CONTRIBUTING.md: keep openaxe's fork-specific instructions
+# - packages/openaxe/: upstream CLI+TUI changes, openaxe separates TUI
+# - packages/cli/: upstream doesn't have this package
+# - packages/core/src/database/: schema changes may need migration
+
+# After resolving:
+bun install
+bun run typecheck
+```
+
+**Package path mapping** (upstream → openaxe):
+
+| Upstream | openaxe | Notes |
+|---|---|---|
+| `packages/opencode/` | `packages/openaxe/` | CLI orchestrator |
+| `packages/opencode/src/` (TUI) | `packages/tui/` | Separated into own package |
+| `packages/opencode/src/` (core) | `packages/core/` | Core engine |
+| `packages/opencode/src/` (LLM) | `packages/llm/` | LLM integrations |
+| `packages/opencode/src/` (server) | `packages/server/` | HTTP server |
+| `packages/opencode/src/` (plugins) | `packages/plugin/` | Plugin system |
+| `packages/opencode/src/` (schema) | `packages/schema/` | Validation schemas |
+| `packages/opencode/src/` (CLI v2) | `packages/cli/` | Effect-runtime CLI |
+
+### Release — build and publish a new version
+
+```bash
+# 1. Generate changelog from latest release
+bun run script/raw-changelog.ts
+
+# 2. Update changelog
+bun run script/changelog.ts
+
+# 3. Bump version across packages
+bun run script/version.ts <patch|minor|major>
+
+# 4. Build binaries (from packages/cli/)
+cd packages/cli
+bun run script/build.ts          # all targets
+bun run script/build.ts --single  # current platform only (quick test)
+cd ../..
+
+# 5. Publish npm packages (from packages/cli/)
+cd packages/cli
+bun run script/publish.ts
+cd ../..
+
+# 6. Publish GitHub release
+bun run script/publish.ts
+
+# 7. Update download stats (runs on CI)
+bun run script/stats.ts
+```
+
+**Available script tools** (`script/`):
+
+| Script | Purpose |
+|---|---|
+| `script/raw-changelog.ts` | Generate raw changelog from git + `gh` CLI |
+| `script/changelog.ts` | Finalize and format changelog |
+| `script/version.ts` | Bump version across packages |
+| `script/publish.ts` | Create GitHub release |
+| `script/stats.ts` | Fetch & save download stats to STATS.md |
+| `script/duplicate-pr.ts` | Duplicate PR across repos |
+| `script/github/close-issues.ts` | Auto-close stale issues |
+| `script/beta.ts` | Manage beta release process |
+| `script/format.ts` | Format source files |
+| `script/generate.ts` | Generate models data |
+| `scripts/hooks` | Git hooks |
+| `scripts/release` | Release shell script |
+| `packages/cli/script/build.ts` | Build lildax binaries |
+| `packages/cli/script/publish.ts` | Publish npm packages |

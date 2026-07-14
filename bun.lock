@@ -195,7 +195,7 @@
     },
     "packages/openaxe": {
       "name": "openaxe",
-      "version": "1.2.6",
+      "version": "1.2.8",
       "bin": {
         "openaxe": "./bin/openaxe",
       },
@@ -351,7 +351,7 @@
     },
     "packages/schema": {
       "name": "@opencode-ai/schema",
-      "version": "1.2.6",
+      "version": "1.2.8",
       "dependencies": {
         "effect": "4.0.0-beta.82",
       },
@@ -363,7 +363,7 @@
     },
     "packages/script": {
       "name": "@opencode-ai/script",
-      "version": "1.2.6",
+      "version": "1.2.8",
       "dependencies": {
         "semver": "catalog:",
       },

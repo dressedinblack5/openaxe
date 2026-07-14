@@ -1,3 +1,0 @@
-# Ignore all personal openaxe config/extensions; keep this ignore file tracked
-*
-!.gitignore

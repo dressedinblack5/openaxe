@@ -41,13 +41,13 @@ import { McpEvent } from "@opencode-ai/schema/mcp-event"
 const DEFAULT_TIMEOUT = 30_000
 const CLIENT_OPTIONS = {
   capabilities: {
-    // https://github.com/anomalyco/opencode/issues/11948
+    // upstream issue #11948 — sampling
     // sampling: {},
-    // https://github.com/anomalyco/opencode/issues/23066
+    // upstream issue #23066 — elicitation
     // elicitation: {},
-    // https://github.com/anomalyco/opencode/issues/2308
+    // upstream issue #2308 — roots
     roots: {},
-    // https://github.com/anomalyco/opencode/issues/28567
+    // upstream issue #28567 — tasks
     // tasks: {},
   },
 } satisfies ClientOptions
