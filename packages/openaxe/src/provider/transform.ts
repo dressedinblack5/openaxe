@@ -1,9 +1,22 @@
 import type { ModelMessage, ToolResultPart } from "ai"
-import { mergeDeep, unique } from "remeda"
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import type { Model as ProviderModel } from "./provider"
 import type { Model as ModelsDevModel } from "@opencode-ai/core/models-dev";
 import { iife } from "@/util/iife"
+
+function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = { ...target }
+  for (const key of Object.keys(source)) {
+    const sv = source[key]
+    const rv = result[key]
+    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
+      result[key] = mergeDeep(rv, sv)
+    } else if (sv !== undefined) {
+      result[key] = sv
+    }
+  }
+  return result
+}
 
 type Modality = NonNullable<ModelsDevModel["modalities"]>["input"][number]
 
@@ -315,7 +328,7 @@ function applyCaching(msgs: ModelMessage[], model: ProviderModel): ModelMessage[
     },
   }
 
-  for (const msg of unique([...system, ...final])) {
+  for (const msg of [...new Set([...system, ...final])]) {
     const useMessageLevelOptions =
       model.providerID === "anthropic" ||
       model.providerID.includes("bedrock") ||

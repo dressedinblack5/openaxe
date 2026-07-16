@@ -1,7 +1,5 @@
 import path from "path"
 import { fileURLToPath, pathToFileURL } from "url"
-import npa from "npm-package-arg"
-import semver from "semver"
 import { Filesystem } from "@/util/filesystem"
 import { isRecord } from "@/util/record"
 import { Npm } from "@opencode-ai/core/npm"
@@ -13,26 +11,39 @@ export function isDeprecatedPlugin(spec: string) {
   return DEPRECATED_PLUGIN_PACKAGES.some((pkg) => spec.includes(pkg))
 }
 
-function parse(spec: string) {
-  try {
-    return npa(spec)
-  } catch {
-    // expected for invalid spec strings
+function parsePackageName(spec: string): string {
+  if (spec.startsWith("@")) {
+    const slash = spec.indexOf("/")
+    if (slash === -1) return spec
+    const rest = spec.slice(slash + 1)
+    const at = rest.indexOf("@")
+    return at === -1 ? spec.slice(0, slash + 1 + rest.length) : spec.slice(0, slash + at + 1)
   }
+  const at = spec.indexOf("@")
+  return at === -1 ? spec : spec.slice(0, at)
+}
+
+function extractVersion(spec: string): string | undefined {
+  if (spec.startsWith("@")) {
+    const slash = spec.indexOf("/")
+    if (slash === -1) return undefined
+    const rest = spec.slice(slash + 1)
+    const at = rest.indexOf("@")
+    return at === -1 ? undefined : rest.slice(at + 1)
+  }
+  const at = spec.indexOf("@")
+  return at === -1 ? undefined : spec.slice(at + 1)
 }
 
 export function parsePluginSpecifier(spec: string) {
-  const hit = parse(spec)
-  if (hit?.type === "alias" && !hit.name) {
-    const sub = (hit as npa.AliasResult).subSpec
-    if (sub?.name) {
-      const version = !sub.rawSpec || sub.rawSpec === "*" ? "latest" : sub.rawSpec
-      return { pkg: sub.name, version }
-    }
+  if (spec.startsWith("npm:")) {
+    const inner = spec.slice(4)
+    return { pkg: parsePackageName(inner), version: extractVersion(inner) || "latest" }
   }
-  if (!hit?.name) return { pkg: spec, version: "" }
-  if (hit.raw === hit.name) return { pkg: hit.name, version: "latest" }
-  return { pkg: hit.name, version: hit.rawSpec }
+  const name = parsePackageName(spec)
+  const version = extractVersion(spec)
+  if (name === spec) return { pkg: name, version: "latest" }
+  return { pkg: name, version: version || "" }
 }
 
 export type PluginSource = "file" | "npm"
@@ -207,23 +218,42 @@ export async function resolvePathPluginTarget(spec: string) {
   throw new Error(`Plugin directory ${file} is missing package.json or index file`)
 }
 
+function parseVersion(v: string): number[] {
+  return v.split(".").map((x) => parseInt(x, 10) || 0)
+}
+
+function satisfies(version: string, range: string): boolean {
+  if (range.startsWith("^")) {
+    const r = parseVersion(range.slice(1))
+    const v = parseVersion(version)
+    if (r.length < 1 || v.length < 1) return false
+    if (v[0] !== r[0]) return false
+    if (v[1] < (r[1] ?? 0)) return false
+    if (v[1] === (r[1] ?? 0) && (v[2] ?? 0) < (r[2] ?? 0)) return false
+    return true
+  }
+  return range === version
+}
+
 export async function checkPluginCompatibility(target: string, opencodeVersion: string, pkg?: PluginPackage) {
-  if (!semver.valid(opencodeVersion) || semver.major(opencodeVersion) === 0) return
+  const parts = opencodeVersion.split(".")
+  if (parts.length < 2 || parts.some((p) => isNaN(parseInt(p, 10)))) return
+  if (parseInt(parts[0], 10) === 0) return
   const hit = pkg ?? (await readPluginPackage(target).catch(() => undefined))
   if (!hit) return
   const engines = hit.json.engines
   if (!isRecord(engines)) return
   const range = engines.opencode
   if (typeof range !== "string") return
-  if (!semver.satisfies(opencodeVersion, range)) {
+  if (!satisfies(opencodeVersion, range)) {
     throw new Error(`Plugin requires opencode ${range} but running ${opencodeVersion}`)
   }
 }
 
 export async function resolvePluginTarget(spec: string) {
   if (isPathPluginSpec(spec)) return resolvePathPluginTarget(spec)
-  const hit = parse(spec)
-  const pkg = hit?.name && hit.raw === hit.name ? `${hit.name}@latest` : spec
+  const name = parsePackageName(spec)
+  const pkg = name === spec ? `${name}@latest` : spec
   const result = await Npm.add(pkg)
   return result.directory
 }

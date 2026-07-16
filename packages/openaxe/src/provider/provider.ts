@@ -3,7 +3,6 @@ import os from "os"
 import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import fuzzysort from "fuzzysort"
 import { Config } from "@/config/config"
-import { mapValues, mergeDeep, omit, pickBy, sortBy } from "remeda"
 import { NoSuchModelError, type Provider as SDK } from "ai"
 import { Npm } from "@opencode-ai/core/npm"
 import { Hash } from "@opencode-ai/core/util/hash"
@@ -31,6 +30,42 @@ import { ModelV2 } from "@opencode-ai/core/model"
 import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
+
+function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = { ...target }
+  for (const key of Object.keys(source)) {
+    const sv = source[key]
+    const rv = result[key]
+    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
+      result[key] = mergeDeep(rv, sv)
+    } else if (sv !== undefined) {
+      result[key] = sv
+    }
+  }
+  return result
+}
+
+function mapValues<T, R>(obj: Record<string, T>, fn: (value: T, key: string) => R): Record<string, R> {
+  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v, k)]))
+}
+
+function pickBy<T>(obj: Record<string, T>, fn: (value: T, key: string) => boolean): Record<string, T> {
+  return Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(v, k)))
+}
+
+function omit<T extends Record<string, any>>(obj: T, keys: string[]): T {
+  return Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k))) as T
+}
+
+function sortBy<T>(items: T[], ...fns: Array<[(item: T) => any, "asc" | "desc"]>): T[] {
+  return items.slice().sort((a, b) => {
+    for (const [accessor, dir] of fns) {
+      const ka = accessor(a), kb = accessor(b)
+      if (ka !== kb) return dir === "desc" ? (kb < ka ? -1 : 1) : (ka < kb ? -1 : 1)
+    }
+    return 0
+  })
+}
 
 const OPENAI_HEADER_TIMEOUT_DEFAULT = 10_000
 
@@ -1254,7 +1289,7 @@ export function fromModelsDevProvider(provider: ModelsDev.Provider): Info {
         ...base,
         id: ModelV2.ID.make(id),
         name: `${model.name} ${mode[0].toUpperCase()}${mode.slice(1)}`,
-        cost: opts.cost ? mergeDeep(base.cost, cost(opts.cost)) : base.cost,
+        cost: opts.cost ? mergeDeep(base.cost, cost(opts.cost)) as typeof base.cost : base.cost,
         options: opts.provider?.body
           ? Object.fromEntries(
               Object.entries(opts.provider.body).map(([k, v]) => [
