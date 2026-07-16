@@ -183,6 +183,13 @@ export function createWebSocketFetch(options?: CreateWebSocketFetchOptions) {
     pool.clear()
   }
 
+  // Safety net: ensure cleanup even if close() is never called
+  const held = {}
+  const finalizer = new FinalizationRegistry(() => {
+    close()
+  })
+  finalizer.register(websocketFetch, held)
+
   function remove(sessionID: string) {
     const key = `${sessionID}:conversation`
     const entry = pool.get(key)

@@ -95,21 +95,23 @@ export async function resolve(
   try {
     target = await resolvePluginTarget(plan.spec)
   } catch (error) {
-    return { ok: false, stage: "install", error }
+    return { ok: false as const, stage: "install" as const, error }
   }
-  if (!target) return { ok: false, stage: "install", error: new Error(`Plugin ${plan.spec} target is empty`) }
+  if (!target) {
+    return { ok: false as const, stage: "install" as const, error: new Error(`Plugin ${plan.spec} target is empty`) }
+  }
 
   // Then inspect the target for the requested server/tui entrypoint.
   let base
   try {
     base = await createPluginEntry(plan.spec, target, kind)
   } catch (error) {
-    return { ok: false, stage: "entry", error }
+    return { ok: false as const, stage: "entry" as const, error }
   }
-  if (!base.entry)
+  if (!base.entry) {
     return {
-      ok: false,
-      stage: "missing",
+      ok: false as const,
+      stage: "missing" as const,
       value: {
         ...plan,
         source: base.source,
@@ -118,6 +120,7 @@ export async function resolve(
         message: `Plugin ${plan.spec} does not expose a ${kind} entrypoint`,
       },
     }
+  }
 
   // npm plugins can declare which opencode versions they support; file plugins are treated
   // as local development code and skip this compatibility gate.
@@ -125,10 +128,10 @@ export async function resolve(
     try {
       await checkPluginCompatibility(base.target, InstallationVersion, base.pkg)
     } catch (error) {
-      return { ok: false, stage: "compatibility", error }
+      return { ok: false as const, stage: "compatibility" as const, error }
     }
   }
-  return { ok: true, value: { ...plan, source: base.source, target: base.target, entry: base.entry, pkg: base.pkg } }
+  return { ok: true as const, value: { ...plan, source: base.source, target: base.target, entry: base.entry, pkg: base.pkg } }
 }
 
 // Import the resolved module only after all earlier validation has succeeded.
@@ -206,20 +209,22 @@ type Input<R> = {
 // treated as permanent for this process because Bun caches failed module resolution.
 export async function loadExternal<R = Loaded>(input: Input<R>): Promise<R[]> {
   const candidates = input.items.map((origin) => ({ origin, plan: plan(origin.spec) }))
-  const list: Array<Promise<AttemptResult<R>>> = []
-  for (const candidate of candidates) {
-    list.push(attempt(candidate, input.kind, false, input.finish, input.missing, input.report))
-  }
-  const out = await Promise.all(list)
+
+  // Phase 1: Initial attempt for all candidates in parallel
+  const out = await Promise.all(
+    candidates.map((candidate) =>
+      attempt(candidate, input.kind, false, input.finish, input.missing, input.report)
+    )
+  )
+
   if (input.wait) {
+    // Phase 2: Retry only failed file plugins sequentially after dependency wait.
+    // The wait function is called lazily — only when we find the first retryable item.
     let deps: Promise<void> | undefined
     for (let i = 0; i < candidates.length; i++) {
       const previous = out[i]
       if (previous?.value !== undefined) continue
       if (!previous?.retry) continue
-
-      // Only pre-import file plugin setup failures are retried. Bun caches failed dynamic imports,
-      // so dependency waiting cannot fix load/build/runtime/shape failures in this process.
       const candidate = candidates[i]
       if (!candidate || pluginSource(candidate.plan.spec) !== "file") continue
       deps ??= input.wait()

@@ -474,9 +474,10 @@ function readPluginEnabledMap(value: unknown) {
 }
 
 function pluginEnabledState(state: RuntimeState, config: TuiConfig.Resolved) {
+  const saved = state.api.kv?.get?.(KV_KEY, {})
   return {
     ...readPluginEnabledMap(config.plugin_enabled),
-    ...readPluginEnabledMap(state.api.kv.get(KV_KEY, {})),
+    ...readPluginEnabledMap(saved),
   }
 }
 
@@ -991,6 +992,7 @@ export async function init(input: {
   dispose?: () => void
   disposeTimeoutMs?: number
 }) {
+
   const cwd = process.cwd()
   if (loaded) {
     if (dir !== cwd) {
@@ -1086,12 +1088,10 @@ async function load(input: {
     const flags = await Effect.runPromise(
       Effect.gen(function* () {
         return yield* RuntimeFlags.Service
-      }).pipe(Effect.provide(RuntimeFlags.defaultLayer)),
+      }    ).pipe(Effect.provide(RuntimeFlags.defaultLayer)),
     )
     const pluginOrigins = config.plugin_origins ?? (await TuiConfig.pluginOrigins())
     const records = Flag.OPENCODE_PURE ? [] : pluginOrigins
-    if (Flag.OPENCODE_PURE && pluginOrigins.length) {
-    }
 
     for (const item of internalTuiPlugins(flags)) {
       const entry = loadInternalPlugin(item)
@@ -1110,14 +1110,14 @@ async function load(input: {
     await addExternalPluginEntries(next, ready)
 
     applyInitialPluginEnabledState(next, config)
-    for (const plugin of next.plugins) {
-      if (!plugin.enabled) continue
-      // Keep plugin execution sequential for deterministic side effects:
-      // command registration order affects keybind/command precedence,
-      // route registration is last-wins when ids collide,
-      // and hook chains rely on stable plugin ordering.
-      await activatePluginEntry(next, plugin, false)
-    }
+    const enabledPlugins = next.plugins.filter(p => p.enabled)
+
+    await Effect.runPromise(
+      Effect.all(
+        enabledPlugins.map(plugin => Effect.promise(() => activatePluginEntry(next, plugin, false))),
+        { concurrency: 1 }
+      )
+    )
     next.view.update({ status: listPluginStatus(next) })
   } catch (error) {
     fail("failed to load tui plugins", { directory: cwd, error })
