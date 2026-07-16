@@ -31,7 +31,7 @@ export type Unavailable = typeof unavailable
 /** Defines one typed source before its value type is hidden by `make`. */
 export interface Source<A> {
   readonly key: Key
-  readonly codec: Schema.Codec<A, Schema.Json, never>
+  readonly codec: Schema.Codec<A, Schema.Json>
   readonly load: Effect.Effect<A | Unavailable>
   readonly baseline: (current: A) => string
   readonly update: (previous: A, current: A) => string

@@ -12,7 +12,7 @@ import { ToolDefinition, ToolFailure, ToolOutput } from "./schema"
  * encoding services are allowed. Tools should be self-contained — anything
  * beyond pure data conversion belongs in the handler closure.
  */
-export type ToolSchema<T> = Schema.Codec<T, any, never>
+export type ToolSchema<T> = Schema.Codec<T, any>
 export interface ToolExecuteContext {
   readonly id: ToolCallPart["id"]
   readonly name: ToolCallPart["name"]

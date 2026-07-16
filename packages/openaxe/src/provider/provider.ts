@@ -2126,7 +2126,7 @@ export const layer = Layer.effect(
           error: e instanceof Error ? e.message : "Unknown error",
         })
       }
-    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never>
+    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
 
     const getHealth = Effect.fn("Provider.getHealth")(function* (providerID: ProviderV2.ID) {
       const cached = yield* Effect.cached(
@@ -2141,7 +2141,7 @@ export const layer = Layer.effect(
         ),
       )
       return yield* cached
-    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth, never>
+    }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
 
     return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel, checkHealth, getHealth })
   }),

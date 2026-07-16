@@ -132,10 +132,10 @@ function DiffViewer(props: { api: TuiPluginApi }) {
   const [focus, setFocus] = createSignal<DiffViewerFocus>("patches")
   const [fileTreeEnabled, setFileTreeEnabled] = createSignal(
     
-    props.api.kv.get<boolean>(KV_SHOW_FILE_TREE, true),
+    props.api.kv.get(KV_SHOW_FILE_TREE, true),
   )
   const showFileTree = createMemo(() => showDiffViewerFileTree(fileTreeEnabled(), files().length))
-  const [singlePatch, setSinglePatch] = createSignal(props.api.kv.get<boolean>(KV_SINGLE_PATCH, false))
+  const [singlePatch, setSinglePatch] = createSignal(props.api.kv.get(KV_SINGLE_PATCH, false))
   const patchPaneWidth = createMemo(() => dimensions().width - (showFileTree() ? 33 : 0) - 4)
   const patchLeftBorder = createMemo<BorderSides[]>(() => (showFileTree() ? ["left"] : []))
   const splitAvailable = createMemo(() => patchPaneWidth() >= MIN_SPLIT_WIDTH)

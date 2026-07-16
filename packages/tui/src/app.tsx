@@ -1114,7 +1114,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       `Successfully updated to OpenAxe v${result.data.version}. Please restart the application.`,
     )
 
-     void exit()
+      exit()
   })
 
   const plugin = createMemo(() => {

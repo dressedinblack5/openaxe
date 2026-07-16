@@ -74,7 +74,7 @@ export function DialogModel(props: { providerID?: string }) {
       (provider) => provider.id !== "opencode",
       (provider) => provider.name,
     ).flatMap((provider) => {
-      const modelEntries = Object.entries(provider.models) as [string, typeof provider.models[string]][]
+      const modelEntries = Object.entries(provider.models)
       const filtered1 = modelEntries.filter(([_, info]) => info.status !== "deprecated")
       const filtered2 = filtered1.filter(([_, info]) => (props.providerID ? info.providerID === props.providerID : true))
       const mapped = filtered2.map(([model, info]) => ({

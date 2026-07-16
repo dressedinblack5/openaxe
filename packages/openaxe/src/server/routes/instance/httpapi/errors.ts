@@ -196,5 +196,5 @@ export function notFound(message: string) {
  *  Contains one `as any` instead of 73 spread across the codebase.
  *  ponytail: single `as any` in the helper replaces all call-site casts. */
 export function errors<T extends any[]>(...schemas: T): any {
-  return (schemas.length === 1 ? schemas[0] : schemas) as any
+  return (schemas.length === 1 ? schemas[0] : schemas)
 }
