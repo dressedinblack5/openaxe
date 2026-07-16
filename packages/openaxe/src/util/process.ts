@@ -1,10 +1,8 @@
-import { type ChildProcess } from "child_process"
-import type { Stream } from "node:stream"
-import launch from "cross-spawn"
+import { Readable, Writable } from "node:stream"
 import { buffer } from "node:stream/consumers"
 import { errorMessage } from "./error"
 
-export type Stdio = "inherit" | "pipe" | "ignore" | number | Stream
+export type Stdio = "inherit" | "pipe" | "ignore" | number
 export type Shell = boolean | string
 
 export interface Options {
@@ -54,50 +52,46 @@ export class RunFailedError extends Error {
   }
 }
 
-export type Child = ChildProcess & { exited: Promise<number> }
+// ponytail: wraps Bun.Subprocess with Node.js-compatible streams (Readable/Writable)
+// so existing code using .stdin.write(), .stdout.on("data", ...) continues working.
+export interface Child {
+  readonly pid: number
+  readonly stdin: Writable | null
+  readonly stdout: Readable | null
+  readonly stderr: Readable | null
+  readonly exitCode: number | null
+  readonly signalCode: NodeJS.Signals | null
+  readonly exited: Promise<number>
+  kill(signal?: NodeJS.Signals | number): void
+}
 
 export function spawn(cmd: string[], opts: Options = {}): Child {
   if (cmd.length === 0) throw new Error("Command is required")
   opts.abort?.throwIfAborted()
 
-  const proc = launch(cmd[0], cmd.slice(1), {
+  const bunProc = Bun.spawn(cmd, {
     cwd: opts.cwd,
-    shell: opts.shell,
     env: opts.env === null ? {} : opts.env ? { ...process.env, ...opts.env } : undefined,
     stdio: [opts.stdin ?? "ignore", opts.stdout ?? "ignore", opts.stderr ?? "ignore"],
-    windowsHide: process.platform === "win32",
-  })
+  } as any)
 
   let closed = false
   let timer: ReturnType<typeof setTimeout> | undefined
 
   const abort = () => {
     if (closed) return
-    if (proc.exitCode !== null || proc.signalCode !== null) return
+    if (bunProc.exitCode !== null || bunProc.signalCode !== null) return
     closed = true
-
-    proc.kill(opts.kill ?? "SIGTERM")
-
+    bunProc.kill(opts.kill ?? "SIGTERM")
     const ms = opts.timeout ?? 5_000
     if (ms <= 0) return
-    timer = setTimeout(() => proc.kill("SIGKILL"), ms)
+    timer = setTimeout(() => bunProc.kill("SIGKILL"), ms)
   }
 
-  const exited = new Promise<number>((resolve, reject) => {
-    const done = () => {
-      opts.abort?.removeEventListener("abort", abort)
-      if (timer) clearTimeout(timer)
-    }
-
-    proc.once("exit", (code, signal) => {
-      done()
-      resolve(code ?? (signal ? 1 : 0))
-    })
-
-    proc.once("error", (error) => {
-      done()
-      reject(error)
-    })
+  const exited = bunProc.exited.then((code) => {
+    opts.abort?.removeEventListener("abort", abort)
+    if (timer) clearTimeout(timer)
+    return code
   })
   void exited.catch(() => undefined)
 
@@ -106,9 +100,20 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
     if (opts.abort.aborted) abort()
   }
 
-  const child = proc as Child
-  child.exited = exited
-  return child
+  // ponytail: stdin may be FileSink (Bun) which has .write()/.end() same as Writable
+  const stdin = bunProc.stdin && typeof bunProc.stdin === "object"
+    ? ("getWriter" in bunProc.stdin ? Writable.fromWeb(bunProc.stdin as any) : bunProc.stdin as any as Writable)
+    : null
+  return {
+    get pid() { return bunProc.pid },
+    stdin,
+    stdout: bunProc.stdout ? Readable.fromWeb(bunProc.stdout as any) : null,
+    stderr: bunProc.stderr ? Readable.fromWeb(bunProc.stderr as any) : null,
+    get exitCode() { return bunProc.exitCode },
+    get signalCode() { return bunProc.signalCode },
+    exited,
+    kill(signal) { bunProc.kill(signal as any) },
+  }
 }
 
 export async function run(cmd: string[], opts: RunOptions = {}): Promise<Result> {
@@ -126,7 +131,11 @@ export async function run(cmd: string[], opts: RunOptions = {}): Promise<Result>
 
   if (!proc.stdout || !proc.stderr) throw new Error("Process output not available")
 
-  const out = await Promise.all([proc.exited, buffer(proc.stdout), buffer(proc.stderr)])
+  const out = await Promise.all([
+    proc.exited,
+    buffer(proc.stdout),
+    buffer(proc.stderr),
+  ])
     .then(([code, stdout, stderr]) => ({
       code,
       stdout,
@@ -146,7 +155,7 @@ export async function run(cmd: string[], opts: RunOptions = {}): Promise<Result>
 
 // Duplicated in `packages/sdk/js/src/process.ts` because the SDK cannot import
 // `opencode` without creating a cycle. Keep both copies in sync.
-export async function stop(proc: ChildProcess) {
+export async function stop(proc: Child) {
   if (proc.exitCode !== null || proc.signalCode !== null) return
 
   if (process.platform !== "win32" || !proc.pid) {

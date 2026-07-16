@@ -1,5 +1,3 @@
-import { sortBy, pipe } from "remeda"
-
 export function match(str: string, pattern: string) {
   if (str) str = str.replaceAll("\\", "/")
   if (pattern) pattern = pattern.replaceAll("\\", "/")
@@ -19,7 +17,12 @@ export function match(str: string, pattern: string) {
 }
 
 export function all(input: string, patterns: Record<string, any>) {
-  const sorted = pipe(patterns, Object.entries, sortBy([([key]) => key.length, "asc"], [([key]) => key, "asc"]))
+  const entries = Object.entries(patterns)
+  const sorted = entries.slice().sort((a, b) => {
+    const cmp = a[0].length - b[0].length
+    if (cmp !== 0) return cmp
+    return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0
+  })
   let result = undefined
   for (const [pattern, value] of sorted) {
     if (match(input, pattern)) {
@@ -31,7 +34,12 @@ export function all(input: string, patterns: Record<string, any>) {
 }
 
 export function allStructured(input: { head: string; tail: string[] }, patterns: Record<string, any>) {
-  const sorted = pipe(patterns, Object.entries, sortBy([([key]) => key.length, "asc"], [([key]) => key, "asc"]))
+  const entries = Object.entries(patterns)
+  const sorted = entries.slice().sort((a, b) => {
+    const cmp = a[0].length - b[0].length
+    if (cmp !== 0) return cmp
+    return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0
+  })
   let result = undefined
   for (const [pattern, value] of sorted) {
     const parts = pattern.split(/\s+/)

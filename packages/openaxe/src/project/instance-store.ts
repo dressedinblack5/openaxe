@@ -10,6 +10,7 @@ import { type InstanceContext } from "./instance-context"
 import { InstanceBootstrap } from "./bootstrap-service"
 import { InstanceBootstrap as InstanceBootstrapGraph } from "./bootstrap"
 import { Project } from "./project"
+import { Fff } from "@opencode-ai/core/filesystem/fff.bun"
 
 export interface LoadInput {
   directory: string
@@ -73,6 +74,19 @@ export const layer: Layer.Layer<Service, never, Project.Service | InstanceBootst
       Effect.gen(function* () {
         const exit = yield* Effect.exit(boot({ ...input, directory }))
         if (Exit.isFailure(exit)) yield* removeEntry(directory, entry)
+        
+        // Warm up FFF content index for fast file searches
+        if (Exit.isSuccess(exit)) {
+          const ctx = exit.value
+          yield* Effect.sync(() => {
+            const pickerResult = Fff.create({ basePath: ctx.directory })
+            if (pickerResult.ok) {
+              // Quick warm-up grep to populate the content index
+              pickerResult.value.grep("_warmup_", { mode: "regex", timeBudgetMs: 500 })
+            }
+          }).pipe(Effect.forkIn(scope, { startImmediately: true }))
+        }
+        
         yield* Deferred.done(entry.deferred, exit).pipe(Effect.asVoid)
       })
 
