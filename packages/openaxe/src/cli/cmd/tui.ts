@@ -146,9 +146,12 @@ export const TuiCommand = cmd({
     }
     const noReplay = args.replay === false || args.noReplay === true
 
-    // Must run before any TUI code imports @opentui/core (which loads the native lib)
-    await initOpentuiNativeLib()
-    mark("native-lib")
+    // Defer native lib loading to avoid blocking startup
+    const nativeLibPromise = initOpentuiNativeLib().catch((error) => {
+      UI.error("Failed to load native library, continuing in degraded mode")
+      return null
+    })
+    mark("native-lib-start")
 
     if (args.mini) {
       const network = ["--port", "--hostname", "--mdns", "--no-mdns", "--mdns-domain", "--cors"].find((option) =>
@@ -196,6 +199,12 @@ export const TuiCommand = cmd({
       const pluginMod = import("@/plugin/tui/runtime")
 
       const { TuiConfig } = await configMod
+      mark("config-mod")
+      const [{ Effect }, { run }, { createLegacyTuiPluginHost }] = await Promise.all([
+        effectMod.then((m) => ({ Effect: m.Effect })),
+        layerMod.then((m) => ({ run: m.run })),
+        pluginMod.then((m) => ({ createLegacyTuiPluginHost: m.createLegacyTuiPluginHost })),
+      ])
       mark("parallel-imports")
       if (args.fork && !args.continue && !args.session) {
         UI.error("--fork requires --continue or --session")
@@ -250,14 +259,12 @@ export const TuiCommand = cmd({
         network.port !== 0 ||
         network.hostname !== "127.0.0.1"
 
+      // Start server in both internal and external modes - worker fetch needs it
+      const serverResult = await client.call("server", network)
+      mark("server-url")
       const transport = external
         ? {
-            url: (
-              await client.call("server", network).then((r) => {
-                mark("server-url")
-                return r
-              })
-            ).url,
+            url: serverResult.url,
             fetch: undefined,
             events: undefined,
           }
@@ -266,8 +273,6 @@ export const TuiCommand = cmd({
             fetch: createWorkerFetch(client),
             events: createEventSource(client),
           }
-
-      if (!external) mark("server-url") // internal transport, no server RPC needed
       try {
         await validateSession({
           url: transport.url,
@@ -287,9 +292,8 @@ export const TuiCommand = cmd({
       }, 1000).unref?.()
 
       try {
-        const { Effect } = await effectMod
-        const { run } = await layerMod
-        const { createLegacyTuiPluginHost } = await pluginMod
+        await nativeLibPromise
+        mark("native-lib")
         mark("run-start")
         await Effect.runPromise(
           run({

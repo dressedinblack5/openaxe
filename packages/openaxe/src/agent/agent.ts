@@ -15,7 +15,6 @@ import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
 import { Permission } from "@/permission"
-import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@opencode-ai/core/global"
 import path from "path"
 import { Plugin } from "@/plugin"
@@ -31,6 +30,30 @@ import { LocationServiceMap } from "@opencode-ai/core/location-layer"
 import { Reference } from "@opencode-ai/core/reference"
 import { Location } from "@opencode-ai/core/location"
 import { PluginV2 } from "@opencode-ai/core/plugin"
+
+function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = { ...target }
+  for (const key of Object.keys(source)) {
+    const sv = source[key]
+    const rv = result[key]
+    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
+      result[key] = mergeDeep(rv, sv)
+    } else if (sv !== undefined) {
+      result[key] = sv
+    }
+  }
+  return result
+}
+
+function sortBy<T>(items: T[], ...fns: Array<[(item: T) => any, "asc" | "desc"]>): T[] {
+  return items.slice().sort((a, b) => {
+    for (const [accessor, dir] of fns) {
+      const ka = accessor(a), kb = accessor(b)
+      if (ka !== kb) return dir === "desc" ? (kb < ka ? -1 : 1) : (ka < kb ? -1 : 1)
+    }
+    return 0
+  })
+}
 
 export const Info = Schema.Struct({
   name: Schema.String,
@@ -323,13 +346,10 @@ export const layer = Layer.effect(
 
         const list = Effect.fnUntraced(function* () {
           const cfg = yield* config.get()
-          return pipe(
-            build(cfg),
-            values(),
-            sortBy(
-              [(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "build"), "desc"],
-              [(x) => x.name, "asc"],
-            ),
+          return sortBy(
+            Object.values(build(cfg)),
+            [(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "build"), "desc"],
+            [(x) => x.name, "asc"],
           )
         })
 

@@ -6,7 +6,6 @@ import { UI } from "../ui"
 import { intro, outro, select, text as promptText, password, spinner as createSpinner, autocomplete, log } from "../effect/prompt"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
 
-import { map, pipe, sortBy, values } from "remeda"
 import path from "path"
 import os from "os"
 import { Config } from "@/config/config"
@@ -384,23 +383,21 @@ export const ProvidersLoginCommand = effectCmd({
       enabled,
       providerNames: Object.fromEntries(Object.entries(config.provider ?? {}).map(([id, p]) => [id, p.name])),
     })
+    const sortedProviders = Object.values(providers).slice().sort((a, b) => {
+      const pa = priority[a.id] ?? 99, pb = priority[b.id] ?? 99
+      if (pa !== pb) return pa - pb
+      const na = a.name ?? a.id, nb = b.name ?? b.id
+      return na < nb ? -1 : na > nb ? 1 : 0
+    })
     const options = [
-      ...pipe(
-        providers,
-        values(),
-        sortBy(
-          (x) => priority[x.id] ?? 99,
-          (x) => x.name ?? x.id,
-        ),
-        map((x) => ({
-          label: x.name,
-          value: x.id,
-          hint: {
-            opencode: "recommended",
-            openai: "ChatGPT Plus/Pro or API key",
-          }[x.id],
-        })),
-      ),
+      ...sortedProviders.map((x) => ({
+        label: x.name,
+        value: x.id,
+        hint: {
+          opencode: "recommended",
+          openai: "ChatGPT Plus/Pro or API key",
+        }[x.id],
+      })),
       ...pluginProviders.map((x) => ({
         label: x.name,
         value: x.id,

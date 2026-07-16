@@ -29,19 +29,24 @@ let server: { stop(force?: boolean): Promise<void>; url?: URL } | undefined
 
 export const rpc = {
   async fetch(input: { url: string; method: string; headers: Record<string, string>; body?: string }) {
-    const { Server } = await import("@/server/server")
     const { ServerAuth } = await import("@/server/auth")
+    if (!server?.url) throw new Error("Server not yet started; call server() first")
     const headers = { ...input.headers }
     const auth = ServerAuth.header()
     if (auth && !headers["authorization"] && !headers["Authorization"]) {
       headers["Authorization"] = auth
     }
-    const request = new Request(input.url, {
+    // Proxy through the real server URL so requests hit the fully-configured
+    // HttpRouter.serve() handler (with all service layers), not the bare
+    // toWebHandler() which lacks the AppLayer context.
+    const incomingUrl = new URL(input.url)
+    const proxyUrl = new URL(incomingUrl.pathname, server.url)
+    proxyUrl.search = incomingUrl.search
+    const response = await fetch(proxyUrl.toString(), {
       method: input.method,
       headers,
       body: input.body,
     })
-    const response = await Server.Default().app.fetch(request)
     const body = await response.text()
     return {
       status: response.status,
