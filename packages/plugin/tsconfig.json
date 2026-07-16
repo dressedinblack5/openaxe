@@ -7,6 +7,7 @@
     "module": "nodenext",
     "declaration": true,
     "moduleResolution": "nodenext",
+    "types": ["bun", "node"],
     "lib": ["es2022", "dom", "dom.iterable"]
   },
   "include": ["src"]

@@ -47,6 +47,7 @@
     "@opentui/keymap": "0.4.2",
     "@opentui/solid": "0.4.2",
     "@tsconfig/node22": "22.0.2",
+    "@types/bun": "catalog:",
     "@types/node": "24.12.2",
     "typescript": "5.8.2",
     "@typescript/native-preview": "7.0.0-dev.20251207.1"
