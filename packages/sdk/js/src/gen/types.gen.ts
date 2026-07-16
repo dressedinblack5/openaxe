@@ -1014,7 +1014,6 @@ export type AgentConfig = {
       }
     | boolean
     | ("subagent" | "primary" | "all")
-     
     | {
         edit?: "ask" | "allow" | "deny"
         bash?:

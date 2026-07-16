@@ -1,4 +1,3 @@
-import launch from "cross-spawn"
 import { type Config } from "./gen/types.gen.js"
 import { stop, bindAbort } from "./process.js"
 
@@ -32,7 +31,8 @@ export async function createOpencodeServer(options?: ServerOptions) {
   const args = [`serve`, `--hostname=${options.hostname}`, `--port=${options.port}`]
   if (options.config?.logLevel) args.push(`--log-level=${options.config.logLevel}`)
 
-  const proc = launch(`opencode`, args, {
+  const proc = Bun.spawn(["opencode", ...args], {
+    stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
       OPENCODE_CONFIG_CONTENT: JSON.stringify(options.config ?? {}),
@@ -48,31 +48,54 @@ export async function createOpencodeServer(options?: ServerOptions) {
     }, options.timeout)
     let output = ""
     let resolved = false
-    proc.stdout?.on("data", (chunk) => {
-      if (resolved) return
-      output += chunk.toString()
-      const lines = output.split("\n")
-      for (const line of lines) {
-        if (line.startsWith("opencode server listening")) {
-          const match = line.match(/on\s+(https?:\/\/[^\s]+)/)
-          if (!match) {
-            clear()
-            stop(proc)
-            clearTimeout(id)
-            reject(new Error(`Failed to parse server url from output: ${line}`))
-            return
+
+    const readStdout = async () => {
+      if (!proc.stdout) return
+      const reader = proc.stdout.getReader()
+      const decoder = new TextDecoder()
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (resolved) continue
+          output += decoder.decode(value, { stream: true })
+          for (const line of output.split("\n")) {
+            if (line.startsWith("opencode server listening")) {
+              const match = line.match(/on\s+(https?:\/\/[^\s]+)/)
+              if (!match) {
+                clear()
+                stop(proc)
+                clearTimeout(id)
+                reject(new Error(`Failed to parse server url from output: ${line}`))
+                return
+              }
+              clearTimeout(id)
+              resolved = true
+              resolve(match[1])
+              return
+            }
           }
-          clearTimeout(id)
-          resolved = true
-          resolve(match[1])
-          return
         }
-      }
-    })
-    proc.stderr?.on("data", (chunk) => {
-      output += chunk.toString()
-    })
-    proc.on("exit", (code) => {
+      } catch { /* stream closed */ }
+    }
+
+    const readStderr = async () => {
+      if (!proc.stderr) return
+      const reader = proc.stderr.getReader()
+      const decoder = new TextDecoder()
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          output += decoder.decode(value, { stream: true })
+        }
+      } catch { /* stream closed */ }
+    }
+
+    readStdout()
+    readStderr()
+
+    proc.exited.then((code: number) => {
       clearTimeout(id)
       let msg = `Server exited with code ${code}`
       if (output.trim()) {
@@ -80,10 +103,7 @@ export async function createOpencodeServer(options?: ServerOptions) {
       }
       reject(new Error(msg))
     })
-    proc.on("error", (error) => {
-      clearTimeout(id)
-      reject(error)
-    })
+
     clear = bindAbort(proc, options.signal, () => {
       clearTimeout(id)
       reject(options.signal?.reason)
@@ -115,8 +135,8 @@ export function createOpencodeTui(options?: TuiOptions) {
     args.push(`--agent=${options.agent}`)
   }
 
-  const proc = launch(`opencode`, args, {
-    stdio: "inherit",
+  const proc = Bun.spawn(["opencode", ...args], {
+    stdio: ["inherit", "inherit", "inherit"],
     env: {
       ...process.env,
       OPENCODE_CONFIG_CONTENT: JSON.stringify(options?.config ?? {}),
