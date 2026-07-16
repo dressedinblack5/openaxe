@@ -24,12 +24,14 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const db = yield* makeDatabase
 
-    yield* db.run("PRAGMA journal_mode = WAL")
-    yield* db.run("PRAGMA synchronous = NORMAL")
-    yield* db.run("PRAGMA busy_timeout = 5000")
-    yield* db.run("PRAGMA cache_size = -64000")
-    yield* db.run("PRAGMA foreign_keys = ON")
-    yield* db.run("PRAGMA wal_checkpoint(PASSIVE)")
+    yield* Effect.all([
+      db.run("PRAGMA journal_mode = WAL"),
+      db.run("PRAGMA synchronous = NORMAL"),
+      db.run("PRAGMA busy_timeout = 5000"),
+      db.run("PRAGMA cache_size = -64000"),
+      db.run("PRAGMA foreign_keys = ON"),
+      db.run("PRAGMA wal_checkpoint(PASSIVE)"),
+    ], { concurrency: "unbounded" })
     yield* DatabaseMigration.apply(db)
 
     return { db }
