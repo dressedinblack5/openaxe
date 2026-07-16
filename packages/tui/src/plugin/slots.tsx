@@ -30,7 +30,7 @@ export function createSlots() {
   return {
     Slot,
     setup(api: HostPluginApi): HostSlots {
-      const registry = createSolidSlotRegistry<RuntimeSlotMap>(
+      const registry = createSolidSlotRegistry<RuntimeSlotMap, TuiSlotContext>(
         api.renderer,
         { theme: api.theme },
         {
