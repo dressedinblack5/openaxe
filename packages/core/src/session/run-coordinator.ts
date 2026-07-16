@@ -1,6 +1,6 @@
 export * as SessionRunCoordinator from "./run-coordinator"
 
-import { Deferred, Effect, Exit, Fiber, FiberSet, Scope } from "effect"
+import { Deferred, Duration, Effect, Exit, Fiber, FiberSet, Schedule, Scope } from "effect"
 
 /** Serializes execution for each key while allowing different keys to run concurrently. */
 export interface Coordinator<Key, E> {
@@ -36,6 +36,15 @@ export const make = <Key, E>(options: {
         if (e.owner && e.owner.pollUnsafe() !== undefined) active.delete(k)
       }
     }
+
+    // Periodic sweep every 5 minutes to catch stale entries even without run() calls
+    const sweepFiber = yield* Effect.forkScoped(
+      Effect.repeat(
+        Effect.sync(() => sweep()),
+        Schedule.spaced(Duration.minutes(5)),
+      ),
+    )
+    yield* Effect.addFinalizer(() => Fiber.interrupt(sweepFiber))
 
     const makeEntry = (): Entry<E> => ({
       done: Deferred.makeUnsafe<void, E>(),
