@@ -2,7 +2,7 @@ import { MCP } from "@/mcp"
 import { ConfigMCPV1 } from "@opencode-ai/core/v1/config/mcp"
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
-import { McpServerNotFoundError } from "../errors"
+import { errors, McpServerNotFoundError } from "../errors"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
@@ -56,7 +56,7 @@ export const McpApi = HttpApi.make("mcp")
           query: WorkspaceRoutingQuery,
           payload: AddPayload,
           success: described(StatusMap, "MCP server added successfully"),
-          error: HttpApiError.BadRequest as any,
+          error: errors(HttpApiError.BadRequest),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "mcp.add",
@@ -68,7 +68,7 @@ export const McpApi = HttpApi.make("mcp")
           params: { name: Schema.String },
           query: WorkspaceRoutingQuery,
           success: described(AuthStartResponse, "OAuth flow started"),
-          error: [UnsupportedOAuthError, McpServerNotFoundError] as any,
+          error: errors(UnsupportedOAuthError, McpServerNotFoundError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "mcp.auth.start",
@@ -81,7 +81,7 @@ export const McpApi = HttpApi.make("mcp")
           query: WorkspaceRoutingQuery,
           payload: AuthCallbackPayload,
           success: described(MCP.Status, "OAuth authentication completed"),
-          error: [HttpApiError.BadRequest, McpServerNotFoundError] as any,
+          error: errors(HttpApiError.BadRequest, McpServerNotFoundError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "mcp.auth.callback",
@@ -94,7 +94,7 @@ export const McpApi = HttpApi.make("mcp")
           params: { name: Schema.String },
           query: WorkspaceRoutingQuery,
           success: described(MCP.Status, "OAuth authentication completed"),
-          error: [UnsupportedOAuthError, McpServerNotFoundError] as any,
+          error: errors(UnsupportedOAuthError, McpServerNotFoundError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "mcp.auth.authenticate",
@@ -106,7 +106,7 @@ export const McpApi = HttpApi.make("mcp")
           params: { name: Schema.String },
           query: WorkspaceRoutingQuery,
           success: described(AuthRemoveResponse, "OAuth credentials removed"),
-          error: McpServerNotFoundError as any,
+          error: errors(McpServerNotFoundError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "mcp.auth.remove",
@@ -118,7 +118,7 @@ export const McpApi = HttpApi.make("mcp")
           params: { name: Schema.String },
           query: WorkspaceRoutingQuery,
           success: described(Schema.Boolean, "MCP server connected successfully"),
-          error: McpServerNotFoundError as any,
+          error: errors(McpServerNotFoundError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "mcp.connect",
@@ -129,7 +129,7 @@ export const McpApi = HttpApi.make("mcp")
           params: { name: Schema.String },
           query: WorkspaceRoutingQuery,
           success: described(Schema.Boolean, "MCP server disconnected successfully"),
-          error: McpServerNotFoundError as any,
+          error: errors(McpServerNotFoundError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "mcp.disconnect",

@@ -13,6 +13,7 @@ import {
   WorkspaceRoutingQuery,
   WorkspaceRoutingQueryFields,
 } from "../middleware/workspace-routing"
+import { errors } from "../errors"
 import { described } from "./metadata"
 
 const PathInfo = Schema.Struct({
@@ -128,7 +129,7 @@ export const InstanceApi = HttpApi.make("instance")
           query: WorkspaceRoutingQuery,
           payload: Vcs.ApplyInput,
           success: described(Vcs.ApplyResult, "VCS patch applied"),
-          error: ApiVcsApplyError as any,
+          error: errors(ApiVcsApplyError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "vcs.apply",

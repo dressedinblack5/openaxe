@@ -5,7 +5,7 @@ import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "e
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
-import { ApiNotFoundError } from "../errors"
+import { errors, ApiNotFoundError } from "../errors"
 import { described } from "./metadata"
 
 const root = "/tui"
@@ -57,7 +57,7 @@ export const TuiApi = HttpApi.make("tui")
           query: WorkspaceRoutingQuery,
           payload: TuiEvent.PromptAppend.data,
           success: described(Schema.Boolean, "Prompt processed successfully"),
-          error: HttpApiError.BadRequest as any,
+          error: errors(HttpApiError.BadRequest),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "tui.appendPrompt",
@@ -129,7 +129,7 @@ export const TuiApi = HttpApi.make("tui")
           query: WorkspaceRoutingQuery,
           payload: CommandPayload,
           success: described(Schema.Boolean, "Command executed successfully"),
-          error: HttpApiError.BadRequest as any,
+          error: errors(HttpApiError.BadRequest),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "tui.executeCommand",
@@ -152,7 +152,7 @@ export const TuiApi = HttpApi.make("tui")
           query: WorkspaceRoutingQuery,
           payload: TuiPublishPayload,
           success: described(Schema.Boolean, "Event published successfully"),
-          error: HttpApiError.BadRequest as any,
+          error: errors(HttpApiError.BadRequest),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "tui.publish",
@@ -164,7 +164,7 @@ export const TuiApi = HttpApi.make("tui")
           query: WorkspaceRoutingQuery,
           payload: TuiEvent.SessionSelect.data,
           success: described(Schema.Boolean, "Session selected successfully"),
-          error: [HttpApiError.BadRequest, ApiNotFoundError] as any,
+          error: errors(HttpApiError.BadRequest, ApiNotFoundError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "tui.selectSession",

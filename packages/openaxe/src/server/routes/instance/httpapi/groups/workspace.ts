@@ -3,7 +3,7 @@ import { WorkspaceAdapterEntry } from "@/control-plane/types"
 import { Schema, Struct } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 import { ApiVcsApplyError } from "./instance"
-import { ApiNotFoundError } from "../errors"
+import { errors, ApiNotFoundError } from "../errors"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
@@ -74,7 +74,7 @@ export const WorkspaceApi = HttpApi.make("workspace")
           query: WorkspaceRoutingQuery,
           payload: CreatePayload,
           success: described(Workspace.Info, "Workspace created"),
-          error: [ApiWorkspaceCreateError, HttpApiError.BadRequest] as any,
+          error: errors(ApiWorkspaceCreateError, HttpApiError.BadRequest),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.workspace.create",
@@ -106,7 +106,7 @@ export const WorkspaceApi = HttpApi.make("workspace")
           params: { id: Workspace.Info.fields.id },
           query: WorkspaceRoutingQuery,
           success: described(Schema.UndefinedOr(Workspace.Info), "Workspace removed"),
-          error: HttpApiError.BadRequest as any,
+          error: errors(HttpApiError.BadRequest),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.workspace.remove",
@@ -118,7 +118,7 @@ export const WorkspaceApi = HttpApi.make("workspace")
           query: WorkspaceRoutingQuery,
           payload: WarpPayload,
           success: described(HttpApiSchema.NoContent, "Session warped"),
-          error: [ApiWorkspaceWarpError, ApiVcsApplyError, ApiNotFoundError] as any,
+          error: errors(ApiWorkspaceWarpError, ApiVcsApplyError, ApiNotFoundError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.workspace.warp",

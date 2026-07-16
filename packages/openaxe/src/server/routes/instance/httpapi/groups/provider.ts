@@ -6,6 +6,7 @@ import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
+import { errors } from "../errors"
 import { described } from "./metadata"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 
@@ -60,7 +61,7 @@ export const ProviderApi = HttpApi.make("provider")
           query: WorkspaceRoutingQuery,
           payload: ProviderAuth.AuthorizeInput,
           success: described(Schema.UndefinedOr(ProviderAuth.Authorization), "Authorization URL and method"),
-          error: ProviderAuthApiError as any,
+          error: errors(ProviderAuthApiError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "provider.oauth.authorize",
@@ -73,7 +74,7 @@ export const ProviderApi = HttpApi.make("provider")
           query: WorkspaceRoutingQuery,
           payload: ProviderAuth.CallbackInput,
           success: described(Schema.Boolean, "OAuth callback processed successfully"),
-          error: ProviderAuthApiError as any,
+          error: errors(ProviderAuthApiError),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "provider.oauth.callback",

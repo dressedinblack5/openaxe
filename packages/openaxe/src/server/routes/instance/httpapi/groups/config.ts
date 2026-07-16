@@ -6,6 +6,7 @@ import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "e
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
+import { errors } from "../errors"
 import { described } from "./metadata"
 
 const root = "/config"
@@ -28,7 +29,7 @@ HttpApiEndpoint.patch("update", root, {
           query: WorkspaceRoutingQuery,
           payload: ConfigV1.Info,
           success: described(ConfigV1.Info, "Successfully updated config"),
-          error: HttpApiError.BadRequestNoContent as any,
+          error: errors(HttpApiError.BadRequestNoContent),
           disableCodecs: true,
         }).annotateMerge(
           OpenApi.annotations({
