@@ -13,7 +13,6 @@ async function measure() {
 
   // Agent dependencies
   await time(`ai (Vercel SDK)`, () => import("ai"))
-  await time(`remeda`, () => import("remeda"))
   await time(`@effect/opentelemetry/Tracer`, () => import("@effect/opentelemetry/Tracer"))
   await time(`@opencode-ai/core/v1/permission`, () => import("@opencode-ai/core/v1/permission"))
   await time(`@opencode-ai/core/effect/layer-node`, () => import("@opencode-ai/core/effect/layer-node"))
