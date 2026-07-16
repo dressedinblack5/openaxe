@@ -443,7 +443,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
   )
 
   // Debounced terminal title updates to avoid excessive renderer calls on route changes
-  const titleDebounce = { current: 0 }
+  const titleDebounce: { current: ReturnType<typeof setTimeout> | number } = { current: 0 }
   createEffect(() => {
     if (!terminalTitleEnabled() || Flag.OPENCODE_DISABLE_TERMINAL_TITLE) return
 
