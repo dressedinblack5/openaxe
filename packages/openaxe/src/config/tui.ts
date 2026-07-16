@@ -1,7 +1,6 @@
 export * as TuiConfig from "./tui"
 
 import path from "path"
-import { mergeDeep, unique } from "remeda"
 import { Cause, Context, Effect, Fiber, Layer } from "effect"
 import { ConfigParse } from "@/config/parse"
 import { files, directories as configDirectories, fileInDirectory } from "@/config/paths"
@@ -52,6 +51,20 @@ function pluginScope(file: string, ctx: { directory: string }): ConfigPlugin.Sco
   return "global"
 }
 
+function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = { ...target }
+  for (const key of Object.keys(source)) {
+    const sv = source[key]
+    const rv = result[key]
+    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
+      result[key] = mergeDeep(rv, sv)
+    } else if (sv !== undefined) {
+      result[key] = sv
+    }
+  }
+  return result
+}
+
 function normalize(raw: Record<string, unknown>) {
   const data = { ...raw }
   if (!("tui" in data)) return data
@@ -82,6 +95,7 @@ function dropUnknownKeybinds(input: Record<string, unknown>) {
 
 const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: string }) {
   const afs = yield* FSUtil.Service
+  const npm = yield* Npm.Service
   let appliedOrder = 0
 
   const resolvePlugins = (config: Info, configFilepath: string): Effect.Effect<Info> =>
@@ -200,17 +214,35 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
   // 4. `.openaxe` directories (and OPENCODE_CONFIG_DIR) discovered while
   // walking up the tree. Also returned below so callers can install plugin
   // dependencies from each location.
-  const dirs = unique(directories).filter((dir) => dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR)
+  const dirs = [...new Set(directories)].filter((dir) => dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR)
 
   // Parallel read across all .openaxe dirs, then sequential merge
-  const fileEntries: { file: string; data: Info }[] = yield* Effect.forEach(
-    dirs,
-    (dir) =>
-      Effect.forEach(fileInDirectory(dir, "tui"), (file) =>
-        loadFile(file).pipe(Effect.map((data) => ({ file, data }))),
-      ),
-    { concurrency: "unbounded" },
-  ).pipe(Effect.map((groups) => groups.flat()))
+  const [fileEntries, pluginDeps] = yield* Effect.all([
+    Effect.forEach(
+      dirs,
+      (dir) =>
+        Effect.forEach(fileInDirectory(dir, "tui"), (file) =>
+          loadFile(file).pipe(Effect.map((data) => ({ file, data }))),
+        ),
+      { concurrency: "unbounded" },
+    ).pipe(Effect.map((groups) => groups.flat())),
+    Effect.forEach(
+      dirs,
+      (dir) =>
+        npm
+          .install(dir, {
+            add: [
+              {
+                name: "@opencode-ai/plugin",
+                version: InstallationLocal ? undefined : InstallationVersion,
+              },
+              ...BUNDLED_PLUGINS.map((name) => ({ name })),
+            ],
+          })
+          .pipe(Effect.forkScoped),
+      { concurrency: "unbounded" },
+    ),
+  ], { concurrency: "unbounded" })
 
   for (const { file, data } of fileEntries) {
     if (Object.keys(data).length) {
@@ -258,6 +290,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
     config: result,
     pluginOrigins: acc.plugin_origins,
     dirs: result.plugin?.length ? dirs : [],
+    pluginDeps,
   }
 })
 
@@ -266,32 +299,13 @@ export const layer = (directory?: string) =>
     Service,
     Effect.gen(function* () {
       const dir = directory ?? (yield* CurrentWorkingDirectory)
-      const npm = yield* Npm.Service
       const data = yield* loadState({ directory: dir })
-      const deps = yield* Effect.forEach(
-        data.dirs,
-        (dir) =>
-          npm
-            .install(dir, {
-              add: [
-                {
-                  name: "@opencode-ai/plugin",
-                  version: InstallationLocal ? undefined : InstallationVersion,
-                },
-                ...BUNDLED_PLUGINS.map((name) => ({ name })),
-              ],
-            })
-            .pipe(Effect.forkScoped),
-        {
-          concurrency: "unbounded",
-        },
-      )
 
       const get = Effect.fn("TuiConfig.get")(() => Effect.succeed(data.config))
       const pluginOrigins = Effect.fn("TuiConfig.pluginOrigins")(() => Effect.succeed(data.pluginOrigins))
 
       const waitForDependencies = Effect.fn("TuiConfig.waitForDependencies")(() =>
-        Effect.forEach(deps, Fiber.join, { concurrency: "unbounded" }).pipe(Effect.ignore(), Effect.asVoid),
+        Effect.forEach(data.pluginDeps, Fiber.join, { concurrency: "unbounded" }).pipe(Effect.ignore(), Effect.asVoid),
       )
       return Service.of({ get, pluginOrigins, waitForDependencies })
     }).pipe(Effect.withSpan("TuiConfig.layer")),

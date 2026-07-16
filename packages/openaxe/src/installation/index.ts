@@ -9,7 +9,6 @@ import { ChildProcess } from "effect/unstable/process"
 import { AppProcess } from "@opencode-ai/core/process"
 import path from "path"
 import { makeRuntime } from "@opencode-ai/core/effect/runtime"
-import semver from "semver"
 import { InstallationChannel, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { InstallationEvent } from "@opencode-ai/schema/installation-event"
 
@@ -19,11 +18,19 @@ export type ReleaseType = "patch" | "minor" | "major"
 
 export const Event = InstallationEvent
 
+function major(v: string): number {
+  return parseInt(v.split(".")[0], 10) || 0
+}
+
+function minor(v: string): number {
+  return parseInt(v.split(".")[1], 10) || 0
+}
+
 export function getReleaseType(current: string, latest: string): ReleaseType {
-  const currMajor = semver.major(current)
-  const currMinor = semver.minor(current)
-  const newMajor = semver.major(latest)
-  const newMinor = semver.minor(latest)
+  const currMajor = major(current)
+  const currMinor = minor(current)
+  const newMajor = major(latest)
+  const newMinor = minor(latest)
 
   if (newMajor > currMajor) return "major"
   if (newMinor > currMinor) return "minor"

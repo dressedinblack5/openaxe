@@ -5,11 +5,24 @@ import { ChildProcess } from "effect/unstable/process"
 import { AppProcess } from "@opencode-ai/core/process"
 import { InstanceState } from "@/effect/instance-state"
 import path from "path"
-import { mergeDeep } from "remeda"
 import { Config } from "@/config/config"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { errorMessage } from "@/util/error"
 import type { Info } from "./formatter"
+
+function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = { ...target }
+  for (const key of Object.keys(source)) {
+    const sv = source[key]
+    const rv = result[key]
+    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
+      result[key] = mergeDeep(rv, sv)
+    } else if (sv !== undefined) {
+      result[key] = sv
+    }
+  }
+  return result
+}
 import {
   gofmt,
   mix,

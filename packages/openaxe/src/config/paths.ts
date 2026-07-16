@@ -3,7 +3,6 @@ export * as ConfigPaths from "./paths"
 import path from "path"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { Global } from "@opencode-ai/core/global"
-import { unique } from "remeda"
 import { fn } from "effect/Effect";
 import { FSUtil } from "@opencode-ai/core/fs-util"
 
@@ -22,7 +21,7 @@ export const files = fn("ConfigPaths.projectFiles")(function* (
 
 export const directories = fn("ConfigPaths.directories")(function* (directory: string, worktree?: string) {
   const afs = yield* FSUtil.Service
-  return unique([
+  return [...new Set([
     Global.Path.config,
     ...(!Flag.OPENCODE_DISABLE_PROJECT_CONFIG
       ? yield* afs.up({
@@ -37,7 +36,7 @@ export const directories = fn("ConfigPaths.directories")(function* (directory: s
       stop: Global.Path.home,
     })),
     ...(Flag.OPENCODE_CONFIG_DIR ? [Flag.OPENCODE_CONFIG_DIR] : []),
-  ])
+  ])]
 })
 
 export function fileInDirectory(dir: string, name: string) {

@@ -1,6 +1,5 @@
 import path from "path"
 import { type ParseError, applyEdits, modify, parse } from "jsonc-parser"
-import { unique } from "remeda"
 import { Option, Schema } from "effect"
 import { TuiConfig } from "@opencode-ai/tui/config"
 import { Flag } from "@opencode-ai/core/flag/flag"
@@ -116,13 +115,13 @@ async function opencodeFiles(input: { directories: string[]; cwd: string }) {
     ...fileInDirectory(Global.Path.config, "openaxe"),
     ...(await Filesystem.findUp(["openaxe.json", "openaxe.jsonc"], input.cwd, undefined, { rootFirst: true })),
   ]
-  for (const dir of unique(input.directories)) {
+  for (const dir of [...new Set(input.directories)]) {
     files.push(...fileInDirectory(dir, "openaxe"))
   }
   if (Flag.OPENCODE_CONFIG) files.push(Flag.OPENCODE_CONFIG)
 
   const existing = await Promise.all(
-    unique(files).map(async (file) => {
+    [...new Set(files)].map(async (file) => {
       const ok = await Filesystem.exists(file)
       return ok ? file : undefined
     }),

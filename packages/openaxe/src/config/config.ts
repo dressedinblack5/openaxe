@@ -5,7 +5,6 @@ import { existsSync } from "fs"
 import path from "path"
 import { pathToFileURL } from "url"
 import os from "os"
-import { mergeDeep } from "remeda"
 import { Global } from "@opencode-ai/core/global"
 import fsNode from "fs/promises"
 import { Flag } from "@opencode-ai/core/flag/flag"
@@ -48,8 +47,21 @@ export const BUNDLED_PLUGINS = [
   "DietrichGebert/ponytail",
 ] as const
 
+function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = { ...target }
+  for (const key of Object.keys(source)) {
+    const sv = source[key]
+    const rv = result[key]
+    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
+      result[key] = mergeDeep(rv, sv)
+    } else if (sv !== undefined) {
+      result[key] = sv
+    }
+  }
+  return result
+}
+
 // Custom merge function that concatenates array fields instead of replacing them
-// Keep remeda's deep conditional merge type out of hot config-loading paths; TS profiling showed it dominates here.
 function mergeConfig(target: Info, source: Info): Info {
   return mergeDeep(target, source) as Info
 }
