@@ -212,11 +212,18 @@ const clearSessionPath = (sessionID: SessionIDType) =>
   })
 
 function request(path: string, init?: RequestInit) {
-  const url = new URL(path, "http://localhost")
-  return HttpClientRequest.fromWeb(new Request(url, init)).pipe(
-    HttpClientRequest.setUrl(url.pathname),
-    HttpClient.execute,
-  )
+  return Effect.gen(function* () {
+    const server = yield* HttpServer.HttpServer
+    const address = server.address
+    if (address._tag === "UnixAddress") {
+      return yield* Effect.die(new Error("UnixAddress not supported"))
+    }
+    const host = address.hostname === "0.0.0.0" ? "127.0.0.1" : address.hostname
+    const url = `http://${host}:${address.port}${path.startsWith("/") ? path : `/${path}`}`
+    const response = yield* Effect.tryPromise(() => fetch(url, init))
+    const request_ = HttpClientRequest.fromWeb(new Request(url, init))
+    return HttpClientResponse.fromWeb(request_, response)
+  })
 }
 
 function json<T>(response: HttpClientResponse.HttpClientResponse) {

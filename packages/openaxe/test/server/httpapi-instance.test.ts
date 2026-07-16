@@ -3,7 +3,7 @@ import { NodeHttpServer, NodeServices } from "@effect/platform-node"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { describe, expect } from "bun:test"
 import { Config, Context, Effect, FileSystem, Layer, Path } from "effect"
-import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
+import { HttpClientRequest, HttpClientResponse, HttpRouter, HttpServer } from "effect/unstable/http"
 import * as Socket from "effect/unstable/socket/Socket"
 import { WorkspaceV2 } from "@opencode-ai/core/workspace"
 import { ControlPaths } from "../../src/server/routes/instance/httpapi/groups/control"
@@ -53,12 +53,25 @@ const httpApiServerLayer = servedRoutes.pipe(
 const it = testEffect(Layer.mergeAll(testStateLayer, httpApiServerLayer))
 const handlerContext = Context.empty() as Context.Context<unknown>
 
-const directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
+function request(path: string, init?: RequestInit) {
+  return Effect.gen(function* () {
+    const server = yield* HttpServer.HttpServer
+    const address = server.address
+    if (address._tag === "UnixAddress") {
+      return yield* Effect.die(new Error("UnixAddress not supported"))
+    }
+    const host = address.hostname === "0.0.0.0" ? "127.0.0.1" : address.hostname
+    const url = `http://${host}:${address.port}${path.startsWith("/") ? path : `/${path}`}`
+    const response = yield* Effect.tryPromise(() => fetch(url, init))
+    const request_ = HttpClientRequest.fromWeb(new Request(url, init))
+    return HttpClientResponse.fromWeb(request_, response)
+  })
+}
 
 describe("instance HttpApi", () => {
   it.live("serves the OpenAPI document", () =>
     Effect.gen(function* () {
-      const response = yield* HttpClient.get("/doc")
+      const response = yield* request("/doc")
 
       expect(response.status).toBe(200)
       expect(response.headers["content-type"]).toContain("application/json")
@@ -84,11 +97,11 @@ describe("instance HttpApi", () => {
       )
 
       const dir = yield* tmpdirScoped({ git: true })
-      const response = yield* HttpClientRequest.post(SessionPaths.create).pipe(
-        directoryHeader(dir),
-        HttpClientRequest.bodyJson({ title: "fenced" }),
-        Effect.flatMap(HttpClient.execute),
-      )
+      const response = yield* request(SessionPaths.create, {
+        method: "POST",
+        headers: { "x-opencode-directory": dir },
+        body: JSON.stringify({ title: "fenced" }),
+      })
 
       expect(response.status).toBe(200)
       expect(JSON.parse(response.headers[FenceHeader] ?? "{}")).not.toEqual({})
@@ -106,12 +119,14 @@ describe("instance HttpApi", () => {
       )
 
       const dir = yield* tmpdirScoped({ git: true })
-      const read = yield* HttpClientRequest.get(InstancePaths.path).pipe(directoryHeader(dir), HttpClient.execute)
-      const log = yield* HttpClientRequest.post(ControlPaths.log).pipe(
-        directoryHeader(dir),
-        HttpClientRequest.bodyJson({ service: "fence-test", level: "info", message: "noop" }),
-        Effect.flatMap(HttpClient.execute),
-      )
+      const read = yield* request(InstancePaths.path, {
+        headers: { "x-opencode-directory": dir },
+      })
+      const log = yield* request(ControlPaths.log, {
+        method: "POST",
+        headers: { "x-opencode-directory": dir },
+        body: JSON.stringify({ service: "fence-test", level: "info", message: "noop" }),
+      })
 
       expect(read.status).toBe(200)
       expect(read.headers[FenceHeader]).toBeUndefined()
@@ -239,13 +254,9 @@ describe("instance HttpApi", () => {
 
       const [paths, vcs, diff] = yield* Effect.all(
         [
-          HttpClientRequest.get(InstancePaths.path).pipe(directoryHeader(dir), HttpClient.execute),
-          HttpClientRequest.get(InstancePaths.vcs).pipe(directoryHeader(dir), HttpClient.execute),
-          HttpClientRequest.get(InstancePaths.vcsDiff).pipe(
-            HttpClientRequest.setUrlParam("mode", "git"),
-            directoryHeader(dir),
-            HttpClient.execute,
-          ),
+          request(InstancePaths.path, { headers: { "x-opencode-directory": dir } }),
+          request(InstancePaths.vcs, { headers: { "x-opencode-directory": dir } }),
+          request(`${InstancePaths.vcsDiff}?mode=git`, { headers: { "x-opencode-directory": dir } }),
         ],
         { concurrency: "unbounded" },
       )
