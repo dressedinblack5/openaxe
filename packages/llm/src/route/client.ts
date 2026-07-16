@@ -344,7 +344,29 @@ export function make<Body, Prepared, Frame, Event, State>(
 // `compile` is the important boundary: it turns a common `LLMRequest` into a
 // validated provider body plus transport-private prepared data, but does not
 // execute transport.
+const compileCache = new Map<string, { result: Effect.Effect<{ request: LLMRequest; route: AnyRoute; body: unknown; prepared: unknown }, LLMError>; timestamp: number }>()
+const COMPILE_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+function hashRequest(request: LLMRequest): string {
+  const { model, generation, providerOptions, http, messages, tools, system, metadata, id, ...rest } = request
+  // Create a cache key from the deterministic parts of the request
+  return `${model.id}:${model.route.id}:${JSON.stringify({
+    generation,
+    providerOptions,
+    http,
+    messages: messages?.map(m => ({ role: m.role, content: m.content })),
+    tools: tools?.map(t => t.name),
+    system,
+  })}`
+}
+
 const compile = Effect.fn("LLM.compile")(function* (request: LLMRequest) {
+  const cacheKey = hashRequest(request)
+  const cached = compileCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < COMPILE_CACHE_TTL) {
+    return yield* cached.result
+  }
+  
   const resolved = applyCachePolicy(resolveRequestOptions(request))
   const route = resolved.model.route
 
@@ -353,12 +375,16 @@ const compile = Effect.fn("LLM.compile")(function* (request: LLMRequest) {
     .pipe(Effect.flatMap(validateWith(Schema.decodeUnknownEffect(route.body.schema))))
   const prepared = yield* route.prepareTransport(body, resolved)
 
-  return {
+  const result = {
     request: resolved,
     route,
     body,
     prepared,
   }
+  
+  compileCache.set(cacheKey, { result: Effect.succeed(result), timestamp: Date.now() })
+  
+  return result
 })
 
 const prepareWith = Effect.fn("LLMClient.prepare")(function* (request: LLMRequest) {
