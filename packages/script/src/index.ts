@@ -1,5 +1,4 @@
 import { $ } from "bun"
-import semver from "semver"
 import path from "path"
 
 const rootPkgPath = path.resolve(import.meta.dir, "../../../package.json")
@@ -13,7 +12,16 @@ if (!expectedBunVersion) {
 // relax version requirement
 const expectedBunVersionRange = `^${expectedBunVersion}`
 
-if (!semver.satisfies(process.versions.bun, expectedBunVersionRange)) {
+function satisfies(version: string, range: string): boolean {
+  const a = version.split(".").map(Number)
+  const b = (range.startsWith("^") ? range.slice(1) : range).split(".").map(Number)
+  if (a[0] !== b[0]) return false
+  if (a[1] < b[1]) return false
+  if (a[1] === b[1] && (a[2] ?? 0) < (b[2] ?? 0)) return false
+  return true
+}
+
+if (!satisfies(process.versions.bun, expectedBunVersionRange)) {
   throw new Error(`This script requires bun@${expectedBunVersionRange}, but you are using bun@${process.versions.bun}`)
 }
 
