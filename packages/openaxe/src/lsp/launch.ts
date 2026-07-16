@@ -1,7 +1,6 @@
-import type { ChildProcessWithoutNullStreams } from "child_process"
 import { Process } from "@/util/process"
 
-type Child = Process.Child & ChildProcessWithoutNullStreams
+type Child = Process.Child
 
 export function spawn(cmd: string, args: string[], opts?: Process.Options): Child
 export function spawn(cmd: string, opts?: Process.Options): Child

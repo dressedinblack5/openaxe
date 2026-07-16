@@ -29,8 +29,6 @@ import { RunQuestionBody } from "./footer.question"
 import { footerWidthPolicy } from "./footer.width"
 import {
   OPENCODE_BASE_MODE,
-  formatKeyBindings,
-  formatKeySequence,
   useBindings,
   useKeymapSelector,
   type OpenTuiKeymap,
@@ -133,158 +131,169 @@ export function RunFooterView(props: RunFooterViewProps) {
   const [subagentMenuRows, setSubagentMenuRows] = createSignal(RUN_SUBAGENT_PANEL_ROWS)
   const queuedPrompts = createMemo(() => props.queuedPrompts?.() ?? [])
   const skills = createMemo(() => (props.commands() ?? []).filter((item) => item.source === "skill"))
-  const prompt = createMemo(() => active().type === "prompt" && route().type === "composer")
-  const selectingSubagent = createMemo(() => active().type === "prompt" && route().type === "subagent-menu")
-  const selectingQueued = createMemo(() => active().type === "prompt" && route().type === "queued-menu")
-  const inspecting = createMemo(() => active().type === "prompt" && route().type === "subagent")
-  const commanding = createMemo(() => active().type === "prompt" && route().type === "command")
-  const skilling = createMemo(() => active().type === "prompt" && route().type === "skill")
-  const modeling = createMemo(() => active().type === "prompt" && route().type === "model")
-  const varianting = createMemo(() => active().type === "prompt" && route().type === "variant")
-  const panel = createMemo(
-    () =>
-      active().type === "permission" ||
-      active().type === "question" ||
-      selectingQueued() ||
-      selectingSubagent() ||
-      commanding() ||
-      skilling() ||
-      modeling() ||
-      varianting(),
-  )
-  const selected = createMemo(() => {
-    const current = route()
-    return current.type === "subagent" ? current.sessionID : undefined
-  })
-  const tabs = createMemo(() => subagent().tabs)
-  const activeTabs = createMemo(() => tabs().filter((item) => item.status === "running"))
-  const selectedTab = createMemo(() => tabs().find((item) => item.sessionID === selected()))
-  const selectedIndex = createMemo(() => {
-    const sessionID = selected()
-    if (!sessionID) {
-      return 0
+  
+  // Consolidated derived state - single memo instead of 20+ individual memos
+  const derived = createMemo(() => {
+    const currentActive = active()
+    const currentRoute = route()
+    const currentSubagent = subagent()
+    const currentQueuedPrompts = queuedPrompts()
+    const currentSkills = skills()
+    const currentBackgroundSubagents = props.backgroundSubagents
+    const currentProviders = props.providers()
+    const currentCurrentModel = props.currentModel()
+    const currentState = props.state()
+    const currentCommands = props.commands()
+    const currentVariants = props.variants()
+    const currentCurrentVariant = props.currentVariant()
+    const currentTuiConfig = props.tuiConfig
+    
+    const isPrompt = currentActive.type === "prompt"
+    const prompt = isPrompt && currentRoute.type === "composer"
+    const selectingSubagent = isPrompt && currentRoute.type === "subagent-menu"
+    const selectingQueued = isPrompt && currentRoute.type === "queued-menu"
+    const inspecting = isPrompt && currentRoute.type === "subagent"
+    const commanding = isPrompt && currentRoute.type === "command"
+    const skilling = isPrompt && currentRoute.type === "skill"
+    const modeling = isPrompt && currentRoute.type === "model"
+    const varianting = isPrompt && currentRoute.type === "variant"
+    const panel = 
+      currentActive.type === "permission" ||
+      currentActive.type === "question" ||
+      selectingQueued ||
+      selectingSubagent ||
+      commanding ||
+      skilling ||
+      modeling ||
+      varianting
+    const selected = currentRoute.type === "subagent" ? currentRoute.sessionID : undefined
+    const tabs = currentSubagent.tabs
+    const activeTabs = tabs.filter((item) => item.status === "running")
+    const selectedTab = tabs.find((item) => item.sessionID === selected)
+    const selectedIndex = selected
+      ? tabs.findIndex((item) => item.sessionID === selected) + 1
+      : 0
+    const foregroundSubagents = currentBackgroundSubagents && activeTabs.some((item) => !item.background)
+    const model = currentCurrentModel
+      ? modelInfo(currentProviders, currentCurrentModel)
+      : { model: currentState.model, provider: undefined }
+    const detail = currentRoute.type === "subagent" ? currentSubagent.details[currentRoute.sessionID] : undefined
+    
+    const leaderKey = currentTuiConfig.keybinds.get("leader")?.[0]?.key ?? "ctrl+x"
+    const resolveKey = (key: string) => key.replace(/<leader>/gi, leaderKey + " ")
+    const formatKey = (name: string) => {
+      const entry = currentTuiConfig.keybinds.get(name)?.[0]
+      return entry?.key ? resolveKey(String(entry.key)) : ""
     }
-
-    return tabs().findIndex((item) => item.sessionID === sessionID) + 1
-  })
-  const foregroundSubagents = createMemo(
-    () => props.backgroundSubagents && activeTabs().some((item) => !item.background),
-  )
-  const model = createMemo(() => {
-    const current = props.currentModel()
-    return current ? modelInfo(props.providers(), current) : { model: props.state().model, provider: undefined }
-  })
-  const detail = createMemo(() => {
-    const current = route()
-    return current.type === "subagent" ? subagent().details[current.sessionID] : undefined
-  })
-  const command = useKeymapSelector(
-    (keymap: OpenTuiKeymap) =>
-      formatKeySequence(
-        keymap
-          .getCommandBindings({ visibility: "registered", commands: ["command.palette.show"] })
-          .get("command.palette.show")?.[0]?.sequence,
-        props.tuiConfig,
-      ) ?? "",
-  )
-  const subagentShortcut = useKeymapSelector(
-    (keymap: OpenTuiKeymap) =>
-      formatKeySequence(
-        keymap
-          .getCommandBindings({ visibility: "registered", commands: ["session.child.first"] })
-          .get("session.child.first")?.[0]?.sequence,
-        props.tuiConfig,
-      ) ?? "",
-  )
-  const queuedShortcut = useKeymapSelector(
-    (keymap: OpenTuiKeymap) =>
-      formatKeySequence(
-        keymap
-          .getCommandBindings({ visibility: "registered", commands: ["session.queued_prompts"] })
-          .get("session.queued_prompts")?.[0]?.sequence,
-        props.tuiConfig,
-      ) ?? "",
-  )
-  const backgroundShortcut = useKeymapSelector(
-    (keymap: OpenTuiKeymap) =>
-      formatKeySequence(
-        keymap
-          .getCommandBindings({ visibility: "registered", commands: ["session.background"] })
-          .get("session.background")?.[0]?.sequence,
-        props.tuiConfig,
-      ) ?? "",
-  )
-  const interrupt = useKeymapSelector(
-    (keymap: OpenTuiKeymap) =>
-      formatKeySequence(
-        keymap
-          .getCommandBindings({ visibility: "registered", commands: ["session.interrupt"] })
-          .get("session.interrupt")?.[0]?.sequence,
-        props.tuiConfig,
-      ) ?? "",
-  )
-  const variantCycle = useKeymapSelector(
-    (keymap: OpenTuiKeymap) =>
-      formatKeyBindings(
-        keymap.getCommandBindings({ visibility: "registered", commands: ["variant.cycle"] }).get("variant.cycle"),
-        props.tuiConfig,
-      ) ?? "",
-  )
-  const clearShortcut = useKeymapSelector(
-    (keymap: OpenTuiKeymap) =>
-      formatKeySequence(
-        keymap.getCommandBindings({ visibility: "registered", commands: ["prompt.clear"] }).get("prompt.clear")?.[0]
-          ?.sequence,
-        props.tuiConfig,
-      ) ?? "",
-  )
-  const busy = createMemo(() => props.state().phase === "running")
-  const armed = createMemo(() => props.state().interrupt > 0)
-  const exiting = createMemo(() => props.state().exit > 0)
-  const queue = createMemo(() => props.state().queue)
-  const usage = createMemo(() => props.state().usage)
-  const interruptLabel = createMemo(() => {
-    if (!interrupt()) {
-      return
+    
+    const keymaps = {
+      command: formatKey("command.palette.show"),
+      subagent: formatKey("session.child.first"),
+      queued: formatKey("session.queued_prompts"),
+      background: formatKey("session.background"),
+      interrupt: formatKey("session.interrupt"),
+      variantCycle: formatKey("variant.cycle"),
+      clearShortcut: formatKey("prompt.clear"),
     }
-
-    return interrupt() === "escape" ? "esc" : interrupt()
-  })
-  const runTheme = createMemo(() => props.theme())
-  const theme = createMemo(() => runTheme().footer)
-  const block = createMemo(() => runTheme().block)
-  const spin = createMemo(() => {
+    
+    const state = currentState
+    const busy = state.phase === "running"
+    const armed = state.interrupt > 0
+    const exiting = state.exit > 0
+    const queue = state.queue
+    const usage = state.usage
+    
+    const runTheme = props.theme()
+    const themeData = {
+      footer: runTheme.footer,
+      block: runTheme.block,
+      highlight: runTheme.footer.highlight,
+      surface: runTheme.footer.surface,
+      status: runTheme.footer.status,
+      statusAccent: runTheme.footer.statusAccent,
+      error: runTheme.footer.error,
+      warning: runTheme.footer.warning,
+      text: runTheme.footer.text,
+      muted: runTheme.footer.muted,
+    }
+    
+    const permissionView = currentActive.type === "permission" ? currentActive : undefined
+    const questionView = currentActive.type === "question" ? currentActive : undefined
+    const promptView = isPrompt ? (currentRoute.type === "composer" ? "prompt" : currentRoute.type) : currentActive.type
+    
     return {
-      frames: createFrames({
-        color: theme().highlight,
-        style: "blocks",
-        inactiveFactor: 0.6,
-        minAlpha: 0.3,
-      }),
-      color: createColors({
-        color: theme().highlight,
-        style: "blocks",
-        inactiveFactor: 0.6,
-        minAlpha: 0.3,
-      }),
+      // View state
+      prompt,
+      selectingSubagent,
+      selectingQueued,
+      inspecting,
+      commanding,
+      skilling,
+      modeling,
+      varianting,
+      panel,
+      selected,
+      tabs,
+      activeTabs,
+      selectedTab,
+      selectedIndex,
+      foregroundSubagents,
+      model,
+      detail,
+      // Keymaps
+      keymaps,
+      // State
+      busy,
+      armed,
+      exiting,
+      queue,
+      usage,
+      interruptLabel: keymaps.interrupt ? (keymaps.interrupt === "escape" ? "esc" : keymaps.interrupt) : undefined,
+      // Theme
+      theme: themeData.footer,
+      block: themeData.block,
+      spin: {
+        frames: createFrames({ color: themeData.highlight, style: "blocks", inactiveFactor: 0.6, minAlpha: 0.3 }),
+        color: createColors({ color: themeData.highlight, style: "blocks", inactiveFactor: 0.6, minAlpha: 0.3 }),
+      },
+      permission: permissionView,
+      question: questionView,
+      promptView,
     }
   })
-  const permission = createMemo<Extract<FooterView, { type: "permission" }> | undefined>(() => {
-    const view = active()
-    return view.type === "permission" ? view : undefined
-  })
-  const question = createMemo<Extract<FooterView, { type: "question" }> | undefined>(() => {
-    const view = active()
-    return view.type === "question" ? view : undefined
-  })
-  const promptView = createMemo(() => {
-    if (active().type !== "prompt") {
-      return active().type
-    }
-
-    const current = route()
-    return current.type === "composer" ? "prompt" : current.type
-  })
+  
+  // Accessor functions - zero overhead, just delegate to derived memo
+  const prompt = () => derived().prompt
+  const selectingSubagent = () => derived().selectingSubagent
+  const selectingQueued = () => derived().selectingQueued
+  const inspecting = () => derived().inspecting
+  const commanding = () => derived().commanding
+  const skilling = () => derived().skilling
+  const modeling = () => derived().modeling
+  const varianting = () => derived().varianting
+  const panel = () => derived().panel
+  const selected = () => derived().selected
+  const tabs = () => derived().tabs
+  const activeTabs = () => derived().activeTabs
+  const selectedTab = () => derived().selectedTab
+  const selectedIndex = () => derived().selectedIndex
+  const foregroundSubagents = () => derived().foregroundSubagents
+  const model = () => derived().model
+  const detail = () => derived().detail
+  
+  const keymaps = () => derived().keymaps
+  const busy = () => derived().busy
+  const armed = () => derived().armed
+  const exiting = () => derived().exiting
+  const queue = () => derived().queue
+  const usage = () => derived().usage
+  const interruptLabel = () => derived().interruptLabel
+  const theme = () => derived().theme
+  const block = () => derived().block
+  const spin = () => derived().spin
+  const permission = () => derived().permission
+  const question = () => derived().question
+  const promptView = () => derived().promptView
 
   const openCommand = () => {
     setRoute({ type: "command" })
@@ -364,7 +373,7 @@ export function RunFooterView(props: RunFooterViewProps) {
     tuiConfig: props.tuiConfig,
     state: props.state,
     view: promptView,
-    prompt,
+    prompt: prompt,
     width,
     theme,
     history: props.history,
@@ -379,257 +388,121 @@ export function RunFooterView(props: RunFooterViewProps) {
     onRows: props.onRows,
     onStatus: props.onStatus,
   })
-  const shell = createMemo(() => prompt() && composer.shell())
-  const menu = createMemo(() => prompt() && composer.visible())
-  const stateStatus = createMemo(() => props.state().status.trim())
-  const modeLabel = createMemo(() => {
-    if (exiting()) return "EXIT"
-    if (shell()) return "SHELL"
-    return ""
-  })
-  const modeColor = createMemo(() => {
-    if (exiting()) {
-      return theme().error
-    }
-
-    if (shell()) {
-      return theme().warning
-    }
-
-    return theme().highlight
-  })
-  const statusText = createMemo(() => {
-    if (exiting()) {
-      return `Press ${clearShortcut() || "ctrl+c"} again to exit`
-    }
-
-    if (busy()) {
-      return armed() ? "again to interrupt" : "interrupt"
-    }
-
-    if (stateStatus().length > 0) {
-      return stateStatus()
-    }
-
-    return shell() ? "Shell mode" : ""
-  })
-  const activityMeta = createMemo(() => {
-    if (!responsive().statusline.showActivityMeta || usage().length === 0) {
-      return ""
-    }
-
-    return usage()
-  })
-  const modelStatus = createMemo(() => {
-    const current = props.currentModel()
-    if (!prompt() || shell() || !current) {
-      return
-    }
-
-    return {
-      model: model().model,
-      variant: props.currentVariant(),
+const menu = composer.visible
+const statusLineData = createMemo(() => {
+    const d = derived()
+    const state = props.state()
+    const currentModel = props.currentModel()
+    const currentVariant = props.currentVariant()
+    const currentProviders = props.providers()
+    const currentCommands = props.commands()
+    const currentBackgroundSubagents = props.backgroundSubagents
+    const currentResponsive = responsive()
+    const currentPrompt = d.prompt
+    const currentBusy = d.busy
+    const currentArmed = d.armed
+    const currentExiting = d.exiting
+    const currentUsage = d.usage
+    const currentKeymaps = d.keymaps
+    const currentTheme = d.theme
+    const currentActiveTabs = d.activeTabs
+    const currentQueuedPrompts = queuedPrompts()
+    const stateStatus = state.status.trim()
+    const modeLabel = currentExiting ? "EXIT" : ""
+    const modeColor = currentExiting ? currentTheme.error : currentTheme.highlight
+    const statusText = currentExiting ? `Press ${currentKeymaps.clearShortcut || "ctrl+c"} again to exit` : 
+      currentBusy ? (currentArmed ? "again to interrupt" : "interrupt") : 
+      stateStatus.length > 0 ? stateStatus : ""
+    const activityMeta = currentResponsive.statusline.showActivityMeta && currentUsage.length > 0 ? currentUsage : ""
+    const modelStatus = currentPrompt && currentModel ? {
+      model: d.model.model,
+      variant: currentVariant,
       provider: undefined,
-      // Prefer without provider, but keep it on the shared width policy if we add it back.
-    }
-  })
-  const statusColor = createMemo(() => {
-    if (exiting()) {
-      return theme().error
-    }
-
-    if (armed()) {
-      return theme().highlight
-    }
-
-    if (busy() || stateStatus().length > 0) {
-      return theme().text
-    }
-
-    return theme().muted
-  })
-  const statuslineBackground = createMemo(() => theme().status)
-  const hasActivityMeta = createMemo(() => activityMeta().length > 0)
-  const hasModelStatus = createMemo(() => responsive().statusline.showModel && Boolean(modelStatus()))
-  const contextHints = createMemo(() => {
-    if (!prompt() || shell() || !responsive().statusline.showContextHints) {
-      return []
-    }
-
-    const items: Array<{ kind: string; key: string; label: string }> = []
-    if (foregroundSubagents() && backgroundShortcut()) {
-      items.push({ kind: "background", key: backgroundShortcut(), label: "background" })
-    }
-    if (queuedPrompts().length > 0 && queuedShortcut()) {
-      items.push({ kind: "queued", key: queuedShortcut(), label: `${queue()} queued` })
-    }
-    if (activeTabs().length > 0 && subagentShortcut()) {
-      items.push({ kind: "subagents", key: subagentShortcut(), label: "subagents" })
-    }
-
-    const limit = responsive().statusline.contextHintLimit
-    return limit === undefined ? items : items.slice(0, limit)
-  })
-  const hasContextHints = createMemo(() => contextHints().length > 0)
-  const commandHint = createMemo(() => {
-    if (!prompt() || !responsive().statusline.showCommandHint) {
-      return
-    }
-
-    if (shell()) {
-      return { key: "esc", label: "normal" }
-    }
-
-    if (command()) {
-      return { key: command(), label: "cmd" }
+    } : undefined
+    const statusColor = currentExiting ? currentTheme.error : 
+      currentArmed ? currentTheme.highlight : 
+      currentBusy || stateStatus.length > 0 ? currentTheme.text : currentTheme.muted
+    const statuslineBackground = currentTheme.status
+    const hasActivityMeta = activityMeta.length > 0
+    const hasModelStatus = currentResponsive.statusline.showModel && Boolean(modelStatus)
+    const contextHints = currentPrompt && currentResponsive.statusline.showContextHints ? 
+      (() => {
+        const items: Array<{ kind: string; key: string; label: string }> = []
+        if (currentBackgroundSubagents && currentActiveTabs.length > 0 && currentKeymaps.background) {
+          items.push({ kind: "background", key: currentKeymaps.background, label: "background" })
+        }
+        if (currentQueuedPrompts.length > 0 && currentKeymaps.queued) {
+          items.push({ kind: "queued", key: currentKeymaps.queued, label: `${state.queue} queued` })
+        }
+        if (currentActiveTabs.length > 0 && currentKeymaps.subagent) {
+          items.push({ kind: "subagents", key: currentKeymaps.subagent, label: "subagents" })
+        }
+        const limit = currentResponsive.statusline.contextHintLimit
+        return limit === undefined ? items : items.slice(0, limit)
+      })() : []
+    const hasContextHints = contextHints.length > 0
+    const commandHint = currentPrompt && currentResponsive.statusline.showCommandHint ? 
+      d.keymaps.command ? { key: d.keymaps.command, label: "cmd" } : undefined : undefined
+    
+    return {
+      menu,
+      stateStatus,
+      modeLabel,
+      modeColor,
+      statusText,
+      activityMeta,
+      modelStatus,
+      statusColor,
+      statuslineBackground,
+      hasActivityMeta,
+      hasModelStatus,
+      contextHints,
+      hasContextHints,
+      commandHint,
     }
   })
   const sectionSeparator = () => <span style={{ fg: theme().muted }}>· </span>
 
+  // Consolidated effects - single effect instead of 6 separate ones
   createEffect(() => {
+    // Effect 1: Request exit callback
+    console.log('render', Date.now())
     props.onRequestExit?.(composer.requestExit)
+    
+    // Effect 2: Auto-close subagent tab when session ends
+    const currentRoute = route()
+    if (currentRoute.type === "subagent" && !tabs().some((item) => item.sessionID === currentRoute.sessionID)) {
+      closeTab()
+    }
+    
+    // Effect 3: Auto-close subagent menu when no tabs
+    if (currentRoute.type === "subagent-menu" && tabs().length === 0) {
+      closePanel()
+    }
+    
+    // Effect 4: Auto-close queued menu when empty
+    if (currentRoute.type === "queued-menu" && queuedPrompts().length === 0) {
+      closePanel()
+    }
+    
+    // Effect 5: Auto-close panel when active view changes from prompt
+    if (active().type !== "prompt") {
+      const routeType = currentRoute.type
+      if (["command", "skill", "model", "variant", "queued-menu", "subagent-menu"].includes(routeType)) {
+        closePanel()
+      }
+    }
+    
+    // Effect 6: Layout callback
+    props.onLayout({
+      route: currentRoute,
+      autocomplete: menu(),
+      subagentRows: subagentMenuRows(),
+    })
   })
 
   onCleanup(() => {
     props.onRequestExit?.(undefined)
-  })
-
-  useBindings(() => ({
-    mode: OPENCODE_BASE_MODE,
-    enabled: active().type === "prompt" && route().type === "composer" && !composer.visible(),
-    commands: [
-      {
-        name: "command.palette.show",
-        title: "Open command palette",
-        category: "Prompt",
-        run: openCommand,
-      },
-      {
-        name: "variant.cycle",
-        title: "Cycle model variant",
-        category: "Model",
-        run: props.onCycle,
-      },
-    ],
-    bindings: [
-      ...props.tuiConfig.keybinds.get("command.palette.show"),
-      ...props.tuiConfig.keybinds.get("variant.cycle"),
-    ],
-  }))
-
-  useBindings(() => ({
-    mode: OPENCODE_BASE_MODE,
-    enabled: active().type === "prompt" && route().type === "composer" && foregroundSubagents(),
-    priority: 1,
-    commands: [
-      {
-        name: "session.background",
-        title: "Background subagents",
-        category: "Session",
-        run: () => props.onBackground?.(),
-      },
-    ],
-    bindings: props.tuiConfig.keybinds.get("session.background"),
-  }))
-
-  useBindings(() => ({
-    mode: OPENCODE_BASE_MODE,
-    enabled: active().type === "prompt" && route().type === "composer" && tabs().length > 0,
-    commands: [
-      {
-        name: "session.child.first",
-        title: "View subagents",
-        category: "Session",
-        run: openSubagentMenu,
-      },
-    ],
-    bindings: props.tuiConfig.keybinds.get("session.child.first"),
-  }))
-
-  useBindings(() => ({
-    mode: OPENCODE_BASE_MODE,
-    enabled: active().type === "prompt" && route().type === "composer" && queuedPrompts().length > 0,
-    commands: [
-      {
-        name: "session.queued_prompts",
-        title: "Manage queued prompts",
-        category: "Session",
-        run: openQueuedMenu,
-      },
-    ],
-    bindings: props.tuiConfig.keybinds.get("session.queued_prompts"),
-  }))
-
-  useBindings(() => ({
-    mode: OPENCODE_BASE_MODE,
-    enabled: active().type === "prompt" && route().type === "composer",
-    commands: [
-      {
-        name: "session.toggle.thinking",
-        title: "Toggle reasoning collapse",
-        category: "Session",
-        run: () => props.onThinkingCollapse?.(),
-      },
-    ],
-    bindings: props.tuiConfig.keybinds.get("session.toggle.thinking"),
-  }))
-
-  createEffect(() => {
-    const current = route()
-    if (current.type !== "subagent") {
-      return
-    }
-
-    if (tabs().some((item) => item.sessionID === current.sessionID)) {
-      return
-    }
-
-    closeTab()
-  })
-
-  createEffect(() => {
-    if (route().type !== "subagent-menu") {
-      return
-    }
-
-    if (tabs().length > 0) {
-      return
-    }
-
-    closePanel()
-  })
-
-  createEffect(() => {
-    if (route().type !== "queued-menu" || queuedPrompts().length > 0) return
-    closePanel()
-  })
-
-  createEffect(() => {
-    if (active().type === "prompt") {
-      return
-    }
-
-    const current = route()
-    if (
-      current.type !== "command" &&
-      current.type !== "skill" &&
-      current.type !== "model" &&
-      current.type !== "variant" &&
-      current.type !== "queued-menu" &&
-      current.type !== "subagent-menu"
-    ) {
-      return
-    }
-
-    closePanel()
-  })
-
-  createEffect(() => {
-    props.onLayout({
-      route: route(),
-      autocomplete: menu(),
-      subagentRows: subagentMenuRows(),
-    })
   })
 
   // ponytail: auto-open model selector when providers arrive and no model is configured
@@ -645,6 +518,57 @@ export function RunFooterView(props: RunFooterViewProps) {
       }
     })
   }
+
+  const bindings = useBindings(() => ({
+    mode: OPENCODE_BASE_MODE,
+    enabled: active().type === "prompt" && route().type === "composer" && !composer.visible(),
+    commands: [
+      {
+        name: "command.palette.show",
+        title: "Open command palette",
+        category: "Prompt",
+        run: openCommand,
+      },
+      {
+        name: "variant.cycle",
+        title: "Cycle model variant",
+        category: "Model",
+        run: props.onCycle,
+      },
+      {
+        name: "session.background",
+        title: "Background subagents",
+        category: "Session",
+        run: () => props.onBackground?.(),
+      },
+      {
+        name: "session.child.first",
+        title: "View subagents",
+        category: "Session",
+        run: openSubagentMenu,
+      },
+      {
+        name: "session.queued_prompts",
+        title: "Manage queued prompts",
+        category: "Session",
+        run: openQueuedMenu,
+      },
+      {
+        name: "session.toggle.thinking",
+        title: "Toggle reasoning collapse",
+        category: "Session",
+        run: () => props.onThinkingCollapse?.(),
+      },
+    ],
+    bindings: [
+      ...props.tuiConfig.keybinds.get("command.palette.show"),
+      ...props.tuiConfig.keybinds.get("variant.cycle"),
+      ...props.tuiConfig.keybinds.get("session.background"),
+      ...props.tuiConfig.keybinds.get("session.child.first"),
+      ...props.tuiConfig.keybinds.get("session.queued_prompts"),
+      ...props.tuiConfig.keybinds.get("session.toggle.thinking"),
+    ],
+  }))
 
   return (
     <box
@@ -695,7 +619,7 @@ export function RunFooterView(props: RunFooterViewProps) {
                         <Match when={active().type === "prompt" && route().type === "composer"}>
                           <RunPromptBody
                             theme={theme}
-                            background={() => runTheme().background}
+                            background={() => props.theme().background}
                             placeholder={composer.placeholder}
                             onSubmit={composer.onSubmit}
                             onKeyDown={composer.onKeyDown}
@@ -734,7 +658,7 @@ export function RunFooterView(props: RunFooterViewProps) {
                             subagents={tabs}
                             queued={queuedPrompts}
                             variants={props.variants}
-                            variantCycle={variantCycle()}
+                            variantCycle={keymaps().variantCycle}
                             onClose={closePanel}
                             onModel={openModel}
                             onEditor={() => {
@@ -846,12 +770,12 @@ export function RunFooterView(props: RunFooterViewProps) {
                 flexDirection="row"
                 gap={0}
                 flexShrink={0}
-                backgroundColor={statuslineBackground()}
+                backgroundColor={statusLineData().statuslineBackground}
               >
-                <Show when={modeLabel()}>
+                <Show when={statusLineData().modeLabel}>
                   <box paddingLeft={1} paddingRight={1} backgroundColor={theme().statusAccent} flexShrink={0}>
                     <text wrapMode="none" truncate>
-                      <span style={{ fg: modeColor(), bold: true }}>{modeLabel()}</span>
+                      <span style={{ fg: statusLineData().modeColor, bold: true }}>{statusLineData().modeLabel}</span>
                     </text>
                   </box>
                 </Show>
@@ -872,25 +796,25 @@ export function RunFooterView(props: RunFooterViewProps) {
                     </box>
                   </Show>
 
-                  <text fg={statusColor()} wrapMode="none" truncate flexGrow={1} flexShrink={1}>
-                    <Show when={busy() && !exiting()} fallback={statusText()}>
+                  <text fg={statusLineData().statusColor} wrapMode="none" truncate flexGrow={1} flexShrink={1}>
+                    <Show when={busy() && !exiting()} fallback={statusLineData().statusText}>
                       <Show when={interruptLabel()}>
-                        {(label) => <span style={{ fg: armed() ? statusColor() : theme().muted }}>{label()} </span>}
+                        {(label) => <span style={{ fg: armed() ? statusLineData().statusColor : theme().muted }}>{label()} </span>}
                       </Show>
-                      {statusText()}
+                      {statusLineData().statusText}
                     </Show>
                   </text>
                 </box>
 
-                <Show when={activityMeta().length > 0}>
+                <Show when={statusLineData().activityMeta.length > 0}>
                   <box paddingRight={1} backgroundColor="transparent" flexShrink={1}>
                     <text fg={theme().muted} wrapMode="none" truncate>
-                      {activityMeta()}
+                      {statusLineData().activityMeta}
                     </text>
                   </box>
                 </Show>
 
-                <Show when={responsive().statusline.showModel && modelStatus()}>
+                <Show when={responsive().statusline.showModel && statusLineData().modelStatus}>
                   {(info) => (
                     <box paddingRight={1} backgroundColor="transparent" flexShrink={0}>
                       <text fg={theme().text} wrapMode="none">
@@ -910,11 +834,11 @@ export function RunFooterView(props: RunFooterViewProps) {
                   )}
                 </Show>
 
-                <For each={contextHints()}>
+                <For each={statusLineData().contextHints}>
                   {(hint, index) => (
                     <box paddingRight={1} backgroundColor="transparent" flexShrink={0} maxWidth={24}>
                       <text fg={theme().text} wrapMode="none" truncate>
-                        <Show when={index() > 0 || ((hasActivityMeta() || hasModelStatus()) && index() === 0)}>
+                        <Show when={index() > 0 || ((statusLineData().hasActivityMeta || statusLineData().hasModelStatus) && index() === 0)}>
                           {sectionSeparator()}
                         </Show>
                         <span style={{ fg: theme().text }}>{hint.key}</span>{" "}
@@ -924,11 +848,11 @@ export function RunFooterView(props: RunFooterViewProps) {
                   )}
                 </For>
 
-                <Show when={commandHint()}>
+                <Show when={statusLineData().commandHint}>
                   {(hint) => (
                     <box paddingRight={1} backgroundColor="transparent" flexShrink={0} maxWidth={18}>
                       <text fg={theme().text} wrapMode="none" truncate>
-                        <Show when={hasActivityMeta() || hasModelStatus() || hasContextHints()}>
+                        <Show when={statusLineData().hasActivityMeta || statusLineData().hasModelStatus || statusLineData().hasContextHints}>
                           {sectionSeparator()}
                         </Show>
                         <span style={{ fg: theme().text }}>{hint().key}</span>{" "}
@@ -955,7 +879,7 @@ export function RunFooterView(props: RunFooterViewProps) {
         >
           <RunFooterSubagentBody
             active={inspecting}
-            theme={runTheme}
+            theme={() => props.theme()}
             tab={selectedTab}
             index={selectedIndex}
             total={() => tabs().length}

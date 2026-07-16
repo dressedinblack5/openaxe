@@ -1231,53 +1231,43 @@ export function createPromptState(input: PromptInput): PromptState {
     }
   })
 
+  // Consolidated effects - single effect instead of 4 separate ones
   createEffect(() => {
+    // Effect 1: Width/popup changes trigger row sync
     input.width()
     popup()
     if (input.prompt()) {
       scheduleRows()
     }
-  })
-
-  createEffect(() => {
+    
+    // Effect 2: Query changes reset menu
     query()
     menu.reset()
-  })
-
-  createEffect(() => {
+    
+    // Effect 3: Focus area when phase becomes idle
     input.state().phase
-    if (!input.prompt() || !area || area.isDestroyed || input.state().phase !== "idle") {
-      return
+    if (input.prompt() && area && !area.isDestroyed && input.state().phase === "idle") {
+      queueMicrotask(() => {
+        if (area && !area.isDestroyed) {
+          area.focus()
+        }
+      })
     }
-
-    queueMicrotask(() => {
-      if (!area || area.isDestroyed) {
-        return
-      }
-
-      area.focus()
-    })
-  })
-
-  createEffect(() => {
+    
+    // Effect 4: View changes sync draft and restore
     const kind = input.view()
-    if (kind === prev) {
-      return
+    if (kind !== prev) {
+      if (prev === "prompt") {
+        syncDraft()
+      }
+      hide()
+      prev = kind
+      if (kind === "prompt") {
+        queueMicrotask(() => {
+          restore(draft)
+        })
+      }
     }
-
-    if (prev === "prompt") {
-      syncDraft()
-    }
-
-    hide()
-    prev = kind
-    if (kind !== "prompt") {
-      return
-    }
-
-    queueMicrotask(() => {
-      restore(draft)
-    })
   })
 
   return {

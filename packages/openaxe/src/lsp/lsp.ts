@@ -132,6 +132,7 @@ export interface Interface {
   readonly prepareCallHierarchy: (input: LocInput) => Effect.Effect<any[]>
   readonly incomingCalls: (input: LocInput) => Effect.Effect<any[]>
   readonly outgoingCalls: (input: LocInput) => Effect.Effect<any[]>
+  readonly removeClients: (root: string) => Effect.Effect<void>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/LSP") {}
@@ -476,6 +477,19 @@ export const layer = Layer.effect(
       return yield* callHierarchyRequest(input, "callHierarchy/outgoingCalls")
     })
 
+    const removeClients = Effect.fn("LSP.removeClients")(function* (root: string) {
+      const s = yield* InstanceState.get(state)
+      const toRemove = s.clients.filter((c) => c.root === root)
+      for (const client of toRemove) {
+        yield* Effect.promise(() => client.shutdown())
+      }
+      s.clients = s.clients.filter((c) => c.root !== root)
+      s.broken.clear()
+      for (const key of Object.keys(s.servers)) {
+        if (!s.servers[key]) delete s.servers[key]
+      }
+    })
+
     return Service.of({
       init,
       status,
@@ -491,6 +505,7 @@ export const layer = Layer.effect(
       prepareCallHierarchy,
       incomingCalls,
       outgoingCalls,
+      removeClients,
     })
   }),
 )

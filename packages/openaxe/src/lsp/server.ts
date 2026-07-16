@@ -1,4 +1,3 @@
-import type { ChildProcessWithoutNullStreams } from "child_process"
 import path from "path"
 import os from "os"
 import { Global } from "@opencode-ai/core/global"
@@ -23,7 +22,7 @@ const run = (cmd: string[], opts: Process.RunOptions = {}) => Process.run(cmd, {
 const output = (cmd: string[], opts: Process.RunOptions = {}) => Process.text(cmd, { ...opts, nothrow: true })
 
 export interface Handle {
-  process: ChildProcessWithoutNullStreams
+  process: Process.Child
   initialization?: Record<string, any>
 }
 
