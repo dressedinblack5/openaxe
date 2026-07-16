@@ -57,7 +57,7 @@ const make = (options: Config) =>
         // @ts-expect-error bun:sqlite Statement type is missing safeIntegers. PR https://github.com/oven-sh/bun/pull/26627 adds it; remove if Bun ≥1.4 ships it.
         statement.safeIntegers(get(fiber.context, SafeIntegers))
         try {
-          return Effect.succeed((statement.all(...(params as any)) ?? []) as Array<Record<string, unknown>>)
+          return Effect.succeed((statement.all(...(params as never[])) ?? []) as Array<Record<string, unknown>>)
         } catch (cause) {
           return Effect.fail(
             new SqlError({
@@ -73,7 +73,7 @@ const make = (options: Config) =>
         // @ts-expect-error bun:sqlite Statement type is missing safeIntegers. PR https://github.com/oven-sh/bun/pull/26627 adds it; remove if Bun ≥1.4 ships it.
         statement.safeIntegers(get(fiber.context, SafeIntegers))
         try {
-          return Effect.succeed((statement.values(...(params as any)) ?? []) as Array<unknown[]>)
+          return Effect.succeed((statement.values(...(params as never[])) ?? []) as Array<unknown[]>)
         } catch (cause) {
           return Effect.fail(
             new SqlError({

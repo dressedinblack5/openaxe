@@ -13,7 +13,7 @@ export async function scan(pattern: string, options: Options = {}): Promise<stri
     absolute: options.absolute,
     dot: options.dot,
     nodir: options.include !== "all",
-  } as any)) {
+  } as Record<string, unknown>)) {
     results.push(match)
   }
   return results
@@ -25,7 +25,7 @@ export function scanSync(pattern: string, options: Options = {}): string[] {
     absolute: options.absolute,
     dot: options.dot,
     nodir: options.include !== "all",
-  } as any)]
+  } as Record<string, unknown>)]
 }
 
 export function match(pattern: string, filepath: string): boolean {

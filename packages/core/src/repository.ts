@@ -138,7 +138,7 @@ function normalizeInput(input: string) {
     .replace(/\/+$/, "")
 }
 
-function trimGitSuffix(input: string) {
+export function trimGitSuffix(input: string) {
   return input.replace(/\.git$/, "")
 }
 
