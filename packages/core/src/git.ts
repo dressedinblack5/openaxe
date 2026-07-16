@@ -1,7 +1,7 @@
 export * as Git from "./git"
 
 import path from "path"
-import { Context, Effect, Layer, Schema, Stream } from "effect"
+import { Context, Duration, Effect, Layer, Schema, Stream } from "effect"
 import { ChildProcess } from "effect/unstable/process"
 import { AbsolutePath } from "./schema"
 import { FSUtil } from "./fs-util"
@@ -410,12 +410,12 @@ export interface Result {
 }
 
 function run(cwd: string, proc: AppProcess.Interface) {
-  return (args: string[]) =>
-    execute(cwd, proc)(args).pipe(Effect.catch(() => Effect.succeed({ exitCode: 1, text: "", stderr: "" })))
+  return (args: string[], timeout?: Duration.Input) =>
+    execute(cwd, proc)(args, timeout).pipe(Effect.catch(() => Effect.succeed({ exitCode: 1, text: "", stderr: "" })))
 }
 
 function execute(cwd: string, proc: AppProcess.Interface) {
-  return (args: string[]) =>
+  return (args: string[], timeout: Duration.Input = "5 seconds") =>
     proc
       .run(
         ChildProcess.make("git", args, {
@@ -423,6 +423,7 @@ function execute(cwd: string, proc: AppProcess.Interface) {
           extendEnv: true,
           stdin: "ignore",
         }),
+        { timeout },
       )
       .pipe(
         Effect.map(
