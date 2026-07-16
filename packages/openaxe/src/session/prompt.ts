@@ -20,7 +20,6 @@ import { MAX_STEPS_PROMPT } from "@opencode-ai/core/session/runner/max-steps"
 import { ToolRegistry } from "@/tool/registry"
 import { MCP } from "../mcp"
 import { LSP } from "@/lsp/lsp"
-import { ulid } from "ulid"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { decodeText, filter, map, mkString, runForEach } from "effect/Stream";
@@ -288,8 +287,8 @@ export const layer = Layer.effect(
         messageID: assistantMessage.id,
         sessionID: assistantMessage.sessionID,
         type: "tool",
-        callID: ulid(),
-        tool: TaskTool.id,
+          callID: crypto.randomUUID(),
+          tool: TaskTool.id,
         state: {
           status: "running",
           input: {
@@ -511,8 +510,8 @@ export const layer = Layer.effect(
               messageID: msg.id,
               sessionID: input.sessionID,
               tool: ShellID.ToolID,
-              callID: ulid(),
-              state: {
+          callID: crypto.randomUUID(),
+          state: {
                 status: "running",
                 time: { start: started },
                 input: { command: input.command },
