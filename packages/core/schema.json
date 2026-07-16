@@ -1,9 +1,9 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "2712b32b-2c09-4301-9bd6-d17464fbddd5",
+  "id": "5b6bfa36-0cf7-4a6e-8363-b58800252732",
   "prevIds": [
-    "f14a9b18-8207-487e-a3d3-227e629ba9ad"
+    "2712b32b-2c09-4301-9bd6-d17464fbddd5"
   ],
   "ddl": [
     {
@@ -2227,6 +2227,24 @@
       "where": null,
       "origin": "manual",
       "name": "session_parent_idx",
+      "entityType": "indexes",
+      "table": "session"
+    },
+    {
+      "columns": [
+        {
+          "value": "workspace_id",
+          "isExpression": false
+        },
+        {
+          "value": "time_created",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_workspace_time_created_idx",
       "entityType": "indexes",
       "table": "session"
     },

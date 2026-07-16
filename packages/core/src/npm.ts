@@ -1,7 +1,6 @@
 export * as Npm from "./npm"
 
 import path from "path"
-import npa from "npm-package-arg"
 import { Effect, Schema, Context, Layer, Option, FileSystem } from "effect"
 import { NodeFileSystem } from "@effect/platform-node"
 import { FSUtil } from "./fs-util"
@@ -44,6 +43,18 @@ const illegal = process.platform === "win32" ? new Set(["<", ">", ":", '"', "|",
 export function sanitize(pkg: string) {
   if (!illegal) return pkg
   return Array.from(pkg, (char) => (illegal.has(char) || char.charCodeAt(0) < 32 ? "_" : char)).join("")
+}
+
+function parsePackageName(spec: string): string {
+  if (spec.startsWith("@")) {
+    const slash = spec.indexOf("/")
+    if (slash === -1) return spec
+    const rest = spec.slice(slash + 1)
+    const at = rest.indexOf("@")
+    return at === -1 ? spec.slice(0, slash + 1 + rest.length) : spec.slice(0, slash + at + 1)
+  }
+  const at = spec.indexOf("@")
+  return at === -1 ? spec : spec.slice(0, at)
 }
 
 const resolveEntryPoint = (name: string, dir: string): EntryPoint => {
@@ -115,7 +126,7 @@ export const layer = Layer.effect(
       const dir = directory(pkg)
       const name = (() => {
         try {
-          return npa(pkg).name ?? pkg
+          return parsePackageName(pkg)
         } catch { /* ponytail: npa can fail on edge case package specs, fall back to raw name */
           return pkg
         }

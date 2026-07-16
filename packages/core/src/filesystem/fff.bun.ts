@@ -111,6 +111,34 @@ export interface Picker {
   getHistoricalQuery(offset: number): Result<string | null>
 }
 
+// LRU cache for file search results
+const searchCache = new Map<string, Search>()
+const CACHE_MAX_SIZE = 100
+
+function cacheKey(query: string, opts?: { currentFile?: string; pageIndex?: number; pageSize?: number }): string {
+  return `${query}:${JSON.stringify(opts ?? {})}`
+}
+
+function cachedFileSearch(
+  picker: Picker,
+  query: string,
+  opts?: { currentFile?: string; pageIndex?: number; pageSize?: number }
+): Result<Search> {
+  const key = cacheKey(query, opts)
+  const cached = searchCache.get(key)
+  if (cached) return { ok: true, value: cached }
+
+  const result = picker.fileSearch(query, opts)
+  if (result.ok) {
+    if (searchCache.size >= CACHE_MAX_SIZE) {
+      const firstKey = searchCache.keys().next().value
+      if (firstKey) searchCache.delete(firstKey)
+    }
+    searchCache.set(key, result.value)
+  }
+  return result
+}
+
 export function available() {
   return FileFinder.isAvailable()
 }
@@ -126,7 +154,7 @@ export function create(opts: Init): Result<Picker> {
       isScanning: () => pick.isScanning(),
       waitForScan: (timeoutMs) => pick.waitForScan(timeoutMs),
       refreshGitStatus: () => pick.refreshGitStatus(),
-      fileSearch: (query, next) => pick.fileSearch(query, next),
+      fileSearch: (query, next) => cachedFileSearch(pick, query, next),
       glob: (pattern, next) => pick.glob(pattern, next),
       directorySearch: (query, next) => pick.directorySearch(query, next),
       mixedSearch: (query, next) => pick.mixedSearch(query, next),
