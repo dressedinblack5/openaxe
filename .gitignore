@@ -64,3 +64,4 @@ __pycache__/
 *.key
 packages/core/.openaxe/
 packages/openaxe/bin/openaxe
+sst-env.d.ts

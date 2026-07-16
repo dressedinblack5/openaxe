@@ -448,8 +448,8 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
     if (!terminalTitleEnabled() || Flag.OPENCODE_DISABLE_TERMINAL_TITLE) return
 
     const routeData = route.data
-    window.clearTimeout(titleDebounce.current)
-    titleDebounce.current = window.setTimeout(() => {
+    clearTimeout(titleDebounce.current)
+    titleDebounce.current = setTimeout(() => {
       if (routeData.type === "home") {
         renderer.setTerminalTitle("OpenAxe")
         return
