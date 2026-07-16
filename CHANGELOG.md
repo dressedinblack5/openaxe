@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.6] - 2026-07-16
+
+### Added
+- **Typecheck CI passes for all 13 packages** — fixed `@opencode-ai/plugin` (missing `@types/bun`, tsconfig types), `@opencode-ai/script` (missing typecheck script), `@opencode-ai/tui` (pre-existing Timeout type mismatch). Added `sst-env.d.ts` to `.gitignore`, removed 13 tracked copies.
+
+### Refactored
+- **HttpApi error types**: replaced 73 `as any` casts across 16 route group files with a single `errors()` helper in `errors.ts` — one retained `as any` instead of 73.
+- **Core type hygiene**: replaced 4 `as any` in `glob.ts` and `sqlite.bun.ts` with narrower casts (`never[]`, `Record<string, unknown>`).
+- **Exported `Repository.trimGitSuffix`** from core for cross-package reuse.
+
 ## [1.2.5]
 
 ### CI / Testing
