@@ -442,31 +442,38 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
     kv.get("paste_summary_enabled", !sync.data.config.experimental?.disable_paste_summary),
   )
 
-  // Update terminal window title based on current route and session
+  // Debounced terminal title updates to avoid excessive renderer calls on route changes
+  const titleDebounce = { current: 0 }
   createEffect(() => {
     if (!terminalTitleEnabled() || Flag.OPENCODE_DISABLE_TERMINAL_TITLE) return
 
-    if (route.data.type === "home") {
-      renderer.setTerminalTitle("OpenAxe")
-      return
-    }
-
-    if (route.data.type === "session") {
-      const session = sync.session.get(route.data.sessionID)
-      if (!session || isDefaultTitle(session.title)) {
+    const routeData = route.data
+    window.clearTimeout(titleDebounce.current)
+    titleDebounce.current = window.setTimeout(() => {
+      if (routeData.type === "home") {
         renderer.setTerminalTitle("OpenAxe")
         return
       }
 
-      const title = session.title.length > 40 ? session.title.slice(0, 37) + "..." : session.title
-      renderer.setTerminalTitle(`AX | ${title}`)
-      return
-    }
+      if (routeData.type === "session") {
+        const session = sync.session.get(routeData.sessionID)
+        if (!session || isDefaultTitle(session.title)) {
+          renderer.setTerminalTitle("OpenAxe")
+          return
+        }
 
-    if (route.data.type === "plugin") {
-      renderer.setTerminalTitle(`AX | ${route.data.id}`)
-    }
+        const title = session.title.length > 40 ? session.title.slice(0, 37) + "..." : session.title
+        renderer.setTerminalTitle(`AX | ${title}`)
+        return
+      }
+
+      if (routeData.type === "plugin") {
+        renderer.setTerminalTitle(`AX | ${routeData.id}`)
+      }
+    }, 100)
   })
+
+  onCleanup(() => window.clearTimeout(titleDebounce.current))
 
   const args = useArgs()
   onMount(() => {
@@ -1107,7 +1114,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       `Successfully updated to OpenAxe v${result.data.version}. Please restart the application.`,
     )
 
-     exit()
+     void exit()
   })
 
   const plugin = createMemo(() => {

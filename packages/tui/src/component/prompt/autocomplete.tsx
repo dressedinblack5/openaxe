@@ -2,7 +2,6 @@ import type { BoxRenderable, TextareaRenderable, ScrollBoxRenderable } from "@op
 import { pathToFileURL } from "bun"
 import fuzzysort from "fuzzysort"
 import path from "path"
-import { firstBy } from "remeda"
 import { createMemo, createResource, createEffect, onMount, onCleanup, Index, Show, createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useEditorContext } from "../../context/editor"
@@ -463,7 +462,7 @@ export function Autocomplete(props: {
 
     results.sort((a, b) => a.display.localeCompare(b.display))
 
-    const max = firstBy(results, [(x) => x.display.length, "desc"])?.display.length
+    const max = results.slice().sort((a, b) => b.display.length - a.display.length)[0]?.display.length
     if (!max) return results
     return results.map((item) => ({
       ...item,

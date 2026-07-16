@@ -8,17 +8,24 @@ import {
 } from "@opentui/core"
 import type { Binding } from "@opentui/keymap"
 import { useTheme, selectedForeground } from "../context/theme"
-import { entries, filter, flatMap, groupBy, pipe } from "remeda"
 import { batch, createEffect, createMemo, createSignal, For, Show, type JSX, on } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useTerminalDimensions } from "@opentui/solid"
 import * as fuzzysort from "fuzzysort"
-import { isDeepEqual } from "remeda"
 import { useDialog, type DialogContext } from "./dialog"
 import { Locale } from "../util/locale"
 import { getScrollAcceleration } from "../util/scroll"
 import { useTuiConfig } from "../config"
 import { formatKeyBindings, useBindings, useKeymapSelector } from "../keymap"
+
+function groupBy<T, K extends string>(arr: T[], fn: (item: T) => K): Record<K, T[]> {
+  return arr.reduce((acc, item) => {
+    (acc[fn(item)] ??= []).push(item); return acc
+  }, {} as Record<K, T[]>)
+}
+function deepEqual(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
 
 export interface DialogSelectProps<T> {
   title: string
@@ -99,7 +106,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
       () => props.current,
       (current) => {
         if (current) {
-          const currentIndex = flat().findIndex((opt) => isDeepEqual(opt.value, current))
+          const currentIndex = flat().findIndex((opt) => deepEqual(opt.value, current))
           if (currentIndex >= 0) {
             setStore("selected", currentIndex)
           }
@@ -149,10 +156,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
   const filtered = createMemo(() => {
     if (props.skipFilter || props.renderFilter === false) return props.options.filter((x) => x.disabled !== true)
     const needle = store.filter.toLowerCase()
-    const options = pipe(
-      props.options,
-      filter((x) => x.disabled !== true),
-    )
+    const options = props.options.filter((x) => x.disabled !== true)
     if (!needle) return options
 
     // prioritize title matches (weight: 2) over category matches (weight: 1).
@@ -180,20 +184,12 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
 
   const grouped = createMemo<[string, DialogSelectOption<T>[]][]>(() => {
     if (flatten()) return [["", filtered()]]
-    const result = pipe(
-      filtered(),
-      groupBy((x) => x.category ?? ""),
-      // mapValues((x) => x.sort((a, b) => a.title.localeCompare(b.title))),
-      entries(),
-    )
-    return result
+    const groupedResult = groupBy(filtered(), (x) => x.category ?? "")
+    return Object.entries(groupedResult)
   })
 
   const flat = createMemo(() => {
-    return pipe(
-      grouped(),
-      flatMap(([_, options]) => options),
-    )
+    return grouped().flatMap(([_, options]) => options)
   })
 
   const rows = createMemo(() => {
@@ -215,7 +211,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         if (filter.length > 0) {
           moveTo(0, true)
         } else if (current) {
-          const currentIndex = flat().findIndex((opt) => isDeepEqual(opt.value, current))
+          const currentIndex = flat().findIndex((opt) => deepEqual(opt.value, current))
           if (currentIndex >= 0) {
             moveTo(currentIndex, true)
           }
@@ -263,7 +259,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
       }
       if (y < 0) {
         scroll.scrollBy(y)
-        if (isDeepEqual(flat()[0].value, selected()?.value)) {
+        if (deepEqual(flat()[0].value, selected()?.value)) {
           scroll.scrollTo(0)
         }
       }
@@ -420,7 +416,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
       return filtered()
     },
     moveTo(value) {
-      const index = flat().findIndex((option) => isDeepEqual(option.value, value))
+      const index = flat().findIndex((option) => deepEqual(option.value, value))
       if (index >= 0) moveTo(index, true)
     },
   }
@@ -562,8 +558,8 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                   </Show>
                   <For each={options}>
                     {(option) => {
-                      const active = createMemo(() => !props.locked && isDeepEqual(option.value, selected()?.value))
-                      const current = createMemo(() => isDeepEqual(option.value, props.current))
+                      const active = createMemo(() => !props.locked && deepEqual(option.value, selected()?.value))
+                      const current = createMemo(() => deepEqual(option.value, props.current))
                       return (
                         <box
                           flexDirection="column"
@@ -581,13 +577,13 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                           onMouseOver={() => {
                             if (props.locked) return
                             if (store.input !== "mouse") return
-                            const index = flat().findIndex((x) => isDeepEqual(x.value, option.value))
+                            const index = flat().findIndex((x) => deepEqual(x.value, option.value))
                             if (index === -1) return
                             moveTo(index)
                           }}
                           onMouseDown={() => {
                             if (props.locked) return
-                            const index = flat().findIndex((x) => isDeepEqual(x.value, option.value))
+                            const index = flat().findIndex((x) => deepEqual(x.value, option.value))
                             if (index === -1) return
                             moveTo(index)
                           }}

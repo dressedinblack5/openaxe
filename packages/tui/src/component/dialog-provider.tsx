@@ -1,6 +1,6 @@
 import { createMemo, createSignal, onMount, Show } from "solid-js"
 import { useSync } from "../context/sync"
-import { map, pipe, sortBy } from "remeda"
+
 import { DialogSelect } from "../ui/dialog-select"
 import { useDialog } from "../ui/dialog"
 import { useSDK } from "../context/sdk"
@@ -45,28 +45,30 @@ type ProviderOption =
     })
 
 export function providerOptions(list: { id: string; name: string }[]): ProviderOption[] {
+  const sorted = list.slice().sort((a, b) => {
+    const pa = PROVIDER_PRIORITY[a.id] ?? 99, pb = PROVIDER_PRIORITY[b.id] ?? 99
+    if (pa !== pb) return pa - pb
+    const na = a.name.toLowerCase(), nb = b.name.toLowerCase()
+    if (na < nb) return -1
+    if (na > nb) return 1
+    if (a.id < b.id) return -1
+    if (a.id > b.id) return 1
+    return 0
+  })
   return [
-    ...pipe(
-      list,
-      sortBy(
-        (x) => PROVIDER_PRIORITY[x.id] ?? 99,
-        (x) => x.name.toLowerCase(),
-        (x) => x.id,
-      ),
-      map((provider) => ({
-        type: "provider" as const,
-        title: provider.name,
-        value: provider.id,
-        providerID: provider.id,
-        description: {
-          opencode: "(Recommended)",
-          anthropic: "(API key)",
-          openai: "(ChatGPT Plus/Pro or API key)",
-          "opencode-go": "Low cost subscription for everyone",
-        }[provider.id],
-        category: provider.id in PROVIDER_PRIORITY ? "Popular" : "Providers",
-      })),
-    ),
+    ...sorted.map((provider) => ({
+      type: "provider" as const,
+      title: provider.name,
+      value: provider.id,
+      providerID: provider.id,
+      description: {
+        opencode: "(Recommended)",
+        anthropic: "(API key)",
+        openai: "(ChatGPT Plus/Pro or API key)",
+        "opencode-go": "Low cost subscription for everyone",
+      }[provider.id],
+      category: provider.id in PROVIDER_PRIORITY ? "Popular" : "Providers",
+    })),
     {
       type: "custom",
       title: "Other",
@@ -114,10 +116,8 @@ export function createDialogProviderOptions() {
   }
 
   const options = createMemo(() => {
-    return pipe(
-      providerOptions(sync.data.provider_next.all),
-      map((provider) => {
-        if (provider.type === "custom") {
+    return providerOptions(sync.data.provider_next.all).map((provider) => {
+      if (provider.type === "custom") {
           return {
             title: provider.title,
             value: provider.value,
@@ -219,8 +219,7 @@ export function createDialogProviderOptions() {
             }
           },
         }
-      }),
-    )
+      })
   })
   return options
 }
