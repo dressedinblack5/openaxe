@@ -2,7 +2,6 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { Config } from "@/config/config"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import type { MessageV2 } from "@/session/message-v2"
-import { InstanceRef } from "@/effect/instance-ref"
 import { Context, Effect, Layer, Ref, Schema } from "effect"
 
 const MAX_BASE64_BYTES = 5 * 1024 * 1024
@@ -141,12 +140,15 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const configRef = yield* Ref.make({ maxBase64Bytes: MAX_BASE64_BYTES, maxWidth: MAX_WIDTH, maxHeight: MAX_HEIGHT })
 
-    // Initialize from config if InstanceRef is available at runtime
-    const instanceRef = yield* Effect.serviceOption(InstanceRef)
-    if (instanceRef._tag === "Some" && instanceRef.value) {
-      const config = yield* Effect.serviceOption(Config.Service)
-      if (config._tag === "Some") {
-        const cfg = yield* config.value.get()
+    // Initialize from config when available — Config.Service.get() depends on
+    // InstanceRef internally, so fall back to defaults when it is unavailable
+    // (e.g. before instance bootstrap or in standalone test layers).
+    const svc = yield* Effect.serviceOption(Config.Service)
+    if (svc._tag === "Some") {
+      const cfg = yield* svc.value.get().pipe(
+        Effect.catchDefect(() => Effect.succeed(undefined)),
+      )
+      if (cfg) {
         const attachment = cfg.attachment?.image
         yield* Ref.set(configRef, {
           maxBase64Bytes: attachment?.max_base64_bytes ?? MAX_BASE64_BYTES,
