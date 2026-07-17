@@ -332,13 +332,13 @@ export const layer = Layer.effect(
     })
 
     const list = Effect.fn("Plugin.list")(function* () {
-      // Don't trigger lazy init — plugin bootstrap can be expensive (dynamic
-      // server imports, internal plugin loading) and may deadlock when called
-      // from another InstanceState init (e.g. Provider -> plugin.list).
-      // Return empty when not yet initialized; callers that need plugins will
-      // get them once the Plugin service is fully booted.
-      const ready = yield* InstanceState.has(state)
-      if (!ready) return []
+      // Trigger lazy init on first call — Plugin bootstrap is expensive
+      // (dynamic server imports, internal plugin loading) but callers like
+      // ProviderAuth need the full plugin list to build auth hooks. The
+      // InstanceState factory runs exactly once per directory (ScopedCache),
+      // so subsequent calls are cheap. The deadlock scenario mentioned in
+      // earlier comments (Provider -> plugin.list during Plugin init) is not
+      // possible because Plugin's init does not call list().
       const s = yield* InstanceState.get(state)
       yield* s.deferredExternal
       return s.hooks

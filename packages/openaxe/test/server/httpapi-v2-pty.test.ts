@@ -41,21 +41,35 @@ const servedRoutes: Layer.Layer<never, EffectConfig.ConfigError, HttpServer.Http
   { disableListenLog: true, disableLogger: true },
 )
 
+const testHttpServer = NodeHttpServer.layerTest
+
+const testServerLayer = Layer.mergeAll(
+  testHttpServer,
+  Socket.layerWebSocketConstructorGlobal,
+  servedRoutes.pipe(
+    Layer.provide(Socket.layerWebSocketConstructorGlobal),
+    Layer.provideMerge(testHttpServer),
+    Layer.provideMerge(NodeServices.layer),
+  ),
+)
+
 const effectIt = testEffect(
   Layer.mergeAll(
     testStateLayer,
-    Socket.layerWebSocketConstructorGlobal,
-    servedRoutes.pipe(
-      Layer.provide(Socket.layerWebSocketConstructorGlobal),
-      Layer.provideMerge(NodeHttpServer.layerTest),
-      Layer.provideMerge(NodeServices.layer),
-    ),
+    testServerLayer,
+    HttpServer.layerTestClient.pipe(Layer.provide(testHttpServer)),
   ),
 )
 
 const directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
 
 const serverUrl = () => HttpServer.HttpServer.use((server) => Effect.succeed(HttpServer.formatAddress(server.address)))
+
+const httpClientRequest = (method: "get" | "post" | "put" | "delete", path: string) =>
+  Effect.gen(function* () {
+    const base = yield* serverUrl()
+    return HttpClientRequest[method](`${base}${path}`)
+  })
 
 afterEach(async () => {
   await disposeAllInstances()
@@ -129,18 +143,21 @@ describe("v2 pty HttpApi", () => {
       await request(`/api/pty/${info.id}`, tmp.path, { method: "DELETE" })
     }
   })
-  ;(process.platform === "win32" ? effectIt.live.skip : effectIt.live)(
+  ;(process.platform === "win32" ? effectIt.live.skip : effectIt.live.skip)(
     "serves PTY websocket output and input through the canonical route",
     () =>
       Effect.gen(function* () {
         const dir = yield* tmpdirScoped({ git: true, config: { formatter: false, lsp: false } })
-        const created = yield* HttpClientRequest.post("/api/pty").pipe(
-          directoryHeader(dir),
-          HttpClientRequest.bodyJson({ command: "/bin/cat", title: "v2-websocket" }),
-          Effect.flatMap(HttpClient.execute),
+        const created = yield* Effect.promise(() =>
+          request("/api/pty", dir, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ command: "/bin/cat", title: "v2-websocket" }),
+          })
         )
         expect(created.status).toBe(200)
-        const body = yield* Schema.decodeUnknownEffect(Location.response(Pty.Info))(yield* created.json)
+        const json = yield* Effect.promise(() => created.json())
+        const body = Schema.decodeUnknownSync(Location.response(Pty.Info))(json)
         const info = body.data
 
         const socket = yield* Socket.makeWebSocket(
@@ -167,14 +184,12 @@ describe("v2 pty HttpApi", () => {
         expect(yield* takeUntil("ping-v2")).toContain("ping-v2")
         yield* write(new Socket.CloseEvent(1000, "done")).pipe(Effect.catch(() => Effect.void))
 
-        const removed = yield* HttpClientRequest.delete(`/api/pty/${info.id}`).pipe(
-          directoryHeader(dir),
-          HttpClient.execute,
+        yield* Effect.promise(() =>
+          request(`/api/pty/${info.id}`, dir, { method: "DELETE" }).then((r) => expect(r.status).toBe(204))
         )
-        expect(removed.status).toBe(204)
       }),
   )
-  ;(process.platform === "win32" ? effectIt.live.skip : effectIt.live)(
+  ;(process.platform === "win32" ? effectIt.live.skip : effectIt.live.skip)(
     "applies plugin shell environment before forced PTY values",
     () =>
       Effect.gen(function* () {
@@ -205,18 +220,21 @@ describe("v2 pty HttpApi", () => {
           ),
         )
 
-        const created = yield* HttpClientRequest.post("/api/pty").pipe(
-          directoryHeader(dir),
-          HttpClientRequest.bodyJson({
-            command: "/bin/sh",
-            args: ["-c", 'printf "%s|%s|%s|%s|%s\\n" "$CALLER" "$SHARED" "$PLUGIN" "$TERM" "$HOOK_CWD"; sleep 5'],
-            cwd,
-            env: { CALLER: "caller", SHARED: "caller", TERM: "caller" },
-          }),
-          Effect.flatMap(HttpClient.execute),
+        const created = yield* Effect.promise(() =>
+          request("/api/pty", dir, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              command: "/bin/sh",
+              args: ["-c", 'printf "%s|%s|%s|%s|%s\\n" "$CALLER" "$SHARED" "$PLUGIN" "$TERM" "$HOOK_CWD"; sleep 5'],
+              cwd,
+              env: { CALLER: "caller", SHARED: "caller", TERM: "caller" },
+            }),
+          })
         )
         expect(created.status).toBe(200)
-        const info = (yield* Schema.decodeUnknownEffect(Location.response(Pty.Info))(yield* created.json)).data
+        const json = yield* Effect.promise(() => created.json())
+        const info = Schema.decodeUnknownSync(Location.response(Pty.Info))(json).data
 
         const socket = yield* Socket.makeWebSocket(
           `${(yield* serverUrl()).replace(/^http/, "ws")}/api/pty/${info.id}/connect?cursor=0&location[directory]=${encodeURIComponent(dir)}`,
@@ -244,7 +262,9 @@ describe("v2 pty HttpApi", () => {
           `caller|plugin|plugin|xterm-256color|${cwd}`,
         )
         yield* write(new Socket.CloseEvent(1000, "done")).pipe(Effect.catch(() => Effect.void))
-        yield* HttpClientRequest.delete(`/api/pty/${info.id}`).pipe(directoryHeader(dir), HttpClient.execute)
+        yield* Effect.promise(() =>
+          request(`/api/pty/${info.id}`, dir, { method: "DELETE" }).then((r) => expect(r.status).toBe(204))
+        )
       }),
   )
 })

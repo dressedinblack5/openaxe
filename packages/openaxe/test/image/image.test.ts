@@ -6,15 +6,9 @@ import path from "node:path"
 import { TestConfig } from "../fixture/config"
 import { testEffect } from "../lib/effect"
 
-const it = testEffect(Layer.mergeAll(Image.layer.pipe(Layer.provide(TestConfig.layer()))))
+const it = testEffect(Image.layer.pipe(Layer.provide(TestConfig.layer())))
 const tiny = testEffect(
-  Layer.mergeAll(
-    Image.layer.pipe(
-      Layer.provide(
-        TestConfig.layer({ get: () => Effect.succeed({ attachment: { image: { max_base64_bytes: 1 } } }) }),
-      ),
-    ),
-  ),
+  Image.layer.pipe(Layer.provide(TestConfig.layer({ get: () => Effect.succeed({ attachment: { image: { max_base64_bytes: 1 } } }) }))),
 )
 
 function part(mime: string, data: string) {

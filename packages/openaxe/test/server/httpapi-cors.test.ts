@@ -2,7 +2,7 @@ import { NodeHttpServer, NodeServices } from "@effect/platform-node"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { describe, expect } from "bun:test"
 import { Config, ConfigProvider, Effect, Layer } from "effect"
-import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
+import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
 import * as Socket from "effect/unstable/socket/Socket"
 import { Server } from "../../src/server/server"
 import { InstancePaths } from "../../src/server/routes/instance/httpapi/groups/instance"
@@ -38,6 +38,7 @@ const it = testEffect(
       Layer.provide(Socket.layerWebSocketConstructorGlobal),
       Layer.provideMerge(NodeHttpServer.layerTest),
       Layer.provideMerge(NodeServices.layer),
+      Layer.provide(FetchHttpClient.layer),
     ),
   ),
 )
@@ -45,7 +46,10 @@ const it = testEffect(
 describe("HttpApi CORS", () => {
   it.live("allows browser preflight requests without credentials", () =>
     Effect.gen(function* () {
-      const response = yield* HttpClientRequest.options(InstancePaths.path).pipe(
+      const server = yield* HttpServer.HttpServer
+      const baseUrl = HttpServer.formatAddress(server.address)
+      const url = new URL(InstancePaths.path, baseUrl).toString()
+      const response = yield* HttpClientRequest.options(url).pipe(
         HttpClientRequest.setHeaders({
           origin: "http://localhost:3000",
           "access-control-request-method": "GET",

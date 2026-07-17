@@ -7,25 +7,35 @@ export interface Options {
 }
 
 export async function scan(pattern: string, options: Options = {}): Promise<string[]> {
-  const results: string[] = []
-  for await (const match of new Bun.Glob(pattern).scan({
-    cwd: options.cwd,
-    absolute: options.absolute,
-    dot: options.dot,
-    nodir: options.include !== "all",
-  } as Record<string, unknown>)) {
-    results.push(match)
+  try {
+    const results: string[] = []
+    for await (const match of new Bun.Glob(pattern).scan({
+      cwd: options.cwd,
+      absolute: options.absolute,
+      dot: options.dot,
+      nodir: options.include !== "all",
+    } as Record<string, unknown>)) {
+      results.push(match)
+    }
+    return results
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("ENOENT")) return []
+    throw e
   }
-  return results
 }
 
 export function scanSync(pattern: string, options: Options = {}): string[] {
-  return [...new Bun.Glob(pattern).scanSync({
-    cwd: options.cwd,
-    absolute: options.absolute,
-    dot: options.dot,
-    nodir: options.include !== "all",
-  } as Record<string, unknown>)]
+  try {
+    return [...new Bun.Glob(pattern).scanSync({
+      cwd: options.cwd,
+      absolute: options.absolute,
+      dot: options.dot,
+      nodir: options.include !== "all",
+    } as Record<string, unknown>)]
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("ENOENT")) return []
+    throw e
+  }
 }
 
 export function match(pattern: string, filepath: string): boolean {

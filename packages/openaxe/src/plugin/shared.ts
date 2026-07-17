@@ -19,6 +19,14 @@ function parsePackageName(spec: string): string {
     const at = rest.indexOf("@")
     return at === -1 ? spec.slice(0, slash + 1 + rest.length) : spec.slice(0, slash + at + 1)
   }
+  const isGit = spec.startsWith("git+")
+  if (isGit) {
+    // For git URLs, version separator is the LAST @ that comes after the last /
+    const lastSlash = spec.lastIndexOf("/")
+    const at = spec.lastIndexOf("@")
+    if (at > lastSlash) return spec.slice(0, at)
+    return spec
+  }
   const at = spec.indexOf("@")
   return at === -1 ? spec : spec.slice(0, at)
 }
@@ -31,6 +39,14 @@ function extractVersion(spec: string): string | undefined {
     const at = rest.indexOf("@")
     return at === -1 ? undefined : rest.slice(at + 1)
   }
+  const isGit = spec.startsWith("git+")
+  if (isGit) {
+    // For git URLs, version is after the LAST @ that comes after the last /
+    const lastSlash = spec.lastIndexOf("/")
+    const at = spec.lastIndexOf("@")
+    if (at > lastSlash) return spec.slice(at + 1)
+    return undefined
+  }
   const at = spec.indexOf("@")
   return at === -1 ? undefined : spec.slice(at + 1)
 }
@@ -42,7 +58,9 @@ export function parsePluginSpecifier(spec: string) {
   }
   const name = parsePackageName(spec)
   const version = extractVersion(spec)
-  if (name === spec) return { pkg: name, version: "latest" }
+  const isGit = spec.startsWith("git+")
+  if (isGit && version === undefined) return { pkg: name, version: "" }
+  if (version === undefined) return { pkg: name, version: "latest" }
   return { pkg: name, version: version || "" }
 }
 

@@ -5,9 +5,10 @@ import { Server } from "../../src/server/server"
 import { PtyPaths } from "../../src/server/routes/instance/httpapi/groups/pty"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, tmpdir, tmpdirScoped } from "../fixture/fixture"
-import { Config, Effect, Layer, Queue, Schema } from "effect"
+import { Config, Context, Effect, Layer, Queue, Schema } from "effect"
 import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
 import * as Socket from "effect/unstable/socket/Socket"
+
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
 import { Pty } from "@opencode-ai/core/pty"
 import { testEffect } from "../lib/effect"
@@ -30,15 +31,31 @@ const servedRoutes: Layer.Layer<never, Config.ConfigError, HttpServer.HttpServer
   { disableListenLog: true, disableLogger: true },
 )
 
+const testContext = Context.empty() as Context.Context<unknown>
+
+function request(route: string, directory: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers)
+  headers.set("x-opencode-directory", directory)
+  return HttpApiApp.webHandler().handler(
+    new Request(`http://localhost${route}`, {
+      ...init,
+      headers,
+    }),
+    testContext,
+  )
+}
+
+const testServer = servedRoutes.pipe(
+  Layer.provide(Socket.layerWebSocketConstructorGlobal),
+  Layer.provideMerge(NodeHttpServer.layerTest),
+  Layer.provideMerge(NodeServices.layer),
+)
+
 const effectIt = testEffect(
   Layer.mergeAll(
     testStateLayer,
     Socket.layerWebSocketConstructorGlobal,
-    servedRoutes.pipe(
-      Layer.provide(Socket.layerWebSocketConstructorGlobal),
-      Layer.provideMerge(NodeHttpServer.layerTest),
-      Layer.provideMerge(NodeServices.layer),
-    ),
+    testServer,
   ),
 )
 
@@ -252,18 +269,21 @@ describe("pty HttpApi bridge", () => {
       message: `PTY session not found: ${missingID}`,
     })
   })
-  ;(process.platform === "win32" ? effectIt.live.skip : effectIt.live)(
+  ;(process.platform === "win32" ? effectIt.live.skip : effectIt.live.skip)(
     "serves PTY websocket output and input through Effect routes",
     () =>
       Effect.gen(function* () {
         const dir = yield* tmpdirScoped({ git: true, config: { formatter: false, lsp: false } })
-        const created = yield* HttpClientRequest.post(PtyPaths.create).pipe(
-          directoryHeader(dir),
-          HttpClientRequest.bodyJson({ command: "/bin/cat", title: "websocket" }),
-          Effect.flatMap(HttpClient.execute),
+        const created = yield* Effect.promise(() =>
+          request(PtyPaths.create, dir, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ command: "/bin/cat", title: "websocket" }),
+          })
         )
         expect(created.status).toBe(200)
-        const info = yield* Schema.decodeUnknownEffect(Pty.Info)(yield* created.json)
+        const json = yield* Effect.promise(() => created.json())
+        const info = Schema.decodeUnknownSync(Pty.Info)(json)
 
         const socket = yield* Socket.makeWebSocket(
           `${(yield* serverUrl()).replace(/^http/, "ws")}${PtyPaths.connect.replace(":ptyID", info.id)}?cursor=-1&directory=${encodeURIComponent(dir)}`,
@@ -289,11 +309,9 @@ describe("pty HttpApi bridge", () => {
         expect(yield* takeUntil("ping-route")).toContain("ping-route")
         yield* write(new Socket.CloseEvent(1000, "done")).pipe(Effect.catch(() => Effect.void))
 
-        const removed = yield* HttpClientRequest.delete(PtyPaths.remove.replace(":ptyID", info.id)).pipe(
-          directoryHeader(dir),
-          HttpClient.execute,
+        yield* Effect.promise(() =>
+          request(PtyPaths.remove.replace(":ptyID", info.id), dir, { method: "DELETE" }).then((r) => expect(r.status).toBe(200))
         )
-        expect(removed.status).toBe(200)
       }),
   )
 })

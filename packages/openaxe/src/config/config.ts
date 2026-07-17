@@ -56,6 +56,8 @@ function mergeDeep(target: Record<string, any>, source: Record<string, any>): Re
       result[key] = mergeDeep(rv, sv)
     } else if (sv !== undefined) {
       result[key] = sv
+    } else {
+      delete result[key]
     }
   }
   return result

@@ -3,6 +3,32 @@ import { Config, Effect, Layer } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse, HttpRouter, HttpServer } from "effect/unstable/http"
 import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket"
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
+import { InstanceRef } from "@/effect/instance-ref"
+import { EventV2 } from "@opencode-ai/core/event"
+import { InstanceBootstrap as InstanceBootstrapService } from "../../src/project/bootstrap-service"
+import { InstanceStore } from "../../src/project/instance-store"
+import { Project } from "../../src/project/project"
+import { ProjectV2 } from "@opencode-ai/core/project"
+import { EventV2Bridge } from "../../src/event-v2-bridge"
+import { Ripgrep } from "@opencode-ai/core/ripgrep"
+import { Config as ConfigService } from "@/config/config"
+
+const instanceRefLayer = Layer.succeed(InstanceRef, {
+  directory: "/tmp/test",
+  worktree: "/tmp/test",
+  project: {
+    id: ProjectV2.ID.make("test"),
+    worktree: "/tmp/test",
+    time: { created: Date.now(), updated: Date.now() },
+    sandboxes: [],
+  },
+})
+
+const instanceStoreLayer = InstanceStore.defaultLayer.pipe(
+  Layer.provide(
+    Layer.succeed(InstanceBootstrapService.Service, InstanceBootstrapService.Service.of({ run: Effect.void })),
+  ),
+)
 
 const servedRoutes: Layer.Layer<never, Config.ConfigError, HttpServer.HttpServer> = HttpRouter.serve(
   HttpApiApp.routes,
@@ -16,6 +42,13 @@ export const httpApiLayer = servedRoutes.pipe(
   Layer.provide(layerWebSocketConstructorGlobal),
   Layer.provideMerge(NodeHttpServer.layerTest),
   Layer.provideMerge(NodeServices.layer),
+  Layer.provide(instanceStoreLayer),
+  Layer.provide(Project.defaultLayer),
+  Layer.provide(EventV2.defaultLayer),
+  Layer.provide(EventV2Bridge.defaultLayer),
+  Layer.provide(instanceRefLayer),
+  Layer.provide(ConfigService.defaultLayer),
+  Layer.provide(Ripgrep.defaultLayer),
 )
 
 export function request(path: string, init?: RequestInit) {

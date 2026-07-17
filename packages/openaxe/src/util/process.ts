@@ -69,30 +69,41 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
   if (cmd.length === 0) throw new Error("Command is required")
   opts.abort?.throwIfAborted()
 
-  const bunProc = Bun.spawn(cmd, {
-    cwd: opts.cwd,
-    env: opts.env === null ? {} : opts.env ? { ...process.env, ...opts.env } : undefined,
-    stdio: [opts.stdin ?? "ignore", opts.stdout ?? "ignore", opts.stderr ?? "ignore"],
-  } as any)
+  let bunProc: ReturnType<typeof Bun.spawn> | undefined
+  let spawnError: Error | undefined
+
+  try {
+    bunProc = Bun.spawn(cmd, {
+      cwd: opts.cwd,
+      env: opts.env === null ? {} : opts.env ? { ...process.env, ...opts.env } : undefined,
+      stdio: [opts.stdin ?? "ignore", opts.stdout ?? "ignore", opts.stderr ?? "ignore"],
+    } as any)
+  } catch (err) {
+    spawnError = err as Error
+  }
 
   let closed = false
   let timer: ReturnType<typeof setTimeout> | undefined
 
   const abort = () => {
     if (closed) return
-    if (bunProc.exitCode !== null || bunProc.signalCode !== null) return
+    if (bunProc && (bunProc.exitCode !== null || bunProc.signalCode !== null)) return
     closed = true
-    bunProc.kill(opts.kill ?? "SIGTERM")
+    bunProc?.kill(opts.kill ?? "SIGTERM")
     const ms = opts.timeout ?? 5_000
     if (ms <= 0) return
-    timer = setTimeout(() => bunProc.kill("SIGKILL"), ms)
+    timer = setTimeout(() => bunProc?.kill("SIGKILL"), ms)
   }
 
-  const exited = bunProc.exited.then((code) => {
+  const exited = (async () => {
+    if (spawnError) throw spawnError
+    if (!bunProc) throw new Error("Process not spawned")
+    const code = await bunProc.exited
     opts.abort?.removeEventListener("abort", abort)
     if (timer) clearTimeout(timer)
     return code
-  })
+  })()
+
   void exited.catch(() => undefined)
 
   if (opts.abort) {
@@ -101,18 +112,18 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
   }
 
   // ponytail: stdin may be FileSink (Bun) which has .write()/.end() same as Writable
-  const stdin = bunProc.stdin && typeof bunProc.stdin === "object"
+  const stdin = bunProc && bunProc.stdin && typeof bunProc.stdin === "object"
     ? ("getWriter" in bunProc.stdin ? Writable.fromWeb(bunProc.stdin as any) : bunProc.stdin as any as Writable)
     : null
   return {
-    get pid() { return bunProc.pid },
+    get pid() { return bunProc?.pid ?? 0 },
     stdin,
-    stdout: bunProc.stdout ? Readable.fromWeb(bunProc.stdout as any) : null,
-    stderr: bunProc.stderr ? Readable.fromWeb(bunProc.stderr as any) : null,
-    get exitCode() { return bunProc.exitCode },
-    get signalCode() { return bunProc.signalCode },
+    stdout: bunProc?.stdout ? Readable.fromWeb(bunProc.stdout as any) : null,
+    stderr: bunProc?.stderr ? Readable.fromWeb(bunProc.stderr as any) : null,
+    get exitCode() { return bunProc?.exitCode ?? null },
+    get signalCode() { return bunProc?.signalCode ?? null },
     exited,
-    kill(signal) { bunProc.kill(signal as any) },
+    kill(signal) { bunProc?.kill(signal as any) },
   }
 }
 

@@ -81,34 +81,46 @@ function parseMigration(text: string) {
 const MIGRATIONS: Migration[] = [
   Effect.fn("Storage.migration.1")(function* (dir: string, fs: FSUtil.Interface, git: Git.Interface) {
     const project = path.resolve(dir, "../project")
-    if (!(yield* fs.isDir(project))) return
-    const projectDirs = yield* fs.glob("*", {
+    console.log("[MIGRATION1] project dir:", project)
+    if (!(yield* fs.isDir(project))) {
+      console.log("[MIGRATION1] project dir not found")
+      return
+    }
+const allFiles = yield* fs.glob("**", {
       cwd: project,
       include: "all",
     })
+    console.log("[MIGRATION1] all files:", allFiles)
+    const projectDirs = [...new Set(allFiles.map((f) => f.split("/")[0]))].filter((d) => d !== ".")
+    console.log("[MIGRATION1] project dirs from **:", projectDirs)
     for (const projectDir of projectDirs) {
       const full = path.join(project, projectDir)
       if (!(yield* fs.isDir(full))) continue
-      yield* Effect.logInfo(`migrating project ${projectDir}`)
+      console.log("[MIGRATION1] migrating project:", projectDir)
       let projectID = projectDir
       let worktree = "/"
 
       if (projectID !== "global") {
-        for (const msgFile of yield* fs.glob("storage/session/message/*/*.json", {
+        const msgFiles = yield* fs.glob("session/message/*/*.json", {
           cwd: full,
           absolute: true,
-        })) {
+        })
+        console.log("[MIGRATION1] msg files:", msgFiles)
+        for (const msgFile of msgFiles) {
           const json = decodeRoot(yield* fs.readJson(msgFile), { onExcessProperty: "preserve" })
+          console.log("[MIGRATION1] msg file:", msgFile, "json:", json)
           const root = Option.isSome(json) ? json.value.path?.root : undefined
           if (!root) continue
           worktree = root
           break
         }
+        console.log("[MIGRATION1] worktree:", worktree)
         if (!worktree) continue
         if (!(yield* fs.isDir(worktree))) continue
         const result = yield* git.run(["rev-list", "--max-parents=0", "--all"], {
           cwd: worktree,
         })
+        console.log("[MIGRATION1] git result:", result)
         const [id] = result
           .text()
           .split("\n")
@@ -136,7 +148,7 @@ const MIGRATIONS: Migration[] = [
         )
 
         yield* Effect.logInfo(`migrating sessions for project ${projectID}`)
-        for (const sessionFile of yield* fs.glob("storage/session/info/*.json", {
+        for (const sessionFile of yield* fs.glob("session/info/*.json", {
           cwd: full,
           absolute: true,
         })) {
@@ -147,7 +159,7 @@ const MIGRATIONS: Migration[] = [
           yield* fs.writeWithDirs(dest, JSON.stringify(session, null, 2))
           if (Option.isNone(info)) continue
           yield* Effect.logInfo(`migrating messages for session ${info.value.id}`)
-          for (const msgFile of yield* fs.glob(`storage/session/message/${info.value.id}/*.json`, {
+          for (const msgFile of yield* fs.glob(`session/message/${info.value.id}/*.json`, {
             cwd: full,
             absolute: true,
           })) {
@@ -162,7 +174,7 @@ const MIGRATIONS: Migration[] = [
             if (Option.isNone(item)) continue
 
             yield* Effect.logInfo(`migrating parts for message ${item.value.id}`)
-            for (const partFile of yield* fs.glob(`storage/session/part/${info.value.id}/${item.value.id}/*.json`, {
+            for (const partFile of yield* fs.glob(`session/part/${info.value.id}/${item.value.id}/*.json`, {
               cwd: full,
               absolute: true,
             })) {
@@ -228,15 +240,20 @@ export const layer = Layer.effect(
           Effect.catchIf(missing, () => Effect.succeed(0)),
           Effect.orElseSucceed(() => 0),
         )
+        let allSucceeded = true
         for (let i = migration; i < MIGRATIONS.length; i++) {
-          yield* Effect.logInfo("running migration", { index: i })
+          console.log("[MIGRATION] running migration", { index: i })
           const step = MIGRATIONS[i]
           const exit = yield* Effect.exit(step(dir, fs, git))
+          console.log("[MIGRATION] migration exit", { index: i, success: Exit.isSuccess(exit) })
           if (Exit.isFailure(exit)) {
-            yield* Effect.logError("failed to run migration", { index: i, cause: exit.cause })
+            console.log("[MIGRATION] failed to run migration", { index: i, cause: exit.cause })
+            allSucceeded = false
             break
           }
-          yield* fs.writeWithDirs(marker, String(i + 1))
+        }
+        if (allSucceeded && migration < MIGRATIONS.length) {
+          yield* fs.writeWithDirs(marker, String(MIGRATIONS.length))
         }
         return { dir }
       }),

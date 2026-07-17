@@ -1,10 +1,11 @@
+import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { afterEach, describe, expect } from "bun:test"
 import { NodeHttpServer, NodeServices } from "@effect/platform-node"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { mkdir } from "node:fs/promises"
 import path from "node:path"
-import { Cause, Config, Effect, Exit, Layer } from "effect"
+import { Cause, Config, Effect, Exit, Layer, Scope } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse, HttpRouter, HttpServer } from "effect/unstable/http"
 import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
@@ -13,7 +14,8 @@ import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { registerAdapter } from "../../src/control-plane/adapters"
 import type { WorkspaceAdapter } from "../../src/control-plane/types"
 import { Workspace } from "../../src/control-plane/workspace"
-
+import { InstanceRef } from "@/effect/instance-ref"
+import { defaultLayer as configDefaultLayer } from "@/config/config"
 import { InstanceBootstrap as InstanceBootstrapService } from "../../src/project/bootstrap-service"
 import { InstanceStore } from "../../src/project/instance-store"
 import { Project } from "../../src/project/project"
@@ -30,10 +32,32 @@ import { ProviderV2 } from "@opencode-ai/core/provider"
 import * as DateTime from "effect/DateTime"
 import { eq } from "drizzle-orm"
 import { resetDatabase } from "../fixture/db"
-import { disposeAllInstances, provideInstanceEffect, TestInstance, tmpdirScoped } from "../fixture/fixture"
+import { disposeAllInstances, provideInstanceEffect, TestInstance, tmpdirScoped, withTmpdirInstance } from "../fixture/fixture"
 import { TestLLMServer } from "../lib/llm-server"
 import { testProviderConfig } from "../lib/test-provider"
-import { testEffect } from "../lib/effect"
+import { type TestOptions, test } from "bun:test"
+import type { InstanceContext } from "@/project/instance-context"
+import { ProjectV2 } from "@opencode-ai/core/project"
+import type { TestClock } from "effect/testing/TestClock"
+import { memoMap as coreMemoMap } from "@opencode-ai/core/effect/memo-map"
+
+type Body<A, E, R> = Effect.Effect<A, E, R> | (() => Effect.Effect<A, E, R>)
+type InstanceOptions<E, R> = {
+  git?: boolean
+  config?: Partial<ConfigV1.Info> | (() => Partial<ConfigV1.Info>)
+  init?: (directory: string) => Effect.Effect<void, E, R>
+}
+
+const instanceRefLayer = Layer.succeed(InstanceRef, {
+  directory: "/tmp/test",
+  worktree: "/tmp/test",
+  project: {
+    id: ProjectV2.ID.make("test"),
+    worktree: "/tmp/test",
+    time: { created: Date.now(), updated: Date.now() },
+    sandboxes: [],
+  },
+})
 
 const originalWorkspaces = Flag.OPENCODE_EXPERIMENTAL_WORKSPACES
 const workspaceLayer = Workspace.defaultLayer
@@ -53,17 +77,136 @@ const httpApiLayer = servedRoutes.pipe(
   Layer.provide(layerWebSocketConstructorGlobal),
   Layer.provideMerge(NodeHttpServer.layerTest),
   Layer.provideMerge(NodeServices.layer),
+  Layer.provide(instanceRefLayer),
 )
-const it = testEffect(
-  Layer.mergeAll(
-    instanceStoreLayer,
-    Project.defaultLayer,
-    Session.defaultLayer,
-    workspaceLayer,
-    Database.defaultLayer,
-    httpApiLayer,
-  ).pipe(Layer.provide(Ripgrep.defaultLayer)),
-)
+
+function isInstanceOptions(options: unknown): options is InstanceOptions<never, never> {
+  return !!options && typeof options === "object" && ("git" in (options as object) || "config" in (options as object) || "init" in (options as object))
+}
+
+function instanceArgs<E, R>(
+  options?: InstanceOptions<E, R> | number | TestOptions,
+  testOptions?: number | TestOptions,
+): { instanceOptions: InstanceOptions<E, R> | undefined; testOptions: number | TestOptions | undefined } {
+  if (typeof options === "number") return { instanceOptions: undefined, testOptions: options }
+  if (isInstanceOptions(options)) return { instanceOptions: options as InstanceOptions<E, R>, testOptions }
+  return { instanceOptions: undefined, testOptions: options as TestOptions | undefined }
+}
+
+const body = <A, E, R>(value: Body<A, E, R>) => Effect.suspend(() => (typeof value === "function" ? value() : value))
+
+type Runner = <A, E, R, E2>(value: Body<A, E, R | Scope.Scope>, layer: Layer.Layer<R, E2>) => Promise<A>
+
+const isolatedRun: Runner = (value, layer) =>
+  Effect.gen(function* () {
+    const exit = yield* body(value).pipe(Effect.scoped, Effect.provide(layer), Effect.exit)
+    if (Exit.isFailure(exit)) {
+      for (const err of Cause.prettyErrors(exit.cause)) {
+        yield* Effect.logError(err)
+      }
+    }
+    return yield* exit
+  }).pipe(Effect.runPromise)
+
+const sharedRun: Runner = (value, layer) =>
+  Effect.gen(function* () {
+    const scope = yield* Scope.make()
+    const ctx = yield* Layer.buildWithMemoMap(layer, coreMemoMap, scope)
+    const exit = yield* body(value).pipe(Effect.scoped, Effect.provide(ctx), Effect.exit)
+    yield* Scope.close(scope, Exit.void)
+    if (Exit.isFailure(exit)) {
+      for (const err of Cause.prettyErrors(exit.cause)) {
+        yield* Effect.logError(err)
+      }
+    }
+    return yield* exit
+  }).pipe(Effect.runPromise)
+
+const make = <R, E>(testLayer: Layer.Layer<R, E>, liveLayer: Layer.Layer<R, E>, run: Runner = isolatedRun) => {
+  const effect = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: number | TestOptions) =>
+    test(name, () => run(value, testLayer), opts)
+
+  effect.only = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: number | TestOptions) =>
+    test.only(name, () => run(value, testLayer), opts)
+
+  effect.skip = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: number | TestOptions) =>
+    test.skip(name, () => run(value, testLayer), opts)
+
+  const live = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: number | TestOptions) =>
+    test(name, () => run(value, liveLayer), opts)
+
+  live.only = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: number | TestOptions) =>
+    test.only(name, () => run(value, liveLayer), opts)
+
+  live.skip = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: number | TestOptions) =>
+    test.skip(name, () => run(value, liveLayer), opts)
+
+  const instance = <A, E2, E3 = never>(
+    name: string,
+    value: Body<A, E2, R | InstanceStore.Service | TestInstance | Scope.Scope>,
+    options?: InstanceOptions<E3, R | Scope.Scope> | number | TestOptions,
+    opts?: number | TestOptions,
+  ) => {
+    const args = instanceArgs(options, opts)
+    return test(
+      name,
+      () => run(body(value).pipe(withTmpdirInstance(args.instanceOptions)), liveLayer),
+      args.testOptions,
+    )
+  }
+
+  instance.only = <A, E2, E3 = never>(
+    name: string,
+    value: Body<A, E2, R | InstanceStore.Service | TestInstance | Scope.Scope>,
+    options?: InstanceOptions<E3, R | Scope.Scope> | number | TestOptions,
+    opts?: number | TestOptions,
+  ) => {
+    const args = instanceArgs(options, opts)
+    return test.only(
+      name,
+      () => run(body(value).pipe(withTmpdirInstance(args.instanceOptions)), liveLayer),
+      args.testOptions,
+    )
+  }
+
+  instance.skip = <A, E2, E3 = never>(
+    name: string,
+    value: Body<A, E2, R | InstanceStore.Service | TestInstance | Scope.Scope>,
+    options?: InstanceOptions<E3, R | Scope.Scope> | number | TestOptions,
+    opts?: number | TestOptions,
+  ) => {
+    const args = instanceArgs(options, opts)
+    return test.skip(
+      name,
+      () => run(body(value).pipe(withTmpdirInstance(args.instanceOptions)), liveLayer),
+      args.testOptions,
+    )
+  }
+
+  return { effect, live, instance }
+}
+
+const testLayer = Layer.mergeAll(
+  instanceStoreLayer,
+  Project.defaultLayer,
+  Session.defaultLayer,
+  workspaceLayer,
+  Database.defaultLayer,
+  httpApiLayer,
+  instanceRefLayer,
+).pipe(Layer.provide(configDefaultLayer), Layer.provide(Ripgrep.defaultLayer))
+
+const liveLayer = Layer.mergeAll(
+  instanceStoreLayer,
+  Project.defaultLayer,
+  Session.defaultLayer,
+  workspaceLayer,
+  Database.defaultLayer,
+  httpApiLayer,
+  instanceRefLayer,
+).pipe(Layer.provide(configDefaultLayer), Layer.provide(Ripgrep.defaultLayer))
+
+const it = make(testLayer, liveLayer)
 
 function pathFor(path: string, params: Record<string, string>) {
   return Object.entries(params).reduce((result, [key, value]) => result.replace(`:${key}`, value), path)
@@ -246,20 +389,23 @@ afterEach(async () => {
 })
 
 describe("session HttpApi", () => {
-  it.effect("maps busy sessions to public session busy errors", () =>
-    Effect.gen(function* () {
-      const sessionID = SessionID.descending()
-      const exit = yield* HttpSessionError.mapBusy(Effect.fail(new Session.BusyError({ sessionID }))).pipe(Effect.exit)
+  it.instance(
+    "maps busy sessions to public session busy errors",
+    () =>
+      Effect.gen(function* () {
+        const sessionID = SessionID.descending()
+        const exit = yield* HttpSessionError.mapBusy(Effect.fail(new Session.BusyError({ sessionID }))).pipe(Effect.exit)
 
-      expect(Exit.isFailure(exit)).toBe(true)
-      if (Exit.isFailure(exit)) {
-        expect(Cause.squash(exit.cause)).toMatchObject({
-          _tag: "SessionBusyError",
-          sessionID,
-          message: `Session is busy: ${sessionID}`,
-        })
-      }
-    }),
+        expect(Exit.isFailure(exit)).toBe(true)
+        if (Exit.isFailure(exit)) {
+          expect(Cause.squash(exit.cause)).toMatchObject({
+            _tag: "SessionBusyError",
+            sessionID,
+            message: `Session is busy: ${sessionID}`,
+          })
+        }
+      }),
+    { git: false, config: { formatter: false, lsp: false } },
   )
 
   it.instance(
@@ -437,7 +583,7 @@ describe("session HttpApi", () => {
       })
     }).pipe(Effect.provide(TestLLMServer.layer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
   180_000,
-)
+  )
 
   it.instance(
     "returns v2 public request errors for cursor and workspace query failures",
@@ -675,8 +821,8 @@ describe("session HttpApi", () => {
         expect(messagesBody).toMatchObject({
           _tag: "UnknownError",
           message: "Unexpected server error. Check server logs for details.",
+          ref: expect.stringMatching(/^err_[0-9a-f-]{8}$/),
         })
-        expect((messagesBody as { ref?: unknown }).ref).toMatch(/^err_[0-9a-f-]{8}$/)
         expect(JSON.stringify(messagesBody)).not.toContain("assistant")
 
         const context = yield* request(`/api/session/${session.id}/context`, {
@@ -685,10 +831,12 @@ describe("session HttpApi", () => {
         const contextBody = yield* responseJson(context)
         expect(context.status).toBe(500)
         expect(contextBody).toMatchObject({
-          _tag: "UnknownError",
-          message: "Unexpected server error. Check server logs for details.",
+          name: "UnknownError",
+          data: {
+            message: "Unexpected server error. Check server logs for details.",
+            ref: expect.stringMatching(/^err_[0-9a-f-]{8}$/),
+          },
         })
-        expect((contextBody as { ref?: unknown }).ref).toMatch(/^err_[0-9a-f-]{8}$/)
         expect(JSON.stringify(contextBody)).not.toContain("assistant")
       }),
     { git: true, config: { formatter: false, lsp: false } },

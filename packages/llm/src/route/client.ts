@@ -10,6 +10,7 @@ import { WebSocketExecutor } from "./transport"
 import type { Protocol } from "./protocol"
 import { applyCachePolicy } from "../cache-policy"
 import { encodeJson, eventError, validateWith } from "../protocols/shared";
+import { randomUUID } from "crypto";
 import type {
   GenerationOptionsInput,
   HttpOptionsInput,
@@ -45,6 +46,7 @@ export interface RouteBody<Body> {
 
 export interface Route<Body, Prepared = unknown> {
   readonly id: string
+  readonly instanceId: string
   readonly provider?: ProviderID
   readonly protocol: ProtocolID
   readonly endpoint: Endpoint<Body>
@@ -248,8 +250,10 @@ function makeFromTransport<Body, Prepared, Frame, Event, State>(
   }
 
   const build = (routeInput: BuiltRouteInput): Route<Body, Prepared> => {
+    const instanceId = randomUUID()
     const route: Route<Body, Prepared> = {
       id: routeInput.id,
+      instanceId,
       provider: routeInput.provider === undefined ? undefined : ProviderID.make(routeInput.provider),
       protocol: protocol.id,
       endpoint: routeInput.endpoint,
@@ -280,11 +284,11 @@ function makeFromTransport<Body, Prepared, Frame, Event, State>(
           headers: routeInput.headers,
         }),
       streamPrepared: (prepared: Prepared, request: LLMRequest, runtime: TransportRuntime) => {
-        const route = `${request.model.provider}/${request.model.route.id}`
+        const routeStr = `${request.model.provider}/${request.model.route.id}`
         const events = routeInput.transport
           .frames(prepared, request, runtime)
           .pipe(
-            Stream.mapEffect(decodeEvent(route)),
+            Stream.mapEffect(decodeEvent(routeStr)),
             protocol.stream.terminal ? Stream.takeUntil(protocol.stream.terminal) : (stream) => stream,
           )
         return events.pipe(
@@ -293,7 +297,7 @@ function makeFromTransport<Body, Prepared, Frame, Event, State>(
             protocol.stream.step,
             protocol.stream.onHalt ? { onHalt: protocol.stream.onHalt } : undefined,
           ),
-          Stream.catchCause((cause) => Stream.fail(streamError(route, `Failed to read ${route} stream`, cause))),
+          Stream.catchCause((cause) => Stream.fail(streamError(routeStr, `Failed to read ${routeStr} stream`, cause))),
         )
       },
     } satisfies Route<Body, Prepared>
@@ -349,8 +353,7 @@ const COMPILE_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 function hashRequest(request: LLMRequest): string {
   const { model, generation, providerOptions, http, messages, tools, system, metadata, id, ...rest } = request
-  // Create a cache key from the deterministic parts of the request
-  return `${model.id}:${model.route.id}:${JSON.stringify({
+  return `${model.id}:${model.route.id}:${model.route.instanceId}:${JSON.stringify({
     generation,
     providerOptions,
     http,
