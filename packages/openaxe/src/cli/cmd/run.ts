@@ -850,7 +850,11 @@ export const RunCommand = effectCmd({
             parts: [...files, { type: "text", text: message }],
           })
           if (result.error) {
-            // Error will be emitted via session.error event from the event stream loop
+            // Wait for the SSE event loop to process the session.error and
+            // session.status.idle events before we exit.  Without this await
+            // the process may terminate before the error event is emitted to
+            // stdout (--format json) or surfaced in the UI (default format).
+            await finish()
             process.exitCode = 1
             return
           }
