@@ -65,6 +65,30 @@ export interface Child {
   kill(signal?: NodeJS.Signals | number): void
 }
 
+// Bun's FileSink is not a Node.js Writable — it lacks .on(), .once(), .removeListener() etc.
+// that vscode-jsonrpc's stream adapters require. Wrapping it gives a compatible Writable.
+function writableFromFileSink(fs: { write(chunk: unknown): number | Promise<number>; end(): void }): Writable {
+  return new Writable({
+    write(chunk: unknown, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {
+      try {
+        const result = fs.write(chunk)
+        if (result instanceof Promise) result.then(() => callback()).catch(callback)
+        else callback()
+      } catch (err) {
+        callback(err as Error)
+      }
+    },
+    final(callback: (error?: Error | null) => void) {
+      try {
+        fs.end()
+        callback()
+      } catch (err) {
+        callback(err as Error)
+      }
+    },
+  })
+}
+
 export function spawn(cmd: string[], opts: Options = {}): Child {
   if (cmd.length === 0) throw new Error("Command is required")
   opts.abort?.throwIfAborted()
@@ -73,7 +97,12 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
   let spawnError: Error | undefined
 
   try {
-    bunProc = Bun.spawn(cmd, {
+    // Bun.spawn ignores the `shell` option, so when a shell is requested we
+    // rewrite the command array to [shellBin, "-c", cmdStr] explicitly.
+    const spawnCmd = opts.shell
+      ? [typeof opts.shell === "string" ? opts.shell : "sh", "-c", cmd.join(" ")]
+      : cmd
+    bunProc = Bun.spawn(spawnCmd, {
       cwd: opts.cwd,
       env: opts.env === null ? {} : opts.env ? { ...process.env, ...opts.env } : undefined,
       stdio: [opts.stdin ?? "ignore", opts.stdout ?? "ignore", opts.stderr ?? "ignore"],
@@ -111,9 +140,10 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
     if (opts.abort.aborted) abort()
   }
 
-  // ponytail: stdin may be FileSink (Bun) which has .write()/.end() same as Writable
+  // ponytail: stdin may be FileSink (Bun) which has .write()/.end() but lacks .on()
+  // needed by vscode-jsonrpc's StreamMessageWriter. Wrap in a real Node Writable.
   const stdin = bunProc && bunProc.stdin && typeof bunProc.stdin === "object"
-    ? ("getWriter" in bunProc.stdin ? Writable.fromWeb(bunProc.stdin as any) : bunProc.stdin as any as Writable)
+    ? ("getWriter" in bunProc.stdin ? Writable.fromWeb(bunProc.stdin as any) : writableFromFileSink(bunProc.stdin))
     : null
   return {
     get pid() { return bunProc?.pid ?? 0 },

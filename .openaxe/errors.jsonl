@@ -1,0 +1,170 @@
+{"time":"2026-07-16T04:33:07.673Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T04:33:07.686Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T04:33:07.688Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T04:33:08.931Z","sessionID":"ses_question_tool_test","toolName":"question","error":"Permission denied: question"}
+{"time":"2026-07-16T04:33:09.287Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch file:///etc/passwd"}
+{"time":"2026-07-16T04:33:10.504Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/deep-html"}
+{"time":"2026-07-16T04:33:10.515Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/declared"}
+{"time":"2026-07-16T04:33:10.527Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/streamed"}
+{"time":"2026-07-16T04:33:10.536Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/image"}
+{"time":"2026-07-16T04:33:10.537Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/file"}
+{"time":"2026-07-16T04:33:10.543Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/slow"}
+{"time":"2026-07-16T04:33:13.708Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: archive.dat"}
+{"time":"2026-07-16T04:33:13.718Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read README.md"}
+{"time":"2026-07-16T04:33:13.721Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read __missing_read_target__.txt"}
+{"time":"2026-07-16T04:33:13.727Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read src"}
+{"time":"2026-07-16T04:33:13.750Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: late-binary"}
+{"time":"2026-07-16T04:33:13.848Z","sessionID":"ses_websearch_test","toolName":"websearch","error":"Unable to search the web for too much"}
+{"time":"2026-07-16T04:33:13.875Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill missing"}
+{"time":"2026-07-16T04:33:13.875Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill effect"}
+{"time":"2026-07-16T04:33:14.986Z","sessionID":"ses_registry","toolName":"failed","error":"Denied"}
+{"time":"2026-07-16T04:33:14.992Z","sessionID":"ses_registry","toolName":"transformed","error":"Invalid tool input: Expected boolean, got \"yes\"\n  at [\"value\"]"}
+{"time":"2026-07-16T04:33:14.993Z","sessionID":"ses_registry","toolName":"invalid_output","error":"Tool returned an invalid value for its output schema: invalid output\n  at [\"value\"]"}
+{"time":"2026-07-16T04:40:11.723Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T04:40:11.736Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T04:40:11.737Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T04:40:13.285Z","sessionID":"ses_question_tool_test","toolName":"question","error":"Permission denied: question"}
+{"time":"2026-07-16T04:40:13.640Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch file:///etc/passwd"}
+{"time":"2026-07-16T04:40:14.776Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/deep-html"}
+{"time":"2026-07-16T04:40:14.787Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/declared"}
+{"time":"2026-07-16T04:40:14.803Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/streamed"}
+{"time":"2026-07-16T04:40:14.816Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/image"}
+{"time":"2026-07-16T04:40:14.817Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/file"}
+{"time":"2026-07-16T04:40:14.834Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/slow"}
+{"time":"2026-07-16T04:40:17.879Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: archive.dat"}
+{"time":"2026-07-16T04:40:17.889Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read README.md"}
+{"time":"2026-07-16T04:40:17.891Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read __missing_read_target__.txt"}
+{"time":"2026-07-16T04:40:17.894Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read src"}
+{"time":"2026-07-16T04:40:17.899Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: late-binary"}
+{"time":"2026-07-16T04:40:17.990Z","sessionID":"ses_websearch_test","toolName":"websearch","error":"Unable to search the web for too much"}
+{"time":"2026-07-16T04:40:18.020Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill missing"}
+{"time":"2026-07-16T04:40:18.021Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill effect"}
+{"time":"2026-07-16T04:40:19.000Z","sessionID":"ses_registry","toolName":"failed","error":"Denied"}
+{"time":"2026-07-16T04:40:19.007Z","sessionID":"ses_registry","toolName":"transformed","error":"Invalid tool input: Expected boolean, got \"yes\"\n  at [\"value\"]"}
+{"time":"2026-07-16T04:40:19.008Z","sessionID":"ses_registry","toolName":"invalid_output","error":"Tool returned an invalid value for its output schema: invalid output\n  at [\"value\"]"}
+{"time":"2026-07-16T04:42:10.768Z","sessionID":"ses_write_tool_test","toolName":"write","error":"Unable to write /tmp/opencode-core-test-CsHups/denied.txt"}
+{"time":"2026-07-16T04:42:10.770Z","sessionID":"ses_write_tool_test","toolName":"write","error":"Unable to write denied.txt"}
+{"time":"2026-07-16T04:42:11.049Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"apply_patch moves are not supported yet"}
+{"time":"2026-07-16T04:42:11.073Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at missing.txt"}
+{"time":"2026-07-16T04:42:11.078Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at existing.txt"}
+{"time":"2026-07-16T04:42:11.088Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at appeared.txt"}
+{"time":"2026-07-16T04:42:11.152Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-WM9eRo/denied.txt"}
+{"time":"2026-07-16T04:42:11.154Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-WM9eRo/denied.txt"}
+{"time":"2026-07-16T04:42:11.161Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-07-16T04:42:11.161Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-07-16T04:42:11.163Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"No changes to apply: oldString and newString are identical."}
+{"time":"2026-07-16T04:42:11.164Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"oldString must not be empty. Use write to create or overwrite a file."}
+{"time":"2026-07-16T04:42:11.164Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Could not find oldString in the file. It must match exactly, including whitespace and indentation."}
+{"time":"2026-07-16T04:42:11.165Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Found multiple exact matches for oldString. Provide more surrounding context or set replaceAll to true."}
+{"time":"2026-07-16T04:42:11.176Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"File changed after permission approval. Read it again before editing."}
+{"time":"2026-07-16T14:44:36.959Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T14:44:36.972Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T14:44:36.973Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T14:44:38.502Z","sessionID":"ses_question_tool_test","toolName":"question","error":"Permission denied: question"}
+{"time":"2026-07-16T14:44:38.845Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch file:///etc/passwd"}
+{"time":"2026-07-16T14:44:40.001Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/deep-html"}
+{"time":"2026-07-16T14:44:40.010Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/declared"}
+{"time":"2026-07-16T14:44:40.025Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/streamed"}
+{"time":"2026-07-16T14:44:40.028Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/image"}
+{"time":"2026-07-16T14:44:40.028Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/file"}
+{"time":"2026-07-16T14:44:40.032Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/slow"}
+{"time":"2026-07-16T14:44:42.994Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: archive.dat"}
+{"time":"2026-07-16T14:44:43.004Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read README.md"}
+{"time":"2026-07-16T14:44:43.007Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read __missing_read_target__.txt"}
+{"time":"2026-07-16T14:44:43.032Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read src"}
+{"time":"2026-07-16T14:44:43.038Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: late-binary"}
+{"time":"2026-07-16T14:44:43.113Z","sessionID":"ses_websearch_test","toolName":"websearch","error":"Unable to search the web for too much"}
+{"time":"2026-07-16T14:44:43.140Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill missing"}
+{"time":"2026-07-16T14:44:43.140Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill effect"}
+{"time":"2026-07-16T14:44:44.144Z","sessionID":"ses_registry","toolName":"failed","error":"Denied"}
+{"time":"2026-07-16T14:44:44.149Z","sessionID":"ses_registry","toolName":"transformed","error":"Invalid tool input: Expected boolean, got \"yes\"\n  at [\"value\"]"}
+{"time":"2026-07-16T14:44:44.150Z","sessionID":"ses_registry","toolName":"invalid_output","error":"Tool returned an invalid value for its output schema: invalid output\n  at [\"value\"]"}
+{"time":"2026-07-16T14:46:35.831Z","sessionID":"ses_write_tool_test","toolName":"write","error":"Unable to write /tmp/opencode-core-test-eQtm6d/denied.txt"}
+{"time":"2026-07-16T14:46:35.833Z","sessionID":"ses_write_tool_test","toolName":"write","error":"Unable to write denied.txt"}
+{"time":"2026-07-16T14:46:36.122Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"apply_patch moves are not supported yet"}
+{"time":"2026-07-16T14:46:36.144Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at missing.txt"}
+{"time":"2026-07-16T14:46:36.147Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at existing.txt"}
+{"time":"2026-07-16T14:46:36.151Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at appeared.txt"}
+{"time":"2026-07-16T14:46:36.224Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-9xTnrL/denied.txt"}
+{"time":"2026-07-16T14:46:36.231Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-9xTnrL/denied.txt"}
+{"time":"2026-07-16T14:46:36.234Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-07-16T14:46:36.234Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-07-16T14:46:36.237Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"No changes to apply: oldString and newString are identical."}
+{"time":"2026-07-16T14:46:36.237Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"oldString must not be empty. Use write to create or overwrite a file."}
+{"time":"2026-07-16T14:46:36.237Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Could not find oldString in the file. It must match exactly, including whitespace and indentation."}
+{"time":"2026-07-16T14:46:36.238Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Found multiple exact matches for oldString. Provide more surrounding context or set replaceAll to true."}
+{"time":"2026-07-16T14:46:36.249Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"File changed after permission approval. Read it again before editing."}
+{"time":"2026-07-16T14:49:43.671Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T14:49:43.685Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T14:49:43.687Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T14:49:45.071Z","sessionID":"ses_question_tool_test","toolName":"question","error":"Permission denied: question"}
+{"time":"2026-07-16T14:49:45.440Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch file:///etc/passwd"}
+{"time":"2026-07-16T14:49:46.626Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/deep-html"}
+{"time":"2026-07-16T14:49:46.635Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/declared"}
+{"time":"2026-07-16T14:49:46.649Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/streamed"}
+{"time":"2026-07-16T14:49:46.651Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/image"}
+{"time":"2026-07-16T14:49:46.652Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/file"}
+{"time":"2026-07-16T14:49:46.657Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/slow"}
+{"time":"2026-07-16T14:49:49.633Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: archive.dat"}
+{"time":"2026-07-16T14:49:49.643Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read README.md"}
+{"time":"2026-07-16T14:49:49.645Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read __missing_read_target__.txt"}
+{"time":"2026-07-16T14:49:49.648Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read src"}
+{"time":"2026-07-16T14:49:49.652Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: late-binary"}
+{"time":"2026-07-16T14:49:49.745Z","sessionID":"ses_websearch_test","toolName":"websearch","error":"Unable to search the web for too much"}
+{"time":"2026-07-16T14:49:49.772Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill missing"}
+{"time":"2026-07-16T14:49:49.772Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill effect"}
+{"time":"2026-07-16T14:49:50.797Z","sessionID":"ses_registry","toolName":"failed","error":"Denied"}
+{"time":"2026-07-16T14:49:50.804Z","sessionID":"ses_registry","toolName":"transformed","error":"Invalid tool input: Expected boolean, got \"yes\"\n  at [\"value\"]"}
+{"time":"2026-07-16T14:49:50.805Z","sessionID":"ses_registry","toolName":"invalid_output","error":"Tool returned an invalid value for its output schema: invalid output\n  at [\"value\"]"}
+{"time":"2026-07-16T14:51:42.506Z","sessionID":"ses_write_tool_test","toolName":"write","error":"Unable to write /tmp/opencode-core-test-lJn1OP/denied.txt"}
+{"time":"2026-07-16T14:51:42.507Z","sessionID":"ses_write_tool_test","toolName":"write","error":"Unable to write denied.txt"}
+{"time":"2026-07-16T14:51:42.785Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"apply_patch moves are not supported yet"}
+{"time":"2026-07-16T14:51:42.800Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at missing.txt"}
+{"time":"2026-07-16T14:51:42.804Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at existing.txt"}
+{"time":"2026-07-16T14:51:42.812Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at appeared.txt"}
+{"time":"2026-07-16T14:51:42.864Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-Uryc4h/denied.txt"}
+{"time":"2026-07-16T14:51:42.866Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-Uryc4h/denied.txt"}
+{"time":"2026-07-16T14:51:42.873Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-07-16T14:51:42.873Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-07-16T14:51:42.876Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"No changes to apply: oldString and newString are identical."}
+{"time":"2026-07-16T14:51:42.876Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"oldString must not be empty. Use write to create or overwrite a file."}
+{"time":"2026-07-16T14:51:42.877Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Could not find oldString in the file. It must match exactly, including whitespace and indentation."}
+{"time":"2026-07-16T14:51:42.877Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Found multiple exact matches for oldString. Provide more surrounding context or set replaceAll to true."}
+{"time":"2026-07-16T14:51:42.889Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"File changed after permission approval. Read it again before editing."}
+{"time":"2026-07-16T14:52:05.615Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T14:52:05.628Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T14:52:05.630Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-16T14:52:06.943Z","sessionID":"ses_question_tool_test","toolName":"question","error":"Permission denied: question"}
+{"time":"2026-07-16T14:52:07.309Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch file:///etc/passwd"}
+{"time":"2026-07-16T14:52:08.453Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/deep-html"}
+{"time":"2026-07-16T14:52:08.462Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/declared"}
+{"time":"2026-07-16T14:52:08.472Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/streamed"}
+{"time":"2026-07-16T14:52:08.474Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/image"}
+{"time":"2026-07-16T14:52:08.475Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/file"}
+{"time":"2026-07-16T14:52:08.485Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/slow"}
+{"time":"2026-07-16T14:52:11.464Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: archive.dat"}
+{"time":"2026-07-16T14:52:11.476Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read README.md"}
+{"time":"2026-07-16T14:52:11.481Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read __missing_read_target__.txt"}
+{"time":"2026-07-16T14:52:11.502Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read src"}
+{"time":"2026-07-16T14:52:11.512Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: late-binary"}
+{"time":"2026-07-16T14:52:11.611Z","sessionID":"ses_websearch_test","toolName":"websearch","error":"Unable to search the web for too much"}
+{"time":"2026-07-16T14:52:11.642Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill missing"}
+{"time":"2026-07-16T14:52:11.643Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill effect"}
+{"time":"2026-07-16T14:52:12.754Z","sessionID":"ses_registry","toolName":"failed","error":"Denied"}
+{"time":"2026-07-16T14:52:12.759Z","sessionID":"ses_registry","toolName":"transformed","error":"Invalid tool input: Expected boolean, got \"yes\"\n  at [\"value\"]"}
+{"time":"2026-07-16T14:52:12.760Z","sessionID":"ses_registry","toolName":"invalid_output","error":"Tool returned an invalid value for its output schema: invalid output\n  at [\"value\"]"}
+{"time":"2026-07-16T14:54:04.533Z","sessionID":"ses_write_tool_test","toolName":"write","error":"Unable to write /tmp/opencode-core-test-HAvfSt/denied.txt"}
+{"time":"2026-07-16T14:54:04.535Z","sessionID":"ses_write_tool_test","toolName":"write","error":"Unable to write denied.txt"}
+{"time":"2026-07-16T14:54:04.818Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"apply_patch moves are not supported yet"}
+{"time":"2026-07-16T14:54:04.840Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at missing.txt"}
+{"time":"2026-07-16T14:54:04.844Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at existing.txt"}
+{"time":"2026-07-16T14:54:04.848Z","sessionID":"ses_apply_patch_tool_test","toolName":"apply_patch","error":"Unable to apply patch at appeared.txt"}
+{"time":"2026-07-16T14:54:04.913Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-OREPtQ/denied.txt"}
+{"time":"2026-07-16T14:54:04.915Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-OREPtQ/denied.txt"}
+{"time":"2026-07-16T14:54:04.922Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-07-16T14:54:04.923Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-07-16T14:54:04.925Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"No changes to apply: oldString and newString are identical."}
+{"time":"2026-07-16T14:54:04.925Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"oldString must not be empty. Use write to create or overwrite a file."}
+{"time":"2026-07-16T14:54:04.926Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Could not find oldString in the file. It must match exactly, including whitespace and indentation."}
+{"time":"2026-07-16T14:54:04.926Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Found multiple exact matches for oldString. Provide more surrounding context or set replaceAll to true."}
+{"time":"2026-07-16T14:54:04.938Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"File changed after permission approval. Read it again before editing."}

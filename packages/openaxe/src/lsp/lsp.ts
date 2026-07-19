@@ -221,7 +221,7 @@ export const layer = Layer.effect(
               if (!value) s.broken.add(key)
               return value
             })
-            .catch(() => {
+            .catch((err) => {
               s.broken.add(key)
               return undefined
             })
@@ -233,7 +233,7 @@ export const layer = Layer.effect(
             root,
             directory: ctx.directory,
             instance: ctx,
-          }).catch(async () => {
+          }).catch(async (err) => {
             s.broken.add(key)
             await Process.stop(handle.process)
             return undefined
