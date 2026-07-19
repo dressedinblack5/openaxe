@@ -55,13 +55,16 @@ const messageRowsOptimized = Effect.fnUntraced(function* (
   const whereClause = and(
     eq(SessionMessageTable.session_id, sessionID),
     compactionSeq
-      ? gte(SessionMessageTable.seq, compactionSeq)
-      : baselineSeq !== undefined
-        ? or(
-            gt(SessionMessageTable.seq, baselineSeq),
-            and(eq(SessionMessageTable.type, "system"), gt(SessionMessageTable.seq, baselineSeq)),
-          )
-        : undefined,
+      ? or(
+          gte(SessionMessageTable.seq, compactionSeq),
+          baselineSeq === undefined
+            ? undefined
+            : and(eq(SessionMessageTable.type, "system"), gt(SessionMessageTable.seq, baselineSeq)),
+        )
+      : undefined,
+    baselineSeq === undefined
+      ? undefined
+      : or(ne(SessionMessageTable.type, "system"), gt(SessionMessageTable.seq, baselineSeq)),
   )
 
   const rows = yield* db
