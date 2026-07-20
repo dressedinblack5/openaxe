@@ -91,7 +91,7 @@ const allFiles = yield* fs.glob("**", {
       include: "all",
     })
     console.log("[MIGRATION1] all files:", allFiles)
-    const projectDirs = [...new Set(allFiles.map((f) => f.split("/")[0]))].filter((d) => d !== ".")
+    const projectDirs = [...new Set(allFiles.map((f) => f.replace(/\\/g, "/").split("/")[0]))].filter((d) => d !== ".")
     console.log("[MIGRATION1] project dirs from **:", projectDirs)
     for (const projectDir of projectDirs) {
       const full = path.join(project, projectDir)
