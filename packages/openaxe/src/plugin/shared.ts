@@ -281,8 +281,8 @@ export async function checkPluginCompatibility(target: string, opencodeVersion: 
 
 export async function resolvePluginTarget(spec: string) {
   if (isPathPluginSpec(spec)) return resolvePathPluginTarget(spec)
-  const name = parsePackageName(spec)
-  const pkg = name === spec ? `${name}@latest` : spec
+  const parsed = parsePluginSpecifier(spec)
+  const pkg = `${parsed.pkg}@${parsed.version}`
   const result = await Npm.add(pkg)
   return result.directory
 }
