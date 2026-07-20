@@ -64,8 +64,13 @@ function remappedFs(root: string) {
 // Layer.fresh forces a new Storage instance — without it, Effect's in-test layer cache
 // returns the outer testEffect's Storage (which uses the real FSUtil), not a new
 // one built on top of remappedFs.
+// Git.defaultLayer is kept OUTSIDE Layer.fresh so Git resolves from the outer scope
+// (whose ChildProcessSpawner is known to work on all platforms), avoiding fresh
+// CrossSpawnSpawner instances that may fail to spawn git on Windows CI.
 const remappedStorage = (root: string) =>
-  Layer.fresh(Storage.layer.pipe(Layer.provide(remappedFs(root)), Layer.provide(Git.defaultLayer)))
+  Layer.fresh(Storage.layer.pipe(Layer.provide(remappedFs(root)))).pipe(
+    Layer.provide(Git.defaultLayer),
+  )
 
 describe("Storage", () => {
   it.effect("round-trips JSON content", () =>
@@ -243,7 +248,6 @@ describe("Storage", () => {
 
   it.live("migration 1 tolerates malformed legacy records", () =>
     Effect.gen(function* () {
-      if (process.platform === "win32") return  // git worktree detection fails in Layer.fresh on Windows CI; safe to skip — one-shot upgrade-only migration
       const fs = yield* FSUtil.Service
       const tmp = yield* tmpdirScoped({ git: true })
       const storage = path.join(tmp, "storage")
