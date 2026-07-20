@@ -68,6 +68,7 @@ describe("file HttpApi", () => {
           return body.includes("hello.txt") ? { response, body } : undefined
         }),
         "file search index was not ready",
+        15_000,
       ),
     )
 
