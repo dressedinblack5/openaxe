@@ -51,12 +51,23 @@ function extractVersion(spec: string): string | undefined {
   return at === -1 ? undefined : spec.slice(at + 1)
 }
 
+function normalizePkg(pkg: string): string {
+  // git+ URLs keep their format
+  if (pkg.startsWith("git+") || !pkg.includes("/")) return pkg
+  const slash = pkg.indexOf("/")
+  // @Scope/name → @scope/name  (scope is case-insensitive in npm)
+  if (pkg.startsWith("@")) return `@${pkg.slice(1, slash).toLowerCase()}${pkg.slice(slash)}`
+  // user/repo → @user/repo  (npm GitHub shorthand)
+  return `@${pkg.slice(0, slash).toLowerCase()}/${pkg.slice(slash + 1)}`
+}
+
 export function parsePluginSpecifier(spec: string) {
   if (spec.startsWith("npm:")) {
     const inner = spec.slice(4)
-    return { pkg: parsePackageName(inner), version: extractVersion(inner) || "latest" }
+    const pkg = normalizePkg(parsePackageName(inner))
+    return { pkg, version: extractVersion(inner) || "latest" }
   }
-  const name = parsePackageName(spec)
+  const name = normalizePkg(parsePackageName(spec))
   const version = extractVersion(spec)
   const isGit = spec.startsWith("git+")
   if (isGit && version === undefined) return { pkg: name, version: "" }

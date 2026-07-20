@@ -85,4 +85,32 @@ describe("parsePluginSpecifier", () => {
       version: "latest",
     })
   })
+
+  test("normalizes GitHub shorthand user/repo to scoped format", () => {
+    expect(parsePluginSpecifier("DietrichGebert/ponytail")).toEqual({
+      pkg: "@dietrichgebert/ponytail",
+      version: "latest",
+    })
+  })
+
+  test("normalizes GitHub shorthand with version", () => {
+    expect(parsePluginSpecifier("DietrichGebert/ponytail@1.0.0")).toEqual({
+      pkg: "@dietrichgebert/ponytail",
+      version: "1.0.0",
+    })
+  })
+
+  test("lowercases scope in scoped package names", () => {
+    expect(parsePluginSpecifier("@DietrichGebert/ponytail")).toEqual({
+      pkg: "@dietrichgebert/ponytail",
+      version: "latest",
+    })
+  })
+
+  test("lowercases scope and normalizes in npm protocol", () => {
+    expect(parsePluginSpecifier("npm:DietrichGebert/ponytail")).toEqual({
+      pkg: "@dietrichgebert/ponytail",
+      version: "latest",
+    })
+  })
 })
