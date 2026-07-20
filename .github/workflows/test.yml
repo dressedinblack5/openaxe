@@ -53,6 +53,8 @@ jobs:
 
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
+        with:
+          bun-version: ${{ matrix.settings.name == 'windows' && 'canary' || '' }}
 
       - name: Configure git identity
         run: |
