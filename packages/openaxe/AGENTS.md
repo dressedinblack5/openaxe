@@ -1,3 +1,114 @@
+# PROJECT KNOWLEDGE BASE
+
+**Generated:** 2026-07-20
+**Commit:** `09c069995`
+**Branch:** `dev`
+
+## OVERVIEW
+
+CLI orchestrator package for the **openaxe** monorepo — a lean TUI/CLI AI coding assistant built on Effect v4. Provides the CLI entry point, session engine, tool system, HTTP server, plugin loader, project/config management, and ACP protocol layer. ~787 files, ~175K lines TypeScript.
+
+## STRUCTURE
+
+```
+packages/openaxe/
+├── src/
+│   ├── index.ts           Main entry point — yargs CLI, 22 lazy-loaded commands
+│   ├── node.ts             Package exports: Config, Server, bootstrap, Database
+│   ├── cli/                CLI bootstrap + command implementations
+│   │   ├── cmd/            Per-command modules (run, debug, ...)
+│   │   └── lazy-command.ts  Lazy-loading yargs command helper
+│   ├── session/            Session orchestration — runner, prompt, LLM dispatch
+│   │   ├── llm/            LLM runtime adapters (AI SDK / native) [see AGENTS.md]
+│   │   └── prompt/         Prompt building
+│   ├── tool/               Tool system — registry, execute, external directories
+│   ├── server/             HTTP server — HttpApi groups, middleware, handlers [see AGENTS.md]
+│   ├── plugin/             Plugin loader — install, resolve, npm integration
+│   ├── config/             Config system — agent, model, command config
+│   ├── effect/             Effect service utilities (makeRuntime, InstanceState, EffectBridge)
+│   ├── project/            Project management — bootstrap, init, workspace
+│   ├── acp/                Agent Client Protocol — server, agent, content types
+│   ├── util/               Shared utilities
+│   ├── tool/               Tool implementations (edit, glob, grep, bash, etc.)
+│   ├── background/         Background job framework
+│   ├── auth/               Authentication
+│   ├── bus/                Event bus
+│   ├── git/                Git integration
+│   ├── mcp/                MCP server management
+│   └── ...                 (40+ subdirectories total)
+├── test/
+│   ├── AGENTS.md           Test fixtures and patterns guide
+│   ├── fixture/            tmpdir, test helpers
+│   ├── lib/                testEffect, LLM test server
+│   └── */                  Per-module test directories
+├── script/                 Build scripts
+└── specs/effect/           Effect migration patterns reference
+```
+
+## WHERE TO LOOK
+
+| Task | Location | Notes |
+|------|----------|-------|
+| CLI entry point / yargs | `src/index.ts` | 22 lazy-loaded commands |
+| CLI command implementations | `src/cli/cmd/` | Per-command modules |
+| Run command engine | `src/cli/cmd/run/` | Complex execution logic |
+| Session runner | `src/session/` | Durable session orchestration |
+| LLM dispatch | `src/session/llm.ts` + `src/session/llm/` | AI SDK / native runtime |
+| Tool system | `src/tool/` | Registry, execution |
+| HTTP API | `src/server/` | HttpApi groups + handlers |
+| Plugin loading | `src/plugin/` | Install, resolve, npm |
+| Config | `src/config/` | Agent/model/command config |
+| ACP protocol | `src/acp/` | Agent Client Protocol |
+| Effect services | `src/effect/` | Runtime, InstanceState, Bridge |
+| Tests | `test/` | Per-module test dirs |
+| Test helpers | `test/lib/` | testEffect, llm server |
+| Effect migration specs | `specs/effect/migration.md` | Compact pattern reference |
+
+## CODE MAP
+
+| Symbol | Type | Location | Role |
+|--------|------|----------|------|
+| `src/index.ts` | Entry | `src/index.ts` | yargs bootstrap, 22 lazy commands |
+| `lazyCommand` | Function | `src/cli/lazy-command.ts` | Lazy-load yargs subcommand |
+| `bootstrap` | Export | `src/cli/bootstrap.ts` | Application bootstrap |
+| `Config` | Export | `src/config/config.ts` | Configuration service |
+| `Server` | Export | `src/server/server.ts` | HTTP server setup |
+| `Session` | Service | `src/session/` | Session orchestration |
+| `LLM` | Service | `src/session/llm.ts` | LLM request dispatch |
+| `PluginLoader` | Service | `src/plugin/` | Plugin loading lifecycle |
+
+## COMMANDS
+
+```bash
+bun dev              # Start TUI dev server
+bun test             # Run tests (--timeout 60000)
+bun run typecheck    # TypeScript check via tsgo
+bun run build        # Build binary via script/build.ts
+```
+
+## ANTI-PATTERNS
+
+- **`export namespace Foo { }`** — Not ESM, prevents tree-shaking, breaks native TS runner. Use flat exports + `export * as Foo` self-reexport.
+- **Barrel `index.ts`** in multi-sibling dirs — Forces every import to evaluate all siblings. Import specific files directly.
+- **`as any` / `@ts-ignore` / `@ts-expect-error`** — Never suppress type errors.
+- **`Effect.sleep(N)` as synchronization** — Races scheduler. Use pollWithTimeout, Latch, or Deferred instead.
+- **`Effect.fork` / `Effect.forkDaemon`** — Don't exist in Effect v4 beta. Use `Effect.forkIn(scope)`.
+- **`Effect.succeed(undefined)`** — Use `Effect.void`.
+- **`new Date(yield* Clock.currentTimeMillis)`** — Use `DateTime.nowAsDate`.
+- **Manual `Fiber | undefined` or `Promise | undefined` for dedup** — Use `Effect.cached`.
+
+## UNIQUE STYLES
+
+- Module shape: flat top-level exports + `export * as Foo from "./foo"` self-reexport at file bottom.
+- `index.ts` module: use `export * as Foo from "."` not `"./index"`.
+- Multi-sibling dirs: no barrel index. Import `@/session/retry` not `@/session`.
+- Effect services: `Effect.gen(function* () {})` + `Effect.fn("Domain.method")` for named tracing.
+- Effect errors: `yield* new MyError(...)` over `yield* Effect.fail(new MyError(...))`.
+- `makeRuntime` for all Effect runtimes (deduplicates layers via memoMap).
+- `InstanceState` for per-directory/project state with `ScopedCache`.
+- `EffectBridge` for native/external callbacks re-entering Effect services.
+- Test Effect patterns: `testEffect(Layer)`, `it.effect` / `it.live` / `it.instance`.
+
 # openaxe database guide
 
 ## Database
