@@ -148,5 +148,22 @@ export const entriesForRunner = Effect.fn("SessionHistory.entriesForRunner")(fun
   ).pipe(Effect.mapError(() => new MessageDecodeError({ sessionID, messageID: SessionMessage.ID.make("unknown") })))
 })
 
+// ponytail: bounded 1-row load for failInterruptedTools, avoids loading all messages
+export const loadLatestAssistant = Effect.fn("SessionHistory.loadLatestAssistant")(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+) {
+  const row = yield* db
+    .select()
+    .from(SessionMessageTable)
+    .where(and(eq(SessionMessageTable.session_id, sessionID), eq(SessionMessageTable.type, "assistant")))
+    .orderBy(desc(SessionMessageTable.seq))
+    .limit(1)
+    .get()
+    .pipe(Effect.orDie)
+  if (!row) return undefined
+  return yield* decodeMessageRow(row)
+})
+
 export { latestCompaction }
 export * as SessionHistory from "./history"

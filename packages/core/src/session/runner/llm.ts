@@ -109,28 +109,26 @@ export const layer = Layer.effect(
       return session
     })
 
-    const getContext = Effect.fn("SessionRunner.getContext")(function* (sessionID: SessionSchema.ID) {
-      return yield* store.context(sessionID)
-    })
     const failInterruptedTools = Effect.fn("SessionRunner.failInterruptedTools")(function* (
       sessionID: SessionSchema.ID,
     ) {
-      for (const message of yield* getContext(sessionID)) {
-        if (message.type !== "assistant") continue
-        for (const tool of message.content) {
-          if (tool.type !== "tool" || (tool.state.status !== "pending" && tool.state.status !== "running")) continue
-          yield* events.publish(SessionEvent.Tool.Failed, {
-            sessionID,
-            timestamp: yield* DateTime.now,
-            assistantMessageID: message.id,
-            callID: tool.id,
-            error: { type: "unknown", message: "Tool execution interrupted" },
-            provider: {
-              executed: tool.provider?.executed === true,
-              ...(tool.provider?.metadata === undefined ? {} : { metadata: tool.provider.metadata }),
-            },
-          })
-        }
+      // ponytail: bounded 1-row load instead of loading ALL messages — pending/running
+      // tools can only exist in the latest assistant message (settled before next turn).
+      const latest = yield* SessionHistory.loadLatestAssistant(db, sessionID)
+      if (!latest || !("content" in latest)) return
+      for (const tool of latest.content) {
+        if (tool.type !== "tool" || (tool.state.status !== "pending" && tool.state.status !== "running")) continue
+        yield* events.publish(SessionEvent.Tool.Failed, {
+          sessionID,
+          timestamp: yield* DateTime.now,
+          assistantMessageID: latest.id,
+          callID: tool.id,
+          error: { type: "unknown", message: "Tool execution interrupted" },
+          provider: {
+            executed: tool.provider?.executed === true,
+            ...(tool.provider?.metadata === undefined ? {} : { metadata: tool.provider.metadata }),
+          },
+        })
       }
     })
 

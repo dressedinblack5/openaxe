@@ -44,6 +44,20 @@ interface EffectCmdOpts<Args, A> {
    * `serve`, `web`, `account`, `db`, `upgrade`).
    */
   instance?: boolean | ((args: Args) => boolean)
+  /**
+   * Which service layer the command needs. Defaults to `"full"`.
+   *
+   * `"full"` (default): all 55+ services (auth, database, config, plugin,
+   * session, LLM, LSP, MCP, tool registry, etc.). Required by interactive
+   * commands (`run`, `tui`).
+   *
+   * `"core"`: minimal subset (~12 lightweight services) for headless commands
+   * that don't need session/LLM/LSP/MCP. Saves ~200MB of heap.
+   * Only valid when `instance: false` (can't yield `InstanceRef`).
+   *
+   * Use `"core"` for commands like `serve`, `web`, `account`, `db`, `upgrade`.
+   */
+  layer?: "full" | "core"
   /** Defaults to process.cwd(). Override for commands that take a directory positional. */
   directory?: (args: Args) => string
   handler: (args: WithDoubleDash<Args>) => Effect.Effect<A, CliError, AppServices | InstanceStore.Service>
@@ -73,12 +87,13 @@ export const effectCmd = <Args, A>(opts: EffectCmdOpts<Args, A>) =>
     describe: opts.describe,
     builder: opts.builder as never,
     async handler(rawArgs) {
-      const { AppRuntime } = await import("@/effect/app-runtime")
-      // yargs typing wraps Args in ArgumentsCamelCase<WithDoubleDash<...>>; cast at the boundary.
+      const { AppRuntime, CoreRuntime } = await import("@/effect/app-runtime")
+      // yargs typing wraps Arguments in ArgumentsCamelCase<WithDoubleDash<...>>; cast at the boundary.
       const args = rawArgs as unknown as WithDoubleDash<Args>
       const useInstance = typeof opts.instance === "function" ? opts.instance(args) : opts.instance !== false
       if (!useInstance) {
-        await AppRuntime.runPromise(opts.handler(args))
+        const rt = opts.layer === "core" ? CoreRuntime : AppRuntime
+        await rt.runPromise(opts.handler(args))
         return
       }
       const { InstanceStore } = await import("@/project/instance-store")

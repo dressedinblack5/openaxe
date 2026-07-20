@@ -31,6 +31,25 @@ const getRuntime = () => {
   return _rt
 }
 
+/**
+ * Lazy CoreLayer — minimal subset of services for headless commands (serve, etc.).
+ * Dynamically imports only the lightweight core layer, skipping session/LLM/LSP/MCP
+ * services that add ~200MB.
+ */
+const CoreLayer = Layer.unwrap(
+  Effect.promise(async () => {
+    const { CoreLayer: RealLayer } = await import("./app-core-layer")
+    return RealLayer
+  }),
+)
+
+let _coreRt: ManagedRuntime.ManagedRuntime<any, any> | undefined
+const getCoreRuntime = () => {
+  if (_coreRt) return _coreRt
+  _coreRt = ManagedRuntime.make(CoreLayer, { memoMap })
+  return _coreRt
+}
+
 const wrap = (effect: Effect.Effect<any, any, any>) => attach(effect) as never
 
 export const AppRuntime = {
@@ -51,5 +70,21 @@ export const AppRuntime = {
   },
   dispose() {
     getRuntime().dispose()
+  },
+}
+
+/**
+ * Minimal runtime for headless commands. Same interface as AppRuntime but
+ * backed by CoreLayer (no session/LLM/LSP/MCP/etc. services).
+ */
+export const CoreRuntime = {
+  runPromise<A>(effect: Effect.Effect<A, any, any>, options?: Effect.RunOptions): Promise<A> {
+    return getCoreRuntime().runPromise(wrap(effect) as Effect.Effect<A, any>, options)
+  },
+  runFork(effect: Effect.Effect<any, any, any>) {
+    return getCoreRuntime().runFork(wrap(effect) as Effect.Effect<any, any>)
+  },
+  dispose() {
+    getCoreRuntime().dispose()
   },
 }
