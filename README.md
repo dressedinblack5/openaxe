@@ -95,17 +95,9 @@ curl -fsSLo install.bat https://raw.githubusercontent.com/dressedinblack5/openax
 install.bat
 ```
 
-Downloads the right binary for your architecture, creates a desktop shortcut, and adds to PATH.
+If you prefer building from source, see [Build from Source](#build-from-source) below.
 
-**Option 3 — PowerShell one-liner (via Git Bash)**
-
-Requires [Git for Windows](https://git-scm.com) (provides Git Bash). Then in Git Bash:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash
-```
-
-**Option 4 — Build from source**
+### Build from source
 
 ```powershell
 git clone https://github.com/dressedinblack5/openaxe.git
