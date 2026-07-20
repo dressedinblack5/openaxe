@@ -23,7 +23,7 @@ env:
 
 jobs:
   unit:
-    name: unit (${{ matrix.settings.name }} / ${{ matrix.shard }}/3)
+    name: unit (${{ matrix.settings.name }} / ${{ matrix.shard }}/5)
     strategy:
       fail-fast: false
       matrix:
@@ -36,6 +36,8 @@ jobs:
           - 1
           - 2
           - 3
+          - 4
+          - 5
     runs-on: ${{ matrix.settings.host }}
     defaults:
       run:
@@ -78,7 +80,7 @@ jobs:
       - name: Run openaxe tests
         working-directory: packages/openaxe
         timeout-minutes: ${{ matrix.settings.name == 'windows' && 50 || 30 }}
-        run: GITHUB_ACTIONS=false bun test --shard=${{ matrix.shard }}/3 --timeout 180000 --path-ignore-patterns='**/provider/**'
+        run: GITHUB_ACTIONS=false bun test --shard=${{ matrix.shard }}/5 --timeout 180000 --path-ignore-patterns='**/provider/**'
         env:
           OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
 
