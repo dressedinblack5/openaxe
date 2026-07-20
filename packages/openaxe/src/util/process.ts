@@ -100,7 +100,15 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
     // Bun.spawn ignores the `shell` option, so when a shell is requested we
     // rewrite the command array to [shellBin, "-c", cmdStr] explicitly.
     const spawnCmd = opts.shell
-      ? [typeof opts.shell === "string" ? opts.shell : "sh", "-c", cmd.join(" ")]
+      ? [
+          typeof opts.shell === "string"
+            ? opts.shell
+            : process.platform === "win32"
+              ? process.env.COMSPEC ?? "cmd.exe"
+              : "sh",
+          process.platform === "win32" ? "/c" : "-c",
+          cmd.join(" "),
+        ]
       : cmd
     bunProc = Bun.spawn(spawnCmd, {
       cwd: opts.cwd,

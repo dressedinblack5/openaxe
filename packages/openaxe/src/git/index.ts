@@ -3,19 +3,22 @@ import { AppProcess } from "@opencode-ai/core/process"
 import { Effect, Layer, Context, Stream } from "effect"
 import { ChildProcess } from "effect/unstable/process"
 
-const cfg = [
-  "--no-optional-locks",
-  "-c",
-  "core.autocrlf=false",
-  "-c",
-  "core.fsmonitor=false",
-  "-c",
-  "core.longpaths=true",
-  "-c",
-  "core.symlinks=true",
-  "-c",
-  "core.quotepath=false",
-] as const
+function cfg(): readonly string[] {
+  const base = [
+    "-c",
+    "core.autocrlf=false",
+    "-c",
+    "core.fsmonitor=false",
+    "-c",
+    "core.longpaths=true",
+    "-c",
+    "core.quotepath=false",
+  ]
+  if (process.platform !== "win32") {
+    return ["--no-optional-locks", "-c", "core.symlinks=true", ...base]
+  }
+  return base
+}
 
 const out = (result: { text(): string }) => result.text().trim()
 const nuls = (text: string) => text.split("\0").filter(Boolean)
@@ -110,7 +113,7 @@ export const layer = Layer.effect(
     const run = Effect.fn("Git.run")(
       function* (args: string[], opts: Options) {
         const result = yield* appProcess.run(
-          ChildProcess.make("git", [...cfg, ...args], {
+          ChildProcess.make("git", [...cfg(), ...args], {
             cwd: opts.cwd,
             env: opts.env,
             extendEnv: true,
