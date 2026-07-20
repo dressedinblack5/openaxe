@@ -110,7 +110,7 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
       spawnCmd = process.platform === "win32"
         ? [shellBin, "/c", cmd.join(" ")]
         : [shellBin, "-c", cmd.join(" ")]
-    } else if (process.platform === "win32" && cmd.length > 0 && !/\.(?:com|exe)$/i.test(cmd[0])) {
+    } else if (process.platform === "win32" && cmd.length > 0 && /\.(?:cmd|bat)$/i.test(cmd[0])) {
       // On Windows, .cmd/.bat files are not directly executable — they need
       // cmd.exe /d /s /c with proper quoting for paths with spaces.
       // Bun.spawn auto-detects .cmd/.bat but doesn't quote spaced paths, so
