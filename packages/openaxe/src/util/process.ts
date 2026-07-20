@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs"
 import { Readable, Writable } from "node:stream"
 import { buffer } from "node:stream/consumers"
 import { errorMessage } from "./error"
@@ -93,6 +94,25 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
   if (cmd.length === 0) throw new Error("Command is required")
   opts.abort?.throwIfAborted()
 
+  // ponytail: on Windows, .cmd/.bat files are wrapped in cmd.exe. Since cmd.exe
+  // always exists, Bun.spawn won't throw ENOENT for missing scripts. Pre-check.
+  if (process.platform === "win32" && cmd.length > 0 && /\.(?:cmd|bat)$/i.test(cmd[0]) && !existsSync(cmd[0])) {
+    const err = new Error(`ENOENT: ${cmd[0]}`)
+    ;(err as NodeJS.ErrnoException).code = "ENOENT"
+    const exited = Promise.reject(err)
+    void exited.catch(() => undefined)
+    return {
+      get pid() { return 0 },
+      stdin: null,
+      stdout: null,
+      stderr: null,
+      get exitCode() { return null },
+      get signalCode() { return null },
+      exited,
+      kill() {},
+    }
+  }
+
   let bunProc: ReturnType<typeof Bun.spawn> | undefined
   let spawnError: Error | undefined
 
@@ -111,15 +131,13 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
         ? [shellBin, "/c", cmd.join(" ")]
         : [shellBin, "-c", cmd.join(" ")]
     } else if (process.platform === "win32" && cmd.length > 0 && /\.(?:cmd|bat)$/i.test(cmd[0])) {
-      // On Windows, .cmd/.bat files are not directly executable — they need
-      // cmd.exe /d /s /c with proper quoting for paths with spaces.
-      // Bun.spawn auto-detects .cmd/.bat but doesn't quote spaced paths, so
-      // we handle it ourselves following cross-spawn's approach.
-      const wrap = (a: string) => /[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a
+      // .cmd/.bat files need cmd.exe. Pass args as separate elements without
+      // /s (which strips outer quotes and breaks paths with spaces) and
+      // without pre-quoting (Bun's Windows arg processing handles it).
       spawnCmd = [
         process.env.COMSPEC ?? "cmd.exe",
-        "/d", "/s", "/c",
-        `"${cmd.map(wrap).join(" ")}"`,
+        "/d", "/c",
+        ...cmd,
       ]
     } else {
       spawnCmd = cmd
