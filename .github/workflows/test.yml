@@ -70,7 +70,8 @@ jobs:
 
       - name: Run core/ui tests
         if: matrix.shard == 1
-        run: bun turbo test --filter=@opencode-ai/core --filter=@opencode-ai/ui
+        timeout-minutes: ${{ matrix.settings.name == 'windows' && 20 || 10 }}
+        run: GITHUB_ACTIONS=false bun turbo test --filter=@opencode-ai/core --filter=@opencode-ai/ui
 
       - name: Run openaxe tests
         working-directory: packages/openaxe
@@ -82,6 +83,7 @@ jobs:
       - name: Run HttpApi exerciser gates
         if: matrix.settings.name == 'linux' && matrix.shard == 1
         working-directory: packages/openaxe
-        run: bun run test:httpapi
+        timeout-minutes: 15
+        run: GITHUB_ACTIONS=false bun run test:httpapi
 
 
