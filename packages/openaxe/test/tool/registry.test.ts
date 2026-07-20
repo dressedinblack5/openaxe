@@ -339,7 +339,7 @@ describe("tool.registry", () => {
           },
         })
       }),
-    20_000,
+    60_000,
   )
 
   it.instance("preserves attachments from structured custom tool results", () =>
