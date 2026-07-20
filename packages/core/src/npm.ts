@@ -45,6 +45,41 @@ export function sanitize(pkg: string) {
   return Array.from(pkg, (char) => (illegal.has(char) || char.charCodeAt(0) < 32 ? "_" : char)).join("")
 }
 
+function normalizeCacheKey(spec: string): string {
+  let name = spec
+  let version = ""
+
+  if (spec.startsWith("@")) {
+    const slash = spec.indexOf("/")
+    if (slash !== -1) {
+      const afterScope = spec.slice(slash + 1)
+      const at = afterScope.indexOf("@")
+      if (at !== -1) {
+        name = spec.slice(0, slash + at + 1)
+        version = afterScope.slice(at)
+      }
+    }
+  } else {
+    const at = spec.indexOf("@")
+    if (at !== -1) {
+      name = spec.slice(0, at)
+      version = spec.slice(at)
+    }
+  }
+
+  if (!name.startsWith("@") && name.includes("/")) {
+    const slash = name.indexOf("/")
+    name = `@${name.slice(0, slash).toLowerCase()}/${name.slice(slash + 1)}`
+  } else if (name.startsWith("@")) {
+    const slash = name.indexOf("/")
+    if (slash !== -1) {
+      name = `@${name.slice(1, slash).toLowerCase()}${name.slice(slash)}`
+    }
+  }
+
+  return name + version
+}
+
 function parsePackageName(spec: string): string {
   if (spec.startsWith("@")) {
     const slash = spec.indexOf("/")
@@ -123,6 +158,7 @@ export const layer = Layer.effect(
       )
 
     const add = Effect.fn("Npm.add")(function* (pkg: string) {
+      pkg = normalizeCacheKey(pkg)
       const dir = directory(pkg)
       const name = (() => {
         try {
@@ -137,6 +173,21 @@ export const layer = Layer.effect(
       }
 
       const tree = yield* reify({ dir, add: [pkg] })
+
+      // Plugin packages often list @opencode-ai/* packages as devDependencies
+      // but import them at runtime. npm skips devDeps of transitive deps, so
+      // install those explicitly if the package needs them.
+      yield* Effect.gen(function* () {
+        const pkgPath = path.join(dir, "node_modules", name, "package.json")
+        const json = yield* afs.readJson(pkgPath).pipe(Effect.option)
+        if (Option.isNone(json)) return
+        const devDeps = (json.value as Record<string, unknown>)?.devDependencies as Record<string, string> | undefined
+        if (!devDeps) return
+        const devAdd = Object.keys(devDeps).filter((d) => d.startsWith("@opencode-ai/"))
+        if (!devAdd.length) return
+        yield* reify({ dir, add: devAdd })
+      }).pipe(Effect.withSpan("Npm.installDevRuntimeDeps"), Effect.ignore)
+
       const first = tree.edgesOut.values().next().value?.to
       if (!first) {
         const result = resolveEntryPoint(name, path.join(dir, "node_modules", name))
@@ -210,6 +261,7 @@ export const layer = Layer.effect(
     }, Effect.scoped)
 
     const which = Effect.fn("Npm.which")(function* (pkg: string, bin?: string) {
+      pkg = normalizeCacheKey(pkg)
       const dir = directory(pkg)
       const binDir = path.join(dir, "node_modules", ".bin")
 
