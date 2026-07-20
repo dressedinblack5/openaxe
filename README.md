@@ -25,8 +25,7 @@
 ## Reading Guide
 
 | Goal | Start with |
-|---|---|
-| Install and try openaxe | [Quick Start](#quick-start) |
+|-----|---|
 | Understand the project | [Features](#features) → [Architecture](packages/openaxe/README.md#architecture) → [Security](#security) |
 | Browse available commands | [User Guide](packages/openaxe/README.md#user-guide) |
 | Set up providers | [Preinstalled Plugins](#preinstalled-plugins) |
@@ -66,75 +65,6 @@
 - **Supply chain** — native deps use `node-gyp rebuild` during install. For defense-in-depth: `bun install --ignore-scripts` + `bun audit`.
 
 ---
-
-## Quick Start
-
-### Prerequisites
-
-- **Bun** 1.2+ — `curl -fsSL https://bun.sh/install | bash` (Linux/macOS) or `powershell -c "irm bun.sh/install.ps1 | iex"` (Windows)
-- **Git** 2.30+
-
-### Linux / macOS
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash
-```
-
-Installs `openaxe` to `~/.local/bin` and sets up a desktop entry.
-
-### Windows
-
-**Option 1 — Pre-built binary (recommended)**
-
-Download the latest `openaxe-windows-x64.zip` from the [releases page](https://github.com/dressedinblack5/openaxe/releases/latest), extract, and add to `PATH`.
-
-**Option 2 — Install script (cmd.exe)**
-
-```batch
-curl -fsSLo install.bat https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install.bat
-install.bat
-```
-
-If you prefer building from source, see [Build from Source](#build-from-source) below.
-
-### Build from source
-
-```powershell
-git clone https://github.com/dressedinblack5/openaxe.git
-cd openaxe
-bun install
-.\packages\openaxe\bin\openaxe
-```
-
-### Pre-built Binary
-
-Download the archive for your platform from the [latest release](https://github.com/dressedinblack5/openaxe/releases/latest), extract it, and place the binary in your `PATH`:
-
-| Platform | Archive |
-|---|---|
-| Linux x64 | `openaxe-linux-x64.tar.gz` |
-| Linux x64 (AVX2) | `openaxe-linux-x64.tar.gz` (preferred on modern CPUs) |
-| Linux arm64 | `openaxe-linux-arm64.tar.gz` |
-| macOS x64 | `openaxe-darwin-x64.tar.gz` |
-| macOS arm64 | `openaxe-darwin-arm64.tar.gz` |
-| Windows x64 | `openaxe-windows-x64.zip` |
-
-```bash
-# Linux / macOS
-tar xzf openaxe-*.tar.gz
-mv openaxe ~/.local/bin/
-
-# Windows
-# Extract the zip and add the folder to your PATH
-```
-
-### First Run
-
-```bash
-cd my-project
-openaxe                  # launch TUI
-openaxe run "summarize this codebase"  # non-interactive
-```
 
 ## Preinstalled Plugins
 
