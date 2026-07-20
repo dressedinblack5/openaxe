@@ -99,17 +99,31 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
   try {
     // Bun.spawn ignores the `shell` option, so when a shell is requested we
     // rewrite the command array to [shellBin, "-c", cmdStr] explicitly.
-    const spawnCmd = opts.shell
-      ? [
-          typeof opts.shell === "string"
-            ? opts.shell
-            : process.platform === "win32"
-              ? process.env.COMSPEC ?? "cmd.exe"
-              : "sh",
-          process.platform === "win32" ? "/c" : "-c",
-          cmd.join(" "),
-        ]
-      : cmd
+    let spawnCmd: string[]
+    if (opts.shell) {
+      const shellBin =
+        typeof opts.shell === "string"
+          ? opts.shell
+          : process.platform === "win32"
+            ? process.env.COMSPEC ?? "cmd.exe"
+            : "sh"
+      spawnCmd = process.platform === "win32"
+        ? [shellBin, "/c", cmd.join(" ")]
+        : [shellBin, "-c", cmd.join(" ")]
+    } else if (process.platform === "win32" && cmd.length > 0 && !/\.(?:com|exe)$/i.test(cmd[0])) {
+      // On Windows, .cmd/.bat files are not directly executable — they need
+      // cmd.exe /d /s /c with proper quoting for paths with spaces.
+      // Bun.spawn auto-detects .cmd/.bat but doesn't quote spaced paths, so
+      // we handle it ourselves following cross-spawn's approach.
+      const wrap = (a: string) => /[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a
+      spawnCmd = [
+        process.env.COMSPEC ?? "cmd.exe",
+        "/d", "/s", "/c",
+        `"${cmd.map(wrap).join(" ")}"`,
+      ]
+    } else {
+      spawnCmd = cmd
+    }
     bunProc = Bun.spawn(spawnCmd, {
       cwd: opts.cwd,
       env: opts.env === null ? {} : opts.env ? { ...process.env, ...opts.env } : undefined,
