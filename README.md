@@ -52,7 +52,7 @@
 
 ---
 
-## 🧰 LSP Native Tooling Arsenal
+## 🧰 Native LSP
 
 openaxe ships an **Effect-based native LSP client** that communicates directly with language servers over JSON-RPC 2.0 stdio — no MCP wrapper, no intermediary. It provides code intelligence to the AI assistant through 17 operations and auto-verifies every file mutation via diagnostics.
 
