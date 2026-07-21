@@ -236,7 +236,7 @@ export const layer = Layer.effect(
             tool.search,
             tool.skill,
             tool.patch,
-            ...(flags.experimentalLspTool ? [tool.lsp] : []),
+            tool.lsp,
             ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
           ],
           task: tool.task,

@@ -19,6 +19,14 @@ const operations = [
   "prepareCallHierarchy",
   "incomingCalls",
   "outgoingCalls",
+  "codeAction",
+  "rename",
+  "prepareRename",
+  "typeDefinition",
+  "signatureHelp",
+  "completion",
+  "formatting",
+  "applyCodeAction",
 ] as const
 
 export const Parameters = Schema.Struct({
@@ -32,6 +40,18 @@ export const Parameters = Schema.Struct({
   }),
   query: Schema.optional(Schema.String).annotate({
     description: "Search query for workspaceSymbol. Empty string requests all symbols.",
+  }),
+  newName: Schema.optional(Schema.String).annotate({
+    description: "New name for rename operation.",
+  }),
+  tabSize: Schema.optional(Schema.Int).annotate({
+    description: "Tab size for formatting (default 2).",
+  }),
+  insertSpaces: Schema.optional(Schema.Boolean).annotate({
+    description: "Use spaces for formatting (default true).",
+  }),
+  title: Schema.optional(Schema.String).annotate({
+    description: "Title of the code action to apply (required for applyCodeAction).",
   }),
 })
 
@@ -49,7 +69,7 @@ export const LspTool = define(
           const file = path.isAbsolute(args.filePath) ? args.filePath : path.join(instance.directory, args.filePath)
           yield* assertExternalDirectoryEffect(ctx, file)
           const meta =
-            args.operation === "workspaceSymbol"
+            args.operation === "workspaceSymbol" || args.operation === "formatting"
               ? { operation: args.operation }
               : args.operation === "documentSymbol"
                 ? { operation: args.operation, filePath: file }
@@ -65,7 +85,7 @@ export const LspTool = define(
           const position = { file, line: args.line - 1, character: args.character - 1 }
           const relPath = path.relative(instance.worktree, file)
           const detail =
-            args.operation === "workspaceSymbol"
+            args.operation === "workspaceSymbol" || args.operation === "formatting"
               ? ""
               : args.operation === "documentSymbol"
                 ? relPath
@@ -98,9 +118,27 @@ export const LspTool = define(
                 return lsp.prepareCallHierarchy(position)
               case "incomingCalls":
                 return lsp.incomingCalls(position)
-              case "outgoingCalls":
-                return lsp.outgoingCalls(position)
-            }
+      case "outgoingCalls":
+        return lsp.outgoingCalls(position)
+      case "codeAction":
+        return lsp.codeAction(position)
+      case "rename":
+        if (!args.newName) throw new Error("newName is required for rename operation")
+        return lsp.rename({ ...position, newName: args.newName })
+      case "prepareRename":
+        return lsp.prepareRename(position)
+      case "typeDefinition":
+        return lsp.typeDefinition(position)
+      case "signatureHelp":
+        return lsp.signatureHelp(position)
+      case "completion":
+        return lsp.completion(position)
+      case "formatting":
+        return lsp.formatting({ file, tabSize: args.tabSize, insertSpaces: args.insertSpaces })
+      case "applyCodeAction":
+        if (!args.title) throw new Error("title is required for applyCodeAction operation")
+        return lsp.applyCodeAction({ ...position, title: args.title })
+    }
           })()
 
           return {
