@@ -2,10 +2,10 @@
 import { TextAttributes, type InputRenderable, type KeyEvent } from "@opentui/core"
 import { useKeyboard, type JSX } from "@opentui/solid"
 import fuzzysort from "fuzzysort"
-import { createEffect, createMemo, createSignal, type Accessor } from "solid-js"
+import { Match, Switch, createEffect, createMemo, createSignal, type Accessor } from "solid-js"
 import { RunFooterMenu, createFooterMenuState, type RunFooterMenuItem } from "./footer.menu"
 import type { RunFooterTheme } from "./theme"
-import type { FooterQueuedPrompt, FooterSubagentTab, RunCommand, RunInput, RunProvider } from "./types"
+import type { FooterQueuedPrompt, FooterSubagentTab, RunAgent, RunCommand, RunInput, RunProvider } from "./types"
 
 type PanelEntry = RunFooterMenuItem & {
   category: string
@@ -1062,3 +1062,5 @@ export function RunModelSelectBody(props: {
     </PanelShell>
   )
 }
+
+
