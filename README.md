@@ -20,6 +20,19 @@
   <img src="screenshots/openaxe-preview.png" alt="openaxe preview" width="720">
 </p>
 
+## Quick Start
+
+```bash
+# Install (Linux/macOS)
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash
+
+# Run in your project
+cd my-project
+openaxe
+```
+
+Set your provider API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) and you're off. See the [full guide](packages/openaxe/README.md#quick-start) for Windows, build-from-source, and prerequisites.
+
 ---
 
 ## Reading Guide
