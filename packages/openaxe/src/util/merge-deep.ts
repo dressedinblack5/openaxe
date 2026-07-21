@@ -5,7 +5,9 @@ export function mergeDeep(target: Record<string, any>, source: Record<string, an
     const rv = result[key]
     if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
       result[key] = mergeDeep(rv, sv)
-    } else if (sv !== undefined) {
+    } else if (sv === undefined) {
+      delete result[key]
+    } else {
       result[key] = sv
     }
   }
