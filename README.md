@@ -159,7 +159,7 @@ Plugins are npm packages that declare entrypoints in `package.json` under `expor
 { "plugin": ["my-plugin"] }
 ```
 
-### Recommended Plugins
+### Installed Plugins
 
 Auto-configured on first run. They auto-install the first time you run `openaxe`:
 
