@@ -39,7 +39,7 @@
 - **Multi-provider LLM support** — 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, and more)
 - **Rich TUI** — SolidJS terminal UI with session management, conversation history, keyboard-driven workflow
 - **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
-- **Code intelligence** — Effect-based native LSP client (not MCP wrapper), 17 operations, 30+ builtin language servers with auto-download, diagnostics-driven auto-verification
+- **LSP native tooling arsenal** — Effect-based native LSP client (not an MCP wrapper), runs 17 code intelligence operations across 30+ builtin language servers. Every file mutation triggers automatic diagnostics. See [LSP details](#-lsp-native-tooling-arsenal) below.
 - **Plugin system** — Extend behavior with plugins from npm, local paths, or git URLs
 - **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, fork/continue
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
@@ -49,6 +49,65 @@
 - **Auto-verification guardrails** — automatic LSP diagnostics + `tsc`/`cargo`/`ruff`/`go vet` after every file mutation
 - **Versioned artifact store** with TUI preview
 - **Auto-commit**, **error journal**, **/revert** — productivity trio for AI change management
+
+---
+
+## 🧰 LSP Native Tooling Arsenal
+
+openaxe ships an **Effect-based native LSP client** that communicates directly with language servers over JSON-RPC 2.0 stdio — no MCP wrapper, no intermediary. It provides code intelligence to the AI assistant through 17 operations and auto-verifies every file mutation via diagnostics.
+
+### Architecture
+
+```
+src/lsp/
+├── lsp.ts          Effect service (Interface + Service + layer), 23 methods, InstanceState-scoped
+├── client.ts       JSON-RPC via vscode-jsonrpc, push+pull diagnostic merge, per-server debounce
+├── server.ts       30+ builtin server definitions, 15 with auto-download
+├── launch.ts       Child process spawn helper
+├── diagnostic.ts   Diagnostics-to-string formatting
+└── language.ts     Extension → languageId mapping
+```
+
+The `lsp` tool (in `src/tool/lsp.ts`) exposes all operations to the AI. Always available, no feature gate.
+
+### 17 Operations
+
+| Operation | What it does |
+|---|---|
+| `goToDefinition` | Find where a symbol is defined |
+| `findReferences` | Find all references to a symbol |
+| `hover` | Get documentation and type info at cursor |
+| `documentSymbol` | List all symbols (functions, classes, variables) in a document |
+| `workspaceSymbol` | Search project-wide symbols by query |
+| `goToImplementation` | Find implementations of an interface or abstract method |
+| `prepareCallHierarchy` | Get call hierarchy entry point at a position |
+| `incomingCalls` / `outgoingCalls` | What calls this function / what it calls |
+| `codeAction` / `applyCodeAction` | List and apply quick fixes, auto-imports, refactorings |
+| `rename` / `prepareRename` | Rename a symbol across the codebase |
+| `typeDefinition` | Find the type definition (e.g., the class of a variable) |
+| `signatureHelp` | Get parameter info at a call site |
+| `completion` | Get code completion suggestions |
+| `formatting` | Format a document |
+
+### Key Patterns
+
+- **InstanceState-scoped**: Per-project state (clients, servers, broken map). Cleaned up on project close via `Effect.addFinalizer`.
+- **Broken server retry**: Failed spawns tracked with 5-minute TTL. After cooldown, the server is retried automatically.
+- **Spawning dedup**: Concurrent spawns for the same server+root pair are deduplicated.
+- **Error isolation**: All LSP requests catch errors to `null`/`[]` — transport errors never propagate to the caller.
+- **Diagnostic merge**: Push diagnostics (from `textDocument/publishDiagnostics`) merged with on-demand pull diagnostics, deduped by message.
+
+### Server Support
+
+**30+ builtin language servers** spanning all major languages. 15 include auto-download when the binary is missing:
+
+TypeScript, Pyright, rust-analyzer, gopls, clangd, Biome, ESLint, Deno, Svelte, Astro, Vue, Ruby (rubocop), ElixirLS, Zls (Zig), C# (Roslyn), F#, Kotlin, Java (JDTLS), Dart, PHP (Intelephense), Lua, Bash, Terraform, Dockerfile, Prisma, Ocaml, Gleam, Clojure, Nix, Typst (Tinymist), Haskell, Julia, and SourceKit (Swift).
+
+Servers can be configured, overridden, or disabled per-project via `openaxe.jsonc` under the `lsp` key.
+
+### Auto-Verification Guardrail
+
+Every file mutation (`edit`, `write`, `apply_patch`) automatically opens the file in LSP and fetches diagnostics — surfacing compile errors, type errors, and lint issues to the AI immediately after the change. The `read` tool also refreshes LSP state when opening a file.
 
 ---
 
