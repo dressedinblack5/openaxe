@@ -90,7 +90,7 @@ openaxe run "explain this codebase"
 - **Headless server** — Background HTTP API server with optional web interface
 - **All major platforms** — Linux, macOS, Windows (native binaries, AVX2/musl detection)
 - **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, survives across sessions
-- **Auto-verification guardrails** — automatic `tsc`/`cargo`/`ruff`/`go vet` after every file mutation, plus bracket balance and import validation
+- **Auto-verification guardrails** — automatic LSP diagnostics after every file mutation, plus `tsc`/`cargo`/`ruff`/`go vet`, bracket balance, and import validation
 - **Versioned artifact store** — content-versioned storage for build outputs and generated files with TUI preview
 - **Auto-commit** — automatic git commits at each AI mutation turn
 - **Error journal** — tool errors logged to `.openaxe/errors.jsonl` for debugging
@@ -219,6 +219,68 @@ Configure via `.openaxe/openaxe.jsonc` in your project root:
   }
 }
 ```
+
+## Built-in Tools
+
+openaxe ships with a rich set of built-in tools that the AI assistant can invoke. The tool system supports 30+ tools covering file operations, code intelligence, shell execution, web access, and subagent delegation.
+
+### LSP Code Intelligence — Native Tooling Arsenal
+
+openaxe ships an **Effect-based native LSP client** (not an MCP wrapper) — direct JSON-RPC 2.0 over stdio with no intermediary. Provides diagnostics, navigation, and code actions directly to the tool system.
+
+#### Architecture
+
+```
+src/lsp/
+├── lsp.ts          Effect service (Interface + Service + layer), 23 methods, InstanceState-scoped
+├── client.ts       JSON-RPC via vscode-jsonrpc, push+pull diagnostic merge, per-server debounce
+├── server.ts       30+ builtin server definitions, 15 with auto-download
+├── launch.ts       Child process spawn helper
+├── diagnostic.ts   Diagnostics-to-string formatting
+└── language.ts     Extension → languageId mapping
+```
+
+The tool bridge lives in `src/tool/lsp.ts` — exposes all operations to the AI assistant. Always available, no feature gate.
+
+#### 17 Tool Operations
+
+| Operation | LSP Request | What it does |
+|---|---|---|
+| `goToDefinition` | `textDocument/definition` | Find where a symbol is defined |
+| `findReferences` | `textDocument/references` | Find all references to a symbol |
+| `hover` | `textDocument/hover` | Get documentation and type info |
+| `documentSymbol` | `textDocument/documentSymbol` | List all symbols in a document |
+| `workspaceSymbol` | `workspace/symbol` | Search project-wide symbols |
+| `goToImplementation` | `textDocument/implementation` | Find implementations of an interface/abstract |
+| `prepareCallHierarchy` | `textDocument/prepareCallHierarchy` | Get call hierarchy entry point |
+| `incomingCalls` | `callHierarchy/incomingCalls` | What calls this function |
+| `outgoingCalls` | `callHierarchy/outgoingCalls` | What this function calls |
+| `codeAction` | `textDocument/codeAction` | List available quick fixes and refactorings |
+| `applyCodeAction` | `textDocument/codeAction` + edit | Apply a quick fix by title |
+| `rename` | `textDocument/rename` | Rename symbol across the codebase |
+| `prepareRename` | `textDocument/prepareRename` | Check if a symbol can be renamed |
+| `typeDefinition` | `textDocument/typeDefinition` | Find the type definition (e.g. class of a variable) |
+| `signatureHelp` | `textDocument/signatureHelp` | Get parameter info at a call site |
+| `completion` | `textDocument/completion` | Get code completion suggestions |
+| `formatting` | `textDocument/formatting` | Format a document |
+
+**Common parameters:** Each operation accepts `filePath`, with `line`/`character` (1-based) for location-based ops. Operation-specific params: `query` (workspaceSymbol), `newName` (rename), `title` (applyCodeAction), `tabSize`/`insertSpaces` (formatting).
+
+#### Patterns
+
+- **InstanceState-scoped**: Single `State` object per open project (clients, servers, broken map, spawning map). Cleaned up on project close via `Effect.addFinalizer`.
+- **Broken server retry**: Failed spawns tracked in a `broken` map with 5-minute TTL. After cooldown, the server is retried automatically.
+- **Spawning dedup**: Concurrent spawns for the same server+root pair are deduplicated via an in-flight `spawning` map.
+- **Error isolation**: All LSP requests catch errors to `null`/`[]` — transport errors never propagate to the caller.
+- **Diagnostic merge**: Push diagnostics (from `textDocument/publishDiagnostics`) and pull diagnostics (on-demand) are merged per file, deduped by diagnostic message.
+
+#### Auto-Verification Guardrail
+
+Every file mutation (`edit`, `write`, `apply_patch`) automatically triggers `touchFile` + `diagnostics()` to surface errors to the AI immediately after the change. The `read` tool also refreshes LSP state on file open.
+
+#### Server Management
+
+30+ builtin language server definitions (TypeScript, Pyright, rust-analyzer, gopls, clangd, etc.), 15 with auto-download if the binary is missing. Lazily spawned per project root. Servers can be configured, overridden, or disabled via `openaxe.jsonc` under the `lsp` key.
 
 ## Architecture
 
