@@ -39,13 +39,14 @@
 - **Multi-provider LLM support** — 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, and more)
 - **Rich TUI** — SolidJS terminal UI with session management, conversation history, keyboard-driven workflow
 - **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
+- **Code intelligence** — Effect-based native LSP client (not MCP wrapper), 17 operations, 30+ builtin language servers with auto-download, diagnostics-driven auto-verification
 - **Plugin system** — Extend behavior with plugins from npm, local paths, or git URLs
 - **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, fork/continue
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Run as background server with HTTP API and optional web UI
 - **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
 - **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, persists across sessions
-- **Auto-verification guardrails** — automatic `tsc`/`cargo`/`ruff`/`go vet` after every file mutation
+- **Auto-verification guardrails** — automatic LSP diagnostics + `tsc`/`cargo`/`ruff`/`go vet` after every file mutation
 - **Versioned artifact store** with TUI preview
 - **Auto-commit**, **error journal**, **/revert** — productivity trio for AI change management
 
