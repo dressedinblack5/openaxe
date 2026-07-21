@@ -349,25 +349,17 @@
     "packages/script": {
       "name": "@opencode-ai/script",
       "version": "1.2.8",
-      "dependencies": {
-        "semver": "catalog:",
-      },
       "devDependencies": {
         "@types/bun": "1.3.13",
-        "@types/semver": "catalog:",
       },
     },
     "packages/sdk/js": {
       "name": "@opencode-ai/sdk",
       "version": "1.17.10",
-      "dependencies": {
-        "cross-spawn": "7.0.6",
-      },
       "devDependencies": {
         "@hey-api/openapi-ts": "0.90.10",
         "@tsconfig/node22": "22.0.2",
         "@types/bun": "1.3.13",
-        "@types/cross-spawn": "6.0.6",
         "@types/node": "24.12.2",
         "@typescript/native-preview": "7.0.0-dev.20251207.1",
         "typescript": "5.8.2",
@@ -1545,8 +1537,6 @@
     "@types/npmlog": ["@types/npmlog@7.0.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-hJWbrKFvxKyWwSUXjZMYTINsSOY6IclhvGOZ97M8ac2tmR9hMwmTnYaMdpGhvju9ctWLTPhCS+eLfQNluiEjQQ=="],
 
     "@types/pacote": ["@types/pacote@11.1.8", "", { "dependencies": { "@types/node": "*", "@types/npm-registry-fetch": "*", "@types/npmlog": "*", "@types/ssri": "*" } }, "sha512-/XLR0VoTh2JEO0jJg1q/e6Rh9bxjBq9vorJuQmtT7rRrXSiWz7e7NsvXVYJQ0i8JxMlBMPPYDTnrRe7MZRFA8Q=="],
-
-    "@types/semver": ["@types/semver@7.7.1", "", {}, "sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA=="],
 
     "@types/ssri": ["@types/ssri@7.1.5", "", { "dependencies": { "@types/node": "*" } }, "sha512-odD/56S3B51liILSk5aXJlnYt99S6Rt9EFDDqGtJM26rKHApHcwyU/UoYHrzKkdkHMAIquGWCuHtQTbes+FRQw=="],
 

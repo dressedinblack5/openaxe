@@ -47,7 +47,6 @@ const makeHint = (ttlSeconds: number | undefined): CacheHint =>
 const markLastTool = (tools: ReadonlyArray<ToolDefinition>, hint: CacheHint): ReadonlyArray<ToolDefinition> => {
   if (tools.length === 0) return tools
   const last = tools.length - 1
-  console.log("[cache-policy] markLastTool tools.length:", tools.length, "last tool cache:", tools[last].cache, "hint type:", hint.type)
   if (tools[last].cache) return tools
   return tools.map((tool, i) => (i === last ? new ToolDefinition({ ...tool, cache: hint }) : tool))
 }
@@ -99,7 +98,6 @@ const markMessages = (
 
 export const applyCachePolicy = (request: LLMRequest): LLMRequest => {
   const routeId = request.model.route.id
-  console.log("[cache-policy] routeId:", routeId, "RESPECTS:", RESPECTS_INLINE_HINTS.has(routeId))
   if (!RESPECTS_INLINE_HINTS.has(routeId)) return request
   const policy = resolve(request.cache)
   if (!policy.tools && !policy.system && !policy.messages) return request

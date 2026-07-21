@@ -31,19 +31,7 @@ import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
 
-function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = { ...target }
-  for (const key of Object.keys(source)) {
-    const sv = source[key]
-    const rv = result[key]
-    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
-      result[key] = mergeDeep(rv, sv)
-    } else if (sv !== undefined) {
-      result[key] = sv
-    }
-  }
-  return result
-}
+import { mergeDeep } from "../util/merge-deep"
 
 function mapValues<T, R>(obj: Record<string, T>, fn: (value: T, key: string) => R): Record<string, R> {
   return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v, k)]))

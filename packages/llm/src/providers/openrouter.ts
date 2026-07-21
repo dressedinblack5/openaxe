@@ -4,7 +4,7 @@ import { Endpoint } from "../route/endpoint"
 import { Framing } from "../route/framing"
 import { Protocol } from "../route/protocol"
 import { AuthOptions, type ProviderAuthOption } from "../route/auth-options"
-import { ProviderID, type ModelID, type ProviderOptions } from "../schema"
+import { ProviderID, type LLMRequest, type ModelID, type ProviderOptions } from "../schema"
 import { profiles } from "./openai-compatible-profile";
 import { bodyFields, protocol as chatProtocol } from "../protocols/openai-chat";
 import { isRecord } from "../protocols/shared"
@@ -35,11 +35,11 @@ const OpenRouterBody = Schema.StructWithRest(Schema.Struct(bodyFields), [
 ])
 export type OpenRouterBody = Schema.Schema.Type<typeof OpenRouterBody>
 
-export const protocol = Protocol.make({
+export const protocol = {
   id: "openrouter-chat",
   body: {
     schema: OpenRouterBody,
-    from: (request) =>
+    from: (request: LLMRequest) =>
       chatProtocol.body.from(request).pipe(
         Effect.map(
           (body) =>
@@ -51,7 +51,7 @@ export const protocol = Protocol.make({
       ),
   },
   stream: chatProtocol.stream,
-})
+}
 
 const bodyOptions = (input: unknown) => {
   const openrouter = isRecord(input) ? input : {}
