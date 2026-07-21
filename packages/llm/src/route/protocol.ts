@@ -69,16 +69,7 @@ export interface ProtocolStream<Frame, Event, State> {
  * - `body.from` ties the common `LLMRequest` to the provider body.
  * - `stream.event` infers the decoded streaming event and the wire frame.
  * - `stream.initial`, `stream.step`, and `stream.onHalt` infer the parser state.
- *
- * Provider implementations should usually call `Protocol.make({ ... })`
- * without explicit type arguments; the schemas and parser functions are the
- * source of truth. The constructor remains as the public seam for future
- * cross-cutting concerns such as tracing or instrumentation.
  */
-export const make = <Body, Frame, Event, State>(
-  input: Protocol<Body, Frame, Event, State>,
-): Protocol<Body, Frame, Event, State> => input
-
 export const jsonEvent = <const S extends Schema.Top>(schema: S) => Schema.fromJsonString(schema)
 
 export * as Protocol from "./protocol"

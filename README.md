@@ -20,13 +20,25 @@
   <img src="screenshots/openaxe-preview.png" alt="openaxe preview" width="720">
 </p>
 
+## Quick Start
+
+```bash
+# Install (Linux/macOS)
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash
+
+# Run in your project
+cd my-project
+openaxe
+```
+
+Set your provider API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) and you're off. See the [full guide](packages/openaxe/README.md#quick-start) for Windows, build-from-source, and prerequisites.
+
 ---
 
 ## Reading Guide
 
 | Goal | Start with |
-|---|---|
-| Install and try openaxe | [Quick Start](#quick-start) |
+|-----|---|
 | Understand the project | [Features](#features) → [Architecture](packages/openaxe/README.md#architecture) → [Security](#security) |
 | Browse available commands | [User Guide](packages/openaxe/README.md#user-guide) |
 | Set up providers | [Preinstalled Plugins](#preinstalled-plugins) |
@@ -40,15 +52,75 @@
 - **Multi-provider LLM support** — 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, and more)
 - **Rich TUI** — SolidJS terminal UI with session management, conversation history, keyboard-driven workflow
 - **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
+- **LSP native tooling arsenal** — Effect-based native LSP client (not an MCP wrapper), runs 17 code intelligence operations across 30+ builtin language servers. Every file mutation triggers automatic diagnostics. See [LSP details](#-lsp-native-tooling-arsenal) below.
 - **Plugin system** — Extend behavior with plugins from npm, local paths, or git URLs
 - **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, fork/continue
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Run as background server with HTTP API and optional web UI
 - **All major platforms** — Linux, macOS, Windows (native binaries with AVX2/musl detection)
 - **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, persists across sessions
-- **Auto-verification guardrails** — automatic `tsc`/`cargo`/`ruff`/`go vet` after every file mutation
+- **Auto-verification guardrails** — automatic LSP diagnostics + `tsc`/`cargo`/`ruff`/`go vet` after every file mutation
 - **Versioned artifact store** with TUI preview
 - **Auto-commit**, **error journal**, **/revert** — productivity trio for AI change management
+
+---
+
+## 🧰 Native LSP
+
+openaxe ships an **Effect-based native LSP client** that communicates directly with language servers over JSON-RPC 2.0 stdio — no MCP wrapper, no intermediary. It provides code intelligence to the AI assistant through 17 operations and auto-verifies every file mutation via diagnostics.
+
+### Architecture
+
+```
+src/lsp/
+├── lsp.ts          Effect service (Interface + Service + layer), 23 methods, InstanceState-scoped
+├── client.ts       JSON-RPC via vscode-jsonrpc, push+pull diagnostic merge, per-server debounce
+├── server.ts       30+ builtin server definitions, 15 with auto-download
+├── launch.ts       Child process spawn helper
+├── diagnostic.ts   Diagnostics-to-string formatting
+└── language.ts     Extension → languageId mapping
+```
+
+The `lsp` tool (in `src/tool/lsp.ts`) exposes all operations to the AI. Always available, no feature gate.
+
+### 17 Operations
+
+| Operation | What it does |
+|---|---|
+| `goToDefinition` | Find where a symbol is defined |
+| `findReferences` | Find all references to a symbol |
+| `hover` | Get documentation and type info at cursor |
+| `documentSymbol` | List all symbols (functions, classes, variables) in a document |
+| `workspaceSymbol` | Search project-wide symbols by query |
+| `goToImplementation` | Find implementations of an interface or abstract method |
+| `prepareCallHierarchy` | Get call hierarchy entry point at a position |
+| `incomingCalls` / `outgoingCalls` | What calls this function / what it calls |
+| `codeAction` / `applyCodeAction` | List and apply quick fixes, auto-imports, refactorings |
+| `rename` / `prepareRename` | Rename a symbol across the codebase |
+| `typeDefinition` | Find the type definition (e.g., the class of a variable) |
+| `signatureHelp` | Get parameter info at a call site |
+| `completion` | Get code completion suggestions |
+| `formatting` | Format a document |
+
+### Key Patterns
+
+- **InstanceState-scoped**: Per-project state (clients, servers, broken map). Cleaned up on project close via `Effect.addFinalizer`.
+- **Broken server retry**: Failed spawns tracked with 5-minute TTL. After cooldown, the server is retried automatically.
+- **Spawning dedup**: Concurrent spawns for the same server+root pair are deduplicated.
+- **Error isolation**: All LSP requests catch errors to `null`/`[]` — transport errors never propagate to the caller.
+- **Diagnostic merge**: Push diagnostics (from `textDocument/publishDiagnostics`) merged with on-demand pull diagnostics, deduped by message.
+
+### Server Support
+
+**30+ builtin language servers** spanning all major languages. 15 include auto-download when the binary is missing:
+
+TypeScript, Pyright, rust-analyzer, gopls, clangd, Biome, ESLint, Deno, Svelte, Astro, Vue, Ruby (rubocop), ElixirLS, Zls (Zig), C# (Roslyn), F#, Kotlin, Java (JDTLS), Dart, PHP (Intelephense), Lua, Bash, Terraform, Dockerfile, Prisma, Ocaml, Gleam, Clojure, Nix, Typst (Tinymist), Haskell, Julia, and SourceKit (Swift).
+
+Servers can be configured, overridden, or disabled per-project via `openaxe.jsonc` under the `lsp` key.
+
+### Auto-Verification Guardrail
+
+Every file mutation (`edit`, `write`, `apply_patch`) automatically opens the file in LSP and fetches diagnostics — surfacing compile errors, type errors, and lint issues to the AI immediately after the change. The `read` tool also refreshes LSP state when opening a file.
 
 ---
 
@@ -66,75 +138,6 @@
 - **Supply chain** — native deps use `node-gyp rebuild` during install. For defense-in-depth: `bun install --ignore-scripts` + `bun audit`.
 
 ---
-
-## Quick Start
-
-### Prerequisites
-
-- **Bun** 1.2+ — `curl -fsSL https://bun.sh/install | bash` (Linux/macOS) or `powershell -c "irm bun.sh/install.ps1 | iex"` (Windows)
-- **Git** 2.30+
-
-### Linux / macOS
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash
-```
-
-Installs `openaxe` to `~/.local/bin` and sets up a desktop entry.
-
-### Windows
-
-**Option 1 — Pre-built binary (recommended)**
-
-Download the latest `openaxe-windows-x64.zip` from the [releases page](https://github.com/dressedinblack5/openaxe/releases/latest), extract, and add to `PATH`.
-
-**Option 2 — Install script (cmd.exe)**
-
-```batch
-curl -fsSLo install.bat https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install.bat
-install.bat
-```
-
-If you prefer building from source, see [Build from Source](#build-from-source) below.
-
-### Build from source
-
-```powershell
-git clone https://github.com/dressedinblack5/openaxe.git
-cd openaxe
-bun install
-.\packages\openaxe\bin\openaxe
-```
-
-### Pre-built Binary
-
-Download the archive for your platform from the [latest release](https://github.com/dressedinblack5/openaxe/releases/latest), extract it, and place the binary in your `PATH`:
-
-| Platform | Archive |
-|---|---|
-| Linux x64 | `openaxe-linux-x64.tar.gz` |
-| Linux x64 (AVX2) | `openaxe-linux-x64.tar.gz` (preferred on modern CPUs) |
-| Linux arm64 | `openaxe-linux-arm64.tar.gz` |
-| macOS x64 | `openaxe-darwin-x64.tar.gz` |
-| macOS arm64 | `openaxe-darwin-arm64.tar.gz` |
-| Windows x64 | `openaxe-windows-x64.zip` |
-
-```bash
-# Linux / macOS
-tar xzf openaxe-*.tar.gz
-mv openaxe ~/.local/bin/
-
-# Windows
-# Extract the zip and add the folder to your PATH
-```
-
-### First Run
-
-```bash
-cd my-project
-openaxe                  # launch TUI
-openaxe run "summarize this codebase"  # non-interactive
-```
 
 ## Preinstalled Plugins
 
@@ -169,7 +172,7 @@ Plugins are npm packages that declare entrypoints in `package.json` under `expor
 { "plugin": ["my-plugin"] }
 ```
 
-### Recommended Plugins
+### Installed Plugins
 
 Auto-configured on first run. They auto-install the first time you run `openaxe`:
 

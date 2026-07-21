@@ -940,7 +940,7 @@ const step = (state: ParserState, event: OpenAIResponsesEvent) => {
  * the streaming-event state machine. Used by native OpenAI and (once
  * registered) Azure OpenAI Responses.
  */
-export const protocol = Protocol.make({
+export const protocol = {
   id: ADAPTER,
   body: {
     schema: OpenAIResponsesBody,
@@ -948,7 +948,7 @@ export const protocol = Protocol.make({
   },
   stream: {
     event: Protocol.jsonEvent(OpenAIResponsesEvent),
-    initial: (request) => ({
+    initial: (request: LLMRequest) => ({
       hasFunctionCall: false,
       tools: ToolStream.empty<string>(),
       lifecycle: Lifecycle.initial(),
@@ -956,9 +956,9 @@ export const protocol = Protocol.make({
       store: OpenAIOptions.store(request),
     }),
     step,
-    terminal: (event) => TERMINAL_TYPES.has(event.type),
+    terminal: (event: OpenAIResponsesEvent) => TERMINAL_TYPES.has(event.type),
   },
-})
+}
 
 const endpoint = Endpoint.path<OpenAIResponsesBody>(PATH, { baseURL: DEFAULT_BASE_URL })
 const auth = Auth.none

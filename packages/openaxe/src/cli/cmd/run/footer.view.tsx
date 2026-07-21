@@ -713,7 +713,7 @@ const statusLineData = createMemo(() => {
                               closePanel()
                             }}
                           />
-                        </Match>
+                          </Match>
                         <Match when={varianting()}>
                           <RunVariantSelectBody
                             theme={theme}

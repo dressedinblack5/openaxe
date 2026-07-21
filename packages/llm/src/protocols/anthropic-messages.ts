@@ -819,7 +819,7 @@ const step = (state: ParserState, event: AnthropicEvent) => {
  * and the streaming-event state machine. Used by native Anthropic Cloud and
  * (once registered) Vertex Anthropic / Bedrock-hosted Anthropic passthrough.
  */
-export const protocol = Protocol.make({
+export const protocol = {
   id: ADAPTER,
   body: {
     schema: AnthropicMessagesBody,
@@ -830,7 +830,7 @@ export const protocol = Protocol.make({
     initial: () => ({ tools: ToolStream.empty<number>(), lifecycle: Lifecycle.initial() }),
     step,
   },
-})
+}
 
 export const route = Route.make({
   id: ADAPTER,

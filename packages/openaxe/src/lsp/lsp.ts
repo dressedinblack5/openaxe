@@ -96,6 +96,8 @@ const kinds = [
   SymbolKind.Enum,
 ]
 
+const BROKEN_TTL = 300_000 // 5 minutes before retrying a failed LSP server
+
 const filterExperimentalServers = (servers: Record<string, ServerInfo>, flags: RuntimeFlags.Info) => {
   if (flags.experimentalLspTy) {
     if (servers["pyright"]) {
@@ -113,7 +115,7 @@ type LocInput = { file: string; line: number; character: number }
 interface State {
   clients: ClientInfo[]
   servers: Record<string, ServerInfo>
-  broken: Set<string>
+  broken: Map<string, number>
   spawning: Map<string, Promise<ClientInfo | undefined>>
 }
 
@@ -132,6 +134,14 @@ export interface Interface {
   readonly prepareCallHierarchy: (input: LocInput) => Effect.Effect<any[]>
   readonly incomingCalls: (input: LocInput) => Effect.Effect<any[]>
   readonly outgoingCalls: (input: LocInput) => Effect.Effect<any[]>
+  readonly codeAction: (input: LocInput & { range?: Range }) => Effect.Effect<any[]>
+  readonly rename: (input: LocInput & { newName: string }) => Effect.Effect<any[]>
+  readonly prepareRename: (input: LocInput) => Effect.Effect<any>
+  readonly typeDefinition: (input: LocInput) => Effect.Effect<any[]>
+  readonly signatureHelp: (input: LocInput) => Effect.Effect<any>
+  readonly completion: (input: LocInput) => Effect.Effect<any[]>
+  readonly formatting: (input: { file: string; tabSize?: number; insertSpaces?: boolean }) => Effect.Effect<any[]>
+  readonly applyCodeAction: (input: LocInput & { title: string; range?: Range }) => Effect.Effect<any[]>
   readonly removeClients: (root: string) => Effect.Effect<void>
 }
 
@@ -191,7 +201,7 @@ export const layer = Layer.effect(
         const s: State = {
           clients: [],
           servers,
-          broken: new Set(),
+          broken: new Map(),
           spawning: new Map(),
         }
 
@@ -218,11 +228,11 @@ export const layer = Layer.effect(
           const handle = await server
             .spawn(root, ctx, flags)
             .then((value) => {
-              if (!value) s.broken.add(key)
+              if (!value) s.broken.set(key, Date.now())
               return value
             })
             .catch((err) => {
-              s.broken.add(key)
+              s.broken.set(key, Date.now())
               return undefined
             })
 
@@ -234,7 +244,7 @@ export const layer = Layer.effect(
             directory: ctx.directory,
             instance: ctx,
           }).catch(async (err) => {
-            s.broken.add(key)
+            s.broken.set(key, Date.now())
             await Process.stop(handle.process)
             return undefined
           })
@@ -256,7 +266,10 @@ export const layer = Layer.effect(
 
           const root = await server.root(file, ctx)
           if (!root) continue
-          if (s.broken.has(root + server.id)) continue
+          const brokenKey = root + server.id
+          const brokenAt = s.broken.get(brokenKey)
+          if (brokenAt && Date.now() - brokenAt < BROKEN_TTL) continue
+          if (brokenAt) s.broken.delete(brokenKey)
 
           const match = s.clients.find((x) => x.root === root && x.serverID === server.id)
           if (match) {
@@ -334,7 +347,10 @@ export const layer = Layer.effect(
           if (server.extensions.length && !server.extensions.includes(extension)) continue
           const root = await server.root(file, ctx)
           if (!root) continue
-          if (s.broken.has(root + server.id)) continue
+          const brokenKey = root + server.id
+          const brokenAt = s.broken.get(brokenKey)
+          if (brokenAt && Date.now() - brokenAt < BROKEN_TTL) continue
+          if (brokenAt) s.broken.delete(brokenKey)
           return true
         }
         return false
@@ -477,6 +493,115 @@ export const layer = Layer.effect(
       return yield* callHierarchyRequest(input, "callHierarchy/outgoingCalls")
     })
 
+    const codeAction = Effect.fn("LSP.codeAction")(function* (input: LocInput & { range?: Range }) {
+      const results = yield* run(input.file, (client) =>
+        client.connection
+          .sendRequest("textDocument/codeAction", {
+            textDocument: { uri: pathToFileURL(input.file).href },
+            range: input.range ?? {
+              start: { line: input.line, character: input.character },
+              end: { line: input.line, character: input.character },
+            },
+            context: { diagnostics: [] },
+          })
+          .catch(() => []),
+      )
+      return results.flat().filter(Boolean)
+    })
+
+    const prepareRename = Effect.fn("LSP.prepareRename")(function* (input: LocInput) {
+      const results = yield* run(input.file, (client) =>
+        client.connection
+          .sendRequest("textDocument/prepareRename", {
+            textDocument: { uri: pathToFileURL(input.file).href },
+            position: { line: input.line, character: input.character },
+          })
+          .catch(() => null),
+      )
+      return results.filter(Boolean)
+    })
+
+    const rename = Effect.fn("LSP.rename")(function* (input: LocInput & { newName: string }) {
+      const results = yield* run(input.file, (client) =>
+        client.connection
+          .sendRequest("textDocument/rename", {
+            textDocument: { uri: pathToFileURL(input.file).href },
+            position: { line: input.line, character: input.character },
+            newName: input.newName,
+          })
+          .catch(() => null),
+      )
+      return results.filter(Boolean)
+    })
+
+    const typeDefinition = Effect.fn("LSP.typeDefinition")(function* (input: LocInput) {
+      const results = yield* run(input.file, (client) =>
+        client.connection
+          .sendRequest("textDocument/typeDefinition", {
+            textDocument: { uri: pathToFileURL(input.file).href },
+            position: { line: input.line, character: input.character },
+          })
+          .catch(() => null),
+      )
+      return results.flat().filter(Boolean)
+    })
+
+    const signatureHelp = Effect.fn("LSP.signatureHelp")(function* (input: LocInput) {
+      const results = yield* run(input.file, (client) =>
+        client.connection
+          .sendRequest("textDocument/signatureHelp", {
+            textDocument: { uri: pathToFileURL(input.file).href },
+            position: { line: input.line, character: input.character },
+          })
+          .catch(() => null),
+      )
+      return results.filter(Boolean)
+    })
+
+    const completion = Effect.fn("LSP.completion")(function* (input: LocInput) {
+      const results = yield* run(input.file, (client) =>
+        client.connection
+          .sendRequest("textDocument/completion", {
+            textDocument: { uri: pathToFileURL(input.file).href },
+            position: { line: input.line, character: input.character },
+          })
+          .catch(() => []),
+      )
+      return results.flat().filter(Boolean)
+    })
+
+    const formatting = Effect.fn("LSP.formatting")(function* (input: { file: string; tabSize?: number; insertSpaces?: boolean }) {
+      const results = yield* run(input.file, (client) =>
+        client.connection
+          .sendRequest("textDocument/formatting", {
+            textDocument: { uri: pathToFileURL(input.file).href },
+            options: {
+              tabSize: input.tabSize ?? 2,
+              insertSpaces: input.insertSpaces ?? true,
+            },
+          })
+          .catch(() => []),
+      )
+      return results.flat().filter(Boolean)
+    })
+
+    const applyCodeAction = Effect.fn("LSP.applyCodeAction")(function* (input: LocInput & { title: string; range?: Range }) {
+      const results = yield* run(input.file, async (client) => {
+        const actions = await client.connection
+          .sendRequest<any[]>("textDocument/codeAction", {
+            textDocument: { uri: pathToFileURL(input.file).href },
+            range: input.range ?? {
+              start: { line: input.line, character: input.character },
+              end: { line: input.line, character: input.character },
+            },
+            context: { diagnostics: [] },
+          })
+          .catch(() => [])
+        return actions.find((a: any) => a.title === input.title) ?? null
+      })
+      return results.filter(Boolean)
+    })
+
     const removeClients = Effect.fn("LSP.removeClients")(function* (root: string) {
       const s = yield* InstanceState.get(state)
       const toRemove = s.clients.filter((c) => c.root === root)
@@ -505,6 +630,14 @@ export const layer = Layer.effect(
       prepareCallHierarchy,
       incomingCalls,
       outgoingCalls,
+      codeAction,
+      rename,
+      prepareRename,
+      typeDefinition,
+      signatureHelp,
+      completion,
+      formatting,
+      applyCodeAction,
       removeClients,
     })
   }),

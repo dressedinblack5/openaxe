@@ -8,11 +8,10 @@
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
-    "semver": "catalog:"
+
   },
   "devDependencies": {
-    "@types/bun": "1.3.13",
-    "@types/semver": "catalog:"
+    "@types/bun": "1.3.13"
   },
   "exports": {
     ".": "./src/index.ts"

@@ -44,6 +44,7 @@ import { DialogStatus } from "./component/dialog-status"
 import { DialogThemeList } from "./component/dialog-theme-list"
 import { DialogHelp } from "./ui/dialog-help"
 import { DialogAgent } from "./component/dialog-agent"
+import { DialogConfigureAgent } from "./component/dialog-configure-agent"
 import { DialogSessionList } from "./component/dialog-session-list"
 import { DialogWorkspaceList } from "./component/dialog-workspace-list"
 import { DialogConsoleOrg } from "./component/dialog-console-org"
@@ -102,6 +103,7 @@ const appGlobalBindingCommands = [
 
 const appBindingCommands = [
   "command.palette.show",
+  "agent.configure",
   "model.list",
   "model.cycle_recent",
   "model.cycle_recent_reverse",
@@ -638,6 +640,15 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
           local.session.quickSwitch(i + 1)
         },
       })),
+      {
+        name: "agent.configure",
+        title: "Configure agent model",
+        category: "Agent",
+        slashName: "agent-model",
+        run: () => {
+          dialog.replace(() => <DialogConfigureAgent />)
+        },
+      },
       {
         name: "model.list",
         title: "Switch model",

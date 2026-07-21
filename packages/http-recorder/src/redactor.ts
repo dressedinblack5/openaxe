@@ -62,13 +62,6 @@ export const body = (transform: (parsed: unknown) => unknown): Partial<Redactor>
   }),
 })
 
-export interface DefaultRedactorOverrides {
-  readonly requestHeaders?: HeaderOptions
-  readonly responseHeaders?: HeaderOptions
-  readonly url?: UrlOptions
-  readonly body?: (parsed: unknown) => unknown
-}
-
 const DEFAULT_REDACT_JSON_FIELDS = [
   "access_token",
   "api_key",
@@ -125,11 +118,3 @@ export const make = (options: RedactOptions = {}): Redactor => {
     },
   )
 }
-
-export const defaults = (overrides: DefaultRedactorOverrides = {}): Redactor =>
-  compose(
-    requestHeaders(overrides.requestHeaders),
-    responseHeaders(overrides.responseHeaders),
-    url(overrides.url),
-    ...(overrides.body ? [body(overrides.body)] : []),
-  )

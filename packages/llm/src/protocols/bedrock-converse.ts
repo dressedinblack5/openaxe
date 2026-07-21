@@ -628,7 +628,7 @@ const onHalt = (state: ParserState): ReadonlyArray<LLMEvent> =>
  * The Bedrock Converse protocol — request body construction, body schema, and
  * the streaming-event state machine.
  */
-export const protocol = Protocol.make({
+export const protocol = {
   id: ADAPTER,
   body: {
     schema: BedrockConverseBody,
@@ -646,7 +646,7 @@ export const protocol = Protocol.make({
     step,
     onHalt,
   },
-})
+}
 
 export const route = Route.make({
   id: ADAPTER,

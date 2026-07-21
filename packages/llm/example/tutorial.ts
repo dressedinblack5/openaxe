@@ -174,7 +174,7 @@ const FakeBody = Schema.Struct({
 })
 type FakeBody = Schema.Schema.Type<typeof FakeBody>
 
-const FakeProtocol = Protocol.make<FakeBody, string, string, void>({
+const FakeProtocol: Protocol<FakeBody, string, string, void> = {
   // Protocol ids are open strings, so external packages can define their own
   // protocols without changing this package.
   id: "fake-echo",
@@ -196,16 +196,13 @@ const FakeProtocol = Protocol.make<FakeBody, string, string, void>({
     step: (_, frame) => Effect.succeed([undefined, [{ type: "text-delta", id: "text-0", text: frame }]] as const),
     onHalt: () => [{ type: "finish", reason: "stop" }],
   },
-})
-
-// An route is the runnable binding for that protocol. It adds the deployment
-// axes that the protocol deliberately does not know: URL, auth, and framing.
+}
 const FakeAdapter = Route.make({
   id: "fake-echo",
   provider: "fake-echo",
   protocol: FakeProtocol,
   endpoint: Endpoint.path("/v1/echo", { baseURL: "https://fake.local" }),
-  auth: Auth.passthrough,
+  auth: Auth.none,
   framing: Framing.sse,
 })
 

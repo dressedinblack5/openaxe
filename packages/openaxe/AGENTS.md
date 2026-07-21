@@ -62,6 +62,7 @@ packages/openaxe/
 | Effect services | `src/effect/` | Runtime, InstanceState, Bridge |
 | Tests | `test/` | Per-module test dirs |
 | Test helpers | `test/lib/` | testEffect, llm server |
+| LSP native client | `src/lsp/` | Effect-based LSP, 17 tool operations, 30+ builtin servers |
 | Effect migration specs | `specs/effect/migration.md` | Compact pattern reference |
 
 ## CODE MAP
@@ -240,3 +241,61 @@ Use `Effect.cached` when multiple concurrent callers should share a single in-fl
 Use `EffectBridge` for native or external callbacks (`@parcel/watcher`, `node-pty`, native `fs.watch`, plugin callbacks, etc.) that need to re-enter Effect services with instance/workspace context.
 
 Plain async code should pass explicit context or stay inside an Effect fiber; do not add ambient instance context shims.
+
+# LSP native tooling
+
+Effect-based native LSP client (not MCP wrapper) in `src/lsp/`. Provides diagnostics, navigation, and code actions directly to the tool system.
+
+## Architecture
+
+```
+src/lsp/
+├── lsp.ts          Effect service (Interface + Service + layer), 23 methods, InstanceState-scoped
+├── client.ts       JSON-RPC via vscode-jsonrpc, push+pull diagnostic merge, per-server debounce
+├── server.ts       30+ builtin server definitions, 15 with auto-download
+├── launch.ts       Child process spawn helper
+├── diagnostic.ts   Diagnostics-to-string formatting
+├── language.ts     Extension → languageId mapping
+└── lsp.txt         Tool documentation (src/tool/lsp.txt)
+```
+
+## LSP service methods (`src/lsp/lsp.ts` — `Interface`)
+
+| Method | LSP Request | Returns |
+|--------|-------------|---------|
+| `init` | — | `void` (loads config, builds server map) |
+| `status` | — | `Status[]` (server id + connected/error) |
+| `hasClients` | — | `boolean` (any server matches file extension) |
+| `touchFile` | `textDocument/didOpen` + `didChange` | `void` (opens file, optionally waits for diagnostics) |
+| `diagnostics` | — | `Record<string, Diagnostic[]>` (all current diagnostics) |
+| `hover` | `textDocument/hover` | Markdown content |
+| `definition` | `textDocument/definition` | Location[] |
+| `references` | `textDocument/references` | Location[] |
+| `implementation` | `textDocument/implementation` | Location[] |
+| `documentSymbol` | `textDocument/documentSymbol` | DocumentSymbol[] or Symbol[] |
+| `workspaceSymbol` | `workspace/symbol` | Symbol[] |
+| `prepareCallHierarchy` | `textDocument/prepareCallHierarchy` | CallHierarchyItem[] |
+| `incomingCalls` / `outgoingCalls` | `callHierarchy/incomingCalls` / `outgoingCalls` | CallHierarchyIncomingCall[] / OutgoingCall[] |
+| `codeAction` | `textDocument/codeAction` | Command[] |
+| `applyCodeAction` | `textDocument/codeAction` (resolve) + apply edit | any[] |
+| `rename` | `textDocument/rename` | WorkspaceEdit |
+| `prepareRename` | `textDocument/prepareRename` | Range \| null |
+| `typeDefinition` | `textDocument/typeDefinition` | Location[] |
+| `signatureHelp` | `textDocument/signatureHelp` | SignatureHelp |
+| `completion` | `textDocument/completion` | CompletionItem[] |
+| `formatting` | `textDocument/formatting` | TextEdit[] |
+| `removeClients` | — | `void` (shutdown + clear state) |
+
+## Tool integration (`src/tool/lsp.ts`)
+
+The `LSP` tool exposes all operations to the AI assistant. Always available (no feature gate). Operations: `goToDefinition`, `findReferences`, `hover`, `documentSymbol`, `workspaceSymbol`, `goToImplementation`, `prepareCallHierarchy`, `incomingCalls`, `outgoingCalls`, `codeAction`, `applyCodeAction`, `rename`, `prepareRename`, `typeDefinition`, `signatureHelp`, `completion`, `formatting`.
+
+Each operation accepts at minimum `file`, with `line`/`character` for location-based ops, plus operation-specific params (`newName`, `title`, `tabSize`, etc.).
+
+## Patterns
+
+- **InstanceState-scoped**: Single `State` object per open project (clients, servers, broken map, spawning map). Cleaned up on project close via `Effect.addFinalizer`.
+- **Broken server retry**: Failed spawns tracked in `broken: Map<string, number>` with 5-minute TTL. After cooldown, server is retried automatically.
+- **Spawning dedup**: `spawning: Map<string, Promise<...>>` prevents concurrent spawns for the same server+root pair.
+- **Error handling**: All LSP requests catch errors to `null`/`[]` — never propagate transport errors to the caller. The `run()` helper wraps `getClients` + fan-out.
+- **Diagnostic merge**: `client.ts` merges push diagnostics (sent by server) with pull diagnostics (on-demand) per file. Deduped by diagnostic message. Four tool edit operations call `touchFile` post-write to refresh diagnostics.

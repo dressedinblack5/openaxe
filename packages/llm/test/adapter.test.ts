@@ -44,7 +44,7 @@ const raiseEvent = (event: FakeEvent): import("../src/schema").LLMEvent =>
     ? { type: "finish", reason: event.reason }
     : { type: "text-delta", id: "text-0", text: event.text }
 
-const fakeProtocol = Protocol.make<FakeBody, FakeEvent, FakeEvent, void>({
+const fakeProtocol: Protocol<FakeBody, FakeEvent, FakeEvent, void> = {
   id: "fake",
   body: {
     schema: Schema.Struct({
@@ -66,7 +66,7 @@ const fakeProtocol = Protocol.make<FakeBody, FakeEvent, FakeEvent, void>({
     initial: () => undefined,
     step: (state, event) => Effect.succeed([state, [raiseEvent(event)]] as const),
   },
-})
+}
 
 const fake = Route.make({
   id: "fake",
@@ -144,13 +144,13 @@ describe("llm route", () => {
     Effect.gen(function* () {
       const duplicate = Route.make({
         id: "fake",
-        protocol: Protocol.make({
+        protocol: {
           ...fakeProtocol,
           body: {
             ...fakeProtocol.body,
             from: () => Effect.succeed({ body: "late-default" }),
           },
-        }),
+        },
         endpoint: Endpoint.path("/chat", { baseURL: "https://fake.local" }),
         framing: fakeFraming,
       })
