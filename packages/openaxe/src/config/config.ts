@@ -273,9 +273,14 @@ export const layer = Layer.effect(
             .pipe(Effect.catch(() => Effect.void))
         }
       }
-      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "config.json"), env))
-      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "openaxe.json"), env))
-      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "openaxe.jsonc"), env))
+      const [configJson, openaxeJson, openaxeJsonc] = yield* Effect.all([
+        loadFile(path.join(Global.Path.config, "config.json"), env),
+        loadFile(path.join(Global.Path.config, "openaxe.json"), env),
+        loadFile(path.join(Global.Path.config, "openaxe.jsonc"), env),
+      ])
+      result = mergeConfig(result, configJson)
+      result = mergeConfig(result, openaxeJson)
+      result = mergeConfig(result, openaxeJsonc)
 
       const legacy = path.join(Global.Path.config, "config")
       if (yield* fs.existsSafe(legacy)) {
@@ -464,28 +469,31 @@ export const layer = Layer.effect(
 
           yield* ensureGitignore(dir).pipe(Effect.orDie)
 
-          const dep = yield* npmSvc
-            .install(dir, {
-              add: [
-                {
-                  name: "@opencode-ai/plugin",
-                  version: InstallationLocal ? undefined : InstallationVersion,
-                },
-              ],
-            })
-            .pipe(
-              Effect.exit,
-              Effect.tap((exit) =>
-                Exit.isFailure(exit)
-                  ? String(exit.cause).includes("catalog:")
-                    ? Effect.void
-                    : Effect.logWarning("background dependency install failed", { dir, error: String(exit.cause) })
-                  : Effect.void,
-              ),
-              Effect.asVoid,
-              Effect.forkDetach,
-            )
-          deps.push(dep)
+          // ponytail: skip npm install if @opencode-ai/plugin already installed
+          if (!existsSync(path.join(dir, "node_modules", "@opencode-ai", "plugin"))) {
+            const dep = yield* npmSvc
+              .install(dir, {
+                add: [
+                  {
+                    name: "@opencode-ai/plugin",
+                    version: InstallationLocal ? undefined : InstallationVersion,
+                  },
+                ],
+              })
+              .pipe(
+                Effect.exit,
+                Effect.tap((exit) =>
+                  Exit.isFailure(exit)
+                    ? String(exit.cause).includes("catalog:")
+                      ? Effect.void
+                      : Effect.logWarning("background dependency install failed", { dir, error: String(exit.cause) })
+                    : Effect.void,
+                ),
+                Effect.asVoid,
+                Effect.forkDetach,
+              )
+            deps.push(dep)
+          }
 
           result.command = mergeDeep(result.command ?? {}, yield* Effect.promise(() => ConfigCommand.load(dir)))
           result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.load(dir)))
