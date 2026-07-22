@@ -1,4 +1,4 @@
-import "./init-projectors"
+
 
 import { NodeHttpServer } from "@effect/platform-node"
 import { ConfigProvider, Context, Effect, Exit, Layer, Scope } from "effect"

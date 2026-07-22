@@ -90,6 +90,3 @@ process.env["OPENCODE_DISABLE_DEFAULT_PLUGINS"] = "true"
 process.env["OPENCODE_DB"] = ":memory:"
 
 // Now safe to import from src/
-const { initProjectors } = await import("../src/server/projectors")
-
-initProjectors()
