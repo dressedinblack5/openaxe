@@ -178,9 +178,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     const colorScheme = (read(STORAGE_KEYS.COLOR_SCHEME) as ColorScheme | null) ?? "system"
     const mode = colorScheme === "system" ? getSystemMode() : colorScheme
     const [store, setStore] = createStore({
-      themes: {
-        "oc-2": oc2Theme,
-      } as Record<string, DesktopTheme>,
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- needed for index signature in store
+      themes: { "oc-2": oc2Theme } as Record<string, DesktopTheme>,
       themeId,
       colorScheme,
       mode,
