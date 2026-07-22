@@ -552,7 +552,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           },
         },
         async getModel(sdk: any, modelID: string) {
-          const id = String(modelID).trim()
+          const id = modelID.trim()
           return sdk.languageModel(id)
         },
       }
@@ -572,7 +572,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           ...(baseURL && { baseURL }),
         },
         async getModel(sdk: any, modelID) {
-          const id = String(modelID).trim()
+          const id = modelID.trim()
           return sdk.languageModel(id)
         },
       }
@@ -728,7 +728,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
             }
 
             return models
-          } catch (e) {
+          } catch  {
             return {}
           }
         },
@@ -956,7 +956,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
                 ctrl.enqueue(encoder.encode(text.replace(/"role"\s*:\s*""/g, '"role":"assistant"')))
               },
               cancel() {
-                reader.cancel()
+                void reader.cancel()
               },
             })
             return new Response(stream, { headers: response.headers, status: response.status })
@@ -1706,7 +1706,7 @@ export const layer = Layer.effect(
                   providers[gitlab].models[modelID] = model
                 }
               }
-            } catch (e) {
+            } catch  {
               // expected for non-standard provider responses
             }
           })

@@ -49,7 +49,7 @@ export function client<T extends Definition>(target: {
         target.postMessage(JSON.stringify({ type: "rpc.request", method, input, id: requestId }))
       })
     },
-    on<Data>(event: string, handler: (data: Data) => void) {
+    on(event: string, handler: (data: unknown) => void) {
       let handlers = listeners.get(event)
       if (!handlers) {
         handlers = new Set()

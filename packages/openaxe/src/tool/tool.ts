@@ -2,8 +2,6 @@ import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Effect, Schema } from "effect"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import type { JSONSchema7 } from "@ai-sdk/provider"
-import type { MessageV2 } from "../session/message-v2"
-import type { Permission } from "../permission"
 import type { SessionID, MessageID } from "../session/schema"
 import type { Interface } from "./truncate"
 import { Service } from "./truncate";

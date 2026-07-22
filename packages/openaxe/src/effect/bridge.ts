@@ -67,7 +67,7 @@ export function make(): Effect.Effect<Shape> {
         restoreWorkspace(workspace, () => Effect.runFork(wrap(effect))),
       run: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
         Effect.callback<A, E>((resume) => {
-          restoreWorkspace(workspace, () =>
+          void restoreWorkspace(workspace, () =>
             Effect.runPromiseExit(wrap(effect)).then((exit) =>
               resume(Exit.isSuccess(exit) ? Effect.succeed(exit.value) : Effect.failCause(exit.cause)),
             ),

@@ -15,7 +15,6 @@ import { Npm } from "@opencode-ai/core/npm"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { InstanceLayer } from "@/project/instance-layer"
-import { memoMap } from "@opencode-ai/core/effect/memo-map"
 
 /**
  * Minimal service layer for headless commands (serve, etc.).

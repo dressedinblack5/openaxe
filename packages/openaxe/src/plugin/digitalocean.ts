@@ -146,7 +146,7 @@ async function startOAuthServer(): Promise<void> {
         }
         if (body.error) {
           const message = body.error_description || body.error || "OAuth error"
-          pendingOAuth.reject(new Error(String(message)))
+          pendingOAuth.reject(new Error(message))
           pendingOAuth = undefined
           res.writeHead(200, { "Content-Type": "application/json" })
           res.end(JSON.stringify({ ok: true }))
@@ -364,7 +364,7 @@ export async function DigitalOceanAuthPlugin(input: PluginInput): Promise<Hooks>
                       routers_fetched_at: String(Date.now()),
                     },
                   }
-                } catch (err) {
+                } catch  {
                   return { type: "failed" as const }
                 } finally {
                   stopOAuthServer()

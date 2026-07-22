@@ -4,7 +4,7 @@ import { createMessageConnection, StreamMessageReader, StreamMessageWriter } fro
 import type { Diagnostic as VSCodeDiagnostic } from "vscode-languageserver-types"
 import { Process } from "@/util/process"
 import { LANGUAGE_EXTENSIONS } from "./language"
-import { Effect, Schema } from "effect"
+import { Schema } from "effect"
 import type { Handle } from "./server";
 import { withTimeout } from "../util/timeout"
 import { Filesystem } from "@/util/filesystem"
@@ -127,7 +127,7 @@ export async function create(input: {
   directory: string
   instance: InstanceContext
 }) {
-  const instance = input.instance
+  
 
   const connection = createMessageConnection(
     new StreamMessageReader(input.server.process.stdout as any),
@@ -398,7 +398,7 @@ export async function create(input: {
       }
 
       for (const request of requests) {
-        request.then((result) => {
+        void request.then((result) => {
           results.push(result)
           pending -= 1
           const merged = mergeResults(filePath, results)

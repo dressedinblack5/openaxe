@@ -363,12 +363,12 @@ export const RunCommand = effectCmd({
             const handle = await open(resolvedPath, "r")
             try {
               const opened = await handle.stat()
-              if (!opened.isFile() || Number(opened.size) > ATTACH_FILE_MAX_BYTES) {
+              if (!opened.isFile() || opened.size > ATTACH_FILE_MAX_BYTES) {
                 UI.error(`Cannot attach local file larger than 10 MiB or a special file: ${filePath}`)
                 process.exit(1)
               }
               if (opened.size === 0) return Buffer.alloc(0)
-              const buffer = Buffer.alloc(Number(opened.size))
+              const buffer = Buffer.alloc(opened.size)
               let offset = 0
               while (offset < buffer.length) {
                 const read = await handle.read(buffer, offset, buffer.length - offset, offset)
@@ -762,7 +762,7 @@ export const RunCommand = effectCmd({
             if (event.type === "session.error") {
               const props = event.properties
               if (props.sessionID !== sessionID || !props.error) continue
-              let err = String(props.error.name)
+              let err = props.error.name
               if ("data" in props.error && props.error.data && "message" in props.error.data) {
                 err = String(props.error.data.message)
               }

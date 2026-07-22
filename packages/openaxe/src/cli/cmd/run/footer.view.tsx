@@ -30,7 +30,6 @@ import { footerWidthPolicy } from "./footer.width"
 import {
   OPENCODE_BASE_MODE,
   useBindings,
-  useKeymapSelector,
   type OpenTuiKeymap,
 } from "@opencode-ai/tui/keymap"
 import type {
@@ -137,15 +136,15 @@ export function RunFooterView(props: RunFooterViewProps) {
     const currentActive = active()
     const currentRoute = route()
     const currentSubagent = subagent()
-    const currentQueuedPrompts = queuedPrompts()
-    const currentSkills = skills()
+    
+    
     const currentBackgroundSubagents = props.backgroundSubagents
     const currentProviders = props.providers()
     const currentCurrentModel = props.currentModel()
     const currentState = props.state()
-    const currentCommands = props.commands()
-    const currentVariants = props.variants()
-    const currentCurrentVariant = props.currentVariant()
+    
+    
+    
     const currentTuiConfig = props.tuiConfig
     
     const isPrompt = currentActive.type === "prompt"
@@ -274,19 +273,19 @@ export function RunFooterView(props: RunFooterViewProps) {
   const panel = () => derived().panel
   const selected = () => derived().selected
   const tabs = () => derived().tabs
-  const activeTabs = () => derived().activeTabs
+  
   const selectedTab = () => derived().selectedTab
   const selectedIndex = () => derived().selectedIndex
-  const foregroundSubagents = () => derived().foregroundSubagents
-  const model = () => derived().model
+  
+  
   const detail = () => derived().detail
   
   const keymaps = () => derived().keymaps
   const busy = () => derived().busy
   const armed = () => derived().armed
   const exiting = () => derived().exiting
-  const queue = () => derived().queue
-  const usage = () => derived().usage
+  
+  
   const interruptLabel = () => derived().interruptLabel
   const theme = () => derived().theme
   const block = () => derived().block
@@ -394,8 +393,8 @@ const statusLineData = createMemo(() => {
     const state = props.state()
     const currentModel = props.currentModel()
     const currentVariant = props.currentVariant()
-    const currentProviders = props.providers()
-    const currentCommands = props.commands()
+    
+    
     const currentBackgroundSubagents = props.backgroundSubagents
     const currentResponsive = responsive()
     const currentPrompt = d.prompt
@@ -519,56 +518,7 @@ const statusLineData = createMemo(() => {
     })
   }
 
-  const bindings = useBindings(() => ({
-    mode: OPENCODE_BASE_MODE,
-    enabled: active().type === "prompt" && route().type === "composer" && !composer.visible(),
-    commands: [
-      {
-        name: "command.palette.show",
-        title: "Open command palette",
-        category: "Prompt",
-        run: openCommand,
-      },
-      {
-        name: "variant.cycle",
-        title: "Cycle model variant",
-        category: "Model",
-        run: props.onCycle,
-      },
-      {
-        name: "session.background",
-        title: "Background subagents",
-        category: "Session",
-        run: () => props.onBackground?.(),
-      },
-      {
-        name: "session.child.first",
-        title: "View subagents",
-        category: "Session",
-        run: openSubagentMenu,
-      },
-      {
-        name: "session.queued_prompts",
-        title: "Manage queued prompts",
-        category: "Session",
-        run: openQueuedMenu,
-      },
-      {
-        name: "session.toggle.thinking",
-        title: "Toggle reasoning collapse",
-        category: "Session",
-        run: () => props.onThinkingCollapse?.(),
-      },
-    ],
-    bindings: [
-      ...props.tuiConfig.keybinds.get("command.palette.show"),
-      ...props.tuiConfig.keybinds.get("variant.cycle"),
-      ...props.tuiConfig.keybinds.get("session.background"),
-      ...props.tuiConfig.keybinds.get("session.child.first"),
-      ...props.tuiConfig.keybinds.get("session.queued_prompts"),
-      ...props.tuiConfig.keybinds.get("session.toggle.thinking"),
-    ],
-  }))
+  
 
   return (
     <box

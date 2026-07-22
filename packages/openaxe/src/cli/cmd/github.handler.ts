@@ -4,7 +4,7 @@ import { Filesystem } from "@/util/filesystem"
 import { intro, isCancel, log, outro, select, spinner } from "@clack/prompts";
 import { Octokit } from "@octokit/rest"
 import { graphql } from "@octokit/graphql"
-import { getIDToken, setFailed, setOutput } from "@actions/core";
+import { getIDToken, setFailed } from "@actions/core";
 import { context as ghContext } from "@actions/github"
 import type { Context } from "@actions/github/lib/context"
 import type {
@@ -22,7 +22,7 @@ import { SessionShare } from "@/share/session"
 import { Session } from "@/session/session"
 import type { SessionID } from "../../session/schema"
 import { MessageID, PartID } from "../../session/schema"
-import { MessageError, isOutputLengthError, isAuthError } from "../../session/message-error"
+import { MessageError, isAuthError } from "../../session/message-error"
 import { Provider } from "@/provider/provider"
 import { MessageV2 } from "../../session/message-v2"
 import { EventV2Bridge } from "@/event-v2-bridge"

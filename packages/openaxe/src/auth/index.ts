@@ -59,7 +59,7 @@ export const layer = Layer.effect(
       if (process.env.OPENCODE_AUTH_CONTENT) {
         try {
           return JSON.parse(process.env.OPENCODE_AUTH_CONTENT)
-        } catch (err) {
+        } catch  {
           // expected when OPENCODE_AUTH_CONTENT is not valid JSON
         }
       }

@@ -662,7 +662,7 @@ export const layer = Layer.effect(
           })
 
         const batches = Iterable.chunksOf(rows, 10)
-        const total = Iterable.size(batches)
+        
 
         yield* Effect.forEach(
           batches,

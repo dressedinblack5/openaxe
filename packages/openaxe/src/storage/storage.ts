@@ -54,7 +54,7 @@ export interface Interface {
   readonly remove: (key: string[]) => Effect.Effect<void, FSUtil.Error>
   readonly read: <T>(key: string[]) => Effect.Effect<T, Error>
   readonly update: <T>(key: string[], fn: (draft: T) => void) => Effect.Effect<T, Error>
-  readonly write: <T>(key: string[], content: T) => Effect.Effect<void, FSUtil.Error>
+  readonly write: (key: string[], content: unknown) => Effect.Effect<void, FSUtil.Error>
   readonly list: (prefix: string[]) => Effect.Effect<string[][], FSUtil.Error>
 }
 

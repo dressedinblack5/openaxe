@@ -15,7 +15,7 @@ import { SessionStatus } from "@/session/status"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "@/session/todo"
 import { MessageID, PartID, SessionID } from "@/session/schema"
-import { Cause, Effect, Option, Schema, Scope } from "effect"
+import { Effect, Option, Schema, Scope } from "effect"
 import { encodeText, make } from "effect/Stream";
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder, HttpApiError, HttpApiSchema } from "effect/unstable/httpapi"

@@ -2,14 +2,10 @@ import { SessionID, MessageID } from "./schema"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import {
-  APIError,
   AbortedError,
   Assistant,
-  AuthError,
   CompactionPart,
-  ContextOverflowError,
   Info,
-  OutputLengthError,
   Part,
   SubtaskPart,
   User,

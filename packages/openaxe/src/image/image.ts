@@ -1,7 +1,6 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { Config } from "@/config/config"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
-import type { MessageV2 } from "@/session/message-v2"
 import { Context, Effect, Layer, Ref, Schema } from "effect"
 
 const MAX_BASE64_BYTES = 5 * 1024 * 1024

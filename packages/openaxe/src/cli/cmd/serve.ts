@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { effectCmd, CliError, fail } from "../effect-cmd"
+import { effectCmd, CliError } from "../effect-cmd"
 import { withNetworkOptions, resolveNetworkOptions } from "../network"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { Global } from "@opencode-ai/core/global"

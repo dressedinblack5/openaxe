@@ -627,7 +627,7 @@ export async function XaiAuthPlugin(input: PluginInput, options: XaiAuthPluginOp
                     ? init.headers
                     : Object.entries(init.headers as Record<string, string | undefined>)
               for (const [key, value] of entries) {
-                if (value !== undefined) headers.set(key, String(value))
+                if (value !== undefined) headers.set(key, value)
               }
             }
             headers.set("authorization", `Bearer ${currentAuth.access}`)
@@ -663,7 +663,7 @@ export async function XaiAuthPlugin(input: PluginInput, options: XaiAuthPluginOp
                     access: tokens.access_token,
                     expires: Date.now() + (tokens.expires_in ?? 3600) * 1000,
                   }
-                } catch (err) {
+                } catch  {
                   return { type: "failed" as const }
                 } finally {
                   stopOAuthServer()
@@ -699,7 +699,7 @@ export async function XaiAuthPlugin(input: PluginInput, options: XaiAuthPluginOp
                     access: tokens.access_token,
                     expires: Date.now() + (tokens.expires_in ?? 3600) * 1000,
                   }
-                } catch (err) {
+                } catch  {
                   return { type: "failed" as const }
                 }
               },

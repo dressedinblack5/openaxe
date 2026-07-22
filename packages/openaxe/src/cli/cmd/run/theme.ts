@@ -69,7 +69,6 @@ export type RunTheme = {
 }
 
 type ThemeColor = Exclude<keyof TuiThemeCurrent, "thinkingOpacity">
-type HexColor = `#${string}`
 type RefName = string
 type Variant = {
   dark: HexColor | RefName

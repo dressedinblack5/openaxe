@@ -11,7 +11,7 @@ mark("worker-start")
 // — which loads ~45 service modules — is deferred until the first RPC call that
 // needs them, rather than blocking worker startup.
 
-Heap.start()
+void Heap.start()
 
 const onUnhandledRejection = (_error: unknown) => {}
 

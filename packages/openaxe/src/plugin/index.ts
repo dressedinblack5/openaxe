@@ -46,11 +46,10 @@ type TriggerName = {
 export interface Interface {
   readonly trigger: <
     Name extends TriggerName,
-    Input = Parameters<Required<Hooks>[Name]>[0],
     Output = Parameters<Required<Hooks>[Name]>[1],
   >(
     name: Name,
-    input: Input,
+    input: unknown,
     output: Output,
   ) => Effect.Effect<Output>
   readonly list: () => Effect.Effect<Hooks[]>
@@ -312,9 +311,8 @@ export const layer = Layer.effect(
 
     const trigger = Effect.fn("Plugin.trigger")(function* <
       Name extends TriggerName,
-      Input = Parameters<Required<Hooks>[Name]>[0],
       Output = Parameters<Required<Hooks>[Name]>[1],
-    >(name: Name, input: Input, output: Output) {
+    >(name: Name, input: unknown, output: Output) {
       if (!name) return output
       // Don't trigger lazy init — same rationale as list(): plugin bootstrap
       // involves dynamic server imports and may be called from within other

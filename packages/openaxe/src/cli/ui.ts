@@ -44,7 +44,7 @@ export function print(...message: string[]) {
 let blank = false
 export function empty() {
   if (blank) return
-  println("" + Style.TEXT_NORMAL)
+  println(Style.TEXT_NORMAL)
   blank = true
 }
 
