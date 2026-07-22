@@ -78,7 +78,9 @@
       "@sentry/vite-plugin": "4.6.0",
       "solid-js": "1.9.10",
       "vite-plugin-solid": "2.11.10",
-      "@lydell/node-pty": "1.2.0-beta.12"
+      "@lydell/node-pty": "1.2.0-beta.12",
+      "gpt-tokenizer": "3.4.0",
+      "@anthropic-ai/tokenizer": "0.0.4"
     }
   },
   "devDependencies": {
