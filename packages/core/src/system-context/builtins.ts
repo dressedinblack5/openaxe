@@ -6,7 +6,6 @@ import { Memory } from "../memory"
 import { SystemContext } from "./index"
 import { InstructionContext } from "../instruction-context"
 import { SystemContextRegistry } from "./registry"
-import { unavailable } from "./index"
 
 const builtIns = Layer.effectDiscard(
   Effect.gen(function* () {

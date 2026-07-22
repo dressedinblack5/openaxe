@@ -59,7 +59,7 @@ export const make = Effect.gen(function* () {
       const raw = img.get_bytes()
       img.free()
       const resultBytes = raw.byteLength
-      const b64 = Buffer.from(raw).toString("base64")
+      
 
       if (resultBytes > limits.maxBase64Bytes) {
         const oversized = photon.PhotonImage.new_from_byteslice(raw)

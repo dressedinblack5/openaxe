@@ -55,7 +55,7 @@ export function cortexFetch(upstream: FetchLike = fetch) {
           )
         },
         cancel() {
-          reader.cancel()
+          void reader.cancel()
         },
       })
       return new Response(stream, { headers: response.headers, status: response.status })
