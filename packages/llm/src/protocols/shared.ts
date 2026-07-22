@@ -13,8 +13,8 @@ import {
   type TextPart,
   type ToolResultPart,
 } from "../schema"
-import { isRecord } from "../utils/record"
-export { isRecord }
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
 
 export const Json = Schema.fromJsonString(Schema.Unknown)
 export const decodeJson = Schema.decodeUnknownSync(Json)
