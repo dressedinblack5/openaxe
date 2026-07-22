@@ -1,4 +1,4 @@
-import { Cause, Context, Effect, Layer, Random } from "effect"
+import { Cause, Context, Effect, Layer, Random, Ref } from "effect"
 import {
   FetchHttpClient,
   Headers,
@@ -363,10 +363,23 @@ const retryStatusFailures = <A, R>(
     )
   })
 
+// ponytail: 5 consecutive retryable failures within 10s opens circuit.
+// No half-open state — just fail fast for the cooldown window.
+// Upgrade to per-provider circuit state if one failing provider should
+// not affect others (requires moving state to the route layer).
+interface CircuitState {
+  readonly consecutiveFailures: number
+  readonly openUntil: number
+}
+const CIRCUIT_THRESHOLD = 5
+const CIRCUIT_COOLDOWN_MS = 10_000
+
 export const layer: Layer.Layer<Service, never, HttpClient.HttpClient> = Layer.effect(
   Service,
   Effect.gen(function* () {
     const http = yield* HttpClient.HttpClient
+    const circuit = yield* Ref.make<CircuitState>({ consecutiveFailures: 0, openUntil: 0 })
+
     const executeOnce = (request: HttpClientRequest.HttpClientRequest) =>
       Effect.gen(function* () {
         const redactedNames = yield* Headers.CurrentRedactedNames
@@ -374,8 +387,37 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient> = Layer.e
           .execute(request)
           .pipe(Effect.mapError(toHttpError(redactedNames)), Effect.flatMap(statusError(request, redactedNames)))
       })
+
     return Service.of({
-      execute: (request) => retryStatusFailures(executeOnce(request)),
+      execute: (request) =>
+        Ref.get(circuit).pipe(
+          Effect.flatMap((state): Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError> => {
+            if (state.openUntil > Date.now()) {
+              return Effect.fail(
+                new LLMError({
+                  module: "RequestExecutor",
+                  method: "execute",
+                  reason: new TransportReason({ message: "Circuit open", kind: "CircuitOpen" }),
+                }),
+              )
+            }
+            return retryStatusFailures(executeOnce(request)).pipe(
+              Effect.tap(() => Ref.set(circuit, { consecutiveFailures: 0, openUntil: 0 })),
+              Effect.catchTag("LLM.Error", (error): Effect.Effect<HttpClientResponse.HttpClientResponse, LLMError> => {
+                if (error.retryable) {
+                  return Ref.update(circuit, (s): CircuitState => {
+                    const next = s.consecutiveFailures + 1
+                    if (next >= CIRCUIT_THRESHOLD) {
+                      return { consecutiveFailures: 0, openUntil: Date.now() + CIRCUIT_COOLDOWN_MS }
+                    }
+                    return { ...s, consecutiveFailures: next }
+                  }).pipe(Effect.flatMap(() => Effect.fail(error)))
+                }
+                return Effect.fail(error)
+              }),
+            )
+          }),
+        ),
     })
   }),
 )
