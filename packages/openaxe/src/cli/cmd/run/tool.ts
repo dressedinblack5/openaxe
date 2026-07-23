@@ -1336,6 +1336,29 @@ export function toolEntryBody(commit: StreamCommit, raw: string): RunEntryBody |
     return undefined
   }
 
+  // Handle bash tool commits without shell field (fallback - session-data normally sets shell)
+  if (commit.tool === "bash") {
+    const command = typeof commit.part?.state?.input?.command === "string" ? commit.part.state.input.command : undefined
+    if (command) {
+      if (commit.phase === "start") {
+        return textBody(`$ ${command}`)
+      }
+      if (commit.phase === "progress" && commit.toolState === "completed") {
+        // Strip echo lines (workdir + command) like the session-data reducer does
+        let body = stripAnsi(raw)
+        const workdir = typeof commit.part?.state?.input?.workdir === "string" ? commit.part.state.input.workdir : undefined
+        body = body.replace(/^\n+/, "")
+        if (workdir && body.startsWith(workdir)) {
+          body = body.slice(workdir.length).replace(/^\n+/, "")
+        }
+        if (body.startsWith(command)) {
+          body = body.slice(command.length).replace(/^\n+/, "")
+        }
+        return textBody(shellOutput(command, body) ?? "")
+      }
+    }
+  }
+
   const ctx = toolFrame(commit, raw)
   const view = toolView(ctx.name)
 
