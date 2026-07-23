@@ -475,7 +475,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
     }, 100)
   })
 
-  onCleanup(() => window.clearTimeout(titleDebounce.current))
+  onCleanup(() => clearTimeout(titleDebounce.current))
 
   const args = useArgs()
   onMount(() => {
