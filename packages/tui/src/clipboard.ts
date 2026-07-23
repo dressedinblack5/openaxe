@@ -108,6 +108,18 @@ function getCopyMethod() {
         await command("osascript", ["-e", `set the clipboard to "${escaped}"`]).catch(() => undefined)
       }
     }
+    if (native?.[0] === "powershell.exe") {
+      // ponytail: Base64 in command arg avoids stdin pipe encoding issues on Windows
+      return async (text: string) => {
+        const b64 = Buffer.from(text).toString("base64")
+        await command("powershell.exe", [
+          "-NonInteractive",
+          "-NoProfile",
+          "-Command",
+          `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::SetText([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${b64}')))`,
+        ]).catch(() => undefined)
+      }
+    }
     if (native) {
       return async (text: string) => {
         await command(native[0], native.slice(1), text).catch(() => undefined)
