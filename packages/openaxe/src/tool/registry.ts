@@ -4,7 +4,7 @@ import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { PlanExitTool } from "./plan"
 import { Session } from "@/session/session"
 import { QuestionTool } from "./question"
-import { ShellTool } from "./shell"
+
 import { EditTool } from "./edit"
 import { GlobTool } from "./glob"
 import { GrepTool } from "./grep"
@@ -98,7 +98,6 @@ export const layer = Layer.effect(
     const plan = yield* PlanExitTool
     const webfetch = yield* WebFetchTool
     const websearch = yield* WebSearchTool
-    const shell = yield* ShellTool
     const globtool = yield* GlobTool
     const writetool = yield* WriteTool
     const edit = yield* EditTool
@@ -201,7 +200,6 @@ export const layer = Layer.effect(
 
         const tool = yield* Effect.all({
           invalid: init(invalid),
-          shell: init(shell),
           read: init(read),
           glob: init(globtool),
           grep: init(greptool),
@@ -223,7 +221,6 @@ export const layer = Layer.effect(
           builtin: [
             tool.invalid,
             ...(questionEnabled ? [tool.question] : []),
-            tool.shell,
             tool.read,
             tool.glob,
             tool.grep,
