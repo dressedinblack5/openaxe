@@ -8,7 +8,7 @@ import { WorkspaceRouteContext } from "./workspace-routing"
 export class InstanceContextMiddleware extends HttpApiMiddleware.Service<
   InstanceContextMiddleware,
   {
-    requires: WorkspaceRouteContext
+    requires: WorkspaceRouteContext | InstanceStore.Service
   }
 >()("@opencode/ExperimentalHttpApiInstanceContext") {}
 
@@ -43,6 +43,8 @@ export const instanceContextLayer = Layer.effect(
   InstanceContextMiddleware,
   Effect.gen(function* () {
     const store = yield* InstanceStore.Service
-    return InstanceContextMiddleware.of((effect) => provideInstanceContext(effect, store))
+    return InstanceContextMiddleware.of((effect) =>
+      provideInstanceContext(effect, store).pipe(Effect.provideService(InstanceStore.Service, store)),
+    )
   }),
 )
