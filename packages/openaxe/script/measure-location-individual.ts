@@ -15,4 +15,4 @@ async function measure() {
   await time(`@opencode-ai/core/workspace`, () => import("@opencode-ai/core/workspace"))
 }
 
-measure()
+void measure()

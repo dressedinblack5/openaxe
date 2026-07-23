@@ -1,5 +1,5 @@
-import { Config, Effect, Formatter, Layer, Schema, Stream } from "effect"
-import { LLM, LLMClient, Message, ProviderID, Tool, ToolRuntime } from "@opencode-ai/llm"
+import { Config, Effect, Layer, Schema, Stream } from "effect"
+import { LLM, LLMClient, Message, Tool, ToolRuntime } from "@opencode-ai/llm"
 import { Route, Auth, Endpoint, Framing, Protocol, RequestExecutor, WebSocketExecutor } from "@opencode-ai/llm/route"
 import { OpenAI } from "@opencode-ai/llm/providers"
 
@@ -40,49 +40,19 @@ const model = OpenAI.configure({
 //     and query params. Prefer typed `providerOptions` when a field is stable.
 //
 // Route/provider options are defaults. Request options override them for this call.
-const request = LLM.request({
-  model,
-  system: "You are concise and practical.",
-  prompt: "Tell me a joke",
-  generation: { maxTokens: 80, temperature: 0.7 },
-  providerOptions: {
-    openai: { promptCacheKey: "tutorial-joke" },
-  },
-})
+
 
 // `http` is intentionally not needed for normal calls. This shows the shape for
 // newly released provider fields before they deserve a typed provider option.
-const rawOverlayExample = LLM.request({
-  model,
-  prompt: "Show the final HTTP overlay shape.",
-  http: {
-    body: { metadata: { example: "tutorial" } },
-    headers: { "x-opencode-tutorial": "1" },
-    query: { debug: "1" },
-  },
-})
+
 
 // 3. `generate` sends the request and collects the event stream into one
 // response object. `response.text` is the collected text output.
-const generateOnce = Effect.gen(function* () {
-  const response = yield* LLM.generate(request)
 
-  console.log("\n== generate ==")
-  console.log("generated text:", response.text)
-  console.log("usage", Formatter.formatJson(response.usage, { space: 2 }))
-})
 
 // 4. `stream` exposes provider output as common `LLMEvent`s for UIs that want
 // incremental text, reasoning, tool input, usage, or finish events.
-const streamText = LLM.stream(request).pipe(
-  Stream.tap((event) =>
-    Effect.sync(() => {
-      if (event.type === "text-delta") process.stdout.write(`\ntext: ${event.text}`)
-      if (event.type === "finish") process.stdout.write(`\nfinish: ${event.reason}\n`)
-    }),
-  ),
-  Stream.runDrain,
-)
+
 
 // 5. Tools are typed with Effect Schema. Provider turns remain explicit:
 // advertise definitions on the request, stream one turn, dispatch local calls,
@@ -127,39 +97,13 @@ const streamWithTools = Effect.gen(function* () {
 // 6. `generateObject` is the structured-output helper. It forces a synthetic
 // tool call internally, so the same call site works across providers instead of
 // depending on provider-specific JSON mode flags.
-const WeatherReport = Schema.Struct({
-  city: Schema.String,
-  forecast: Schema.String,
-  highFahrenheit: Schema.Number,
-})
 
-const generateStructuredObject = Effect.gen(function* () {
-  const response = yield* LLM.generateObject({
-    model,
-    system: "Return only structured weather data.",
-    prompt: "Give me today's weather for San Francisco.",
-    schema: WeatherReport,
-    generation: { maxTokens: 120, temperature: 0 },
-  })
 
-  console.log("\n== generateObject ==")
-  console.log(Formatter.formatJson(response.object, { space: 2 }))
-})
+
 
 // If the shape is only known at runtime, pass raw JSON Schema instead. The
 // `.object` type is `unknown`; callers that need static types should validate it.
-const generateDynamicObject = LLM.generateObject({
-  model,
-  prompt: "Extract the city and forecast from: San Francisco is sunny.",
-  jsonSchema: {
-    type: "object",
-    properties: {
-      city: { type: "string" },
-      forecast: { type: "string" },
-    },
-    required: ["city", "forecast"],
-  },
-})
+
 
 // -----------------------------------------------------------------------------
 // Part 2: provider composition with a fake provider
@@ -197,40 +141,16 @@ const FakeProtocol: Protocol<FakeBody, string, string, void> = {
     onHalt: () => [{ type: "finish", reason: "stop" }],
   },
 }
-const FakeAdapter = Route.make({
-  id: "fake-echo",
-  provider: "fake-echo",
-  protocol: FakeProtocol,
-  endpoint: Endpoint.path("/v1/echo", { baseURL: "https://fake.local" }),
-  auth: Auth.none,
-  framing: Framing.sse,
-})
+
 
 // A provider module exports a configured facade. Configuration happens before
 // model selection; model selectors accept ids only.
-const FakeEcho = {
-  id: ProviderID.make("fake-echo"),
-  configure: () => ({
-    id: ProviderID.make("fake-echo"),
-    model: (id: string) => FakeAdapter.model({ id }),
-  }),
-}
+
 
 // `LLMClient.prepare` is the lower-level inspection hook: it compiles through
 // body conversion, validation, endpoint, auth, and HTTP construction without
 // sending anything over the network.
-const inspectFakeProvider = Effect.gen(function* () {
-  const prepared = yield* LLMClient.prepare(
-    LLM.request({
-      model: FakeEcho.configure().model("tiny-echo"),
-      prompt: "Show me the provider pipeline.",
-    }),
-  )
 
-  console.log("\n== fake provider prepare ==")
-  console.log("route:", prepared.route)
-  console.log("body:", Formatter.formatJson(prepared.body, { space: 2 }))
-})
 
 // Provide the LLM runtime and the HTTP request executor once. Keep one path
 // enabled at a time so the tutorial can demonstrate generate, prepare, stream,
@@ -249,4 +169,4 @@ const program = Effect.gen(function* () {
   yield* streamWithTools
 }).pipe(Effect.provide(Layer.mergeAll(llmDeps, llmClientLayer)))
 
-Effect.runPromise(program)
+void Effect.runPromise(program)

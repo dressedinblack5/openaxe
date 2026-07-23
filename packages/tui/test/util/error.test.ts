@@ -26,7 +26,7 @@ describe("util.error", () => {
     expect(errorFormat({})).not.toBe("{}")
     expect(errorFormat({})).toContain("no message")
 
-    class OpaqueError {}
+    
     const opaque = new OpaqueError()
     Object.defineProperty(opaque, "secret", { value: "hidden", enumerable: false })
     expect(errorFormat(opaque)).not.toBe("{}")

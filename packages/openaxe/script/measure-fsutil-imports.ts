@@ -26,4 +26,4 @@ async function measure() {
   await time(`@/control-plane/adapters`, () => import("@/control-plane/adapters"))
 }
 
-measure()
+void measure()

@@ -205,7 +205,7 @@ yield* afs.writeWithDirs(filePath, bomJoin(contentNew, desiredBom))
               diff,
               filediff,
             },
-            title: `${relative(instance.worktree, filePath)}`,
+            title: relative(instance.worktree, filePath),
             output,
           }
         }),

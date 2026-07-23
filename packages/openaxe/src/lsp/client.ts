@@ -152,7 +152,7 @@ export async function create(input: {
     pullDiagnostics.set(filePath, next)
   }
   const emitRegistrationChange = () => {
-    for (const listener of [...registrationListeners]) listener()
+    for (const listener of registrationListeners) listener()
   }
 
   // --- LSP connection handlers ---
@@ -170,7 +170,7 @@ export async function create(input: {
     }
     updatePushDiagnostics(filePath, params.diagnostics)
   })
-  connection.onRequest("window/workDoneProgress/create", (params) => {
+  connection.onRequest("window/workDoneProgress/create", () => {
     return null
   })
   connection.onRequest("workspace/configuration", async (params) => {

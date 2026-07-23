@@ -115,7 +115,7 @@ async function opencodeFiles(input: { directories: string[]; cwd: string }) {
     ...fileInDirectory(Global.Path.config, "openaxe"),
     ...(await Filesystem.findUp(["openaxe.json", "openaxe.jsonc"], input.cwd, undefined, { rootFirst: true })),
   ]
-  for (const dir of [...new Set(input.directories)]) {
+  for (const dir of new Set(input.directories)) {
     files.push(...fileInDirectory(dir, "openaxe"))
   }
   if (Flag.OPENCODE_CONFIG) files.push(Flag.OPENCODE_CONFIG)

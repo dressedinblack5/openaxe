@@ -2,7 +2,7 @@ import { describe, expect } from "bun:test"
 import { AISDK } from "@opencode-ai/core/aisdk"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
-import { Effect, Exit, Layer, Scope } from "effect"
+import { Effect, Exit, Scope } from "effect"
 import { testEffect } from "./lib/effect"
 
 const it = testEffect(AISDK.locationLayer)

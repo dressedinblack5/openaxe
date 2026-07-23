@@ -82,6 +82,7 @@ const names: Record<string, string> = {
   vesper: "Vesper",
   zenburn: "Zenburn",
 }
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- JSON import, structurally matches DesktopTheme
 const oc2Theme = oc2ThemeJson as DesktopTheme
 
 function normalize(id: string | null | undefined) {
@@ -117,8 +118,8 @@ function clear() {
 }
 
 function ensureThemeStyleElement(): HTMLStyleElement {
-  const existing = document.getElementById(THEME_STYLE_ID) as HTMLStyleElement | null
-  if (existing) return existing
+  const el = document.getElementById(THEME_STYLE_ID)
+  if (el instanceof HTMLStyleElement) return el
   const element = document.createElement("style")
   element.id = THEME_STYLE_ID
   document.head.appendChild(element)

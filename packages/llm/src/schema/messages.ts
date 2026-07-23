@@ -100,6 +100,8 @@ export const ToolOutput = Object.assign(
           return { structured: {}, content: result.value }
         case "error":
           return undefined
+        default:
+          return undefined
       }
     },
     toResultValue: (output: ToolOutput): ToolResultValue => {

@@ -42,4 +42,4 @@ async function measure() {
   await time(`@/account/account`, () => import("@/account/account"))
 }
 
-measure()
+void measure()

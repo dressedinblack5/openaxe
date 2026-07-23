@@ -633,7 +633,7 @@ export const maybeParseApplyPatchVerified = Effect.fn("Patch.maybeParseApplyPatc
               .readFileString(updatePath)
               .pipe(
                 Effect.catch((cause) =>
-                  Effect.succeed(new Error(`Failed to read file ${updatePath}: ${cause}`, { cause })),
+                  Effect.succeed(new Error(`Failed to read file ${updatePath}: ${String(cause)}`, { cause })),
                 ),
               )
             if (originalText instanceof Error) {

@@ -87,7 +87,6 @@ export const rpc = {
   },
   async shutdown() {
     const { InstanceRuntime } = await import("@/project/instance-runtime")
-    const { Server } = await import("@/server/server")
     await InstanceRuntime.disposeAllInstances()
     if (server) await server.stop(true)
     process.off("unhandledRejection", onUnhandledRejection)

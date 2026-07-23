@@ -155,7 +155,7 @@ export const layer = Layer.effect(
     const events = yield* EventV2Bridge.Service
 
     const state = yield* InstanceState.make<State>(
-      Effect.fn("LSP.state")(function* (ctx) {
+      Effect.fn("LSP.state")(function* (_ctx) {
         const cfg = yield* config.get()
 
         const servers: Record<string, ServerInfo> = {}
@@ -231,7 +231,7 @@ export const layer = Layer.effect(
               if (!value) s.broken.set(key, Date.now())
               return value
             })
-            .catch((err) => {
+            .catch(() => {
               s.broken.set(key, Date.now())
               return undefined
             })
@@ -243,7 +243,7 @@ export const layer = Layer.effect(
             root,
             directory: ctx.directory,
             instance: ctx,
-          }).catch(async (err) => {
+          }).catch(async () => {
             s.broken.set(key, Date.now())
             await Process.stop(handle.process)
             return undefined

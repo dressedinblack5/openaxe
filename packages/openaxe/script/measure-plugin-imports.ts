@@ -21,4 +21,4 @@ async function measure() {
   await time(`@opencode-ai/plugin`, () => import("@opencode-ai/plugin"))
 }
 
-measure()
+void measure()

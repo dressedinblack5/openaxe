@@ -2091,7 +2091,7 @@ export const layer = Layer.effect(
     const checkHealth = Effect.fn("Provider.checkHealth")(function* (providerID: ProviderV2.ID) {
       const start = Date.now()
       const provider = yield* getProvider(providerID).pipe(
-        Effect.catchCause((cause) => Effect.fail(new Error("Provider not found"))),
+        Effect.catchCause(() => Effect.fail(new Error("Provider not found"))),
       )
       try {
         const model = yield* Effect.gen(function* () {
@@ -2119,7 +2119,7 @@ export const layer = Layer.effect(
     const getHealth = Effect.fn("Provider.getHealth")(function* (providerID: ProviderV2.ID) {
       const cached = yield* Effect.cached(
         checkHealth(providerID).pipe(
-          Effect.catchCause((cause) =>
+          Effect.catchCause(() =>
             Effect.succeed(ProviderHealth.make({
               providerID,
               status: "unknown",

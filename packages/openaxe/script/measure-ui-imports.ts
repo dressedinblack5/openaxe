@@ -11,4 +11,4 @@ async function measure() {
   await time(`@/cli/ui`, () => import("@/cli/ui"))
 }
 
-measure()
+void measure()

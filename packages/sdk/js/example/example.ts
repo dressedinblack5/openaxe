@@ -7,7 +7,7 @@ const client = createOpencodeClient({ baseUrl: server.url })
 const input = await Array.fromAsync(new Bun.Glob("packages/core/*.ts").scan())
 
 const tasks: Promise<void>[] = []
-for await (const file of input) {
+for  (const file of input) {
   console.log("processing", file)
   const session = await client.session.create()
   tasks.push(

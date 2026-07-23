@@ -66,9 +66,9 @@ export interface Lease {
 }
 
 function code(err: unknown) {
-  if (typeof err !== "object" || err === null || !("code" in err)) return
+  if (typeof err !== "object" || err === null || !("code" in err)) return undefined
   const value = err.code
-  if (typeof value !== "string") return
+  if (typeof value !== "string") return undefined
   return value
 }
 
@@ -118,7 +118,7 @@ async function stats(file: string) {
     return await stat(file)
   } catch (err) {
     const errCode = code(err)
-    if (errCode === "ENOENT" || errCode === "ENOTDIR") return
+    if (errCode === "ENOENT" || errCode === "ENOTDIR") return undefined
     throw err
   }
 }

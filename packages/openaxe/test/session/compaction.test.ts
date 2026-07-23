@@ -355,7 +355,7 @@ function reply(
 
 function plugin(ready: Deferred.Deferred<void>) {
   return Layer.mock(Plugin.Service)({
-    trigger: <Name extends string, Input, Output>(name: Name, _input: Input, output: Output) => {
+    trigger: <Output>(name: string, _input: unknown, output: Output) => {
       if (name !== "experimental.session.compacting") return Effect.succeed(output)
       return Effect.sync(() => Deferred.doneUnsafe(ready, Effect.void)).pipe(
         Effect.andThen(Effect.never),
@@ -369,7 +369,7 @@ function plugin(ready: Deferred.Deferred<void>) {
 
 function autocontinue(enabled: boolean) {
   return Layer.mock(Plugin.Service)({
-    trigger: <Name extends string, Input, Output>(name: Name, _input: Input, output: Output) => {
+    trigger: <Output>(name: string, _input: unknown, output: Output) => {
       if (name !== "experimental.compaction.autocontinue") return Effect.succeed(output)
       return Effect.sync(() => {
         ;(output as { enabled: boolean }).enabled = enabled

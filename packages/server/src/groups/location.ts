@@ -1,6 +1,5 @@
 import { Location } from "@opencode-ai/core/location"
 import { LocationServiceMap } from "@opencode-ai/core/location-layer"
-import { FileSystem } from "@opencode-ai/core/filesystem"
 import { AbsolutePath } from "@opencode-ai/core/schema"
 import { WorkspaceV2 } from "@opencode-ai/core/workspace"
 import { Effect, Layer, Schema } from "effect"

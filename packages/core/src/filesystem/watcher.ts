@@ -28,9 +28,10 @@ const watcher = lazy((): typeof import("@parcel/watcher") | undefined => {
     const binding = require(
       `@parcel/watcher-${process.platform}-${process.arch}${process.platform === "linux" ? `-${libc || "glibc"}` : ""}`,
     )
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- createWrapper returns the watcher API
     return createWrapper(binding) as typeof import("@parcel/watcher")
   } catch {
-    return
+    return undefined
   }
 })
 
@@ -38,6 +39,7 @@ function getBackend() {
   if (process.platform === "win32") return "windows"
   if (process.platform === "darwin") return "fs-events"
   if (process.platform === "linux") return "inotify"
+  return undefined
 }
 
 function protecteds(dir: string) {

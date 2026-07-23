@@ -214,9 +214,9 @@ export const layer = Layer.effect(
                 items: plugins,
                 kind: "server",
                 report: {
-                  start(candidate) {},
-                  missing(candidate, _retry, message) {},
-                  error(candidate, _retry, stage, error, resolved) {
+                  start(_candidate) {},
+                  missing(_candidate, _retry, _message) {},
+                  error(_candidate, _retry, stage, error, _resolved) {
                     const spec = candidate.plan.spec
                     const cause = error instanceof Error ? (error.cause ?? error) : error
                     const message = stage === "load" ? errorMessage(error) : errorMessage(cause)

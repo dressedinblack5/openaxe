@@ -26,6 +26,7 @@ export function make<const Implementation extends Layer.Any, const Items extends
   implementation: Implementation,
   dependencies: Items & CheckDependencies<Implementation, NoInfer<Items>>,
 ): Node<Layer.Success<Implementation>, Layer.Error<Implementation> | Error<Items[number]>> {
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Layer.Any is compatible with any Layer
   return { kind: "layer", implementation: implementation as Layer.Any, dependencies }
 }
 
@@ -55,6 +56,7 @@ export function replace<A, E, E2>(
   source: Node<A, E>,
   replacement: Layer.Layer<NoInfer<A>, E2> & CheckReplacementErrors<E, NoInfer<E2>>,
 ): Replacement<A> {
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- replacement is compatible with the source's output type
   return { source, replacement: make(replacement as Layer.Layer<A, E2>, []) }
 }
 
@@ -79,6 +81,7 @@ export function buildLayer<A, E>(node: Node<A, E>, options?: { readonly replacem
     stack.push(node)
     try {
       const dependencies = node.dependencies.map(visit)
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- dependencies.length > 0 makes this safe
       const nonEmpty = dependencies as [RuntimeLayer, ...RuntimeLayer[]]
       const result =
         node.kind === "group"
@@ -86,7 +89,9 @@ export function buildLayer<A, E>(node: Node<A, E>, options?: { readonly replacem
             ? Layer.empty
             : Layer.mergeAll(...nonEmpty)
           : dependencies.length === 0
+            // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- RuntimeLayer covers all Layer types
             ? (node.implementation as RuntimeLayer)
+            // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- RuntimeLayer covers all Layer types
             : Layer.provide(node.implementation as RuntimeLayer, nonEmpty)
       cache.set(node, result)
       return result
@@ -96,6 +101,7 @@ export function buildLayer<A, E>(node: Node<A, E>, options?: { readonly replacem
     }
   }
 
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- buildLayer is a safe construction from Node types
   return visit(node) as unknown as Layer.Layer<A, E>
 }
 

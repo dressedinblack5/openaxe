@@ -186,7 +186,7 @@ describe("filesystem", () => {
       await using tmp = await tmpdir()
       const filepath = path.join(tmp.path, "does-not-exist.txt")
 
-      await expect(Filesystem.readText(filepath)).rejects.toThrow()
+       expect(Filesystem.readText(filepath)).rejects.toThrow()
     })
 
     test("reads UTF-8 content correctly", async () => {
@@ -215,14 +215,14 @@ describe("filesystem", () => {
       const filepath = path.join(tmp.path, "invalid.json")
       await fs.writeFile(filepath, "{ invalid json", "utf-8")
 
-      await expect(Filesystem.readJson(filepath)).rejects.toThrow()
+       expect(Filesystem.readJson(filepath)).rejects.toThrow()
     })
 
     test("throws for non-existent file", async () => {
       await using tmp = await tmpdir()
       const filepath = path.join(tmp.path, "does-not-exist.json")
 
-      await expect(Filesystem.readJson(filepath)).rejects.toThrow()
+       expect(Filesystem.readJson(filepath)).rejects.toThrow()
     })
 
     test("returns typed data", async () => {
@@ -257,7 +257,7 @@ describe("filesystem", () => {
       await using tmp = await tmpdir()
       const filepath = path.join(tmp.path, "does-not-exist.bin")
 
-      await expect(Filesystem.readBytes(filepath)).rejects.toThrow()
+       expect(Filesystem.readBytes(filepath)).rejects.toThrow()
     })
   })
 

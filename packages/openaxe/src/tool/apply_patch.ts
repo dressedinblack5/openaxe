@@ -41,7 +41,7 @@ export const ApplyPatchTool = define(
         const parseResult = Patch.parsePatch(params.patchText)
         hunks = parseResult.hunks
       } catch (error) {
-        return yield* Effect.fail(new Error(`apply_patch verification failed: ${error}`))
+        return yield* Effect.fail(new Error(`apply_patch verification failed: ${String(error)}`))
       }
 
       if (hunks.length === 0) {
@@ -127,7 +127,7 @@ export const ApplyPatchTool = define(
               newContent = fileUpdate.content
               bom = fileUpdate.bom
             } catch (error) {
-              return yield* Effect.fail(new Error(`apply_patch verification failed: ${error}`))
+              return yield* Effect.fail(new Error(`apply_patch verification failed: ${String(error)}`))
             }
 
             const diff = trimDiff(createTwoFilesPatch(filePath, filePath, oldContent, newContent))

@@ -90,8 +90,6 @@ export type Interface = {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/ACP/Session") {}
 
-type State = Map<string, Info>
-
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {

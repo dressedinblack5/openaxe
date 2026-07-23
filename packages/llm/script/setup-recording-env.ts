@@ -231,7 +231,7 @@ const option = (name: string) => {
 const envPath = path.resolve(process.cwd(), option("--env") ?? ".env.local")
 const checkOnly = hasFlag("--check")
 const providerOption = option("--providers")
-const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY)
+const interactive = (process.stdin.isTTY && process.stdout.isTTY)
 
 const envNames = Array.from(new Set(PROVIDERS.flatMap((provider) => provider.vars.map((item) => item.name))))
 

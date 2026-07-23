@@ -14,7 +14,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  const aisdk = yield* AISDK.Service
+  
   const host = yield* PluginHost.make(plugin)
   yield* TogetherAIPlugin.effect(host)
 })
@@ -35,7 +35,7 @@ function fakeSelectorSdk(calls: string[]) {
 describe("TogetherAIPlugin", () => {
   it.effect("creates a TogetherAI SDK for @ai-sdk/togetherai", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -52,7 +52,7 @@ describe("TogetherAIPlugin", () => {
 
   it.effect("matches the old bundled provider package exactly", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
 
@@ -80,7 +80,7 @@ describe("TogetherAIPlugin", () => {
 
   it.effect("creates bundled TogetherAI SDKs for custom provider IDs", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
 
@@ -99,7 +99,7 @@ describe("TogetherAIPlugin", () => {
 
   it.effect("defaults language selection to sdk.languageModel with the model API ID", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()

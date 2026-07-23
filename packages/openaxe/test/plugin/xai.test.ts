@@ -326,7 +326,7 @@ describe("plugin.xai", () => {
       ).auth!.loader!(async () => ({ type: "oauth", access: "old", refresh: "rt-old", expires: 0 }), {} as any)
 
       await opts.fetch!(new URL("/chat/completions", server.url), { headers: {} })
-      await expect(opts.fetch!(new URL("/chat/completions", server.url), { headers: {} })).rejects.toThrow(
+       expect(opts.fetch!(new URL("/chat/completions", server.url), { headers: {} })).rejects.toThrow(
         /xAI token refresh failed \(503\)/,
       )
       await opts.fetch!(new URL("/chat/completions", server.url), { headers: {} })
@@ -401,7 +401,7 @@ describe("plugin.xai", () => {
         await XaiAuthPlugin(input, { tokenUrl: "http://127.0.0.1:9/oauth2/token" })
       ).auth!.loader!(async () => ({ type: "oauth", access: "old", refresh: "rt", expires: 0 }), {} as any)
 
-      await expect(opts.fetch!("https://api.x.ai/v1/chat/completions", { headers: {} })).rejects.toThrow()
+       expect(opts.fetch!("https://api.x.ai/v1/chat/completions", { headers: {} })).rejects.toThrow()
     })
   })
 
@@ -474,10 +474,10 @@ describe("plugin.xai", () => {
       expect(parsed.get("scope")).toContain("offline_access")
       expect(parsed.get("scope")).toContain("grok-cli:access")
       expect(parsed.get("scope")).toContain("api:access")
-      await expect(
+       expect(
         requestDeviceCode({ deviceAuthorizationUrl: new URL("/error", server.url).toString() }),
       ).rejects.toThrow(/429.*rate limited/)
-      await expect(
+       expect(
         requestDeviceCode({ deviceAuthorizationUrl: new URL("/missing", server.url).toString() }),
       ).rejects.toThrow(/missing device_code/)
     })
@@ -527,7 +527,7 @@ describe("plugin.xai", () => {
         [{ error: "server_error", error_description: "oops" }, /500.*oops/],
       ] as const) {
         using server = makeServer(() => Response.json(body, { status: 500 }))
-        await expect(
+         expect(
           pollDeviceCodeToken(
             {
               device_code: "DC",
@@ -543,7 +543,7 @@ describe("plugin.xai", () => {
 
       using pending = makeServer(() => Response.json({ error: "authorization_pending" }, { status: 400 }))
       let tick = 0
-      await expect(
+       expect(
         pollDeviceCodeToken(
           { device_code: "DC", user_code: "UC", verification_uri: "https://x.ai/device", interval: 1, expires_in: 1 },
           {

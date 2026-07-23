@@ -82,7 +82,8 @@ export const textVerbosity = (request: LLMRequest) => {
 
 export const serviceTier = (request: LLMRequest) => {
   const value = options(request)?.serviceTier
-  return typeof value === "string" && SERVICE_TIERS.has(value) ? (value as OpenAIServiceTier) : undefined
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by SERVICE_TIERS.has(value)
+  return typeof value === "string" && SERVICE_TIERS.has(value) ? value as OpenAIServiceTier : undefined
 }
 
 export const instructions = (request: LLMRequest) => {

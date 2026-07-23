@@ -125,6 +125,7 @@ const webSocketUrl = (value: string) =>
 export const open = (input: WebSocketRequest) =>
   Effect.try({
     try: () =>
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — WebSocket constructor type doesn't include headers option
       new (globalThis.WebSocket as unknown as WebSocketConstructorWithHeaders)(input.url, { headers: input.headers }),
     catch: (error) =>
       transportError("open", error instanceof Error ? error.message : "Failed to construct WebSocket", {
@@ -144,9 +145,9 @@ export const fromWebSocket = (
     const messages = yield* Queue.bounded<string | Uint8Array, LLMError | Cause.Done>(128)
 
     const onMessage = (event: MessageEvent) => {
-      if (typeof event.data === "string") return Queue.offerUnsafe(messages, event.data)
+      if (typeof event.data === "string") { Queue.offerUnsafe(messages, event.data); return }
       const binary = binaryMessage(event.data)
-      if (binary) return Queue.offerUnsafe(messages, binary)
+      if (binary) { Queue.offerUnsafe(messages, binary); return }
       Queue.failCauseUnsafe(
         messages,
         Cause.fail(
@@ -163,7 +164,7 @@ export const fromWebSocket = (
       )
     }
     const onClose = (event: CloseEvent) => {
-      if (event.code === 1000 || event.code === 1005) return Queue.endUnsafe(messages)
+      if (event.code === 1000 || event.code === 1005) { Queue.endUnsafe(messages); return }
       Queue.failCauseUnsafe(
         messages,
         Cause.fail(

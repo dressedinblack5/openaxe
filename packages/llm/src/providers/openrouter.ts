@@ -2,7 +2,6 @@ import { Effect, Schema } from "effect"
 import { Route, type RouteDefaultsInput } from "../route/client"
 import { Endpoint } from "../route/endpoint"
 import { Framing } from "../route/framing"
-import { Protocol } from "../route/protocol"
 import { AuthOptions, type ProviderAuthOption } from "../route/auth-options"
 import { ProviderID, type LLMRequest, type ModelID, type ProviderOptions } from "../schema"
 import { profiles } from "./openai-compatible-profile";

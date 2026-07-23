@@ -29,7 +29,7 @@ export type WorkspaceInfo = {
   name: string
   branch: string | null
   directory: string | null
-  extra: unknown | null
+  extra: unknown
   projectID: string
 }
 

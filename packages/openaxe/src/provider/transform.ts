@@ -315,7 +315,7 @@ function applyCaching(msgs: ModelMessage[], model: ProviderModel): ModelMessage[
     },
   }
 
-  for (const msg of [...new Set([...system, ...final])]) {
+  for (const msg of new Set([...system, ...final])) {
     const useMessageLevelOptions =
       model.providerID === "anthropic" ||
       model.providerID.includes("bedrock") ||

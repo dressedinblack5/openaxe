@@ -147,7 +147,7 @@ export const TuiCommand = cmd({
     const noReplay = args.replay === false || args.noReplay === true
 
     // Defer native lib loading to avoid blocking startup
-    const nativeLibPromise = initOpentuiNativeLib().catch((error) => {
+    const nativeLibPromise = initOpentuiNativeLib().catch(() => {
       UI.error("Failed to load native library, continuing in degraded mode")
       return null
     })

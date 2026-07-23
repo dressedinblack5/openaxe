@@ -60,7 +60,7 @@ const decodeAndExecute = (tool: AnyTool, call: ToolCallPart): Effect.Effect<Tool
     ),
   )
 
-const result = (call: ToolCallPart, value: ToolResultValueType | ToolSettlement, error?: unknown): DispatchResult => {
+const result = (call: ToolCallPart, value: ToolSettlement, error?: unknown): DispatchResult => {
   const settlement = ToolResultValue.is(value) ? { result: value } : value
   return {
     result: settlement.result,

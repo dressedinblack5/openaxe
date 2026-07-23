@@ -46,5 +46,5 @@ try {
   process.stdout.write(JSON.stringify(posts))
 } finally {
   await client.close()
-  server.stop(true)
+  void server.stop(true)
 }

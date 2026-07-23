@@ -17,4 +17,4 @@ async function measure() {
   await time(`@/session/session`, () => import("@/session/session"))
 }
 
-measure()
+void measure()

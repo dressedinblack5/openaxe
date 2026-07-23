@@ -61,7 +61,7 @@ const redactHeaders = (headers: Headers.Headers, redactedNames: ReadonlyArray<st
   Object.fromEntries(
     Object.entries(Headers.redact(headers, [...redactedNames, SENSITIVE_NAME])).map(([name, value]) => [
       name,
-      String(value),
+      JSON.stringify(value),
     ]),
   )
 
@@ -378,7 +378,7 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient> = Layer.e
   Service,
   Effect.gen(function* () {
     const http = yield* HttpClient.HttpClient
-    const circuit = yield* Ref.make<CircuitState>({ consecutiveFailures: 0, openUntil: 0 })
+    const circuit = yield* Ref.make({ consecutiveFailures: 0, openUntil: 0 })
 
     const executeOnce = (request: HttpClientRequest.HttpClientRequest) =>
       Effect.gen(function* () {

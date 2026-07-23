@@ -2253,7 +2253,7 @@ describe("run stream transport", () => {
     })
 
     try {
-      await expect(
+       expect(
         transport.runPromptTurn({
           agent: undefined,
           model: undefined,
@@ -2301,7 +2301,7 @@ describe("run stream transport", () => {
     })
 
     try {
-      await expect(
+       expect(
         transport.runPromptTurn({
           agent: undefined,
           model: undefined,
@@ -2342,7 +2342,7 @@ describe("run stream transport", () => {
         signal: ctrl.signal,
       })
 
-      await expect(
+       expect(
         transport.runPromptTurn({
           agent: undefined,
           model: undefined,

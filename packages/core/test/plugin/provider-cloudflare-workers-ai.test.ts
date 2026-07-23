@@ -15,7 +15,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  const aisdk = yield* AISDK.Service
+  
   const host = yield* PluginHost.make(plugin)
   yield* CloudflareWorkersAIPlugin.effect(host)
 })
@@ -82,7 +82,7 @@ describe("CloudflareWorkersAIPlugin", () => {
   it.effect("maps account ID to endpoint URL and creates an OpenAI-compatible SDK", () =>
     withEnv({ CLOUDFLARE_ACCOUNT_ID: "acct", CLOUDFLARE_API_KEY: "key" }, () =>
       Effect.gen(function* () {
-        const plugin = yield* PluginV2.Service
+        
         const aisdk = yield* AISDK.Service
         const catalog = yield* Catalog.Service
         yield* catalog.transform((catalog) =>
@@ -132,7 +132,7 @@ describe("CloudflareWorkersAIPlugin", () => {
   it.effect("allows a configured baseURL without account ID", () =>
     withEnv({ CLOUDFLARE_ACCOUNT_ID: undefined, CLOUDFLARE_API_KEY: "key" }, () =>
       Effect.gen(function* () {
-        const plugin = yield* PluginV2.Service
+        
         const aisdk = yield* AISDK.Service
         yield* addPlugin()
         const result = yield* aisdk.runSDK({
@@ -176,7 +176,7 @@ describe("CloudflareWorkersAIPlugin", () => {
   it.effect("uses env API key over auth or configured API key and keeps the Cloudflare User-Agent", () =>
     withEnv({ CLOUDFLARE_ACCOUNT_ID: "acct", CLOUDFLARE_API_KEY: "env-key" }, () =>
       Effect.gen(function* () {
-        const plugin = yield* PluginV2.Service
+        
         const aisdk = yield* AISDK.Service
         yield* addPlugin()
         const result = yield* aisdk.runSDK({
@@ -208,7 +208,7 @@ describe("CloudflareWorkersAIPlugin", () => {
   it.effect("expands account ID vars in endpoint URLs", () =>
     withEnv({ CLOUDFLARE_ACCOUNT_ID: "acct", CLOUDFLARE_API_KEY: "key" }, () =>
       Effect.gen(function* () {
-        const plugin = yield* PluginV2.Service
+        
         const aisdk = yield* AISDK.Service
         yield* addPlugin()
         const result = yield* aisdk.runSDK({
@@ -236,7 +236,7 @@ describe("CloudflareWorkersAIPlugin", () => {
 
   it.effect("selects languageModel with the API model ID", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()
@@ -256,7 +256,7 @@ describe("CloudflareWorkersAIPlugin", () => {
   it.effect("does not create an SDK for non OpenAI-compatible packages", () =>
     withEnv({ CLOUDFLARE_ACCOUNT_ID: "acct", CLOUDFLARE_API_KEY: "key" }, () =>
       Effect.gen(function* () {
-        const plugin = yield* PluginV2.Service
+        
         const aisdk = yield* AISDK.Service
         yield* addPlugin()
         const result = yield* aisdk.runSDK({

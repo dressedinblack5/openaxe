@@ -1,15 +1,14 @@
 import { onMount, splitProps, type ComponentProps, Show, mergeProps } from "solid-js"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { createStore } from "solid-js/store"
-import { useI18n } from "../context/i18n"
 
 export interface ScrollViewProps extends ComponentProps<"div"> {
   viewportRef?: (el: HTMLDivElement) => void
   orientation?: "vertical" | "horizontal" // currently only vertical is fully implemented for thumb
 }
 
-export const scrollKey = (event: Pick<KeyboardEvent, "key" | "altKey" | "ctrlKey" | "metaKey" | "shiftKey">) => {
-  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+export const scrollKey = (event: Pick<KeyboardEvent, "key" | "altKey" | "ctrlKey" | "metaKey" | "shiftKey">): string | undefined => {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return undefined
 
   switch (event.key) {
     case "PageDown":
@@ -24,6 +23,8 @@ export const scrollKey = (event: Pick<KeyboardEvent, "key" | "altKey" | "ctrlKey
       return "up"
     case "ArrowDown":
       return "down"
+    default:
+      return undefined
   }
 }
 
@@ -43,7 +44,7 @@ export function scrollTopFromThumbPointer(input: {
 }
 
 export function ScrollView(props: ScrollViewProps) {
-  const i18n = useI18n()
+  
   const merged = mergeProps({ orientation: "vertical" }, props)
   const [local, events, rest] = splitProps(
     merged,
@@ -155,45 +156,7 @@ export function ScrollView(props: ScrollViewProps) {
   // We ensure the viewport has a tabindex so it can receive focus
   // We can also explicitly catch PageUp/Down if we want smooth scroll or specific behavior,
   // but native usually handles this perfectly. Let's explicitly ensure it behaves well.
-  const onKeyDown = (e: KeyboardEvent) => {
-    // If user is focused on an input inside the scroll view, don't hijack keys
-    if (document.activeElement && ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) {
-      return
-    }
-
-    const next = scrollKey(e)
-    if (!next) return
-
-    const scrollAmount = viewportRef.clientHeight * 0.8
-    const lineAmount = 40
-
-    switch (next) {
-      case "page-down":
-        e.preventDefault()
-        viewportRef.scrollBy({ top: scrollAmount, behavior: "smooth" })
-        break
-      case "page-up":
-        e.preventDefault()
-        viewportRef.scrollBy({ top: -scrollAmount, behavior: "smooth" })
-        break
-      case "home":
-        e.preventDefault()
-        viewportRef.scrollTo({ top: 0, behavior: "smooth" })
-        break
-      case "end":
-        e.preventDefault()
-        viewportRef.scrollTo({ top: viewportRef.scrollHeight, behavior: "smooth" })
-        break
-      case "up":
-        e.preventDefault()
-        viewportRef.scrollBy({ top: -lineAmount, behavior: "smooth" })
-        break
-      case "down":
-        e.preventDefault()
-        viewportRef.scrollBy({ top: lineAmount, behavior: "smooth" })
-        break
-    }
-  }
+  
 
   return (
     <div
@@ -210,22 +173,15 @@ export function ScrollView(props: ScrollViewProps) {
         class="scroll-view__viewport"
         onScroll={(e) => {
           updateThumb()
-          if (typeof events.onScroll === "function") events.onScroll(e as any)
+          if (typeof events.onScroll === "function") events.onScroll(e)
         }}
-        onWheel={events.onWheel as any}
-        onTouchStart={events.onTouchStart as any}
-        onTouchMove={events.onTouchMove as any}
-        onTouchEnd={events.onTouchEnd as any}
-        onTouchCancel={events.onTouchCancel as any}
-        onPointerDown={events.onPointerDown as any}
-        onClick={events.onClick as any}
-        tabIndex={0}
-        role="region"
-        aria-label={i18n.t("ui.scrollView.ariaLabel")}
-        onKeyDown={(e) => {
-          onKeyDown(e)
-          if (typeof events.onKeyDown === "function") events.onKeyDown(e as any)
-        }}
+        onWheel={events.onWheel}
+        onTouchStart={events.onTouchStart}
+        onTouchMove={events.onTouchMove}
+        onTouchEnd={events.onTouchEnd}
+        onTouchCancel={events.onTouchCancel}
+        onPointerDown={events.onPointerDown}
+        onClick={events.onClick}
       >
         {local.children}
       </div>

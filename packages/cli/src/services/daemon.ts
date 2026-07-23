@@ -167,7 +167,10 @@ export const layer = Layer.effect(
       const existing = yield* healthy().pipe(Effect.option)
       // A stale registration may point at a PID that has since been reused by
       // another process. Only signal the PID after authenticating the server.
-      if (Option.isNone(existing)) return yield* fs.remove(file).pipe(Effect.ignore)
+        if (Option.isNone(existing)) {
+          yield* fs.remove(file).pipe(Effect.ignore)
+          return
+        }
       yield* stopProcess(existing.value)
       yield* fs.remove(file).pipe(Effect.ignore)
     })

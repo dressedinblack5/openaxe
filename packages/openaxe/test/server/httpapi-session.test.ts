@@ -6,7 +6,7 @@ import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { mkdir } from "node:fs/promises"
 import path from "node:path"
 import { Cause, Config, Effect, Exit, Layer, Scope } from "effect"
-import { HttpClient, HttpClientRequest, HttpClientResponse, HttpRouter, HttpServer } from "effect/unstable/http"
+import { HttpClientRequest, HttpClientResponse, HttpRouter, HttpServer } from "effect/unstable/http"
 import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { Flag } from "@opencode-ai/core/flag/flag"
@@ -36,9 +36,7 @@ import { disposeAllInstances, provideInstanceEffect, TestInstance, tmpdirScoped,
 import { TestLLMServer } from "../lib/llm-server"
 import { testProviderConfig } from "../lib/test-provider"
 import { type TestOptions, test } from "bun:test"
-import type { InstanceContext } from "@/project/instance-context"
 import { ProjectV2 } from "@opencode-ai/core/project"
-import type { TestClock } from "effect/testing/TestClock"
 import { memoMap as coreMemoMap } from "@opencode-ai/core/effect/memo-map"
 
 type Body<A, E, R> = Effect.Effect<A, E, R> | (() => Effect.Effect<A, E, R>)

@@ -79,7 +79,7 @@ describe("plugin.snowflake-cortex", () => {
   })
 
   test("loader refreshes expired token with single-flight and persists refreshed oauth", async () => {
-    const { input, getAuth, setCalls } = makeInput()
+    const { input, setCalls } = makeInput()
     let refreshCalls = 0
     const apiAuthHeaders: string[] = []
 
@@ -87,7 +87,7 @@ describe("plugin.snowflake-cortex", () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = (async (request, init) => {
       const url =
-        typeof request === "string" ? request : request instanceof URL ? request.toString() : String(request.url)
+        typeof request === "string" ? request : request instanceof URL ? request.toString() : request.url
 
       if (url.includes("/oauth/token-request")) {
         refreshCalls += 1
@@ -137,7 +137,7 @@ describe("plugin.snowflake-cortex", () => {
   })
 
   test("loader retries once after 401 by refreshing token", async () => {
-    const { input, getAuth, setCalls } = makeInput()
+    const { input, setCalls } = makeInput()
     const hooks = await SnowflakeCortexAuthPlugin(input)
     const options = await hooks.auth!.loader!(
       async () =>
@@ -156,7 +156,7 @@ describe("plugin.snowflake-cortex", () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = (async (request, init) => {
       const url =
-        typeof request === "string" ? request : request instanceof URL ? request.toString() : String(request.url)
+        typeof request === "string" ? request : request instanceof URL ? request.toString() : request.url
 
       if (url.includes("/oauth/token-request")) {
         return Response.json({ access_token: "access-fresh", refresh_token: "refresh-fresh", expires_in: 3600 })
