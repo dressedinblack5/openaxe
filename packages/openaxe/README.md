@@ -89,8 +89,9 @@ openaxe run "explain this codebase"
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Background HTTP API server with optional web interface
 - **All major platforms** — Linux, macOS, Windows (native binaries, AVX2/musl detection)
-- **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, survives across sessions
-- **Auto-verification guardrails** — automatic LSP diagnostics after every file mutation, plus `tsc`/`cargo`/`ruff`/`go vet`, bracket balance, and import validation
+- **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, survives across sessions; **AxeMdSync/AxeSync round-trip fixed** so both list-item (`- **key**: value`) and free-text sections read/write correctly
+- **Auto-verification guardrails** — automatic LSP diagnostics after every file mutation, plus `tsc`/`cargo`/`ruff`/`go vet`, bracket balance, and import validation; **bracket checker now skips `//` and `/* */` comments** and template strings to eliminate false positives
+- **Predictive context prepper** — new `core/context-prepper` SystemContext source that runs `git diff HEAD --name-status` on each turn and injects `<recent_changes>` so the agent knows what changed before you ask
 - **Versioned artifact store** — content-versioned storage for build outputs and generated files with TUI preview
 - **Auto-commit** — automatic git commits at each AI mutation turn
 - **Error journal** — tool errors logged to `.openaxe/errors.jsonl` for debugging
