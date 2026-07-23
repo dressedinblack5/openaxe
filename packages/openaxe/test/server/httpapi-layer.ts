@@ -1,5 +1,5 @@
 import { NodeHttpServer, NodeServices } from "@effect/platform-node"
-import { Effect, Layer, Path } from "effect"
+import { Effect, Layer, Option, Path } from "effect"
 import { Database } from "@opencode-ai/core/database/database"
 import { HttpClient, HttpClientRequest, HttpClientResponse, HttpRouter, HttpServer } from "effect/unstable/http"
 import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket"
@@ -10,6 +10,8 @@ import { authorizationLayer } from "../../src/server/routes/instance/httpapi/mid
 import { schemaErrorLayer } from "../../src/server/routes/instance/httpapi/middleware/schema-error"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../../src/server/routes/instance/httpapi/api"
+import { ServerAuth } from "../../src/server/auth"
+import { Workspace } from "../../src/control-plane/workspace"
 import { Memory } from "@opencode-ai/core/memory"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { AppProcess } from "@opencode-ai/core/process"
@@ -43,7 +45,7 @@ const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
   Layer.provide([
     configHandlers,
     experimentalHandlers,
-    fileHandlers,
+    fileHandlers.pipe(Layer.provide([Ripgrep.defaultLayer, NodeServices.layer])),
     instanceHandlers,
     mcpHandlers,
     memoryHandlers,
@@ -62,13 +64,20 @@ const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
 
 // Build the instance routes with middleware
 const instanceRoutes = instanceApiRoutes.pipe(
-  Layer.provide([
-    Memory.layer,
-    authorizationLayer,
-    workspaceRoutingLayer.pipe(Layer.provide(layerWebSocketConstructorGlobal)),
-    instanceContextLayer,
-    schemaErrorLayer,
-  ]),
+  Layer.provideMerge(
+    Layer.mergeAll([
+      Memory.layer,
+      authorizationLayer,
+      workspaceRoutingLayer.pipe(Layer.provide(layerWebSocketConstructorGlobal)),
+      instanceContextLayer,
+      schemaErrorLayer,
+      Ripgrep.defaultLayer,
+      FSUtil.defaultLayer,
+      AppProcess.defaultLayer,
+      Git.defaultLayer,
+      Worktree.defaultLayer,
+    ]),
+  ),
 )
 
 // Now serve the routes
@@ -82,18 +91,17 @@ const servedRoutes = HttpRouter.serve(
 
 // Build the final layer
 export const httpApiLayer = servedRoutes.pipe(
-  Layer.provide(layerWebSocketConstructorGlobal),
+  Layer.provideMerge(layerWebSocketConstructorGlobal),
   Layer.provideMerge(NodeHttpServer.layerTest),
   Layer.provideMerge(NodeServices.layer),
-  Layer.provide(Project.defaultLayer),
-  Layer.provide(EventV2.defaultLayer),
-  Layer.provide(EventV2Bridge.defaultLayer),
-  Layer.provide(Ripgrep.defaultLayer),
-  Layer.provide(FSUtil.defaultLayer),
-  Layer.provide(Path.layer),
-  Layer.provide(AppProcess.defaultLayer),
-  Layer.provide(Git.defaultLayer),
-  Layer.provide(Worktree.defaultLayer),
+  Layer.provideMerge(Project.defaultLayer),
+  Layer.provideMerge(EventV2.defaultLayer),
+  Layer.provideMerge(EventV2Bridge.defaultLayer),
+  Layer.provideMerge(Path.layer),
+  Layer.provideMerge(Database.defaultLayer),
+  Layer.provideMerge(ServerAuth.Config.layer({ username: "test", password: Option.some("test") })),
+  Layer.provideMerge(Workspace.defaultLayer),
+  Layer.provideMerge(Ripgrep.defaultLayer),
 )
 
 // Keep the helper functions for making requests
