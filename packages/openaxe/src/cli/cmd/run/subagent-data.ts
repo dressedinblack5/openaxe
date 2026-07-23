@@ -16,7 +16,6 @@ const SUBAGENT_COMMIT_LIMIT = 80
 const SUBAGENT_CALL_LIMIT = 32
 const SUBAGENT_ROLE_LIMIT = 32
 const SUBAGENT_ERROR_LIMIT = 16
-const SUBAGENT_ECHO_LIMIT = 8
 
 type SessionMessage = {
   parts: Part[]
@@ -515,11 +514,6 @@ function compactCallMap(detail: DetailState) {
   return copyMap(detail.data.call, keep)
 }
 
-function compactEchoMap(data: SessionData, messageIDs: Set<string>) {
-  const keys = new Set([...messageIDs, ...recent(data.echo.keys(), SUBAGENT_ECHO_LIMIT)])
-  return copyMap(data.echo, keys)
-}
-
 function compactIDs(detail: DetailState) {
   return new Set(recent(detail.data.ids, SUBAGENT_COMMIT_LIMIT + SUBAGENT_ERROR_LIMIT))
 }
@@ -550,7 +544,6 @@ function compactDetail(detail: DetailState) {
   next.text = copyMap(detail.data.text, activePartIDs)
   next.sent = copyMap(detail.data.sent, activePartIDs)
   next.end = new Set([...detail.data.end].filter((item) => activePartIDs.has(item)))
-  next.echo = compactEchoMap(detail.data, messageIDs)
   detail.data = next
 }
 
