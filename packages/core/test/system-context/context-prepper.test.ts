@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test"
 import fs from "fs/promises"
 import path from "path"
+import os from "os"
 import { execFileSync } from "child_process"
 import { Effect, Layer } from "effect"
 import { AppProcess } from "@opencode-ai/core/process"
@@ -11,12 +12,30 @@ import { SystemContextRegistry } from "@opencode-ai/core/system-context/registry
 import { SystemContext } from "@opencode-ai/core/system-context"
 import { ContextPrepper } from "@opencode-ai/core/context-prepper"
 
+const hasGit = (() => {
+  try {
+    execFileSync("git", ["--version"], { stdio: "ignore" })
+    return true
+  } catch {
+    return false
+  }
+})()
+
+// ponytail: skip git-dependent tests when git isn't available instead of
+// polyfilling — a JS git impl or forcing git on CI runners is more weight
+// than these tests justify
+const testIf = hasGit ? test : test.skip
+
 function git(dir: string, ...args: string[]) {
   execFileSync("git", args, { cwd: dir })
 }
 
+async function tempDir(): Promise<string> {
+  return fs.mkdtemp(path.join(os.tmpdir(), "context-prepper-test-"))
+}
+
 async function createTempRepo(): Promise<string> {
-  const dir = execFileSync("mktemp", ["-d"], { encoding: "utf8" }).trim()
+  const dir = await tempDir()
   git(dir, "init", "-b", "main")
   git(dir, "config", "user.email", "test@test.com")
   git(dir, "config", "user.name", "Test")
@@ -57,7 +76,7 @@ function loadContext(dir: string) {
   )
 }
 
-test("ContextPrepper reports recent git changes", async () => {
+testIf("ContextPrepper reports recent git changes", async () => {
   const dir = await createTempRepo()
   try {
     await fs.writeFile(path.join(dir, "main.ts"), "console.log('modified')\n")
@@ -79,7 +98,7 @@ test("ContextPrepper reports recent git changes", async () => {
   }
 }, 10_000)
 
-test("ContextPrepper returns empty when repo has no changes", async () => {
+testIf("ContextPrepper returns empty when repo has no changes", async () => {
   const dir = await createTempRepo()
   try {
     const ctx = await Effect.runPromise(loadContext(dir))
@@ -91,7 +110,7 @@ test("ContextPrepper returns empty when repo has no changes", async () => {
 }, 10_000)
 
 test("ContextPrepper returns empty outside a git repo", async () => {
-  const dir = execFileSync("mktemp", ["-d"], { encoding: "utf8" }).trim()
+  const dir = await tempDir()
   try {
     const ctx = await Effect.runPromise(loadContext(dir))
 
@@ -101,7 +120,7 @@ test("ContextPrepper returns empty outside a git repo", async () => {
   }
 }, 10_000)
 
-test("ContextPrepper handles renamed files as modified", async () => {
+testIf("ContextPrepper handles renamed files as modified", async () => {
   const dir = await createTempRepo()
   try {
     git(dir, "mv", "main.ts", "lib.ts")
