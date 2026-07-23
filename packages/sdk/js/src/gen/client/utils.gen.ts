@@ -12,7 +12,7 @@ export const createQuerySerializer = ({ allowReserved, array, object }: QuerySer
     const search: string[] = []
     if (queryParams && typeof queryParams === "object") {
       for (const name in queryParams) {
-        const value = queryParams[name]
+        const value = (queryParams as Record<string, unknown>)[name]
 
         if (value === undefined || value === null) {
           continue
