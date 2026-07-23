@@ -267,6 +267,7 @@ const makeReplaySocket = (
                           `WebSocket closed with unconsumed events: used ${current.position} of ${state.interaction.events.length}`,
                         ),
                       )
+                      return
                     }
                     const actual = redactEvent(encodeEvent("client", message), redactor)
                     yield* assertEvent(
