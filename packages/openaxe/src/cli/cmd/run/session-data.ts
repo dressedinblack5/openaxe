@@ -80,6 +80,7 @@ export type SessionData = {
   sent: Map<string, number>
   visible: Map<string, string>
   end: Set<string>
+  lastBashOutput?: string
 }
 
 export type SessionDataInput = {
@@ -118,6 +119,7 @@ export function createSessionData(
     sent: new Map(),
     visible: new Map(),
     end: new Set(),
+    lastBashOutput: undefined,
   }
 }
 
@@ -470,6 +472,12 @@ function flushPart(
 
   if (sent === 0) {
     chunk = chunk.replace(/^\n+/, "")
+    // Some models echo back the bash output before generating their own text.
+    // Strip the echoed bash output from the first flush so it doesn't appear
+    // duplicated in the scrollback.
+    if (kind === "assistant" && data.lastBashOutput && chunk.startsWith(data.lastBashOutput)) {
+      chunk = chunk.slice(data.lastBashOutput.length)
+    }
     // Some models emit a standalone whitespace token before real content.
     // Keep buffering until we have visible text so scrollback doesn't get a blank row.
     if (!chunk.trim()) {
@@ -870,6 +878,13 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
           return out(data, commits, view)
         }
 
+        if (part.tool === "bash" && part.callID) {
+          const shell = claimShell(data, part.callID, "tool")
+          if (shell.source !== "tool") {
+            return out(data, commits, view)
+          }
+        }
+
         if (!data.tools.has(part.id)) {
           data.tools.add(part.id)
           commits.push(startTool(part))
@@ -879,6 +894,13 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
       }
 
       if (part.state.status === "completed") {
+        if (part.tool === "bash" && part.callID) {
+          const shell = claimShell(data, part.callID, "tool")
+          if (shell.source !== "tool") {
+            return out(data, commits, view)
+          }
+        }
+
         const seen = data.tools.has(part.id)
         const mode = toolView(part.tool)
         data.tools.delete(part.id)
@@ -911,10 +933,21 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
           commits.push(doneTool(part))
         }
 
+        if (part.tool === "bash" && typeof output === "string") {
+          data.lastBashOutput = output
+        }
+
         return out(data, commits, view)
       }
 
       if (part.state.status === "error") {
+        if (part.tool === "bash" && part.callID) {
+          const shell = claimShell(data, part.callID, "tool")
+          if (shell.source !== "tool") {
+            return out(data, commits, view)
+          }
+        }
+
         const seen = data.tools.has(part.id)
         data.tools.delete(part.id)
         if (data.ids.has(part.id)) {
