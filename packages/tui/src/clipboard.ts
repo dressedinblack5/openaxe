@@ -57,6 +57,9 @@ export async function read() {
       Buffer.alloc(0),
     )
     if (image.length) return { data: image.toString().trim(), mime: "image/png" }
+    // ponytail: direct PowerShell read before clipboardy fallback — clipboardy silently fails on Windows
+    const text = await command("powershell.exe", ["-NonInteractive", "-NoProfile", "-command", "Get-Clipboard -Raw"]).catch(() => Buffer.alloc(0))
+    if (text.length) return { data: text.toString().trim(), mime: "text/plain" }
   }
 
   if (platform() === "linux") {
