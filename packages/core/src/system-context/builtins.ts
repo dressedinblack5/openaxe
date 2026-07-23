@@ -4,6 +4,7 @@ import { DateTime, Effect, Layer, Schema } from "effect"
 import { Location } from "../location"
 import { Memory } from "../memory"
 import { SystemContext } from "./index"
+import { ContextPrepper } from "../context-prepper"
 import { InstructionContext } from "../instruction-context"
 import { SystemContextRegistry } from "./registry"
 
@@ -53,7 +54,7 @@ SystemContext.make({
   }),
 )
 
-export const layer = Layer.mergeAll(builtIns, InstructionContext.layer).pipe(
+export const layer = Layer.mergeAll(builtIns, InstructionContext.layer, ContextPrepper.layer).pipe(
   Layer.provideMerge(SystemContextRegistry.layer),
 )
 
