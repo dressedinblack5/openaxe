@@ -27,6 +27,7 @@ import { Plugin } from "../plugin"
 import { Provider } from "@/provider/provider"
 
 import { WebSearchTool } from "./websearch"
+import { ShellTool } from "./shell/shell"
 import { LspTool } from "./lsp"
 import { Truncate } from "./truncate"
 import { ApplyPatchTool } from "./apply_patch"
@@ -35,6 +36,7 @@ import path from "path"
 import { pathToFileURL } from "url"
 import { Effect, Layer, Context } from "effect"
 import { FetchHttpClient } from "effect/unstable/http"
+import { AppProcess } from "@opencode-ai/core/process"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { Format } from "../format"
 import { InstanceState } from "@/effect/instance-state"
@@ -103,6 +105,7 @@ export const layer = Layer.effect(
     const edit = yield* EditTool
     const greptool = yield* GrepTool
     const patchtool = yield* ApplyPatchTool
+    const shell = yield* ShellTool
     const skilltool = yield* SkillTool
     const agent = yield* Agent.Service
 
@@ -214,6 +217,7 @@ export const layer = Layer.effect(
           question: init(question),
           lsp: init(lsptool),
           plan: init(plan),
+          shell: init(shell),
         })
 
         return {
@@ -233,6 +237,7 @@ export const layer = Layer.effect(
             tool.skill,
             tool.patch,
             tool.lsp,
+            tool.shell,
             ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
           ],
           task: tool.task,
@@ -335,6 +340,7 @@ export const defaultLayer = Layer.suspend(() =>
       Layer.provide(FetchHttpClient.layer),
       Layer.provide(Format.defaultLayer),
       Layer.provide(CrossSpawnSpawner.defaultLayer),
+      Layer.provide(AppProcess.defaultLayer),
       Layer.provide(Truncate.defaultLayer),
     )
     .pipe(Layer.provide(Database.defaultLayer), Layer.provide(RuntimeFlags.defaultLayer)),
@@ -431,6 +437,7 @@ export const node = LayerNode.make(layer.pipe(Layer.provide(Ripgrep.defaultLayer
   FSUtil.node,
   EventV2Bridge.node,
   httpClient,
+  AppProcess.node,
   CrossSpawnSpawner.node,
   Format.node,
   Truncate.node,
