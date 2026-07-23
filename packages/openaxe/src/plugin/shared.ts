@@ -149,7 +149,8 @@ function resolvePackageEntrypoint(spec: string, kind: PluginKind, pkg: PluginPac
     if (raw) return resolvePackagePath(spec, raw, kind, pkg)
   }
 
-  if (kind !== "server") return
+  // Fall back to main for both server and tui plugins
+  if (kind !== "server" && kind !== "tui") return
   const main = packageMain(pkg)
   if (main) return resolvePackagePath(spec, main, kind, pkg)
 
