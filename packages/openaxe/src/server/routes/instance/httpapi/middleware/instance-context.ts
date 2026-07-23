@@ -26,16 +26,20 @@ function provideInstanceContext<E>(
 ): Effect.Effect<HttpServerResponse.HttpServerResponse, E, WorkspaceRouteContext> {
   return Effect.gen(function* () {
     const route = yield* WorkspaceRouteContext
+    console.log("DEBUG middleware: loading store for", route.directory)
     const ctx = yield* store.load({ directory: decode(route.directory) }).pipe(
       Effect.timeoutOption(Duration.seconds(120)),
     )
+    console.log("DEBUG middleware: store loaded", Option.isSome(ctx))
     if (Option.isNone(ctx)) {
       return HttpServerResponse.empty({ status: 503 })
     }
-    return yield* effect.pipe(
+    const result = yield* effect.pipe(
       Effect.provideService(InstanceRef, ctx.value),
       Effect.provideService(WorkspaceRef, route.workspaceID),
     )
+    console.log("DEBUG middleware: effect completed, status:", result.status)
+    return result
   })
 }
 
