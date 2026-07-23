@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, mock } from "bun:test"
 import { Context, Effect, Layer } from "effect"
 import { Flag } from "@opencode-ai/core/flag/flag"
+import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { SyncPaths } from "../../src/server/routes/instance/httpapi/groups/sync"
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
 import { Session } from "@/session/session"
+import { Workspace } from "../../src/control-plane/workspace"
+import { InstanceBootstrap } from "../../src/project/bootstrap"
+import { InstanceStore } from "../../src/project/instance-store"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, TestInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
@@ -11,7 +15,18 @@ import { httpApiLayer, requestInDirectory } from "./httpapi-layer"
 
 const originalWorkspaces = Flag.OPENCODE_EXPERIMENTAL_WORKSPACES
 const context = Context.empty() as Context.Context<unknown>
-const it = testEffect(Layer.mergeAll(Session.defaultLayer, httpApiLayer))
+const workspaceLayer = Workspace.defaultLayer.pipe(
+  Layer.provide(InstanceStore.defaultLayer),
+  Layer.provide(InstanceBootstrap.defaultLayer),
+)
+const it = testEffect(
+  Layer.mergeAll(
+    Session.defaultLayer,
+    workspaceLayer,
+    InstanceStore.defaultLayer.pipe(Layer.provide(InstanceBootstrap.defaultLayer)),
+    httpApiLayer,
+  ).pipe(Layer.provide(Ripgrep.defaultLayer)),
+)
 
 afterEach(async () => {
   mock.restore()
