@@ -1,0 +1,25 @@
+{"time":"2026-07-23T14:41:40.953Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-23T14:41:40.966Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-23T14:41:40.968Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-07-23T14:41:42.579Z","sessionID":"ses_question_tool_test","toolName":"question","error":"Permission denied: question"}
+{"time":"2026-07-23T14:41:42.985Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch file:///etc/passwd"}
+{"time":"2026-07-23T14:41:44.330Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/deep-html"}
+{"time":"2026-07-23T14:41:44.341Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/declared"}
+{"time":"2026-07-23T14:41:44.375Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/streamed"}
+{"time":"2026-07-23T14:41:44.384Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/image"}
+{"time":"2026-07-23T14:41:44.385Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/file"}
+{"time":"2026-07-23T14:41:44.390Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/slow"}
+{"time":"2026-07-23T14:41:47.718Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Image could not be decoded: truncated.png"}
+{"time":"2026-07-23T14:41:47.729Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Image wide.png is 16x1 with base64 size 164, exceeding configured limits 4x2000/5242880 bytes"}
+{"time":"2026-07-23T14:41:47.740Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Image pixel.png is 1x1 with base64 size 92, exceeding configured limits 2000x2000/1 bytes"}
+{"time":"2026-07-23T14:41:47.744Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: archive.dat"}
+{"time":"2026-07-23T14:41:47.748Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read README.md"}
+{"time":"2026-07-23T14:41:47.750Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read __missing_read_target__.txt"}
+{"time":"2026-07-23T14:41:47.755Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read src"}
+{"time":"2026-07-23T14:41:47.765Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: late-binary"}
+{"time":"2026-07-23T14:41:47.856Z","sessionID":"ses_websearch_test","toolName":"websearch","error":"Unable to search the web for too much"}
+{"time":"2026-07-23T14:41:47.886Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill missing"}
+{"time":"2026-07-23T14:41:47.887Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill effect"}
+{"time":"2026-07-23T14:41:49.014Z","sessionID":"ses_registry","toolName":"failed","error":"Denied"}
+{"time":"2026-07-23T14:41:49.020Z","sessionID":"ses_registry","toolName":"transformed","error":"Invalid tool input: Expected boolean, got \"yes\"\n  at [\"value\"]"}
+{"time":"2026-07-23T14:41:49.022Z","sessionID":"ses_registry","toolName":"invalid_output","error":"Tool returned an invalid value for its output schema: invalid output\n  at [\"value\"]"}

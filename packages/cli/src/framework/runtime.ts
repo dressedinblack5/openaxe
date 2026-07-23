@@ -62,7 +62,7 @@ export function handlers<const Root extends Spec.Any>(root: Root, handlers: Hand
 }
 
 export function run(commands: Spec.Any, handlers: ReadonlyArray<LazyHandler>, options: { readonly version: string }): Effect<void, unknown, Environment> {
-  return commandRun(provide(commands, handlers), options)
+  return commandRun(provide(commands, handlers), options) as Effect<void, unknown, Environment>
 }
 
 function provide(node: Spec.Any, handlers: ReadonlyArray<LazyHandler>): ProvidedCommand {
@@ -76,10 +76,10 @@ function provide(node: Spec.Any, handlers: ReadonlyArray<LazyHandler>): Provided
         ),
       )
     : node.spec
-  if (!Object.keys(node.commands).length) return spec
+  if (!Object.keys(node.commands).length) return spec as ProvidedCommand
   return spec.pipe(
     withSubcommands(Object.values(node.commands).map((child) => provide(child, handlers))),
-  )
+  ) as ProvidedCommand
 }
 
 export * as Runtime from "./runtime"

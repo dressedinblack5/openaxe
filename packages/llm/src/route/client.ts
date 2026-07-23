@@ -269,8 +269,7 @@ function makeFromTransport<Body, Prepared, Frame, Event, State>(
           provider: provider ?? routeInput.provider,
           auth: auth ?? routeInput.auth,
           endpoint: endpoint ? Endpoint.merge(routeInput.endpoint, endpoint) : routeInput.endpoint,
-          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — transport is a partial patch, cast is safe
-          transport: transport != null ? transport as Transport<Body, Prepared, Frame> | undefined : routeInput.transport,
+          transport: (transport != null ? transport : routeInput.transport) as Transport<Body, Prepared, Frame>,
           defaults: mergeRouteDefaults(route.defaults, defaults),
         })
       },
@@ -404,13 +403,13 @@ export function stream(request: LLMRequest): Stream.Stream<LLMEvent, LLMError> {
     Effect.gen(function* () {
       return (yield* Service).stream(request)
     }),
-  )
+  ) as Stream.Stream<LLMEvent, LLMError>
 }
 
 export function generate(request: LLMRequest): Effect.Effect<LLMResponse, LLMError> {
   return Effect.gen(function* () {
     return yield* (yield* Service).generate(request)
-  })
+  }) as Effect.Effect<LLMResponse, LLMError>
 }
 
 export const streamRequest = (request: LLMRequest) =>

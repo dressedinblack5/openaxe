@@ -19,7 +19,7 @@ export default Runtime.handler(
   Effect.fn("cli.api")(function* (input) {
     const daemon = yield* Daemon.Service
     const transport = yield* daemon.transport()
-    const params = Option.getOrElse(input.param, () => ({}))
+    const params = Option.getOrElse(input.param, () => ({} as Record<string, string>)) as Record<string, string>
     const request = yield* resolveRequest(transport, input.request, params)
     const headers = new Headers(transport.headers)
     for (const header of input.header) {
@@ -30,7 +30,7 @@ export default Runtime.handler(
       }
       headers.set(header.slice(0, index).trim(), header.slice(index + 1).trim())
     }
-    const body = Option.getOrUndefined(input.data)
+    const body = Option.getOrUndefined(input.data) as BodyInit | undefined
     if (body !== undefined && !headers.has("content-type")) headers.set("content-type", "application/json")
 
     const response = yield* Effect.tryPromise(() =>

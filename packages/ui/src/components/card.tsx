@@ -68,7 +68,7 @@ export function CardTitle(props: CardTitleProps) {
   const name = () => {
     if (split.icon === false || split.icon === null) return undefined
     if (typeof split.icon === "string") return split.icon
-    return pick(split.variant ?? "normal")
+    return pick(split.variant ?? "normal") as IconProps["name"] | undefined
   }
   const placeholder = () => !name()
   return (

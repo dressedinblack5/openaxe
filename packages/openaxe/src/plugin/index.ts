@@ -217,7 +217,7 @@ export const layer = Layer.effect(
                   start(_candidate) {},
                   missing(_candidate, _retry, _message) {},
                   error(_candidate, _retry, stage, error, _resolved) {
-                    const spec = candidate.plan.spec
+                    const spec = _candidate.plan.spec
                     const cause = error instanceof Error ? (error.cause ?? error) : error
                     const message = stage === "load" ? errorMessage(error) : errorMessage(cause)
 

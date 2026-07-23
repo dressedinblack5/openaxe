@@ -118,7 +118,7 @@ function requestInDirectory(path: string, directory: string, init: RequestInit =
 }
 
 describe("sync HttpApi", () => {
-  it.instance(
+  it.live(
     "serves sync routes",
     () =>
       Effect.gen(function* () {
@@ -130,7 +130,6 @@ describe("sync HttpApi", () => {
         // Just test that the start endpoint returns 200
         const started = yield* requestInDirectory(SyncPaths.start, tmp, { method: "POST", headers })
         expect(started.status).toBe(200)
-      }),
-    { git: true, config: { formatter: false, lsp: false } },
+      }) as Effect.Effect<void>,
   )
 })
