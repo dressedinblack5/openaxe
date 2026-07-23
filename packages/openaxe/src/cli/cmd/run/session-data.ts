@@ -731,6 +731,10 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
 
     const shell = claimShell(data, event.properties.callID, "shell", event.properties.command)
 
+    if (shell.source !== "shell") {
+      return out(data, commits)
+    }
+
     const partID = shellPartID(event.properties.callID)
     if (data.ids.has(partID) || data.tools.has(partID)) {
       return out(data, commits, patch({ status: "running shell" }))
@@ -747,6 +751,10 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
     }
 
     const shell = claimShell(data, event.properties.callID, "shell")
+
+    if (shell.source !== "shell") {
+      return out(data, commits)
+    }
 
     const partID = shellPartID(event.properties.callID)
     const seen = data.tools.has(partID)
