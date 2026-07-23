@@ -1,8 +1,9 @@
 import { NodeHttpServer, NodeServices } from "@effect/platform-node"
 import { Config, Effect, Layer } from "effect"
-import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
+import { HttpClient, HttpClientRequest, HttpClientResponse, HttpRouter, HttpServer } from "effect/unstable/http"
 import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket"
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
+import { instanceContextLayer } from "../../src/server/routes/instance/httpapi/middleware/instance-context"
 import { InstanceRef } from "@/effect/instance-ref"
 import { EventV2 } from "@opencode-ai/core/event"
 import { InstanceBootstrap as InstanceBootstrapService } from "../../src/project/bootstrap-service"
@@ -42,11 +43,12 @@ export const httpApiLayer = servedRoutes.pipe(
   Layer.provide(layerWebSocketConstructorGlobal),
   Layer.provideMerge(NodeHttpServer.layerTest),
   Layer.provideMerge(NodeServices.layer),
-  Layer.provide(instanceStoreLayer),
   Layer.provide(Project.defaultLayer),
   Layer.provide(EventV2.defaultLayer),
   Layer.provide(EventV2Bridge.defaultLayer),
   Layer.provide(instanceRefLayer),
+  Layer.provide(instanceContextLayer),
+  Layer.provide(instanceStoreLayer),
   Layer.provide(ConfigService.defaultLayer),
   Layer.provide(Ripgrep.defaultLayer),
 )
