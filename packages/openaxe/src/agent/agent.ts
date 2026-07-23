@@ -21,8 +21,8 @@ import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
 import { Effect, Context, Layer, Schema } from "effect"
 import { InstanceState } from "@/effect/instance-state"
-import { getOrUndefined } from "effect/Option";
-import { OtelTracer } from "@effect/opentelemetry/Tracer";
+import { getOrUndefined } from "effect/Option"
+import { OtelTracer } from "@effect/opentelemetry/Tracer"
 import { AbsolutePath, type DeepMutable } from "@opencode-ai/core/schema"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
@@ -35,8 +35,9 @@ import { mergeDeep } from "@/util/merge-deep"
 function sortBy<T>(items: T[], ...fns: Array<[(item: T) => any, "asc" | "desc"]>): T[] {
   return items.slice().sort((a, b) => {
     for (const [accessor, dir] of fns) {
-      const ka = accessor(a), kb = accessor(b)
-      if (ka !== kb) return dir === "desc" ? (kb < ka ? -1 : 1) : (ka < kb ? -1 : 1)
+      const ka = accessor(a),
+        kb = accessor(b)
+      if (ka !== kb) return dir === "desc" ? (kb < ka ? -1 : 1) : ka < kb ? -1 : 1
     }
     return 0
   })

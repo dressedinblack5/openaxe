@@ -1,5 +1,5 @@
 import { Effect, Fiber, Layer, ManagedRuntime } from "effect"
-import { Service, getReferenceUnsafe } from "effect/Context";
+import { Service, getReferenceUnsafe } from "effect/Context"
 import { InstanceRef, WorkspaceRef } from "./instance-ref"
 import { WorkspaceContext } from "@/control-plane/workspace-context"
 import type { InstanceContext } from "@/project/instance-context"

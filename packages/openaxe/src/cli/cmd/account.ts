@@ -4,7 +4,7 @@ import { UI } from "../ui"
 import { Account } from "@/account/account"
 import { AccountID, OrgID, PollExpired, type PollResult, type AccountError } from "@/account/schema"
 import { effectCmd } from "../effect-cmd"
-import { intro, log, outro, select, spinner } from "../effect/prompt";
+import { intro, log, outro, select, spinner } from "../effect/prompt"
 import open from "open"
 
 const openBrowser = (url: string) => Effect.promise(() => open(url).catch(() => undefined))

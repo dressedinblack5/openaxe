@@ -336,7 +336,7 @@ export const layer = Layer.effect(
 
       return {
         client: undefined as MCPClient | undefined,
-        status: (lastStatus ?? { status: "failed", error: "Unknown error" }),
+        status: lastStatus ?? { status: "failed", error: "Unknown error" },
       }
     })
 
@@ -496,7 +496,7 @@ export const layer = Layer.effect(
     const state = yield* InstanceState.make<State>(
       Effect.fn("MCP.state")(function* () {
         const cfg = yield* cfgSvc.get()
-        
+
         const servers = getMcpServers(cfg.mcp)
 
         // ponytail: inject CodeGraph as built-in MCP when installed; user config overrides
@@ -625,9 +625,7 @@ export const layer = Layer.effect(
       const mcp = s.config[name]
       if (!mcp) return
       s.connecting.add(name)
-      const result = yield* create(name, mcp).pipe(
-        Effect.ensuring(Effect.sync(() => s.connecting.delete(name))),
-      )
+      const result = yield* create(name, mcp).pipe(Effect.ensuring(Effect.sync(() => s.connecting.delete(name))))
       s.status[name] = result.status
       if (result.mcpClient) {
         s.clients[name] = result.mcpClient
@@ -640,9 +638,7 @@ export const layer = Layer.effect(
     // Connects all servers still in pending status. Uses connectOne per server.
     const connectAll = Effect.fn("MCP.connectAll")(function* () {
       const s = yield* InstanceState.get(state)
-      const pending = Object.keys(s.status).filter(
-        (name) => s.status[name]?.status === "pending"
-      )
+      const pending = Object.keys(s.status).filter((name) => s.status[name]?.status === "pending")
       for (const name of pending) {
         yield* connectOne(name)
       }

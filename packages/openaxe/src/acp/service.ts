@@ -32,7 +32,16 @@ import {
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import type { Message, OpencodeClient, SessionMessageResponse } from "@opencode-ai/sdk/v2"
 import { Context, Effect, Layer, ManagedRuntime } from "effect"
-import { type Error as ErrorUnion, UnknownAuthMethodError, InvalidConfigOptionError, InvalidModelError, InvalidEffortError, InvalidModeError, AuthRequiredError, ServiceFailureError } from "./error"
+import {
+  type Error as ErrorUnion,
+  UnknownAuthMethodError,
+  InvalidConfigOptionError,
+  InvalidModelError,
+  InvalidEffortError,
+  InvalidModeError,
+  AuthRequiredError,
+  ServiceFailureError,
+} from "./error"
 import { buildConfigOptions, parseModelSelection } from "./config-option"
 import { promptContentToParts } from "./content"
 import { Directory } from "./directory"

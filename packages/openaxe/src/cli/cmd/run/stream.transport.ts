@@ -45,8 +45,6 @@ import {
 
 // Buffer limits for event stream backpressure
 
-
-
 const EVENT_SUBSCRIPTION_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
 // Default pagination limit for message history fetches
@@ -508,7 +506,11 @@ function createLayer(input: StreamInput) {
           const now = Date.now()
           const staleSessions = new Set<string>()
           for (const [sid, lastTime] of sessionLastEventTime) {
-            if (now - lastTime > EVENT_SUBSCRIPTION_TTL_MS && sid !== input.sessionID && !state.subagent.tabs.has(sid)) {
+            if (
+              now - lastTime > EVENT_SUBSCRIPTION_TTL_MS &&
+              sid !== input.sessionID &&
+              !state.subagent.tabs.has(sid)
+            ) {
               staleSessions.add(sid)
             }
           }
@@ -1076,9 +1078,9 @@ function createLayer(input: StreamInput) {
           input.trace?.write("replay.resize.start", {
             sessionID: input.sessionID,
           })
-          const source = yield* Effect.all([replayMessages(next.visibleLimit), replayRequests()], { concurrency: "unbounded" }).pipe(
-            Effect.exit,
-          )
+          const source = yield* Effect.all([replayMessages(next.visibleLimit), replayRequests()], {
+            concurrency: "unbounded",
+          }).pipe(Effect.exit)
           if (Exit.isFailure(source)) {
             input.trace?.write("replay.resize.abort", {
               sessionID: input.sessionID,

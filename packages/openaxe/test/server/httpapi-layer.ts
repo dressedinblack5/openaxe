@@ -70,18 +70,19 @@ export function requestWithBody(method: string, path: string, init: RequestInit 
   return Effect.gen(function* () {
     const server = yield* HttpServer.HttpServer
     const url = makeTestUrl(server, path)
-    const response = yield* Effect.tryPromise(() => fetch(url, { ...init, method }))
-    const request_ = HttpClientRequest.fromWeb(new Request(url, { ...init, method }))
+    const actualMethod = init.method ?? method
+    const response = yield* Effect.tryPromise(() => fetch(url, { ...init, method: actualMethod }))
+    const request_ = HttpClientRequest.fromWeb(new Request(url, { ...init, method: actualMethod }))
     return HttpClientResponse.fromWeb(request_, response)
   })
 }
 
 export function request(path: string, init?: RequestInit) {
-  return requestWithBody("POST", path, init)
+  return requestWithBody(init?.method ?? "GET", path, init)
 }
 
 export function requestInDirectory(path: string, directory: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers)
   headers.set("x-opencode-directory", directory)
-  return requestWithBody("POST", path, { ...init, headers })
+  return requestWithBody(init.method ?? "GET", path, { ...init, headers })
 }

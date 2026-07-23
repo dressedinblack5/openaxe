@@ -48,8 +48,9 @@ function omit<T extends Record<string, any>>(obj: T, keys: string[]): T {
 function sortBy<T>(items: T[], ...fns: Array<[(item: T) => any, "asc" | "desc"]>): T[] {
   return items.slice().sort((a, b) => {
     for (const [accessor, dir] of fns) {
-      const ka = accessor(a), kb = accessor(b)
-      if (ka !== kb) return dir === "desc" ? (kb < ka ? -1 : 1) : (ka < kb ? -1 : 1)
+      const ka = accessor(a),
+        kb = accessor(b)
+      if (ka !== kb) return dir === "desc" ? (kb < ka ? -1 : 1) : ka < kb ? -1 : 1
     }
     return 0
   })
@@ -728,7 +729,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
             }
 
             return models
-          } catch  {
+          } catch {
             return {}
           }
         },
@@ -1277,7 +1278,7 @@ export function fromModelsDevProvider(provider: ModelsDev.Provider): Info {
         ...base,
         id: ModelV2.ID.make(id),
         name: `${model.name} ${mode[0].toUpperCase()}${mode.slice(1)}`,
-        cost: opts.cost ? mergeDeep(base.cost, cost(opts.cost)) as typeof base.cost : base.cost,
+        cost: opts.cost ? (mergeDeep(base.cost, cost(opts.cost)) as typeof base.cost) : base.cost,
         options: opts.provider?.body
           ? Object.fromEntries(
               Object.entries(opts.provider.body).map(([k, v]) => [
@@ -1706,7 +1707,7 @@ export const layer = Layer.effect(
                   providers[gitlab].models[modelID] = model
                 }
               }
-            } catch  {
+            } catch {
               // expected for non-standard provider responses
             }
           })
@@ -2120,18 +2121,30 @@ export const layer = Layer.effect(
       const cached = yield* Effect.cached(
         checkHealth(providerID).pipe(
           Effect.catchCause(() =>
-            Effect.succeed(ProviderHealth.make({
-              providerID,
-              status: "unknown",
-              lastChecked: new Date(),
-            }))
+            Effect.succeed(
+              ProviderHealth.make({
+                providerID,
+                status: "unknown",
+                lastChecked: new Date(),
+              }),
+            ),
           ),
         ),
       )
       return yield* cached
     }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
 
-    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel, checkHealth, getHealth })
+    return Service.of({
+      list,
+      getProvider,
+      getModel,
+      getLanguage,
+      closest,
+      getSmallModel,
+      defaultModel,
+      checkHealth,
+      getHealth,
+    })
   }),
 )
 

@@ -1,5 +1,3 @@
-
-
 import { NodeHttpServer } from "@effect/platform-node"
 import { ConfigProvider, Context, Effect, Exit, Layer, Scope } from "effect"
 import { HttpRouter, HttpServer } from "effect/unstable/http"
@@ -12,7 +10,6 @@ import { WebSocketTracker } from "./routes/instance/httpapi/websocket-tracker"
 import { PublicApi } from "./routes/instance/httpapi/public"
 import type { CorsOptions } from "@opencode-ai/server/cors"
 import { lazy } from "@/util/lazy"
-
 ;(globalThis as { AI_SDK_LOG_WARNINGS: boolean }).AI_SDK_LOG_WARNINGS = false
 
 export type Listener = {

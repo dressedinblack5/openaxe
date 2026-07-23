@@ -314,7 +314,7 @@ export const RunCommand = effectCmd({
         }
       }
 
-      const replay = ! args.replay ? false : args.replay || args["replay-limit"] !== undefined
+      const replay = !args.replay ? false : args.replay || args["replay-limit"] !== undefined
 
       const root = Filesystem.resolve(process.env.PWD ?? process.cwd())
       const directory = (() => {

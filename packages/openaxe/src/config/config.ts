@@ -268,9 +268,7 @@ export const layer = Layer.effect(
           if (!disableDefaultPlugins) {
             defaultConfig.plugin = [...BUNDLED_PLUGINS]
           }
-          yield* fs
-            .writeWithDirs(file, JSON.stringify(defaultConfig, null, 2))
-            .pipe(Effect.catch(() => Effect.void))
+          yield* fs.writeWithDirs(file, JSON.stringify(defaultConfig, null, 2)).pipe(Effect.catch(() => Effect.void))
         }
       }
       const [configJson, openaxeJson, openaxeJsonc] = yield* Effect.all([

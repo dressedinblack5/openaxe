@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect"
 import { resolve } from "path"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import { join, split } from "../util/bom";
+import { join, split } from "../util/bom"
 export const PatchSchema = Schema.Struct({
   patchText: Schema.String.annotate({ description: "The full patch text that describes all changes to be made" }),
 })

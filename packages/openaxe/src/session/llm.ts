@@ -6,7 +6,7 @@ import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
 import { Context, Effect, Layer } from "effect"
 import type { Stream } from "effect/Stream"
-import { flatMap, fromAsyncIterable, fromIterable, mapEffect, scoped, unwrap } from "effect/Stream";
+import { flatMap, fromAsyncIterable, fromIterable, mapEffect, scoped, unwrap } from "effect/Stream"
 import { streamText, wrapLanguageModel, type ModelMessage, type Tool } from "ai"
 import type { LLMEvent } from "@opencode-ai/llm"
 import { LLMClient, RequestExecutor, WebSocketExecutor } from "@opencode-ai/llm/route"
@@ -24,8 +24,8 @@ import { SessionID } from "@/session/schema"
 import { Auth } from "@/auth"
 import { EffectBridge } from "@/effect/bridge"
 import { RuntimeFlags } from "@/effect/runtime-flags"
-import { getOrUndefined } from "effect/Option";
-import { OtelTracer } from "@effect/opentelemetry/Tracer";
+import { getOrUndefined } from "effect/Option"
+import { OtelTracer } from "@effect/opentelemetry/Tracer"
 import { LLMAISDK } from "./llm/ai-sdk"
 import { LLMNativeRuntime } from "./llm/native-runtime"
 import { LLMRequestPrep } from "./llm/request"
@@ -330,7 +330,7 @@ const live: Layer.Layer<
                 specificationVersion: "v3" as const,
                 async transformParams(args) {
                   if (args.type === "stream") {
-                    (args.params as { prompt: unknown }).prompt = ProviderTransform.message(
+                    ;(args.params as { prompt: unknown }).prompt = ProviderTransform.message(
                       args.params.prompt,
                       input.model,
                       prepared.messageTransformOptions,

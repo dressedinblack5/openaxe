@@ -14,8 +14,7 @@ const MAX_CAPTURE_BYTES = 1024 * 1024
 export const Parameters = Schema.Struct({
   command: Schema.String.annotate({ description: "Shell command string to execute" }),
   workdir: Schema.optional(Schema.String).annotate({
-    description:
-      "Working directory. Defaults to the active project directory; relative paths resolve from there.",
+    description: "Working directory. Defaults to the active project directory; relative paths resolve from there.",
   }),
   timeout: Schema.optional(Schema.Number).annotate({
     description: `Timeout in milliseconds. Defaults to ${DEFAULT_TIMEOUT_MS} and may not exceed ${MAX_TIMEOUT_MS}.`,
@@ -63,9 +62,7 @@ export const ShellTool = define(
             })
             .pipe(
               Effect.catchTag("AppProcessError", (error) =>
-                error.cause instanceof Error && error.cause.message === "Timed out"
-                  ? Effect.void
-                  : Effect.fail(error),
+                error.cause instanceof Error && error.cause.message === "Timed out" ? Effect.void : Effect.fail(error),
               ),
             )
 
@@ -79,7 +76,12 @@ export const ShellTool = define(
 
           const stdout = result.stdout.toString("utf8")
           const stderr = result.stderr.toString("utf8")
-          const compact = stdout && stderr ? `${stdout}\n\nstderr:\n${stderr}` : stderr ? `stderr:\n${stderr}` : stdout || "(no output)"
+          const compact =
+            stdout && stderr
+              ? `${stdout}\n\nstderr:\n${stderr}`
+              : stderr
+                ? `stderr:\n${stderr}`
+                : stdout || "(no output)"
           const truncationNotice =
             result.stdoutTruncated && result.stderrTruncated
               ? "\n\n[stdout and stderr capture truncated at the in-memory safety limit]"

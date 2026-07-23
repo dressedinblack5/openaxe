@@ -14,8 +14,6 @@ export class HeaderTimeoutError extends Error {
 
 export class ResponseStreamError extends Error {
   public override readonly name = "ProviderResponseStreamError"
-
-  
 }
 
 function isOpenAiErrorRetryable(e: APICallError) {

@@ -3,10 +3,26 @@ import { InstanceState } from "@/effect/instance-state"
 import { GlobalBus } from "@/bus/global"
 import { EventV2 } from "@opencode-ai/core/event"
 import { Effect, Queue } from "effect"
-import { callback, concat, drop, encodeText, ensuring, filter, flatMap, fromEffect, fromQueue, make, map, merge, pipeThroughChannel, takeUntil, tick } from "effect/Stream";
+import {
+  callback,
+  concat,
+  drop,
+  encodeText,
+  ensuring,
+  filter,
+  flatMap,
+  fromEffect,
+  fromQueue,
+  make,
+  map,
+  merge,
+  pipeThroughChannel,
+  takeUntil,
+  tick,
+} from "effect/Stream"
 import { HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
-import { Event, encode } from "effect/unstable/encoding/Sse";
+import { Event, encode } from "effect/unstable/encoding/Sse"
 import { EventApi } from "../groups/event"
 
 function eventData(data: unknown): Event {
@@ -29,9 +45,7 @@ function eventResponse(events: EventV2.Interface) {
     const queue = yield* Queue.unbounded<EventV2.Payload>()
     // Listener is acquired lazily (first pull), but server.connected is emitted
     // AFTER the listener is registered, so no events are lost at startup.
-    const eventStream = fromEffect(
-      events.listen((event) => Effect.sync(() => Queue.offerUnsafe(queue, event))),
-    ).pipe(
+    const eventStream = fromEffect(events.listen((event) => Effect.sync(() => Queue.offerUnsafe(queue, event)))).pipe(
       flatMap((unsubscribe: EventV2.Unsubscribe) =>
         make({ id: eventID(), type: "server.connected", properties: {} }).pipe(
           concat(

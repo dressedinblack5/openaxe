@@ -73,7 +73,7 @@ export function resolveThreadDirectory(project?: string, envPWD = process.env.PW
 
 async function initOpentuiNativeLib() {
   const { ensureNativeLib } = await import("@/cli/native-lib")
-  const nativeLibPath =  ensureNativeLib()
+  const nativeLibPath = ensureNativeLib()
   if (nativeLibPath) {
     const { setRenderLibPath } = await import("@opentui/core")
     setRenderLibPath(nativeLibPath)

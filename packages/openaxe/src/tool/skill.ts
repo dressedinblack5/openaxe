@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect"
 import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { Skill } from "../skill"
 import type { Context, ExecuteResult } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 import DESCRIPTION from "./skill.txt"
 
 export const Parameters = Schema.Struct({

@@ -86,7 +86,7 @@ const MIGRATIONS: Migration[] = [
       console.log("[MIGRATION1] project dir not found")
       return
     }
-const allFiles = yield* fs.glob("**", {
+    const allFiles = yield* fs.glob("**", {
       cwd: project,
       include: "all",
     })

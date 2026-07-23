@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect"
 import { HttpClient } from "effect/unstable/http"
 import type { Context } from "./tool"
-import { define } from "./tool";
-import { EXA_URL, PARALLEL_URL, ParallelSearchArgs, SearchArgs, call } from "./mcp-websearch";
+import { define } from "./tool"
+import { EXA_URL, PARALLEL_URL, ParallelSearchArgs, SearchArgs, call } from "./mcp-websearch"
 import DESCRIPTION from "./websearch.txt"
 import { checksum } from "@opencode-ai/core/util/encode"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"

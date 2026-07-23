@@ -6,7 +6,7 @@ import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import DESCRIPTION from "./grep.txt"
 import type { Context } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 export const Parameters = Schema.Struct({
   pattern: Schema.String.annotate({ description: "The regex pattern to search for in file contents" }),
   path: Schema.optional(Schema.String).annotate({

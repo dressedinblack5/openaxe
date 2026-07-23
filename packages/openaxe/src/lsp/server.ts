@@ -532,7 +532,6 @@ export const ElixirLS: Info = {
   async spawn(root, _ctx, flags) {
     let binary = which("elixir-ls")
     if (!binary) {
-      
       binary = path.join(
         Global.Path.bin,
         "elixir-ls-master",

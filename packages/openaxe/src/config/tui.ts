@@ -205,32 +205,35 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
   const dirs = [...new Set(directories)].filter((dir) => dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR)
 
   // Parallel read across all .openaxe dirs, then sequential merge
-  const [fileEntries, pluginDeps] = yield* Effect.all([
-    Effect.forEach(
-      dirs,
-      (dir) =>
-        Effect.forEach(fileInDirectory(dir, "tui"), (file) =>
-          loadFile(file).pipe(Effect.map((data) => ({ file, data }))),
-        ),
-      { concurrency: "unbounded" },
-    ).pipe(Effect.map((groups) => groups.flat())),
-    Effect.forEach(
-      dirs,
-      (dir) =>
-        npm
-          .install(dir, {
-            add: [
-              {
-                name: "@opencode-ai/plugin",
-                version: InstallationLocal ? undefined : InstallationVersion,
-              },
-              ...BUNDLED_PLUGINS.map((name) => ({ name })),
-            ],
-          })
-          .pipe(Effect.forkScoped),
-      { concurrency: "unbounded" },
-    ),
-  ], { concurrency: "unbounded" })
+  const [fileEntries, pluginDeps] = yield* Effect.all(
+    [
+      Effect.forEach(
+        dirs,
+        (dir) =>
+          Effect.forEach(fileInDirectory(dir, "tui"), (file) =>
+            loadFile(file).pipe(Effect.map((data) => ({ file, data }))),
+          ),
+        { concurrency: "unbounded" },
+      ).pipe(Effect.map((groups) => groups.flat())),
+      Effect.forEach(
+        dirs,
+        (dir) =>
+          npm
+            .install(dir, {
+              add: [
+                {
+                  name: "@opencode-ai/plugin",
+                  version: InstallationLocal ? undefined : InstallationVersion,
+                },
+                ...BUNDLED_PLUGINS.map((name) => ({ name })),
+              ],
+            })
+            .pipe(Effect.forkScoped),
+        { concurrency: "unbounded" },
+      ),
+    ],
+    { concurrency: "unbounded" },
+  )
 
   for (const { file, data } of fileEntries) {
     if (Object.keys(data).length) {

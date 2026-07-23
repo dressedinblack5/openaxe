@@ -16,7 +16,7 @@ import os from "os"
 import path from "path"
 const stripAnsi = (s: string) => s.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, "")
 import type { ToolPart } from "@opencode-ai/sdk/v2"
-import type { InferMetadata, InferParameters, Info } from "@/tool/tool";
+import type { InferMetadata, InferParameters, Info } from "@/tool/tool"
 import type { ApplyPatchTool } from "@/tool/apply_patch"
 
 import type { EditTool } from "@/tool/edit"
@@ -34,7 +34,7 @@ import type { WebFetchTool } from "@/tool/webfetch"
 import { webSearchProviderLabel, type WebSearchTool } from "@/tool/websearch"
 import type { WriteTool } from "@/tool/write"
 import { LANGUAGE_EXTENSIONS } from "@/lsp/language"
-import { duration, titlecase } from "@/util/locale";
+import { duration, titlecase } from "@/util/locale"
 import type { RunEntryBody, StreamCommit, ToolSnapshot } from "./types"
 
 export type ToolView = {
@@ -619,7 +619,6 @@ function snapQuestion(p: ToolProps<typeof QuestionTool>): ToolSnapshot {
     tail: "",
   }
 }
-
 
 function scrollReadStart(p: ToolProps<typeof ReadTool>): string {
   const file = toolPath(p.input.filePath)
@@ -1346,7 +1345,8 @@ export function toolEntryBody(commit: StreamCommit, raw: string): RunEntryBody |
       if (commit.phase === "progress" && commit.toolState === "completed") {
         // Strip echo lines (workdir + command) like the session-data reducer does
         let body = stripAnsi(raw)
-        const workdir = typeof commit.part?.state?.input?.workdir === "string" ? commit.part.state.input.workdir : undefined
+        const workdir =
+          typeof commit.part?.state?.input?.workdir === "string" ? commit.part.state.input.workdir : undefined
         body = body.replace(/^\n+/, "")
         if (workdir && body.startsWith(workdir)) {
           body = body.slice(workdir.length).replace(/^\n+/, "")

@@ -17,7 +17,7 @@ import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
 import type { Def, InferDef } from "./tool"
-import { init } from "./tool";
+import { init } from "./tool"
 import { Config } from "@/config/config"
 import { type ToolContext, type ToolDefinition } from "@opencode-ai/plugin"
 import type { JSONSchema7, JSONSchema7Definition } from "@ai-sdk/provider"
@@ -73,11 +73,7 @@ export interface Interface {
   readonly ids: () => Effect.Effect<string[]>
   readonly all: () => Effect.Effect<Def[]>
   readonly named: () => Effect.Effect<{ task: TaskDef; read: ReadDef }>
-  readonly tools: (model: {
-    providerID: ProviderV2.ID
-    modelID: ModelV2.ID
-    agent: Agent.Info
-  }) => Effect.Effect<Def[]>
+  readonly tools: (model: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info }) => Effect.Effect<Def[]>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/ToolRegistry") {}

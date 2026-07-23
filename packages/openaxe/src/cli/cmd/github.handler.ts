@@ -1,10 +1,10 @@
 import path from "path"
 import { exec } from "child_process"
 import { Filesystem } from "@/util/filesystem"
-import { intro, isCancel, log, outro, select, spinner } from "@clack/prompts";
+import { intro, isCancel, log, outro, select, spinner } from "@clack/prompts"
 import { Octokit } from "@octokit/rest"
 import { graphql } from "@octokit/graphql"
-import { getIDToken, setFailed } from "@actions/core";
+import { getIDToken, setFailed } from "@actions/core"
 import { context as ghContext } from "@actions/github"
 import type { Context } from "@actions/github/lib/context"
 import type {
@@ -238,16 +238,21 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
         let provider = await select({
           message: "Select provider",
           maxItems: 8,
-          options: Object.values(providers).slice().sort((a, b) => {
-            const pa = priority[a.id] ?? 99, pb = priority[b.id] ?? 99
-            if (pa !== pb) return pa - pb
-            const na = a.name ?? a.id, nb = b.name ?? b.id
-            return na < nb ? -1 : na > nb ? 1 : 0
-          }).map((x) => ({
-            label: x.name,
-            value: x.id,
-            hint: priority[x.id] === 0 ? "recommended" : undefined,
-          })),
+          options: Object.values(providers)
+            .slice()
+            .sort((a, b) => {
+              const pa = priority[a.id] ?? 99,
+                pb = priority[b.id] ?? 99
+              if (pa !== pb) return pa - pb
+              const na = a.name ?? a.id,
+                nb = b.name ?? b.id
+              return na < nb ? -1 : na > nb ? 1 : 0
+            })
+            .map((x) => ({
+              label: x.name,
+              value: x.id,
+              hint: priority[x.id] === 0 ? "recommended" : undefined,
+            })),
         })
 
         if (isCancel(provider)) throw new UI.CancelledError()
@@ -261,13 +266,17 @@ export const githubInstall = Effect.fn("Cli.github.install")(function* () {
         const model = await select({
           message: "Select model",
           maxItems: 8,
-          options: Object.values(providerData.models).slice().sort((a, b) => {
-            const na = a.name ?? a.id, nb = b.name ?? b.id
-            return na < nb ? -1 : na > nb ? 1 : 0
-          }).map((x) => ({
-            label: x.name ?? x.id,
-            value: x.id,
-          })),
+          options: Object.values(providerData.models)
+            .slice()
+            .sort((a, b) => {
+              const na = a.name ?? a.id,
+                nb = b.name ?? b.id
+              return na < nb ? -1 : na > nb ? 1 : 0
+            })
+            .map((x) => ({
+              label: x.name ?? x.id,
+              value: x.id,
+            })),
         })
 
         if (isCancel(model)) throw new UI.CancelledError()

@@ -5,7 +5,7 @@ import type { Diagnostic as VSCodeDiagnostic } from "vscode-languageserver-types
 import { Process } from "@/util/process"
 import { LANGUAGE_EXTENSIONS } from "./language"
 import { Schema } from "effect"
-import type { Handle } from "./server";
+import type { Handle } from "./server"
 import { withTimeout } from "../util/timeout"
 import { Filesystem } from "@/util/filesystem"
 import type { InstanceContext } from "@/project/instance-context"
@@ -127,8 +127,6 @@ export async function create(input: {
   directory: string
   instance: InstanceContext
 }) {
-  
-
   const connection = createMessageConnection(
     new StreamMessageReader(input.server.process.stdout as any),
     new StreamMessageWriter(input.server.process.stdin as any),

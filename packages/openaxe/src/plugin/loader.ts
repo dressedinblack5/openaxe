@@ -131,7 +131,10 @@ export async function resolve(
       return { ok: false as const, stage: "compatibility" as const, error }
     }
   }
-  return { ok: true as const, value: { ...plan, source: base.source, target: base.target, entry: base.entry, pkg: base.pkg } }
+  return {
+    ok: true as const,
+    value: { ...plan, source: base.source, target: base.target, entry: base.entry, pkg: base.pkg },
+  }
 }
 
 // Import the resolved module only after all earlier validation has succeeded.
@@ -212,9 +215,7 @@ export async function loadExternal<R = Loaded>(input: Input<R>): Promise<R[]> {
 
   // Phase 1: Initial attempt for all candidates in parallel
   const out = await Promise.all(
-    candidates.map((candidate) =>
-      attempt(candidate, input.kind, false, input.finish, input.missing, input.report)
-    )
+    candidates.map((candidate) => attempt(candidate, input.kind, false, input.finish, input.missing, input.report)),
   )
 
   if (input.wait) {

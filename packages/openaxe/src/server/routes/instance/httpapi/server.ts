@@ -1,9 +1,9 @@
 import { Config as EffectConfig, Context, Effect, Layer } from "effect"
 import { HttpApiBuilder, OpenApi } from "effect/unstable/httpapi"
 import { HttpClient, HttpMiddleware, HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http"
-import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket";
+import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import { layer } from "@opencode-ai/core/observability";
+import { layer } from "@opencode-ai/core/observability"
 import { Account } from "@/account/account"
 import { Agent } from "@/agent/agent"
 import { Auth } from "@/auth"

@@ -44,10 +44,7 @@ type TriggerName = {
 }[keyof Hooks]
 
 export interface Interface {
-  readonly trigger: <
-    Name extends TriggerName,
-    Output = Parameters<Required<Hooks>[Name]>[1],
-  >(
+  readonly trigger: <Name extends TriggerName, Output = Parameters<Required<Hooks>[Name]>[1]>(
     name: Name,
     input: unknown,
     output: Output,
@@ -202,9 +199,9 @@ export const layer = Layer.effect(
         // plugin initialization run on first list() or trigger() call.
         const deferredExternal = yield* Effect.cached(
           Effect.fn("Plugin.loadExternal")(function* () {
-            const plugins = flags.pure ? [] : (cfg.plugin_origins ?? []).filter(
-              (p) => !flags.disableDefaultPlugins || p.scope !== "global",
-            )
+            const plugins = flags.pure
+              ? []
+              : (cfg.plugin_origins ?? []).filter((p) => !flags.disableDefaultPlugins || p.scope !== "global")
             if (flags.pure && cfg.plugin_origins?.length) {
             }
             if (plugins.length) yield* config.waitForDependencies()

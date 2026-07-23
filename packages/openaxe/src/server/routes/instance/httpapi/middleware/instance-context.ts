@@ -26,9 +26,9 @@ function provideInstanceContext<E>(
 ): Effect.Effect<HttpServerResponse.HttpServerResponse, E, WorkspaceRouteContext> {
   return Effect.gen(function* () {
     const route = yield* WorkspaceRouteContext
-    const ctx = yield* store.load({ directory: decode(route.directory) }).pipe(
-      Effect.timeoutOption(Duration.seconds(120)),
-    )
+    const ctx = yield* store
+      .load({ directory: decode(route.directory) })
+      .pipe(Effect.timeoutOption(Duration.seconds(120)))
     if (Option.isNone(ctx)) {
       return HttpServerResponse.empty({ status: 503 })
     }

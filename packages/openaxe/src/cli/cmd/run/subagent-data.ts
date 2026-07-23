@@ -1,5 +1,5 @@
 import type { Event, Message, Part, PermissionRequest, QuestionRequest, ToolPart } from "@opencode-ai/sdk/v2"
-import { titlecase } from "@/util/locale";
+import { titlecase } from "@/util/locale"
 import {
   bootstrapSessionData,
   createSessionData,

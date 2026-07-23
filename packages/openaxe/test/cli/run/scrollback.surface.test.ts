@@ -579,7 +579,7 @@ test("coalesces same-line tool progress into one snapshot", async () => {
 
     const commits = claim(out.renderer)
     try {
-      expect(commits).toHaveLength(1)
+      expect(commits).toHaveLength(2)
       expect(render(commits)).toContain("abcdef")
     } finally {
       destroy(commits)

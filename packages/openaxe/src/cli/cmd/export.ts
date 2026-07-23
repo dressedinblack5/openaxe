@@ -3,7 +3,7 @@ import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { SessionID } from "../../session/schema"
 import { effectCmd, fail } from "../effect-cmd"
 import { UI } from "../ui"
-import { autocomplete, intro, isCancel, log, outro } from "@clack/prompts";
+import { autocomplete, intro, isCancel, log, outro } from "@clack/prompts"
 import { EOL } from "os"
 import { Effect } from "effect"
 

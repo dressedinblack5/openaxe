@@ -102,12 +102,18 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
     const exited = Promise.reject(err)
     void exited.catch(() => undefined)
     return {
-      get pid() { return 0 },
+      get pid() {
+        return 0
+      },
       stdin: null,
       stdout: null,
       stderr: null,
-      get exitCode() { return null },
-      get signalCode() { return null },
+      get exitCode() {
+        return null
+      },
+      get signalCode() {
+        return null
+      },
       exited,
       kill() {},
     }
@@ -125,20 +131,14 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
         typeof opts.shell === "string"
           ? opts.shell
           : process.platform === "win32"
-            ? process.env.COMSPEC ?? "cmd.exe"
+            ? (process.env.COMSPEC ?? "cmd.exe")
             : "sh"
-      spawnCmd = process.platform === "win32"
-        ? [shellBin, "/c", cmd.join(" ")]
-        : [shellBin, "-c", cmd.join(" ")]
+      spawnCmd = process.platform === "win32" ? [shellBin, "/c", cmd.join(" ")] : [shellBin, "-c", cmd.join(" ")]
     } else if (process.platform === "win32" && cmd.length > 0 && /\.(?:cmd|bat)$/i.test(cmd[0])) {
       // .cmd/.bat files need cmd.exe. Pass args as separate elements without
       // /s (which strips outer quotes and breaks paths with spaces) and
       // without pre-quoting (Bun's Windows arg processing handles it).
-      spawnCmd = [
-        process.env.COMSPEC ?? "cmd.exe",
-        "/d", "/c",
-        ...cmd,
-      ]
+      spawnCmd = [process.env.COMSPEC ?? "cmd.exe", "/d", "/c", ...cmd]
     } else {
       spawnCmd = cmd
     }
@@ -182,18 +182,29 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
 
   // ponytail: stdin may be FileSink (Bun) which has .write()/.end() but lacks .on()
   // needed by vscode-jsonrpc's StreamMessageWriter. Wrap in a real Node Writable.
-  const stdin = bunProc && bunProc.stdin && typeof bunProc.stdin === "object"
-    ? ("getWriter" in bunProc.stdin ? Writable.fromWeb(bunProc.stdin as any) : writableFromFileSink(bunProc.stdin))
-    : null
+  const stdin =
+    bunProc && bunProc.stdin && typeof bunProc.stdin === "object"
+      ? "getWriter" in bunProc.stdin
+        ? Writable.fromWeb(bunProc.stdin as any)
+        : writableFromFileSink(bunProc.stdin)
+      : null
   return {
-    get pid() { return bunProc?.pid ?? 0 },
+    get pid() {
+      return bunProc?.pid ?? 0
+    },
     stdin,
     stdout: bunProc?.stdout ? Readable.fromWeb(bunProc.stdout as any) : null,
     stderr: bunProc?.stderr ? Readable.fromWeb(bunProc.stderr as any) : null,
-    get exitCode() { return bunProc?.exitCode ?? null },
-    get signalCode() { return bunProc?.signalCode ?? null },
+    get exitCode() {
+      return bunProc?.exitCode ?? null
+    },
+    get signalCode() {
+      return bunProc?.signalCode ?? null
+    },
     exited,
-    kill(signal) { bunProc?.kill(signal as any) },
+    kill(signal) {
+      bunProc?.kill(signal as any)
+    },
   }
 }
 
@@ -212,11 +223,7 @@ export async function run(cmd: string[], opts: RunOptions = {}): Promise<Result>
 
   if (!proc.stdout || !proc.stderr) throw new Error("Process output not available")
 
-  const out = await Promise.all([
-    proc.exited,
-    buffer(proc.stdout),
-    buffer(proc.stderr),
-  ])
+  const out = await Promise.all([proc.exited, buffer(proc.stdout), buffer(proc.stderr)])
     .then(([code, stdout, stderr]) => ({
       code,
       stdout,

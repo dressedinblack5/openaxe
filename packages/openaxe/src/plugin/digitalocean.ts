@@ -364,7 +364,7 @@ export async function DigitalOceanAuthPlugin(input: PluginInput): Promise<Hooks>
                       routers_fetched_at: String(Date.now()),
                     },
                   }
-                } catch  {
+                } catch {
                   return { type: "failed" as const }
                 } finally {
                   stopOAuthServer()

@@ -6,7 +6,17 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js"
 import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js"
-import { intro, outro, select, isCancel, text, confirm as promptConfirm, password, spinner as createSpinner, log } from "@clack/prompts"
+import {
+  intro,
+  outro,
+  select,
+  isCancel,
+  text,
+  confirm as promptConfirm,
+  password,
+  spinner as createSpinner,
+  log,
+} from "@clack/prompts"
 import { UI } from "../ui"
 import { MCP } from "../../mcp"
 import { McpAuth } from "../../mcp/auth"
@@ -164,9 +174,7 @@ export const McpListCommand = effectCmd({
       }
 
       const typeHint = serverConfig.type === "remote" ? serverConfig.url : serverConfig.command.join(" ")
-      log.info(
-        `${statusIcon} ${name} ${UI.Style.TEXT_DIM}${statusText}${hint}\n    ${UI.Style.TEXT_DIM}${typeHint}`,
-      )
+      log.info(`${statusIcon} ${name} ${UI.Style.TEXT_DIM}${statusText}${hint}\n    ${UI.Style.TEXT_DIM}${typeHint}`)
     }
 
     outro(`${servers.length} server(s)`)

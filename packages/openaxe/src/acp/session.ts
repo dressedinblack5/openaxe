@@ -3,7 +3,7 @@ import type { Message, Part } from "@opencode-ai/sdk/v2"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { Context, Effect, Layer, Ref } from "effect"
-import { SessionNotFoundError } from "./error";
+import { SessionNotFoundError } from "./error"
 export type SelectedModel = {
   providerID: ProviderV2.ID
   modelID: ModelV2.ID
@@ -64,20 +64,11 @@ export type Interface = {
   readonly get: (sessionId: string) => Effect.Effect<Info, SessionNotFoundError>
   readonly tryGet: (sessionId: string) => Effect.Effect<Info | undefined>
   readonly remove: (sessionId: string) => Effect.Effect<Info | undefined>
-  readonly setModel: (
-    sessionId: string,
-    model: SelectedModel | undefined,
-  ) => Effect.Effect<Info, SessionNotFoundError>
+  readonly setModel: (sessionId: string, model: SelectedModel | undefined) => Effect.Effect<Info, SessionNotFoundError>
   readonly getModel: (sessionId: string) => Effect.Effect<SelectedModel | undefined, SessionNotFoundError>
-  readonly setVariant: (
-    sessionId: string,
-    variant: string | undefined,
-  ) => Effect.Effect<Info, SessionNotFoundError>
+  readonly setVariant: (sessionId: string, variant: string | undefined) => Effect.Effect<Info, SessionNotFoundError>
   readonly getVariant: (sessionId: string) => Effect.Effect<string | undefined, SessionNotFoundError>
-  readonly setMode: (
-    sessionId: string,
-    modeId: string | undefined,
-  ) => Effect.Effect<Info, SessionNotFoundError>
+  readonly setMode: (sessionId: string, modeId: string | undefined) => Effect.Effect<Info, SessionNotFoundError>
   readonly getMode: (sessionId: string) => Effect.Effect<string | undefined, SessionNotFoundError>
   readonly recordPartMetadata: (
     input: RecordPartMetadataInput,

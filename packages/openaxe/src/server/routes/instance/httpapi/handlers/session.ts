@@ -16,7 +16,7 @@ import { SessionSummary } from "@/session/summary"
 import { Todo } from "@/session/todo"
 import { MessageID, PartID, SessionID } from "@/session/schema"
 import { Effect, Option, Schema, Scope } from "effect"
-import { encodeText, make } from "effect/Stream";
+import { encodeText, make } from "effect/Stream"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder, HttpApiError, HttpApiSchema } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
@@ -35,7 +35,7 @@ import {
   UpdatePayload,
 } from "../groups/session"
 import { PermissionNotFoundError } from "../errors"
-import { mapBusy, mapStorageNotFound } from "./session-errors";
+import { mapBusy, mapStorageNotFound } from "./session-errors"
 const tryParseJson = (text: string) =>
   Schema.decodeUnknownEffect(Schema.UnknownFromJsonString)(text).pipe(
     Effect.mapError(() => new HttpApiError.BadRequest({})),

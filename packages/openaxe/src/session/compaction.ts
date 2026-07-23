@@ -13,7 +13,7 @@ import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
 
 import { Effect, Layer, Context } from "effect"
-import { makeUnsafe } from "effect/DateTime";
+import { makeUnsafe } from "effect/DateTime"
 import { InstanceState } from "@/effect/instance-state"
 import { isOverflow as overflow, usable } from "./overflow" // renamed to avoid conflict with local isOverflow
 import { serviceUse } from "@opencode-ai/core/effect/service-use"

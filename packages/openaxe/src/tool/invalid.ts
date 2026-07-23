@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import { define } from "./tool";
+import { define } from "./tool"
 export const Parameters = Schema.Struct({
   tool: Schema.String,
   error: Schema.String,

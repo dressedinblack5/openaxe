@@ -1,7 +1,9 @@
 import { afterEach, describe, expect } from "bun:test"
-import { Effect, Queue, Schema, Stream } from "effect"
+import { Effect, Layer, Queue, Schema, Stream } from "effect"
 import { GlobalBus } from "@/bus/global"
 import { EventPaths } from "../../src/server/routes/instance/httpapi/groups/event"
+import { Session } from "@/session/session"
+import { Database } from "@opencode-ai/core/database/database"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, TestInstance, tmpdirScoped } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
@@ -26,7 +28,7 @@ const readEvent = (reader: Queue.Dequeue<Uint8Array>) =>
 
 const openEventStream = (directory: string) =>
   Effect.gen(function* () {
-    const response = yield* requestInDirectory(EventPaths.event, directory)
+    const response = yield* requestInDirectory(EventPaths.event, directory, { method: "GET" })
     const reader = yield* Queue.unbounded<Uint8Array>()
     yield* response.stream.pipe(
       Stream.runForEach((value) => Queue.offer(reader, value)),
@@ -40,7 +42,7 @@ afterEach(async () => {
   await resetDatabase()
 }, 60000)
 
-const it = testEffect(httpApiLayer)
+const it = testEffect(Layer.mergeAll(Session.defaultLayer, Database.defaultLayer, httpApiLayer))
 
 describe("event HttpApi", () => {
   it.instance(

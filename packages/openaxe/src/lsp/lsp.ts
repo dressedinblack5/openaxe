@@ -163,7 +163,8 @@ export const layer = Layer.effect(
         if (!cfg.lsp) {
           yield* Effect.logInfo("all LSPs are disabled")
         } else {
-          for (const [key, server] of Object.entries(LSPServer)) if (key !== "LSPServer") servers[(server as ServerInfo).id] = server as ServerInfo
+          for (const [key, server] of Object.entries(LSPServer))
+            if (key !== "LSPServer") servers[(server as ServerInfo).id] = server as ServerInfo
 
           filterExperimentalServers(servers, flags)
 
@@ -570,7 +571,11 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const formatting = Effect.fn("LSP.formatting")(function* (input: { file: string; tabSize?: number; insertSpaces?: boolean }) {
+    const formatting = Effect.fn("LSP.formatting")(function* (input: {
+      file: string
+      tabSize?: number
+      insertSpaces?: boolean
+    }) {
       const results = yield* run(input.file, (client) =>
         client.connection
           .sendRequest("textDocument/formatting", {
@@ -585,7 +590,9 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const applyCodeAction = Effect.fn("LSP.applyCodeAction")(function* (input: LocInput & { title: string; range?: Range }) {
+    const applyCodeAction = Effect.fn("LSP.applyCodeAction")(function* (
+      input: LocInput & { title: string; range?: Range },
+    ) {
       const results = yield* run(input.file, async (client) => {
         const actions = await client.connection
           .sendRequest<any[]>("textDocument/codeAction", {
