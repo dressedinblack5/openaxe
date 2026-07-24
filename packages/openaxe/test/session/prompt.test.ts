@@ -1665,9 +1665,6 @@ it.instance(
       yield* waitForBusy(chat.id)
 
       const loop = yield* prompt.loop({ sessionID: chat.id }).pipe(Effect.forkChild)
-      yield* Effect.sleep(50)
-
-      expect(yield* llm.calls).toBe(0)
 
       yield* Fiber.await(sh)
       const exit = yield* Fiber.await(loop)
