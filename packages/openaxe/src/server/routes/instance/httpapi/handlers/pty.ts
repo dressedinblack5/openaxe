@@ -1,4 +1,4 @@
-import { context } from "@/effect/instance-state";
+import { context } from "@/effect/instance-state"
 import { registerDisposer } from "@/effect/instance-registry"
 import { InstanceRef, WorkspaceRef } from "@/effect/instance-ref"
 import { Plugin } from "@/plugin"
@@ -19,9 +19,9 @@ import {
 import { Effect, Layer, Option, Queue, Schema } from "effect"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
-import { CloseEvent } from "effect/unstable/socket/Socket";
+import { CloseEvent } from "effect/unstable/socket/Socket"
 import { InstanceHttpApi } from "../api"
-import { PtyForbiddenError, PtyNotFoundError } from "../errors";
+import { PtyForbiddenError, PtyNotFoundError } from "../errors"
 import { CursorQuery, PtyConnectApi } from "../groups/pty"
 import { WebSocketTracker } from "../websocket-tracker"
 
@@ -51,9 +51,7 @@ export const ptyHandlers = HttpApiBuilder.group(InstanceHttpApi, "pty", (handler
 
     const pty = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
       return yield* effect.pipe(
-        Effect.provide(
-          locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* context).directory) })),
-        ),
+        Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* context).directory) }))),
       )
     })
 
@@ -172,9 +170,7 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
 
     const pty = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
       return yield* effect.pipe(
-        Effect.provide(
-          locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* context).directory) })),
-        ),
+        Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* context).directory) }))),
       )
     })
 

@@ -6,7 +6,7 @@ import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
 import { nextTuiRequest, submitTuiResponse } from "@/server/shared/tui-control"
 import { InstanceHttpApi } from "../api"
 import { CommandPayload, TuiPublishPayload } from "../groups/tui"
-import { mapStorageNotFound } from "./session-errors";
+import { mapStorageNotFound } from "./session-errors"
 const commandAliases = {
   session_new: "session.new",
   session_share: "session.share",

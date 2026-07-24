@@ -1,7 +1,7 @@
 import { relative, resolve } from "path"
 import { Effect, Schema } from "effect"
 import type { Context } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { Watcher } from "@opencode-ai/core/filesystem/watcher"
 import { InstanceState } from "@/effect/instance-state"
@@ -14,7 +14,7 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import DESCRIPTION from "./apply_patch.txt"
 import { FileSystem } from "@opencode-ai/core/filesystem"
 import { Format } from "../format"
-import { join, readFile, split, syncFile } from "@/util/bom";
+import { join, readFile, split, syncFile } from "@/util/bom"
 export const Parameters = Schema.Struct({
   patchText: Schema.String.annotate({ description: "The full patch text that describes all changes to be made" }),
 })
@@ -41,7 +41,7 @@ export const ApplyPatchTool = define(
         const parseResult = Patch.parsePatch(params.patchText)
         hunks = parseResult.hunks
       } catch (error) {
-        return yield* Effect.fail(new Error(`apply_patch verification failed: ${error}`))
+        return yield* Effect.fail(new Error(`apply_patch verification failed: ${String(error)}`))
       }
 
       if (hunks.length === 0) {
@@ -119,15 +119,11 @@ export const ApplyPatchTool = define(
 
             // Apply the update chunks to get new content
             try {
-              const fileUpdate = Patch.deriveNewContentsFromChunks(
-                filePath,
-                hunk.chunks,
-                join(source.text, source.bom),
-              )
+              const fileUpdate = Patch.deriveNewContentsFromChunks(filePath, hunk.chunks, join(source.text, source.bom))
               newContent = fileUpdate.content
               bom = fileUpdate.bom
             } catch (error) {
-              return yield* Effect.fail(new Error(`apply_patch verification failed: ${error}`))
+              return yield* Effect.fail(new Error(`apply_patch verification failed: ${String(error)}`))
             }
 
             const diff = trimDiff(createTwoFilesPatch(filePath, filePath, oldContent, newContent))
@@ -306,8 +302,7 @@ export const ApplyPatchTool = define(
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) =>
-        run(params, ctx).pipe(Effect.orDie),
+      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) => run(params, ctx).pipe(Effect.orDie),
     }
   }),
 )

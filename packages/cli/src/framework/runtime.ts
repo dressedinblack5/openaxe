@@ -46,18 +46,22 @@ export function handlers<const Root extends Spec.Any>(root: Root, handlers: Hand
 
   function add(node: Spec.Any, value: RuntimeHandlers) {
     if (typeof value === "function") {
-      result.push({ spec: node.spec, load: value as () => Promise<{ default: RuntimeHandler }> })
+      result.push({ spec: node.spec, load: value })
       return
     }
-    if (value.$) result.push({ spec: node.spec, load: value.$ as () => Promise<{ default: RuntimeHandler }> })
-    for (const [name, child] of Object.entries(node.commands)) add(child, value[name] as RuntimeHandlers)
+    if (value.$) result.push({ spec: node.spec, load: value.$ })
+    for (const [name, child] of Object.entries(node.commands)) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      add(child, value[name] as unknown as RuntimeHandlers)
+    }
   }
 
-  add(root, handlers as RuntimeHandlers)
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  add(root, handlers as unknown as RuntimeHandlers)
   return result
 }
 
-export function run(commands: Spec.Any, handlers: ReadonlyArray<LazyHandler>, options: { readonly version: string }) {
+export function run(commands: Spec.Any, handlers: ReadonlyArray<LazyHandler>, options: { readonly version: string }): Effect<void, unknown, Environment> {
   return commandRun(provide(commands, handlers), options) as Effect<void, unknown, Environment>
 }
 

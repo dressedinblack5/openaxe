@@ -13,7 +13,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  const aisdk = yield* AISDK.Service
+  
   const host = yield* PluginHost.make(plugin)
   yield* GooglePlugin.effect(host)
 })
@@ -21,7 +21,7 @@ const addPlugin = Effect.fn(function* () {
 describe("GooglePlugin", () => {
   it.effect("creates a Google Generative AI SDK for @ai-sdk/google using the provider ID as SDK name", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -39,7 +39,7 @@ describe("GooglePlugin", () => {
 
   it.effect("ignores non-Google SDK packages", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -56,7 +56,7 @@ describe("GooglePlugin", () => {
 
   it.effect("uses default languageModel loading with provider ID parity", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const sdkEvent = yield* aisdk.runSDK({

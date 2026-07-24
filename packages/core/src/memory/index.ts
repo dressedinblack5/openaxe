@@ -8,7 +8,7 @@ import { MemoryTable } from "./memory.sql"
 
 export interface Interface {
   readonly set: (key: string, value: unknown, scope?: string, source?: string) => Effect.Effect<void>
-  readonly get: (key: string) => Effect.Effect<unknown | null>
+  readonly get: (key: string) => Effect.Effect<unknown>
   readonly remove: (key: string) => Effect.Effect<void>
   readonly list: (kind?: string, scope?: string, source?: string) => Effect.Effect<Array<{ key: string; value: unknown; kind: string; scope: string; source: string }>>
 }

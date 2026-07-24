@@ -1,4 +1,3 @@
-import { Artifact } from "@opencode-ai/core/artifact"
 import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 

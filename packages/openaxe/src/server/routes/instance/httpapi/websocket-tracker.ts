@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option } from "effect"
-import { CloseEvent } from "effect/unstable/socket/Socket";
+import { CloseEvent } from "effect/unstable/socket/Socket"
 export const SERVER_CLOSING_EVENT = () => new CloseEvent(1001, "server closing")
 
 type Close = Effect.Effect<void, unknown>

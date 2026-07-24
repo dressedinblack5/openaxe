@@ -42,8 +42,8 @@ function createWorkerFetch(client: RpcClient): typeof fetch {
 function createEventSource(client: RpcClient): EventSource {
   return {
     subscribe: async (handler) => {
-      return client.on<GlobalEvent>("global.event", (e) => {
-        handler(e)
+      return client.on("global.event", (e: unknown) => {
+        handler(e as GlobalEvent)
       })
     },
   }
@@ -73,7 +73,7 @@ export function resolveThreadDirectory(project?: string, envPWD = process.env.PW
 
 async function initOpentuiNativeLib() {
   const { ensureNativeLib } = await import("@/cli/native-lib")
-  const nativeLibPath = await ensureNativeLib()
+  const nativeLibPath = ensureNativeLib()
   if (nativeLibPath) {
     const { setRenderLibPath } = await import("@opentui/core")
     setRenderLibPath(nativeLibPath)
@@ -147,7 +147,7 @@ export const TuiCommand = cmd({
     const noReplay = args.replay === false || args.noReplay === true
 
     // Defer native lib loading to avoid blocking startup
-    const nativeLibPromise = initOpentuiNativeLib().catch((error) => {
+    const nativeLibPromise = initOpentuiNativeLib().catch(() => {
       UI.error("Failed to load native library, continuing in degraded mode")
       return null
     })

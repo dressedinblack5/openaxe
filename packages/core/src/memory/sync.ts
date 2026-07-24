@@ -22,16 +22,32 @@ function parseAxeMd(content: string): readonly AxeMdRule[] {
   let currentHeading: string | undefined
   let currentContent: string[] = []
 
+  const listItemRe = /^- \*\*([^*]+)\*\*:\s*(.+)$/
+  function flush() {
+    if (!currentHeading) return
+    const nonEmpty = currentContent.filter((l) => l.trim() !== "")
+    const allListItems = nonEmpty.length > 0 && nonEmpty.every((l) => listItemRe.test(l.trim()))
+
+    if (allListItems) {
+      for (const line of nonEmpty) {
+        const m = line.trim().match(listItemRe)
+        if (m) {
+          rules.push({ key: m[1].trim(), content: m[2].trim() })
+        }
+      }
+    } else {
+      const key = currentHeading
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+      rules.push({ key: `axe-md:${key}`, content: currentContent.join("\n").trim() })
+    }
+  }
+
   for (const line of lines) {
     const headingMatch = line.match(/^##\s+(.+)$/)
     if (headingMatch) {
-      if (currentHeading) {
-        const key = currentHeading
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "")
-        rules.push({ key: `axe-md:${key}`, content: currentContent.join("\n").trim() })
-      }
+      flush()
       currentHeading = headingMatch[1].trim()
       currentContent = []
     } else if (currentHeading) {
@@ -39,14 +55,7 @@ function parseAxeMd(content: string): readonly AxeMdRule[] {
     }
   }
 
-  if (currentHeading) {
-    const key = currentHeading
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-    rules.push({ key: `axe-md:${key}`, content: currentContent.join("\n").trim() })
-  }
-
+  flush()
   return rules
 }
 

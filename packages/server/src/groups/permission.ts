@@ -8,6 +8,7 @@ import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/un
 import { PermissionNotFoundError, SessionNotFoundError } from "../errors"
 import { SessionLocationMiddleware } from "../middleware/session-location"
 import { LocationQuery, locationQueryOpenApi, LocationMiddleware } from "./location"
+import { httpError } from "./util"
 
 export const PermissionGroup = HttpApiGroup.make("server.permission")
   .add(
@@ -53,7 +54,7 @@ export const PermissionGroup = HttpApiGroup.make("server.permission")
     HttpApiEndpoint.get("session.permission.list", "/api/session/:sessionID/permission", {
       params: { sessionID: SessionV2.ID },
       success: Schema.Struct({ data: Schema.Array(PermissionV2.Request) }),
-      error: SessionNotFoundError as any,
+      error: httpError(SessionNotFoundError),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -72,7 +73,7 @@ export const PermissionGroup = HttpApiGroup.make("server.permission")
         message: Schema.String.pipe(Schema.optional),
       }),
       success: HttpApiSchema.NoContent,
-      error: [SessionNotFoundError, PermissionNotFoundError] as any,
+      error: httpError([SessionNotFoundError, PermissionNotFoundError]),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(

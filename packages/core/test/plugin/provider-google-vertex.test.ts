@@ -17,7 +17,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  const aisdk = yield* AISDK.Service
+  
   const host = yield* PluginHost.make(plugin)
   yield* GoogleVertexPlugin.effect(host)
 })
@@ -155,7 +155,7 @@ describe("GoogleVertexPlugin", () => {
       () =>
         Effect.gen(function* () {
           vertexOptions.length = 0
-          const plugin = yield* PluginV2.Service
+          
           const aisdk = yield* AISDK.Service
           const catalog = yield* Catalog.Service
           yield* catalog.transform((catalog) =>
@@ -291,7 +291,7 @@ describe("GoogleVertexPlugin", () => {
       () =>
         Effect.gen(function* () {
           vertexOptions.length = 0
-          const plugin = yield* PluginV2.Service
+          
           const aisdk = yield* AISDK.Service
           yield* addPlugin()
           yield* aisdk.runSDK({
@@ -318,7 +318,7 @@ describe("GoogleVertexPlugin", () => {
     Effect.gen(function* () {
       googleAuthOptions.length = 0
       const fetchCalls: { input: Parameters<typeof fetch>[0]; init?: RequestInit }[] = []
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       yield* aisdk.hook.sdk((evt) =>
@@ -369,7 +369,7 @@ describe("GoogleVertexPlugin", () => {
 
   it.effect("trims model IDs before selecting language models", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()

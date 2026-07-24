@@ -1,7 +1,7 @@
 import type { ModelMessage, ToolResultPart } from "ai"
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import type { Model as ProviderModel } from "./provider"
-import type { Model as ModelsDevModel } from "@opencode-ai/core/models-dev";
+import type { Model as ModelsDevModel } from "@opencode-ai/core/models-dev"
 import { iife } from "@/util/iife"
 import { mergeDeep } from "@/util/merge-deep"
 
@@ -315,7 +315,7 @@ function applyCaching(msgs: ModelMessage[], model: ProviderModel): ModelMessage[
     },
   }
 
-  for (const msg of [...new Set([...system, ...final])]) {
+  for (const msg of new Set([...system, ...final])) {
     const useMessageLevelOptions =
       model.providerID === "anthropic" ||
       model.providerID.includes("bedrock") ||

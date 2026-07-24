@@ -119,7 +119,7 @@ it.instance("keeps server and tui plugin merge semantics aligned", () =>
       expect(tuiOrigins.map((item) => ConfigPlugin.pluginSpecifier(item.spec))).toEqual(tuiPlugins)
       // Compare scopes only for shared plugins since TUI config may discover
       // additional plugins from .openaxe dirs.
-      const sharedSpecs = new Set(serverPlugins)
+      
       const tuiOriginsBySpec = new Map(tuiOrigins.map((o) => [ConfigPlugin.pluginSpecifier(o.spec), o.scope] as const))
       for (const origin of serverOrigins) {
         const spec = ConfigPlugin.pluginSpecifier(origin.spec)

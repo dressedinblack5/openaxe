@@ -662,11 +662,10 @@ export const layer = Layer.effect(
           })
 
         const batches = Iterable.chunksOf(rows, 10)
-        const total = Iterable.size(batches)
 
         yield* Effect.forEach(
           batches,
-          (events, i) =>
+          (events, _i) =>
             Effect.gen(function* () {
               const response = yield* http.execute(
                 HttpClientRequest.post(route(target.url, "/sync/replay"), {
@@ -860,7 +859,7 @@ export const layer = Layer.effect(
 
       for (const { workspace } of rows) {
         yield* startSync(fromRow(workspace)).pipe(
-          Effect.catch((error) =>
+          Effect.catch(() =>
             Effect.sync(() => {
               setStatus(workspace.id, "error")
             }),

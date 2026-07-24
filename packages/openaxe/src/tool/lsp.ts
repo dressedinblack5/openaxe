@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect"
 import type { Context } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 import path from "path"
 import { LSP } from "@/lsp/lsp"
 import DESCRIPTION from "./lsp.txt"
@@ -118,27 +118,27 @@ export const LspTool = define(
                 return lsp.prepareCallHierarchy(position)
               case "incomingCalls":
                 return lsp.incomingCalls(position)
-      case "outgoingCalls":
-        return lsp.outgoingCalls(position)
-      case "codeAction":
-        return lsp.codeAction(position)
-      case "rename":
-        if (!args.newName) throw new Error("newName is required for rename operation")
-        return lsp.rename({ ...position, newName: args.newName })
-      case "prepareRename":
-        return lsp.prepareRename(position)
-      case "typeDefinition":
-        return lsp.typeDefinition(position)
-      case "signatureHelp":
-        return lsp.signatureHelp(position)
-      case "completion":
-        return lsp.completion(position)
-      case "formatting":
-        return lsp.formatting({ file, tabSize: args.tabSize, insertSpaces: args.insertSpaces })
-      case "applyCodeAction":
-        if (!args.title) throw new Error("title is required for applyCodeAction operation")
-        return lsp.applyCodeAction({ ...position, title: args.title })
-    }
+              case "outgoingCalls":
+                return lsp.outgoingCalls(position)
+              case "codeAction":
+                return lsp.codeAction(position)
+              case "rename":
+                if (!args.newName) throw new Error("newName is required for rename operation")
+                return lsp.rename({ ...position, newName: args.newName })
+              case "prepareRename":
+                return lsp.prepareRename(position)
+              case "typeDefinition":
+                return lsp.typeDefinition(position)
+              case "signatureHelp":
+                return lsp.signatureHelp(position)
+              case "completion":
+                return lsp.completion(position)
+              case "formatting":
+                return lsp.formatting({ file, tabSize: args.tabSize, insertSpaces: args.insertSpaces })
+              case "applyCodeAction":
+                if (!args.title) throw new Error("title is required for applyCodeAction operation")
+                return lsp.applyCodeAction({ ...position, title: args.title })
+            }
           })()
 
           return {

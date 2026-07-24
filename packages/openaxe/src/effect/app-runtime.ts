@@ -69,7 +69,7 @@ export const AppRuntime = {
     return getRuntime().runCallback(wrap(effect) as Effect.Effect<any, any>)
   },
   dispose() {
-    getRuntime().dispose()
+    void getRuntime().dispose()
   },
 }
 
@@ -85,6 +85,6 @@ export const CoreRuntime = {
     return getCoreRuntime().runFork(wrap(effect) as Effect.Effect<any, any>)
   },
   dispose() {
-    getCoreRuntime().dispose()
+    void getCoreRuntime().dispose()
   },
 }

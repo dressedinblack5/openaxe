@@ -44,13 +44,9 @@ type TriggerName = {
 }[keyof Hooks]
 
 export interface Interface {
-  readonly trigger: <
-    Name extends TriggerName,
-    Input = Parameters<Required<Hooks>[Name]>[0],
-    Output = Parameters<Required<Hooks>[Name]>[1],
-  >(
+  readonly trigger: <Name extends TriggerName, Output = Parameters<Required<Hooks>[Name]>[1]>(
     name: Name,
-    input: Input,
+    input: unknown,
     output: Output,
   ) => Effect.Effect<Output>
   readonly list: () => Effect.Effect<Hooks[]>
@@ -203,9 +199,9 @@ export const layer = Layer.effect(
         // plugin initialization run on first list() or trigger() call.
         const deferredExternal = yield* Effect.cached(
           Effect.fn("Plugin.loadExternal")(function* () {
-            const plugins = flags.pure ? [] : (cfg.plugin_origins ?? []).filter(
-              (p) => !flags.disableDefaultPlugins || p.scope !== "global",
-            )
+            const plugins = flags.pure
+              ? []
+              : (cfg.plugin_origins ?? []).filter((p) => !flags.disableDefaultPlugins || p.scope !== "global")
             if (flags.pure && cfg.plugin_origins?.length) {
             }
             if (plugins.length) yield* config.waitForDependencies()
@@ -215,10 +211,10 @@ export const layer = Layer.effect(
                 items: plugins,
                 kind: "server",
                 report: {
-                  start(candidate) {},
-                  missing(candidate, _retry, message) {},
-                  error(candidate, _retry, stage, error, resolved) {
-                    const spec = candidate.plan.spec
+                  start(_candidate) {},
+                  missing(_candidate, _retry, _message) {},
+                  error(_candidate, _retry, stage, error, _resolved) {
+                    const spec = _candidate.plan.spec
                     const cause = error instanceof Error ? (error.cause ?? error) : error
                     const message = stage === "load" ? errorMessage(error) : errorMessage(cause)
 
@@ -312,9 +308,8 @@ export const layer = Layer.effect(
 
     const trigger = Effect.fn("Plugin.trigger")(function* <
       Name extends TriggerName,
-      Input = Parameters<Required<Hooks>[Name]>[0],
       Output = Parameters<Required<Hooks>[Name]>[1],
-    >(name: Name, input: Input, output: Output) {
+    >(name: Name, input: unknown, output: Output) {
       if (!name) return output
       // Don't trigger lazy init — same rationale as list(): plugin bootstrap
       // involves dynamic server imports and may be called from within other

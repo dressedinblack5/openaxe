@@ -16,9 +16,9 @@ import os from "os"
 import path from "path"
 const stripAnsi = (s: string) => s.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, "")
 import type { ToolPart } from "@opencode-ai/sdk/v2"
-import type { InferMetadata, InferParameters, Info } from "@/tool/tool";
+import type { InferMetadata, InferParameters, Info } from "@/tool/tool"
 import type { ApplyPatchTool } from "@/tool/apply_patch"
-import type { ShellTool } from "@/tool/shell"
+
 import type { EditTool } from "@/tool/edit"
 import type { GlobTool } from "@/tool/glob"
 import type { GrepTool } from "@/tool/grep"
@@ -34,7 +34,7 @@ import type { WebFetchTool } from "@/tool/webfetch"
 import { webSearchProviderLabel, type WebSearchTool } from "@/tool/websearch"
 import type { WriteTool } from "@/tool/write"
 import { LANGUAGE_EXTENSIONS } from "@/lsp/language"
-import { duration, titlecase } from "@/util/locale";
+import { duration, titlecase } from "@/util/locale"
 import type { RunEntryBody, StreamCommit, ToolSnapshot } from "./types"
 
 export type ToolView = {
@@ -93,7 +93,6 @@ type ToolPermissionCtx = {
 
 type ToolDefs = {
   invalid: typeof InvalidTool
-  bash: typeof ShellTool
   write: typeof WriteTool
   edit: typeof EditTool
   apply_patch: typeof ApplyPatchTool
@@ -621,69 +620,6 @@ function snapQuestion(p: ToolProps<typeof QuestionTool>): ToolSnapshot {
   }
 }
 
-function scrollBashStart(p: ToolProps<typeof ShellTool>): string {
-  const cmd = p.input.command ?? ""
-  const wd = p.input.workdir ?? ""
-  const formatted = wd && wd !== "." ? toolPath(wd) : ""
-  const dir = formatted === "." ? "" : formatted
-  if (cmd && !dir) {
-    return `$ ${cmd}`
-  }
-
-  if (!cmd) {
-    return dir ? `# Running in ${dir}` : ""
-  }
-
-  return `# Running in ${dir}\n$ ${cmd}`
-}
-
-function scrollBashProgress(p: ToolProps<typeof ShellTool>): string {
-  const out = stripAnsi(p.frame.raw)
-  const cmd = (p.input.command ?? "").trim()
-  const fmt = (text: string) => {
-    const body = text.replace(/^\n+/, "").replace(/\n+$/, "")
-    return body ? `\n${body}` : ""
-  }
-
-  if (!cmd) {
-    return out.replace(/\n+$/, "")
-  }
-
-  const wdRaw = (p.input.workdir ?? "").trim()
-  const wd = wdRaw ? toolPath(wdRaw) : ""
-  const lines = out.split("\n")
-  const first = (lines[0] || "").trim()
-  const second = (lines[1] || "").trim()
-
-  if (wd && (first === wd || first === wdRaw) && second === cmd) {
-    return fmt(lines.slice(2).join("\n"))
-  }
-
-  if (first === cmd || first === `$ ${cmd}`) {
-    return fmt(lines.slice(1).join("\n"))
-  }
-
-  if (wd && (first === `${wd} ${cmd}` || first === `${wdRaw} ${cmd}`)) {
-    return fmt(lines.slice(1).join("\n"))
-  }
-
-  return fmt(out)
-}
-
-function scrollBashFinal(p: ToolProps<typeof ShellTool>): string {
-  const code = p.metadata.exit ?? num(p.frame.meta.exitCode) ?? num(p.frame.meta.exit_code)
-  const time = span(p.frame.state)
-  if (code === undefined) {
-    if (!time) {
-      return "bash completed"
-    }
-
-    return `bash completed · ${time}`
-  }
-
-  return `bash completed (exit ${code})${time ? ` · ${time}` : ""}`
-}
-
 function scrollReadStart(p: ToolProps<typeof ReadTool>): string {
   const file = toolPath(p.input.filePath)
   const extra = info(p.frame.input, ["filePath"])
@@ -965,15 +901,6 @@ function permList(p: ToolPermissionProps): ToolPermissionInfo {
   }
 }
 
-function permBash(p: ToolPermissionProps<typeof ShellTool>): ToolPermissionInfo {
-  const cmd = p.input.command || ""
-  return {
-    icon: "#",
-    title: "Shell command",
-    lines: cmd ? [`$ ${cmd}`] : p.patterns.map((item) => `- ${item}`),
-  }
-}
-
 function permTask(p: ToolPermissionProps<typeof TaskTool>): ToolPermissionInfo {
   const type = p.input.subagent_type || "general"
   const desc = p.input.description
@@ -1029,19 +956,6 @@ const TOOL_RULES = {
     scroll: {
       start: () => "",
     },
-  },
-  bash: {
-    view: {
-      output: true,
-      final: false,
-    },
-    run: runBash,
-    scroll: {
-      start: scrollBashStart,
-      progress: scrollBashProgress,
-      final: scrollBashFinal,
-    },
-    permission: permBash,
   },
   write: {
     view: {
@@ -1269,15 +1183,6 @@ export function toolFrame(commit: StreamCommit, raw: string): ToolFrame {
   }
 }
 
-function runBash(p: ToolProps<typeof ShellTool>): ToolInline {
-  return {
-    icon: "$",
-    title: p.input.command || "",
-    mode: "block",
-    body: p.frame.status === "completed" ? text(p.frame.state.output).trim() : undefined,
-  }
-}
-
 export function toolView(name?: string): ToolView {
   return (
     rule(name)?.view ?? {
@@ -1428,6 +1333,30 @@ export function toolEntryBody(commit: StreamCommit, raw: string): RunEntryBody |
     }
 
     return undefined
+  }
+
+  // Handle bash tool commits without shell field (fallback - session-data normally sets shell)
+  if (commit.tool === "bash") {
+    const command = typeof commit.part?.state?.input?.command === "string" ? commit.part.state.input.command : undefined
+    if (command) {
+      if (commit.phase === "start") {
+        return textBody(`$ ${command}`)
+      }
+      if (commit.phase === "progress" && commit.toolState === "completed") {
+        // Strip echo lines (workdir + command) like the session-data reducer does
+        let body = stripAnsi(raw)
+        const workdir =
+          typeof commit.part?.state?.input?.workdir === "string" ? commit.part.state.input.workdir : undefined
+        body = body.replace(/^\n+/, "")
+        if (workdir && body.startsWith(workdir)) {
+          body = body.slice(workdir.length).replace(/^\n+/, "")
+        }
+        if (body.startsWith(command)) {
+          body = body.slice(command.length).replace(/^\n+/, "")
+        }
+        return textBody(shellOutput(command, body) ?? "")
+      }
+    }
   }
 
   const ctx = toolFrame(commit, raw)

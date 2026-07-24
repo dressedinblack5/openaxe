@@ -22,7 +22,7 @@ function resolveTemplate(text: string, params?: UiI18nParams) {
 const fallback: UiI18n = {
   locale: () => "en",
   t: (key, params) => {
-    const value = en[key] ?? String(key)
+    const value = en[key] ?? key
     return resolveTemplate(value, params)
   },
 }

@@ -6,7 +6,7 @@ import { getCurrent } from "effect/Fiber";
 import { identity } from "effect/Function"
 import { effect, merge, provide } from "effect/Layer";
 import { die } from "effect/Stream";
-import { Reactivity, layer as reactivityLayer } from "effect/unstable/reactivity/Reactivity"
+import { layer as reactivityLayer } from "effect/unstable/reactivity/Reactivity"
 import { SqlClient, SafeIntegers, make as makeClient } from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
 import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"

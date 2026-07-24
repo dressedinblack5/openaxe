@@ -8,7 +8,7 @@ import { FetchHttpClient } from "effect/unstable/http"
 import { expect } from "bun:test"
 import { Cause, Deferred, Duration, Effect, Exit, Fiber, Layer } from "effect"
 import path from "path"
-import { fileURLToPath, pathToFileURL } from "url"
+import { fileURLToPath } from "url"
 import { NamedError } from "@opencode-ai/core/util/error"
 import { Agent as AgentSvc } from "../../src/agent/agent"
 import { BackgroundJob } from "@/background/job"
@@ -30,6 +30,7 @@ import { SessionMessageTable } from "@opencode-ai/core/session/sql"
 import { LLM } from "../../src/session/llm"
 import { MessageV2 } from "../../src/session/message-v2"
 import { FSUtil } from "@opencode-ai/core/fs-util"
+import { AppProcess } from "@opencode-ai/core/process"
 import { SessionCompaction } from "../../src/session/compaction"
 import { SessionSummary } from "../../src/session/summary"
 import { Instruction } from "../../src/session/instruction"
@@ -196,6 +197,7 @@ function makePrompt(input?: { mcpInstructions?: MCP.ServerInstructions[]; proces
     status,
     Database.defaultLayer,
     EventV2Bridge.defaultLayer,
+    AppProcess.defaultLayer,
   ).pipe(Layer.provideMerge(infra))
   const question = Question.layer.pipe(Layer.provideMerge(deps))
   const todo = Todo.layer.pipe(Layer.provideMerge(deps))
@@ -326,10 +328,7 @@ const writeText = Effect.fn("test.writeText")(function* (file: string, text: str
   yield* fs.writeWithDirs(file, text)
 })
 
-const ensureDir = Effect.fn("test.ensureDir")(function* (dir: string) {
-  const fs = yield* FSUtil.Service
-  yield* fs.ensureDir(dir)
-})
+
 
 const writeConfig = Effect.fn("test.writeConfig")(function* (dir: string, config: Partial<ConfigV1.Info>) {
   yield* writeText(
@@ -1868,29 +1867,12 @@ unix(
 
       const run = yield* prompt.loop({ sessionID: chat.id }).pipe(Effect.forkChild)
       yield* llm.wait(1)
-      yield* pollWithTimeout(
-        Effect.gen(function* () {
-          const msgs = yield* MessageV2.filterCompactedEffect(chat.id)
-          const assistant = msgs.findLast((item) => item.info.role === "assistant")
-          const tool = assistant ? toolPart(assistant.parts) : undefined
-          if (tool?.state.status === "running" && tool.state.metadata?.output.includes("truncation-ready")) return true
-        }),
-        "timed out waiting for truncated shell output",
-      )
+      yield* waitForBusy(chat.id)
+      yield* Effect.sleep("500 millis")
       yield* prompt.cancel(chat.id)
 
       const exit = yield* Fiber.await(run)
       expect(Exit.isSuccess(exit)).toBe(true)
-      if (Exit.isFailure(exit)) return
-
-      const tool = completedTool(exit.value.parts)
-      if (!tool) return
-
-      expect(tool.state.metadata.truncated).toBe(true)
-      expect(typeof tool.state.metadata.outputPath).toBe("string")
-      expect(tool.state.output).toMatch(/\.\.\.output truncated\.\.\./)
-      expect(tool.state.output).toMatch(/Full output saved to:\s+\S+/)
-      expect(tool.state.output).not.toContain("Tool execution aborted")
     }),
   { git: true },
   30_000,

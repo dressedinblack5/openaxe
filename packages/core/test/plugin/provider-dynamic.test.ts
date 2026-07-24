@@ -149,7 +149,7 @@ describe("DynamicProviderPlugin", () => {
 
   itWithAISDK.live("wraps missing provider factory exports as AISDK init errors", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const tmp = yield* tempEntrypoint("export const notAProviderFactory = true\n")
       yield* addPlugin(npmEntrypoint(tmp.entrypoint))
@@ -168,7 +168,7 @@ describe("DynamicProviderPlugin", () => {
 
   itWithAISDK.effect("uses the model api.id for the default language model", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const language = yield* aisdk.language(

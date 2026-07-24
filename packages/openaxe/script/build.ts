@@ -169,7 +169,7 @@ function nativeCopyDir(item: (typeof allTargets)[number]) {
   return `dist/${name}/bin`
 }
 
-  const coreEntry = await import.meta.resolve("@opentui/core")
+  const coreEntry =  import.meta.resolve("@opentui/core")
   const coreDir = new URL(".", coreEntry).href
 for (const item of targets) {
   const name = [
@@ -242,7 +242,7 @@ for (const item of targets) {
 
   try {
     const platformPkg = `@opentui/core-${platformSuffix(item)}`
-    const pkgEntry = await import.meta.resolve(platformPkg, coreDir)
+    const pkgEntry =  import.meta.resolve(platformPkg, coreDir)
     const pkgRoot = new URL(".", pkgEntry).href
     const src = new URL(nativeLibName(item.os), pkgRoot)
     const dst = `${nativeCopyDir(item)}/${nativeLibName(item.os)}`

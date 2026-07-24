@@ -92,10 +92,10 @@ export async function createOpencodeServer(options?: ServerOptions) {
       } catch { /* stream closed */ }
     }
 
-    readStdout()
-    readStderr()
+    void readStdout()
+    void readStderr()
 
-    proc.exited.then((code: number) => {
+    void proc.exited.then((code: number) => {
       clearTimeout(id)
       let msg = `Server exited with code ${code}`
       if (output.trim()) {

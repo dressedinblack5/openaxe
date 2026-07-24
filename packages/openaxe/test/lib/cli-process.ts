@@ -421,7 +421,7 @@ export function withCliFixture<A, E>(
           // window to exit, then SIGTERM. The Effect.timeoutOrElse expresses
           // exactly that race without raw setTimeout or Promise.race.
           Effect.gen(function* () {
-            yield* Effect.sync(() => p.stdin.end())
+            void (yield* Effect.sync(() => p.stdin.end()))
             yield* Effect.promise(() => p.exited).pipe(
               Effect.timeoutOrElse({
                 duration: Duration.seconds(2),

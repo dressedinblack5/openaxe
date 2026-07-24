@@ -2,7 +2,7 @@ import { Schema } from "effect"
 import { isAbsolute, join, relative } from "path"
 import { Effect } from "effect"
 import type { Context } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 import { LSP } from "@/lsp/lsp"
 import { createTwoFilesPatch } from "diff"
 import DESCRIPTION from "./write.txt"

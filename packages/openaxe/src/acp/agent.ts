@@ -18,9 +18,9 @@ import {
 } from "@agentclientprotocol/sdk"
 import { Effect } from "effect"
 import type { OpencodeClient } from "@opencode-ai/sdk/v2"
-import { fromUnknownDefect, toRequestError } from "./error";
+import { fromUnknownDefect, toRequestError } from "./error"
 import type { Error, Interface } from "./service"
-import { make } from "./service";
+import { make } from "./service"
 export function init({ sdk: _sdk }: { sdk: OpencodeClient }) {
   return {
     create: (connection: AgentSideConnection) => {

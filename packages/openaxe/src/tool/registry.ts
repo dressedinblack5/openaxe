@@ -4,7 +4,7 @@ import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { PlanExitTool } from "./plan"
 import { Session } from "@/session/session"
 import { QuestionTool } from "./question"
-import { ShellTool } from "./shell"
+
 import { EditTool } from "./edit"
 import { GlobTool } from "./glob"
 import { GrepTool } from "./grep"
@@ -17,7 +17,7 @@ import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
 import type { Def, InferDef } from "./tool"
-import { init } from "./tool";
+import { init } from "./tool"
 import { Config } from "@/config/config"
 import { type ToolContext, type ToolDefinition } from "@opencode-ai/plugin"
 import type { JSONSchema7, JSONSchema7Definition } from "@ai-sdk/provider"
@@ -27,6 +27,7 @@ import { Plugin } from "../plugin"
 import { Provider } from "@/provider/provider"
 
 import { WebSearchTool } from "./websearch"
+import { ShellTool } from "./shell/shell"
 import { LspTool } from "./lsp"
 import { Truncate } from "./truncate"
 import { ApplyPatchTool } from "./apply_patch"
@@ -34,8 +35,8 @@ import { Glob } from "@opencode-ai/core/util/glob"
 import path from "path"
 import { pathToFileURL } from "url"
 import { Effect, Layer, Context } from "effect"
-import { FetchHttpClient, HttpClient } from "effect/unstable/http"
-import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
+import { FetchHttpClient } from "effect/unstable/http"
+import { AppProcess } from "@opencode-ai/core/process"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { Format } from "../format"
 import { InstanceState } from "@/effect/instance-state"
@@ -72,11 +73,7 @@ export interface Interface {
   readonly ids: () => Effect.Effect<string[]>
   readonly all: () => Effect.Effect<Def[]>
   readonly named: () => Effect.Effect<{ task: TaskDef; read: ReadDef }>
-  readonly tools: (model: {
-    providerID: ProviderV2.ID
-    modelID: ModelV2.ID
-    agent: Agent.Info
-  }) => Effect.Effect<Def[]>
+  readonly tools: (model: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info }) => Effect.Effect<Def[]>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/ToolRegistry") {}
@@ -99,12 +96,12 @@ export const layer = Layer.effect(
     const plan = yield* PlanExitTool
     const webfetch = yield* WebFetchTool
     const websearch = yield* WebSearchTool
-    const shell = yield* ShellTool
     const globtool = yield* GlobTool
     const writetool = yield* WriteTool
     const edit = yield* EditTool
     const greptool = yield* GrepTool
     const patchtool = yield* ApplyPatchTool
+    const shell = yield* ShellTool
     const skilltool = yield* SkillTool
     const agent = yield* Agent.Service
 
@@ -202,7 +199,6 @@ export const layer = Layer.effect(
 
         const tool = yield* Effect.all({
           invalid: init(invalid),
-          shell: init(shell),
           read: init(read),
           glob: init(globtool),
           grep: init(greptool),
@@ -217,6 +213,7 @@ export const layer = Layer.effect(
           question: init(question),
           lsp: init(lsptool),
           plan: init(plan),
+          shell: init(shell),
         })
 
         return {
@@ -224,7 +221,6 @@ export const layer = Layer.effect(
           builtin: [
             tool.invalid,
             ...(questionEnabled ? [tool.question] : []),
-            tool.shell,
             tool.read,
             tool.glob,
             tool.grep,
@@ -237,6 +233,7 @@ export const layer = Layer.effect(
             tool.skill,
             tool.patch,
             tool.lsp,
+            tool.shell,
             ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
           ],
           task: tool.task,
@@ -339,6 +336,7 @@ export const defaultLayer = Layer.suspend(() =>
       Layer.provide(FetchHttpClient.layer),
       Layer.provide(Format.defaultLayer),
       Layer.provide(CrossSpawnSpawner.defaultLayer),
+      Layer.provide(AppProcess.defaultLayer),
       Layer.provide(Truncate.defaultLayer),
     )
     .pipe(Layer.provide(Database.defaultLayer), Layer.provide(RuntimeFlags.defaultLayer)),
@@ -435,6 +433,7 @@ export const node = LayerNode.make(layer.pipe(Layer.provide(Ripgrep.defaultLayer
   FSUtil.node,
   EventV2Bridge.node,
   httpClient,
+  AppProcess.node,
   CrossSpawnSpawner.node,
   Format.node,
   Truncate.node,

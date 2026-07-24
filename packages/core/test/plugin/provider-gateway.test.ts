@@ -15,12 +15,12 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  const aisdk = yield* AISDK.Service
+  
   const host = yield* PluginHost.make(plugin)
   yield* GatewayPlugin.effect(host)
 })
 
-mock.module("@ai-sdk/gateway", () => ({
+void mock.module("@ai-sdk/gateway", () => ({
   createGateway(options: Record<string, unknown>) {
     gatewayCalls.push({ ...options })
     return {
@@ -39,7 +39,7 @@ describe("GatewayPlugin", () => {
   it.effect("creates a Gateway SDK for @ai-sdk/gateway", () =>
     Effect.gen(function* () {
       gatewayCalls.length = 0
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -58,7 +58,7 @@ describe("GatewayPlugin", () => {
   it.effect("passes the model providerID as the Gateway SDK name", () =>
     Effect.gen(function* () {
       gatewayCalls.length = 0
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
 
@@ -83,7 +83,7 @@ describe("GatewayPlugin", () => {
   it.effect("matches Vercel AI Gateway models by their @ai-sdk/gateway package", () =>
     Effect.gen(function* () {
       gatewayCalls.length = 0
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
 

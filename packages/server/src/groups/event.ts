@@ -12,7 +12,7 @@ const fields = {
   location: Schema.optional(Location.Ref),
 }
 
-const schema = <const Definitions extends ReadonlyArray<Definition>>(definitions: Definitions) =>
+const schema = (definitions: ReadonlyArray<Definition>) =>
   Schema.Union([
     ...definitions.map((definition) =>
       Schema.Struct({
@@ -32,7 +32,7 @@ const schema = <const Definitions extends ReadonlyArray<Definition>>(definitions
         ]),
   ]).annotate({ identifier: "V2Event" })
 
-export const makeEventGroup = <const Definitions extends ReadonlyArray<Definition>>(definitions: Definitions) =>
+export const makeEventGroup = (definitions: ReadonlyArray<Definition>) =>
   HttpApiGroup.make("server.event")
     .add(
       HttpApiEndpoint.get("event.subscribe", "/api/event", {

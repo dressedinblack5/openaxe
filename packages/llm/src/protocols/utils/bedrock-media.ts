@@ -64,7 +64,8 @@ const documentBlock = (part: MediaPart, format: DocumentFormat, bytes: string): 
 // not a kind-detection issue.
 export const lower = Effect.fn("BedrockMedia.lower")(function* (part: MediaPart) {
   const mime = part.mediaType.toLowerCase()
-  const imageFormat = IMAGE_FORMATS[mime as keyof typeof IMAGE_FORMATS]
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by `mime in IMAGE_FORMATS`
+  const imageFormat = mime in IMAGE_FORMATS ? IMAGE_FORMATS[mime as keyof typeof IMAGE_FORMATS] : undefined
   if (imageFormat) {
     const media = yield* ProviderShared.validateMedia(
       "Bedrock Converse",
@@ -75,7 +76,8 @@ export const lower = Effect.fn("BedrockMedia.lower")(function* (part: MediaPart)
   }
   if (mime.startsWith("image/"))
     return yield* ProviderShared.invalidRequest(`Bedrock Converse does not support image media type ${part.mediaType}`)
-  const documentFormat = DOCUMENT_FORMATS[mime as keyof typeof DOCUMENT_FORMATS]
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by `mime in DOCUMENT_FORMATS`
+  const documentFormat = mime in DOCUMENT_FORMATS ? DOCUMENT_FORMATS[mime as keyof typeof DOCUMENT_FORMATS] : undefined
   if (documentFormat) {
     const media = yield* ProviderShared.validateMedia(
       "Bedrock Converse",

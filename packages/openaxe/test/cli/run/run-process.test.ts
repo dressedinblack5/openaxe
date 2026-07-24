@@ -147,6 +147,7 @@ describe("opencode run (non-interactive subprocess)", () => {
         const result = yield* opencode.run("use an unknown model", {
           model: "test/nonexistent-model",
           format: "json",
+          timeoutMs: 20_000,
         })
 
         expect(result.exitCode).not.toBe(0)

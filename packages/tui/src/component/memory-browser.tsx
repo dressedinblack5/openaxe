@@ -4,6 +4,7 @@ import { useDialog } from "../ui/dialog"
 import { DialogSelect } from "../ui/dialog-select"
 import { useSDK } from "../context/sdk"
 import { useTheme } from "../context/theme"
+import { Button } from "../components/button"
 
 interface MemoryEntry {
   key: string
@@ -173,21 +174,19 @@ function ContentDisplay(props: {
         </box>
         <Show when={isTruncated()}>
           <box flexDirection="row" justifyContent="space-between" paddingTop={1}>
-            <box paddingLeft={3} paddingRight={3} backgroundColor={theme.primary} onMouseUp={props.onToggle}>
-              <text fg={theme.selectedListItemText}>
-                {props.showFull ? "Show less" : "Show all content"}
-              </text>
-            </box>
-            <box paddingLeft={3} paddingRight={3} backgroundColor={theme.backgroundElement} onMouseUp={props.onBack}>
-              <text fg={theme.text}>Back</text>
-            </box>
+            <Button variant="primary" onMouseUp={props.onToggle}>
+              {props.showFull ? "Show less" : "Show all content"}
+            </Button>
+            <Button variant="secondary" onMouseUp={props.onBack}>
+              Back
+            </Button>
           </box>
         </Show>
         <Show when={!isTruncated()}>
           <box paddingTop={1}>
-            <box paddingLeft={3} paddingRight={3} backgroundColor={theme.backgroundElement} onMouseUp={props.onBack}>
-              <text fg={theme.text}>Back</text>
-            </box>
+            <Button variant="secondary" onMouseUp={props.onBack}>
+              Back
+            </Button>
           </box>
         </Show>
       </Show>

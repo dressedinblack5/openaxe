@@ -155,7 +155,7 @@ export const layer = Layer.effect(
     const events = yield* EventV2Bridge.Service
 
     const state = yield* InstanceState.make<State>(
-      Effect.fn("LSP.state")(function* (ctx) {
+      Effect.fn("LSP.state")(function* (_ctx) {
         const cfg = yield* config.get()
 
         const servers: Record<string, ServerInfo> = {}
@@ -163,7 +163,8 @@ export const layer = Layer.effect(
         if (!cfg.lsp) {
           yield* Effect.logInfo("all LSPs are disabled")
         } else {
-          for (const [key, server] of Object.entries(LSPServer)) if (key !== "LSPServer") servers[(server as ServerInfo).id] = server as ServerInfo
+          for (const [key, server] of Object.entries(LSPServer))
+            if (key !== "LSPServer") servers[(server as ServerInfo).id] = server as ServerInfo
 
           filterExperimentalServers(servers, flags)
 
@@ -231,7 +232,7 @@ export const layer = Layer.effect(
               if (!value) s.broken.set(key, Date.now())
               return value
             })
-            .catch((err) => {
+            .catch(() => {
               s.broken.set(key, Date.now())
               return undefined
             })
@@ -243,7 +244,7 @@ export const layer = Layer.effect(
             root,
             directory: ctx.directory,
             instance: ctx,
-          }).catch(async (err) => {
+          }).catch(async () => {
             s.broken.set(key, Date.now())
             await Process.stop(handle.process)
             return undefined
@@ -288,7 +289,7 @@ export const layer = Layer.effect(
           const task = schedule(server, root, root + server.id)
           s.spawning.set(root + server.id, task)
 
-          task.finally(() => {
+          void task.finally(() => {
             if (s.spawning.get(root + server.id) === task) {
               s.spawning.delete(root + server.id)
             }
@@ -570,7 +571,11 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const formatting = Effect.fn("LSP.formatting")(function* (input: { file: string; tabSize?: number; insertSpaces?: boolean }) {
+    const formatting = Effect.fn("LSP.formatting")(function* (input: {
+      file: string
+      tabSize?: number
+      insertSpaces?: boolean
+    }) {
       const results = yield* run(input.file, (client) =>
         client.connection
           .sendRequest("textDocument/formatting", {
@@ -585,7 +590,9 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const applyCodeAction = Effect.fn("LSP.applyCodeAction")(function* (input: LocInput & { title: string; range?: Range }) {
+    const applyCodeAction = Effect.fn("LSP.applyCodeAction")(function* (
+      input: LocInput & { title: string; range?: Range },
+    ) {
       const results = yield* run(input.file, async (client) => {
         const actions = await client.connection
           .sendRequest<any[]>("textDocument/codeAction", {

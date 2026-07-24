@@ -284,7 +284,7 @@ describe("HttpApi Server.listen", () => {
     const listener = await startListener()
     await withTimeout(listener.stop(), 10_000, "timed out waiting for graceful listener.stop()")
     await withTimeout(listener.stop(), 5_000, "timed out waiting for repeated graceful listener.stop()")
-    await expect(
+     expect(
       fetch(new URL(PtyPaths.shells, listener.url), { signal: sigh(), headers: { authorization: authorization() } }),
     ).rejects.toThrow()
   })

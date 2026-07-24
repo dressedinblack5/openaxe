@@ -1,7 +1,6 @@
 import { Effect, Schema } from "effect"
 import { Route } from "../route/client"
 import { Endpoint } from "../route/endpoint"
-import { Protocol } from "../route/protocol"
 import {
   LLMEvent,
   Usage,

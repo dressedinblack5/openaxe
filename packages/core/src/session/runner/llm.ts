@@ -214,7 +214,7 @@ export const layer = Layer.effect(
           ...(session.model?.variant === undefined ? {} : { variant: session.model.variant }),
         },
       })
-      const withPublication = Semaphore.makeUnsafe(1).withPermit
+      const withPublication = (effect: Effect.Effect<void>) => Semaphore.makeUnsafe(1).withPermit(effect)
       const publish = (event: LLMEvent, outputPaths: ReadonlyArray<string> = []) =>
         withPublication(publisher.publish(event, outputPaths))
       let overflowFailure: ProviderErrorEvent | undefined

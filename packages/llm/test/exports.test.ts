@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import { LLM, LLMClient, Provider } from "@opencode-ai/llm"
-import { Route, Protocol } from "@opencode-ai/llm/route"
+import { LLM, LLMClient } from "@opencode-ai/llm"
+import { Route } from "@opencode-ai/llm/route"
 import { Provider as ProviderSubpath } from "@opencode-ai/llm/provider"
 import {
   CloudflareAIGateway,
@@ -19,8 +19,7 @@ describe("public exports", () => {
     expect(LLM.request).toBeFunction()
     expect(LLMClient.Service).toBeFunction()
     expect(LLMClient.layer).toBeDefined()
-    expect(Provider.make).toBeFunction()
-    expect(ProviderSubpath.make).toBe(Provider.make)
+    expect(ProviderSubpath).toBeDefined()
   })
 
   test("route barrel exposes route-authoring APIs", () => {

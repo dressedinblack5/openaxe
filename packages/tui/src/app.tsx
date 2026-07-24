@@ -8,7 +8,7 @@ import { ClipboardProvider, useClipboard } from "./context/clipboard"
 import { ExitProvider, useExit } from "./context/exit"
 import { EpilogueProvider } from "./context/epilogue"
 import { copy, handleSelectionKey } from "./util/selection";
-import { createCliRenderer, MouseButton, type CliRenderer } from "@opentui/core"
+import { createCliRenderer, MouseButton } from "@opentui/core"
 import { RouteProvider, useRoute } from "./context/route"
 import {
   Switch,
@@ -56,7 +56,7 @@ import { FrecencyProvider } from "./component/prompt/frecency"
 import { PromptStashProvider } from "./component/prompt/stash"
 import { DialogAlert } from "./ui/dialog-alert"
 import { DialogConfirm } from "./ui/dialog-confirm"
-import { ToastProvider, useToast } from "./ui/toast"
+import { Toast, ToastProvider, useToast } from "./ui/toast"
 import { isDefaultTitle } from "./util/session"
 import { KVProvider, useKV } from "./context/kv"
 import * as Model from "./util/model"
@@ -475,7 +475,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
     }, 100)
   })
 
-  onCleanup(() => window.clearTimeout(titleDebounce.current))
+  onCleanup(() => clearTimeout(titleDebounce.current))
 
   const args = useArgs()
   onMount(() => {
@@ -1156,6 +1156,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
           : undefined
       }
     >
+      <Toast />
       <Show when={Flag.OPENCODE_SHOW_TTFD}>
         <TimeToFirstDraw />
       </Show>

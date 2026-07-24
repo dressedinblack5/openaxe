@@ -4,13 +4,14 @@ import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { ProviderNotFoundError, ServiceUnavailableError } from "../errors"
 import { LocationQuery, locationQueryOpenApi, LocationMiddleware } from "./location"
+import { httpError } from "./util"
 
 export const ProviderGroup = HttpApiGroup.make("server.provider")
   .add(
     HttpApiEndpoint.get("provider.list", "/api/provider", {
       query: LocationQuery,
       success: Location.response(Schema.Array(ProviderV2.Info)),
-      error: ServiceUnavailableError as any,
+      error: httpError(ServiceUnavailableError),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -26,7 +27,7 @@ export const ProviderGroup = HttpApiGroup.make("server.provider")
       params: { providerID: ProviderV2.ID },
       query: LocationQuery,
       success: Location.response(ProviderV2.Info),
-      error: [ProviderNotFoundError, ServiceUnavailableError] as any,
+      error: httpError([ProviderNotFoundError, ServiceUnavailableError]),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(

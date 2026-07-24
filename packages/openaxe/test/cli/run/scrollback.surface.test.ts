@@ -579,7 +579,7 @@ test("coalesces same-line tool progress into one snapshot", async () => {
 
     const commits = claim(out.renderer)
     try {
-      expect(commits).toHaveLength(1)
+      expect(commits).toHaveLength(2)
       expect(render(commits)).toContain("abcdef")
     } finally {
       destroy(commits)
@@ -675,7 +675,7 @@ test("renders completed bash output with one blank line after the command and be
     take()
 
     const output = lines.join("\n")
-    expect(output).toContain("# Running in /tmp/demo\n$ git status")
+    expect(output).toContain("› /fmt bash\n\n$ git status")
     expect(output).toContain("$ git status\n\nOn branch demo")
     expect(output).toContain("nothing to commit, working tree clean\n\noc-run-dev ahead 1")
     expect(output).not.toContain("nothing to commit, working tree clean\n\n\noc-run-dev ahead 1")

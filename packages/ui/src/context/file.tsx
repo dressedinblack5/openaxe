@@ -7,4 +7,4 @@ const ctx = createSimpleContext<ValidComponent, { component: ValidComponent }>({
 })
 
 export const FileComponentProvider = ctx.provider
-export const useFileComponent = ctx.use
+export const useFileComponent = () => ctx.use()

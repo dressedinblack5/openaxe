@@ -39,13 +39,13 @@ describe("NpmConfig.registry", () => {
     await using tmp = await tmpdir()
     await Bun.write(path.join(tmp.path, ".npmrc"), "registry=https://registry.example.test/\n")
 
-    await expect(Effect.runPromise(NpmConfig.registry(tmp.path))).resolves.toBe("https://registry.example.test")
+     expect(Effect.runPromise(NpmConfig.registry(tmp.path))).resolves.toBe("https://registry.example.test")
   })
 
   test("leaves configured registry without trailing slash unchanged", async () => {
     await using tmp = await tmpdir()
     await Bun.write(path.join(tmp.path, ".npmrc"), "registry=https://registry.example.test\n")
 
-    await expect(Effect.runPromise(NpmConfig.registry(tmp.path))).resolves.toBe("https://registry.example.test")
+     expect(Effect.runPromise(NpmConfig.registry(tmp.path))).resolves.toBe("https://registry.example.test")
   })
 })

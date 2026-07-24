@@ -49,4 +49,4 @@ async function measure() {
   console.log("\n(Note: shared caching means actual total < sum of individuals)\n")
 }
 
-measure()
+void measure()

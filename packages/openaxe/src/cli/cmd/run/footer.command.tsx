@@ -2,10 +2,10 @@
 import { TextAttributes, type InputRenderable, type KeyEvent } from "@opentui/core"
 import { useKeyboard, type JSX } from "@opentui/solid"
 import fuzzysort from "fuzzysort"
-import { Match, Switch, createEffect, createMemo, createSignal, type Accessor } from "solid-js"
+import { createEffect, createMemo, createSignal, type Accessor } from "solid-js"
 import { RunFooterMenu, createFooterMenuState, type RunFooterMenuItem } from "./footer.menu"
 import type { RunFooterTheme } from "./theme"
-import type { FooterQueuedPrompt, FooterSubagentTab, RunAgent, RunCommand, RunInput, RunProvider } from "./types"
+import type { FooterQueuedPrompt, FooterSubagentTab, RunCommand, RunInput, RunProvider } from "./types"
 
 type PanelEntry = RunFooterMenuItem & {
   category: string
@@ -710,13 +710,13 @@ export function RunQueuedPromptSelectBody(props: {
     const ctrl = event.ctrl && !event.meta && !event.shift && !event.super
     if (item && (event.name === "delete" || (ctrl && event.name === "d"))) {
       event.preventDefault()
-      props.onDelete(item.prompt)
+      void props.onDelete(item.prompt)
       return
     }
 
     if (item && ctrl && event.name === "e") {
       event.preventDefault()
-      props.onEdit(item.prompt)
+      void props.onEdit(item.prompt)
       return
     }
 
@@ -727,7 +727,7 @@ export function RunQueuedPromptSelectBody(props: {
       setQuery,
       select: () => {
         const item = selected()
-        if (item) props.onEdit(item.prompt)
+        if (item) void props.onEdit(item.prompt)
       },
       close: props.onClose,
     })
@@ -1062,5 +1062,3 @@ export function RunModelSelectBody(props: {
     </PanelShell>
   )
 }
-
-

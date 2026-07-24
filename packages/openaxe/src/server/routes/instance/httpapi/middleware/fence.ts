@@ -2,7 +2,7 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { Database } from "@opencode-ai/core/database/database"
 import { Effect } from "effect"
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
-import { HEADER, diff, load } from "@/server/shared/fence";
+import { HEADER, diff, load } from "@/server/shared/fence"
 const ignoredMethods = new Set(["GET", "HEAD", "OPTIONS"])
 
 export const fenceLayer = HttpRouter.middleware<{ requires: Database.Service; handles: unknown }>()(

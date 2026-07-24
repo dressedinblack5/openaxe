@@ -22,7 +22,7 @@ import { MCP } from "../mcp"
 import { LSP } from "@/lsp/lsp"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
-import { decodeText, filter, map, mkString, runForEach } from "effect/Stream";
+import { decodeText, filter, map, mkString, runForEach } from "effect/Stream"
 import { Command } from "../command"
 import { pathToFileURL, fileURLToPath } from "url"
 import { Config } from "@/config/config"
@@ -53,13 +53,12 @@ import { SessionMessage } from "@opencode-ai/core/session/message"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { AgentAttachment, FileAttachment, Prompt, Source } from "@opencode-ai/core/session/prompt"
-import { makeUnsafe } from "effect/DateTime";
+import { makeUnsafe } from "effect/DateTime"
 import { eq } from "drizzle-orm"
 import { SessionTable } from "@opencode-ai/core/session/sql"
 import { SessionReminders } from "./reminders"
 import { SessionTools } from "./tools"
 import { LLMEvent } from "@opencode-ai/llm"
-
 ;(globalThis as { AI_SDK_LOG_WARNINGS: boolean }).AI_SDK_LOG_WARNINGS = false
 
 const decodeMessageInfo = Schema.decodeUnknownExit(SessionV1.Info)
@@ -287,8 +286,8 @@ export const layer = Layer.effect(
         messageID: assistantMessage.id,
         sessionID: assistantMessage.sessionID,
         type: "tool",
-          callID: crypto.randomUUID(),
-          tool: TaskTool.id,
+        callID: crypto.randomUUID(),
+        tool: TaskTool.id,
         state: {
           status: "running",
           input: {
@@ -510,8 +509,8 @@ export const layer = Layer.effect(
               messageID: msg.id,
               sessionID: input.sessionID,
               tool: ShellID.ToolID,
-          callID: crypto.randomUUID(),
-          state: {
+              callID: crypto.randomUUID(),
+              state: {
                 status: "running",
                 time: { start: started },
                 input: { command: input.command },

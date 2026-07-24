@@ -6,7 +6,7 @@ import { isRecord } from "@/util/record"
 import { asSchema, type ModelMessage, type Tool } from "ai"
 import { Cause, Effect, FiberSet, Queue } from "effect"
 import type { Stream } from "effect/Stream"
-import { concat, flatMap, fromEffectDrain, fromQueue, make, provideService, scoped, unwrap } from "effect/Stream";
+import { concat, flatMap, fromEffectDrain, fromQueue, make, provideService, scoped, unwrap } from "effect/Stream"
 import { FetchHttpClient } from "effect/unstable/http"
 import {
   LLMRequest,
@@ -130,9 +130,7 @@ export function stream(input: StreamInput): StreamResult {
                   ),
             ),
             concat(
-              fromEffectDrain(
-                FiberSet.awaitEmpty(settlements).pipe(Effect.andThen(Queue.end(results)), Effect.asVoid),
-              ),
+              fromEffectDrain(FiberSet.awaitEmpty(settlements).pipe(Effect.andThen(Queue.end(results)), Effect.asVoid)),
             ),
           )
         return provider.pipe(concat(fromQueue(results)))

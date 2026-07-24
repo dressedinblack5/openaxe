@@ -1,9 +1,11 @@
 # SESSION ORCHESTRATION
 
 ## OVERVIEW
+
 Durable session orchestration and LLM dispatch engine for openaxe.
 
 ## STRUCTURE
+
 ```
 src/session/
 ├── llm/                LLM runtime adapters (AI SDK / Native) [see llm/AGENTS.md]
@@ -16,16 +18,18 @@ src/session/
 ```
 
 ## WHERE TO LOOK
-| Task | File |
-|------|------|
+
+| Task            | File                                         |
+| --------------- | -------------------------------------------- |
 | Input admission | `src/session/prompt.ts` (`SessionV2.prompt`) |
-| Session runner | `src/session/session.ts` |
-| LLM dispatch | `src/session/llm.ts` |
-| Status tracking | `src/session/status.ts` |
-| Retry logic | `src/session/retry.ts` |
-| System context | `src/session/prompt/` |
+| Session runner  | `src/session/session.ts`                     |
+| LLM dispatch    | `src/session/llm.ts`                         |
+| Status tracking | `src/session/status.ts`                      |
+| Retry logic     | `src/session/retry.ts`                       |
+| System context  | `src/session/prompt/`                        |
 
 ## ARCHITECTURE NOTES
+
 - **Durable Admission**: `SessionV2.prompt()` admits inputs to the database. It doesn't execute them immediately. `SessionExecution.wake()` triggers the drain.
 - **Runtime Duality**: AI SDK is the default. Native runtime is opt-in via `OPENCODE_EXPERIMENTAL_NATIVE_LLM`.
 - **Location Scoping**: `SessionRunner` binds model resolution, tool registry, and permissions to a specific filesystem location.
@@ -33,6 +37,7 @@ src/session/
 - **EventV2**: Uses EventV2 for replay and transcript history.
 
 ## CONVENTIONS
+
 - Use `SessionV2` for all durable transcript operations.
 - Don't bridge through legacy `SessionPrompt.loop`.
 - Keep durable prompt admission separate from model execution.

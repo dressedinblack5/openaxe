@@ -8,7 +8,6 @@ import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 
 import { Instruction } from "../../src/session/instruction"
-import type { MessageV2 } from "../../src/session/message-v2"
 import { MessageID, PartID, SessionID } from "../../src/session/schema"
 import { Global } from "@opencode-ai/core/global"
 import { RuntimeFlags } from "../../src/effect/runtime-flags"

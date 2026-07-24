@@ -11,7 +11,6 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { withTransientReadRetry } from "@/util/effect-http-client"
 import { Global } from "@opencode-ai/core/global"
-import type { MessageV2 } from "./message-v2"
 import type { MessageID } from "./schema"
 
 function extract(messages: SessionV1.WithParts[]) {

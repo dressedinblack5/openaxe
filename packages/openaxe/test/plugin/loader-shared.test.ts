@@ -1265,7 +1265,7 @@ export default {
     ),
   )
 
-  it.live("does not wait or retry npm plugin failures", () =>
+it.live("does not wait or retry npm plugin failures", () =>
     Effect.gen(function* () {
       const install = spyOn(Npm, "add").mockRejectedValue(new Error("boom"))
       let wait = 0

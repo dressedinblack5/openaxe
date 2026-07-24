@@ -3,7 +3,7 @@ import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Image } from "@/image/image"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Cause, Deferred, Effect, Exit, Layer, Context, Scope, Schema } from "effect"
-import { runDrain, takeUntil, tap } from "effect/Stream";
+import { runDrain, takeUntil, tap } from "effect/Stream"
 import { Agent } from "@/agent/agent"
 import { Config } from "@/config/config"
 import { Permission } from "@/permission"
@@ -28,9 +28,9 @@ import { SessionEvent } from "@opencode-ai/core/session/event"
 import { SessionMessage } from "@opencode-ai/core/session/message"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
-import { makeUnsafe } from "effect/DateTime";
+import { makeUnsafe } from "effect/DateTime"
 import { RuntimeFlags } from "@/effect/runtime-flags"
-import { ToolOutput, Usage, type LLMEvent } from "@opencode-ai/llm"
+import { Usage, type LLMEvent } from "@opencode-ai/llm"
 
 const DOOM_LOOP_THRESHOLD = 3
 export type Result = "compact" | "stop" | "continue"

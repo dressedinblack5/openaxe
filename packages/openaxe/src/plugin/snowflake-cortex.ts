@@ -400,7 +400,7 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
                       ? init.headers
                       : Object.entries(init.headers as Record<string, string | undefined>)
                 for (const [key, value] of entries) {
-                  if (value !== undefined) headers.set(key, String(value))
+                  if (value !== undefined) headers.set(key, value)
                 }
               }
               headers.set("authorization", `Bearer ${currentOauth.access}`)
@@ -456,7 +456,7 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
                     ctrl.enqueue(encoder.encode(text.replace(/"role"\s*:\s*""/g, '"role":"assistant"')))
                   },
                   cancel() {
-                    reader.cancel()
+                    void reader.cancel()
                   },
                 })
                 return new Response(stream, { headers: response.headers, status: response.status })

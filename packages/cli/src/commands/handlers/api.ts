@@ -19,15 +19,18 @@ export default Runtime.handler(
   Effect.fn("cli.api")(function* (input) {
     const daemon = yield* Daemon.Service
     const transport = yield* daemon.transport()
-    const params = Option.getOrElse(input.param, () => ({}))
+    const params = Option.getOrElse(input.param, () => ({} as Record<string, string>)) as Record<string, string>
     const request = yield* resolveRequest(transport, input.request, params)
     const headers = new Headers(transport.headers)
     for (const header of input.header) {
       const index = header.indexOf(":")
-      if (index < 1) return yield* Effect.fail(new Error(`Invalid header, expected name:value: ${header}`))
+      if (index < 1) {
+        yield* Effect.fail(new Error(`Invalid header, expected name:value: ${header}`))
+        return
+      }
       headers.set(header.slice(0, index).trim(), header.slice(index + 1).trim())
     }
-    const body = Option.getOrUndefined(input.data)
+    const body = Option.getOrUndefined(input.data) as BodyInit | undefined
     if (body !== undefined && !headers.has("content-type")) headers.set("content-type", "application/json")
 
     const response = yield* Effect.tryPromise(() =>
@@ -53,7 +56,7 @@ export function resolveOperation(spec: OpenApi, operationID: string, params: Rec
 }
 
 export function rawRequest(input: readonly string[]) {
-  if (input.length !== 2 || !methods.has(input[0].toLowerCase()) || !input[1].startsWith("/")) return
+  if (input.length !== 2 || !methods.has(input[0].toLowerCase()) || !input[1].startsWith("/")) return undefined
   return { method: input[0].toUpperCase(), path: input[1] }
 }
 
@@ -68,6 +71,7 @@ function resolveRequest(
   return Effect.tryPromise(async () => {
     const response = await fetch(new URL("/openapi.json", transport.url), { headers: transport.headers })
     if (!response.ok) throw new Error(`Failed to load OpenAPI document: HTTP ${response.status}`)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     return resolveOperation((await response.json()) as OpenApi, input[0], params)
   })
 }

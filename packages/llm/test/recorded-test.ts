@@ -1,5 +1,5 @@
 import { NodeFileSystem } from "@effect/platform-node"
-import { HttpRecorder, type RecorderOptions } from "@opencode-ai/http-recorder"
+import { type RecorderOptions } from "@opencode-ai/http-recorder"
 import { HttpRecorderInternal } from "@opencode-ai/http-recorder/internal"
 import { Layer } from "effect"
 import { FetchHttpClient } from "effect/unstable/http"

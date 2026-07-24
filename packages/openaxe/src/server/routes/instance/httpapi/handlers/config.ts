@@ -1,7 +1,7 @@
 import { Config } from "@/config/config"
 import { Plugin } from "@/plugin"
 import { Provider } from "@/provider/provider"
-import { context } from "@/effect/instance-state";
+import { context } from "@/effect/instance-state"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"

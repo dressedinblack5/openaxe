@@ -525,6 +525,7 @@ function getHex(value: ColorValue | undefined): HexColor | undefined {
   if (!value?.startsWith("#")) return
   return value as HexColor
 }
+// ponytail: type guard for HexColor, value is already narrowed by startsWith("#")
 
 export function resolveTheme(theme: DesktopTheme): { light: ResolvedTheme; dark: ResolvedTheme } {
   return {

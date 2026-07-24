@@ -78,8 +78,6 @@ type OpenAICompatibleChunk = {
 
 type OpenAICompatibleChunkError = { error: { message: string } }
 
-type ChunkSchema = z.ZodUnion<[z.ZodType<OpenAICompatibleChunk>, z.ZodType<OpenAICompatibleChunkError>]>
-
 export type OpenAICompatibleChatConfig = {
   provider: string
   headers: () => Record<string, string | undefined>

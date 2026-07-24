@@ -1,7 +1,6 @@
 import { Effect, Fiber, Layer, ManagedRuntime } from "effect"
-import { Service, getReferenceUnsafe } from "effect/Context";
+import { Service, getReferenceUnsafe } from "effect/Context"
 import { InstanceRef, WorkspaceRef } from "./instance-ref"
-import { layer } from "@opencode-ai/core/observability";
 import { WorkspaceContext } from "@/control-plane/workspace-context"
 import type { InstanceContext } from "@/project/instance-context"
 import { memoMap } from "@opencode-ai/core/effect/memo-map"

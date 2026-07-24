@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { effectCmd, CliError, fail } from "../effect-cmd"
+import { effectCmd, CliError } from "../effect-cmd"
 import { withNetworkOptions, resolveNetworkOptions } from "../network"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { Global } from "@opencode-ai/core/global"
@@ -37,12 +37,28 @@ export const ServeCommand = effectCmd({
       const file = path.join(directory, "server.json")
       const temp = file + "." + id + ".tmp"
       const address = { _tag: "TcpAddress" as const, hostname: server.url.hostname, port: Number(server.url.port) }
-      yield* Effect.tryPromise({ try: () => fs.mkdir(directory, { recursive: true }), catch: (cause) => new CliError({ message: String(cause) }) })
       yield* Effect.tryPromise({
-        try: () => fs.writeFile(temp, JSON.stringify({ id, version: InstallationVersion, url: HttpServer.formatAddress(address), pid: process.pid }), { mode: 0o600 }),
+        try: () => fs.mkdir(directory, { recursive: true }),
         catch: (cause) => new CliError({ message: String(cause) }),
       })
-      yield* Effect.tryPromise({ try: () => fs.rename(temp, file), catch: (cause) => new CliError({ message: String(cause) }) })
+      yield* Effect.tryPromise({
+        try: () =>
+          fs.writeFile(
+            temp,
+            JSON.stringify({
+              id,
+              version: InstallationVersion,
+              url: HttpServer.formatAddress(address),
+              pid: process.pid,
+            }),
+            { mode: 0o600 },
+          ),
+        catch: (cause) => new CliError({ message: String(cause) }),
+      })
+      yield* Effect.tryPromise({
+        try: () => fs.rename(temp, file),
+        catch: (cause) => new CliError({ message: String(cause) }),
+      })
     }
 
     yield* Effect.never

@@ -57,6 +57,9 @@ export async function read() {
       Buffer.alloc(0),
     )
     if (image.length) return { data: image.toString().trim(), mime: "image/png" }
+    // ponytail: direct PowerShell read before clipboardy fallback — clipboardy silently fails on Windows
+    const text = await command("powershell.exe", ["-NonInteractive", "-NoProfile", "-command", "Get-Clipboard -Raw"]).catch(() => Buffer.alloc(0))
+    if (text.length) return { data: text.toString().trim(), mime: "text/plain" }
   }
 
   if (platform() === "linux") {
@@ -103,6 +106,18 @@ function getCopyMethod() {
       return async (text: string) => {
         const escaped = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
         await command("osascript", ["-e", `set the clipboard to "${escaped}"`]).catch(() => undefined)
+      }
+    }
+    if (native?.[0] === "powershell.exe") {
+      // ponytail: Base64 in command arg avoids stdin pipe encoding issues on Windows
+      return async (text: string) => {
+        const b64 = Buffer.from(text).toString("base64")
+        await command("powershell.exe", [
+          "-NonInteractive",
+          "-NoProfile",
+          "-Command",
+          `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::SetText([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${b64}')))`,
+        ]).catch(() => undefined)
       }
     }
     if (native) {

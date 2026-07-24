@@ -11,7 +11,7 @@ mark("worker-start")
 // — which loads ~45 service modules — is deferred until the first RPC call that
 // needs them, rather than blocking worker startup.
 
-Heap.start()
+void Heap.start()
 
 const onUnhandledRejection = (_error: unknown) => {}
 
@@ -87,7 +87,6 @@ export const rpc = {
   },
   async shutdown() {
     const { InstanceRuntime } = await import("@/project/instance-runtime")
-    const { Server } = await import("@/server/server")
     await InstanceRuntime.disposeAllInstances()
     if (server) await server.stop(true)
     process.off("unhandledRejection", onUnhandledRejection)

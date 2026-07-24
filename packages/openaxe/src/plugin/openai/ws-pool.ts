@@ -110,7 +110,7 @@ export function createWebSocketFetch(options?: CreateWebSocketFetchOptions) {
             invalidate(entry)
           }
         },
-        onConnectionInvalid: (error) => {
+        onConnectionInvalid: () => {
           entry.busy = false
           entry.lastUsedAt = Date.now()
           if (!entry.fallback) recordStreamFailure(entry)

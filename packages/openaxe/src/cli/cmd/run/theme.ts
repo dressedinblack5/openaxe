@@ -9,6 +9,8 @@ import { RGBA, SyntaxStyle, type CliRenderer, type ColorInput, type TerminalColo
 import type { TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import type { EntryKind } from "./types"
 
+type HexColor = `#${string}`
+
 type Tone = {
   body: ColorInput
   start?: ColorInput
@@ -69,7 +71,6 @@ export type RunTheme = {
 }
 
 type ThemeColor = Exclude<keyof TuiThemeCurrent, "thinkingOpacity">
-type HexColor = `#${string}`
 type RefName = string
 type Variant = {
   dark: HexColor | RefName

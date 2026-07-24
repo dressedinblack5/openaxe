@@ -269,7 +269,7 @@ function makeFromTransport<Body, Prepared, Frame, Event, State>(
           provider: provider ?? routeInput.provider,
           auth: auth ?? routeInput.auth,
           endpoint: endpoint ? Endpoint.merge(routeInput.endpoint, endpoint) : routeInput.endpoint,
-          transport: (transport as Transport<Body, Prepared, Frame> | undefined) ?? routeInput.transport,
+          transport: (transport != null ? transport : routeInput.transport) as Transport<Body, Prepared, Frame>,
           defaults: mergeRouteDefaults(route.defaults, defaults),
         })
       },
@@ -394,7 +394,8 @@ const generateWith = (stream: Interface["stream"]) =>
     )
   })
 
-export const prepare = <Body = unknown>(request: LLMRequest) =>
+export const prepare = <Body = unknown>(request: LLMRequest): Effect.Effect<PreparedRequestOf<Body>, LLMError> =>
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — prepareWith returns Effect<PreparedRequest, LLMError>, narrowing to PreparedRequestOf<Body>
   prepareWith(request) as Effect.Effect<PreparedRequestOf<Body>, LLMError>
 
 export function stream(request: LLMRequest): Stream.Stream<LLMEvent, LLMError> {
@@ -425,7 +426,8 @@ export const layer: Layer.Layer<Service, never, RequestExecutor.Service> = Layer
       http: yield* RequestExecutor.Service,
       webSocket: getOrUndefined(yield* Effect.serviceOption(WebSocketExecutor.Service)),
     })
-    return Service.of({ prepare: prepareWith as Interface["prepare"], stream, generate: generateWith(stream) })
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — prepareWith has narrower generic signature than Interface["prepare"]
+    return Service.of({ prepare: prepareWith as unknown as Interface["prepare"], stream, generate: generateWith(stream) })
   }),
 )
 

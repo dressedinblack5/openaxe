@@ -6,10 +6,10 @@ import { Installation } from "@/installation"
 import { disposeAllInstancesAndEmitGlobalDisposed } from "@/server/global-lifecycle"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Effect, Queue, Schema } from "effect"
-import { callback, concat, drop, encodeText, ensuring, make, map, merge, pipeThroughChannel, tick } from "effect/Stream";
+import { callback, concat, drop, encodeText, ensuring, make, map, merge, pipeThroughChannel, tick } from "effect/Stream"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
-import { Event, encode } from "effect/unstable/encoding/Sse";
+import { Event, encode } from "effect/unstable/encoding/Sse"
 import { RootHttpApi } from "../api"
 import { GlobalUpgradeInput } from "../groups/global"
 

@@ -138,6 +138,7 @@ const imageMime = (bytes: Uint8Array) => {
   if (startsWith(bytes, [0x47, 0x49, 0x46, 0x38])) return "image/gif"
   if (startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && startsWith(bytes.subarray(8), [0x57, 0x45, 0x42, 0x50]))
     return "image/webp"
+  return undefined
 }
 const binary = (resource: string, bytes: Uint8Array) => {
   if (extensions.has(path.extname(resource).toLowerCase())) return true

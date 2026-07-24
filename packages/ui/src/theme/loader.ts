@@ -6,10 +6,8 @@ let activeTheme: DesktopTheme | null = null
 const THEME_STYLE_ID = "opencode-theme"
 
 function ensureLoaderStyleElement(): HTMLStyleElement {
-  const existing = document.getElementById(THEME_STYLE_ID) as HTMLStyleElement | null
-  if (existing) {
-    return existing
-  }
+  const el = document.getElementById(THEME_STYLE_ID)
+  if (el instanceof HTMLStyleElement) return el
   const element = document.createElement("style")
   element.id = THEME_STYLE_ID
   document.head.appendChild(element)

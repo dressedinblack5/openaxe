@@ -76,6 +76,7 @@
     "@clack/prompts": "1.0.0-alpha.1",
     "@colbymchenry/codegraph": "1.0.1",
     "@colbymchenry/codegraph-linux-x64": "1.0.1",
+    "@dietrichgebert/ponytail": "4.8.4",
     "@effect/opentelemetry": "4.0.0-beta.82",
     "@effect/platform-node": "4.0.0-beta.82",
     "@ff-labs/fff-bun": "0.9.4",
