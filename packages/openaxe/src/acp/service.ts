@@ -1019,7 +1019,8 @@ function fromUnknownError(error: unknown, service?: string): Error {
   if (isAuthRequired(error)) {
     return new AuthRequiredError({ providerId: findProviderID(error) })
   }
-  return new ServiceFailureError({ safeMessage: "OpenCode service failure", service })
+  const detail = error instanceof Error ? error.message : String(error)
+  return new ServiceFailureError({ safeMessage: `OpenCode service failure: ${detail}`, service })
 }
 
 function isACPError(error: unknown): error is Error {
