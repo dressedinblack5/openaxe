@@ -4,6 +4,9 @@ import { SessionID } from "@/session/schema"
 import { Provider } from "@/provider/provider"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
+import fs from "fs"
+import path from "path"
+import { Global } from "@opencode-ai/core/global"
 
 export type ReviewTrigger = "turn_complete" | "tool_complete" | "error_recovery"
 
@@ -132,7 +135,7 @@ If nothing worth learning, return empty arrays.`
       const updates = Array.isArray(parsed.skillUpdates) ? parsed.skillUpdates : []
       const observations = Array.isArray(parsed.observations) ? parsed.observations : []
 
-      // ponytail: persist skill updates and observations here
+      // ponytail: persist to JSONL, add read API when consumed
       if (updates.length > 0 || observations.length > 0) {
         yield* Effect.logInfo("learning: review found new items", {
           sessionID: input.sessionID,
@@ -140,6 +143,25 @@ If nothing worth learning, return empty arrays.`
           observationCount: observations.length,
           skillNames: updates.map((u: any) => u.name),
         })
+
+        yield* Effect.try({
+          try: () => {
+            const dir = path.join(Global.Path.data, "learning")
+            fs.mkdirSync(dir, { recursive: true })
+            fs.appendFileSync(
+              path.join(dir, "reviews.jsonl"),
+              JSON.stringify({
+                time: Date.now(),
+                sessionID: input.sessionID,
+                trigger: input.trigger,
+                agent: input.agent,
+                skills: updates,
+                observations,
+              }) + "\n",
+            )
+          },
+          catch: (err: unknown) => err,
+        }).pipe(Effect.catch((err) => Effect.logWarning("learning: failed to write review", { error: String(err) })))
       }
     })
 
