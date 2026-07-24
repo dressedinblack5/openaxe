@@ -182,6 +182,26 @@ export const Info = Schema.Struct({
       policies: Schema.optional(Schema.mutable(Schema.Array(ConfigExperimental.Policy))).annotate({
         description: "Policy statements applied to supported resources, such as provider access",
       }),
+      learning: Schema.optional(
+        Schema.Struct({
+          review: Schema.optional(Schema.Boolean).annotate({
+            description: "Enable post-turn learning review — fork a background LLM eval to auto-update skills and observations",
+          }),
+          model: Schema.optional(Schema.String).annotate({
+            description: "Optional separate model for learning reviews (defaults to agent model)",
+          }),
+        }),
+      ),
+      compressor: Schema.optional(
+        Schema.Struct({
+          enabled: Schema.optional(Schema.Boolean).annotate({
+            description: "Enable LLM-driven structured context compression with ghost-skill re-injection",
+          }),
+          model: Schema.optional(Schema.String).annotate({
+            description: "Optional separate model for compression (defaults to agent model)",
+          }),
+        }),
+      ),
     }),
   ),
 }).annotate({ identifier: "Config" })
