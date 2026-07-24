@@ -1,9 +1,9 @@
 import { Effect, Layer, Context, Schema, Option } from "effect"
-import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { Config } from "@/config/config"
 import { SessionID } from "@/session/schema"
-
-// ponytail: learning review stub — full impl with LLM eval for skill/memory updates
+import { Provider } from "@/provider/provider"
+import { ProviderV2 } from "@opencode-ai/core/provider"
+import { ModelV2 } from "@opencode-ai/core/model"
 
 export type ReviewTrigger = "turn_complete" | "tool_complete" | "error_recovery"
 
@@ -29,34 +29,125 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/LearningReview") {}
 
+function chatCompletionsURL(url: string): string {
+  const base = (url || "").replace(/\/+$/, "")
+  if (base.includes("/chat/completions")) return base
+  return `${base.replace(/\/v1\/?$/i, "")}/v1/chat/completions`
+}
+
+function getApiKey(info: Provider.Info): string | undefined {
+  return typeof info.options.apiKey === "string" ? info.options.apiKey : info.key
+}
+
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-    // ponytail: all optional deps resolved inside review(), not here,
-    // so the layer has no requirements — easier to test and compose.
-
     const review = Effect.fn("LearningReview.review")(function* (input: ReviewInput) {
       const config = yield* Effect.serviceOption(Config.Service)
       const cfg = Option.isSome(config) ? yield* config.value.get() : ({ experimental: undefined } as any)
       const learning = cfg.experimental?.learning
       if (!learning?.review) return
 
-      // ponytail: placeholder — post-turn learning review.
-      // Read user + assistant messages from the session, call an LLM (optionally
-      // separate model via learning.model config) to determine if skill updates or
-      // observations should be persisted, then apply them via Skill service.
-      //
-      // Future: auto-patch skills on user corrections (Hermes background_review.py pattern)
-      yield* Effect.logInfo("learning review", {
-        sessionID: input.sessionID,
-        agent: input.agent,
-        trigger: input.trigger,
+      const providerOpt = yield* Effect.serviceOption(Provider.Service)
+      if (Option.isNone(providerOpt)) {
+        yield* Effect.logInfo("learning: Provider unavailable")
+        return
+      }
+      const provider = providerOpt.value
+
+      const model = yield* provider.getModel(ProviderV2.ID.make(input.providerID), ModelV2.ID.make(input.modelID)).pipe(
+        Effect.tapError(() => Effect.logWarning("learning: model not found", { providerID: input.providerID, modelID: input.modelID })),
+        Effect.catch(() => Effect.succeed(undefined as any)),
+      )
+      if (!model) return
+
+      const info = yield* provider.getProvider(ProviderV2.ID.make(input.providerID)).pipe(
+        Effect.tapError(() => Effect.logWarning("learning: provider not found", { providerID: input.providerID })),
+        Effect.catch(() => Effect.succeed(undefined as any)),
+      )
+      if (!info) return
+
+      const key = getApiKey(info)
+      if (!key) {
+        yield* Effect.logWarning("learning: no API key for provider", { providerID: input.providerID })
+        return
+      }
+
+      const url = chatCompletionsURL(model.api.url)
+      const modelID = learning.model ?? model.api.id
+
+      const systemPrompt = `You are a learning agent. Analyze the conversation turn below and identify if anything should be remembered for future interactions.
+
+Determine if:
+1. The assistant made mistakes that should be noted or corrected
+2. The user revealed preferences, workflows, or patterns worth remembering
+3. New skills should be created or existing ones updated based on this turn
+
+Output ONLY valid JSON:
+{
+  "skillUpdates": [{ "name": "skill_name", "description": "What this skill does", "reasoning": "Why this was learned", "content": "The skill content/instructions" }],
+  "observations": [{ "key": "observation_key", "value": "observation_value" }]
+}
+
+If nothing worth learning, return empty arrays.`
+
+      const body = JSON.stringify({
+        model: modelID,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `User:\n${input.userMessage}\n\nAssistant:\n${input.assistantMessage}` },
+        ],
+        temperature: 0.1,
       })
+
+      const response = yield* Effect.tryPromise<Response>(() =>
+        fetch(url, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+          body,
+        }),
+      ).pipe(Effect.catch(() => Effect.succeed(undefined as any)))
+
+      if (!response) return
+
+      const data = yield* Effect.tryPromise<any>(() => response.json()).pipe(
+        Effect.catch(() => Effect.succeed(undefined as any)),
+      )
+      if (!data) return
+
+      const text: string | undefined = data.choices?.[0]?.message?.content ?? data.content
+      if (!text) {
+        yield* Effect.logInfo("learning: unexpected response format")
+        return
+      }
+
+      let parsed: any
+      try {
+        parsed = JSON.parse(text)
+      } catch {
+        yield* Effect.logInfo("learning: response not valid JSON, nothing learned")
+        return
+      }
+
+      const updates = Array.isArray(parsed.skillUpdates) ? parsed.skillUpdates : []
+      const observations = Array.isArray(parsed.observations) ? parsed.observations : []
+
+      // ponytail: persist skill updates and observations here
+      if (updates.length > 0 || observations.length > 0) {
+        yield* Effect.logInfo("learning: review found new items", {
+          sessionID: input.sessionID,
+          skillUpdateCount: updates.length,
+          observationCount: observations.length,
+          skillNames: updates.map((u: any) => u.name),
+        })
+      }
     })
 
     return Service.of({ review })
   }),
 )
+
+import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 
 export const defaultLayer = layer
 
