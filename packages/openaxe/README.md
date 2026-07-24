@@ -96,6 +96,8 @@ openaxe run "explain this codebase"
 - **Auto-commit** — automatic git commits at each AI mutation turn
 - **Error journal** — tool errors logged to `.openaxe/errors.jsonl` for debugging
 - **/revert** — undo AI file changes via snapshot-based rollback
+- **Learning review** — post-turn background eval that auto-discovers skill and observation updates from each interaction (opt-in via `experimental.learning.review`)
+- **Context compressor** — LLM-driven structured compression with ghost-skill re-injection: produces sectioned summaries that preserve agent context across long sessions (opt-in via `experimental.compressor.enabled`)
 
 ## User Guide
 
@@ -282,6 +284,61 @@ Every file mutation (`edit`, `write`, `apply_patch`) automatically triggers `tou
 #### Server Management
 
 30+ builtin language server definitions (TypeScript, Pyright, rust-analyzer, gopls, clangd, etc.), 15 with auto-download if the binary is missing. Lazily spawned per project root. Servers can be configured, overridden, or disabled via `openaxe.jsonc` under the `lsp` key.
+
+### Hermes-Inspired Intelligence Features
+
+Two optional systems ported from the [Hermes agent](https://github.com/NousResearch/hermes-agent) architecture:
+
+#### Learning Review (`src/session/learning/`)
+
+A post-turn background task that evaluates completed interactions to automatically discover skill updates and observations. Provides fire-and-forget learning without blocking the main session loop.
+
+```
+Module: src/session/learning/learning.ts
+Service: @opencode/LearningReview
+Trigger: after every process() returning "continue"
+```
+
+- **`review()`** — forked as a background job after each assistant turn
+- Evaluates user request + assistant response to decide if skill definitions or observations should be persisted
+- Config key: `experimental.learning.review` (boolean) + `.model` (optional separate model)
+
+```jsonc
+{
+  "experimental": {
+    "learning": {
+      "review": true,            // enable post-turn learning eval
+      "model": "provider/model"  // optional: separate model for reviews
+    }
+  }
+}
+```
+
+#### Context Compressor (`src/session/compressor/`)
+
+LLM-driven structured compression with ghost-skill re-injection. Enhances standard compaction by producing sectioned summaries (decisions, code changes, context, unresolved items) and tracking which skills were referenced so the agent retains awareness of its toolset after compaction.
+
+```
+Module: src/session/compressor/compressor.ts
+Service: @opencode/Compressor
+Hook: called during compaction before the compaction LLM prompt
+```
+
+- **`compress()`** — consumes active skill definitions as "ghost skills" in the compression prompt
+- Returns structured sections + dense summary + list of referenced skills
+- Enriches the compaction prompt with `<structured_summary>` sections
+- Config key: `experimental.compressor.enabled` (boolean) + `.model` (optional separate model)
+
+```jsonc
+{
+  "experimental": {
+    "compressor": {
+      "enabled": true,             // enable LLM-driven structured compression
+      "model": "provider/model"    // optional: separate model for compression
+    }
+  }
+}
+```
 
 ## Architecture
 
