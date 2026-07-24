@@ -19,3 +19,7 @@ jobs:
 
       - name: Run typecheck
         run: bun turbo typecheck
+
+      - name: Run oxlint
+        # ponytail: 994 warnings baseline — not gating yet, but PRs can see the delta.
+        run: npx oxlint .
