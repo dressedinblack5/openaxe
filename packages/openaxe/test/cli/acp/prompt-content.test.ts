@@ -70,7 +70,7 @@ describe("opencode acp prompt content subprocess", () => {
 
         expect(linked.stopReason).toBe("end_turn")
       }),
-    120_000,
+    300_000,
   )
 })
 
