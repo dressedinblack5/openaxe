@@ -619,6 +619,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Config.defaultLayer),
     Layer.provide(RuntimeFlags.defaultLayer),
     Layer.provide(EventV2Bridge.defaultLayer),
+    Layer.provide(Compressor.defaultLayer),
   ),
 )
 
@@ -631,6 +632,7 @@ export const node = LayerNode.make(layer, [
   Provider.node,
   EventV2Bridge.node,
   RuntimeFlags.node,
+  Compressor.node,
 ])
 
 export * as SessionCompaction from "./compaction"

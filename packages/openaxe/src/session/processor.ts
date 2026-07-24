@@ -1091,6 +1091,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(RuntimeFlags.defaultLayer),
     Layer.provide(Database.defaultLayer),
     Layer.provide(EventV2Bridge.defaultLayer),
+    Layer.provide(Learning.defaultLayer),
   ),
 )
 
@@ -1108,6 +1109,7 @@ export const node = LayerNode.make(layer, [
   EventV2Bridge.node,
   RuntimeFlags.node,
   Database.node,
+  Learning.node,
 ])
 
 export * as SessionProcessor from "./processor"
