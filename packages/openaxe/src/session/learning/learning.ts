@@ -26,8 +26,18 @@ export type ReviewResult = {
   readonly observations: Array<{ key: string; value: string }>
 }
 
+export type ReviewEntry = {
+  readonly time: number
+  readonly sessionID: string
+  readonly trigger: ReviewTrigger
+  readonly agent: string
+  readonly skills: Array<{ name: string; description: string; reasoning: string; content: string }>
+  readonly observations: Array<{ key: string; value: string }>
+}
+
 export interface Interface {
   readonly review: (input: ReviewInput) => Effect.Effect<void>
+  readonly read: () => Effect.Effect<readonly ReviewEntry[]>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/LearningReview") {}
@@ -165,7 +175,21 @@ If nothing worth learning, return empty arrays.`
       }
     })
 
-    return Service.of({ review })
+    const read = Effect.fn("LearningReview.read")(function* () {
+      const dir = path.join(Global.Path.data, "learning")
+      const file = path.join(dir, "reviews.jsonl")
+      if (!fs.existsSync(file)) return []
+      let content: string
+      try { content = fs.readFileSync(file, "utf-8") } catch { return [] }
+      if (!content) return []
+      const entries: ReviewEntry[] = []
+      for (const line of content.split("\n").filter(Boolean)) {
+        try { entries.push(JSON.parse(line)) } catch { continue }
+      }
+      return entries
+    })
+
+    return Service.of({ review, read })
   }),
 )
 
