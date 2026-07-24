@@ -9,10 +9,11 @@ import { Token } from "@/util/token"
 import { SessionProcessor } from "./processor"
 import { Agent } from "@/agent/agent"
 import { Plugin } from "@/plugin"
+import { Compressor } from "./compressor/compressor"
 import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
 
-import { Effect, Layer, Context } from "effect"
+import { Effect, Layer, Context, Option } from "effect"
 import { makeUnsafe } from "effect/DateTime"
 import { InstanceState } from "@/effect/instance-state"
 import { isOverflow as overflow, usable } from "./overflow" // renamed to avoid conflict with local isOverflow
@@ -328,6 +329,7 @@ export const layer = Layer.effect(
         }
       }
 
+      const compressor = yield* Effect.serviceOption(Compressor.Service)
       const agent = yield* agents.get("compaction")
       const model = agent.model
         ? yield* provider.getModel(agent.model.providerID, agent.model.modelID).pipe(Effect.orDie)
@@ -349,6 +351,27 @@ export const layer = Layer.effect(
         { context: [], prompt: undefined },
       )
       const nextPrompt = compacting.prompt ?? buildPrompt({ previousSummary, context: compacting.context })
+
+      // ponytail: structured compressor hook — replaces flat summary with sections + ghost skills when enabled
+      const compressedPrompt = Option.isSome(compressor)
+        ? yield* compressor.value.compress({
+            sessionID: input.sessionID,
+            messages: JSON.stringify(selected.head.map((m) => ({
+              role: m.info.role,
+              parts: m.parts.map((p) => p.type === "text" ? p.text : `[${p.type}]`),
+            }))),
+            skills: [], // ponytail: populate from active agent skills when implemented
+            providerID: model.providerID,
+            modelID: model.id,
+          }).pipe(
+            Effect.map((compressed) =>
+              compressed.sections.length > 0
+                ? `${nextPrompt}\n\n<structured_summary>\n${compressed.sections.map((s) => `<section title="${s.title}">\n${s.content}\n</section>`).join("\n")}\n</structured_summary>`
+                : nextPrompt
+            ),
+          )
+        : nextPrompt
+
       const msgs = structuredClone(selected.head)
       yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
       const modelMessages = yield* MessageV2.toModelMessagesEffect(msgs, model, {
@@ -410,7 +433,7 @@ export const layer = Layer.effect(
           ...modelMessages,
           {
             role: "user",
-            content: [{ type: "text", text: nextPrompt }],
+            content: [{ type: "text", text: compressedPrompt }],
           },
         ],
         model,

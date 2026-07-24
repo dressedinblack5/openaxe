@@ -2,13 +2,14 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Image } from "@/image/image"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
-import { Cause, Deferred, Effect, Exit, Layer, Context, Scope, Schema } from "effect"
+import { Cause, Deferred, Effect, Exit, Layer, Context, Scope, Schema, Option } from "effect"
 import { runDrain, takeUntil, tap } from "effect/Stream"
 import { Agent } from "@/agent/agent"
 import { Config } from "@/config/config"
 import { Permission } from "@/permission"
 import { Plugin } from "@/plugin"
 import { Snapshot } from "@/snapshot"
+import { Learning } from "./learning/learning"
 import { Session } from "./session"
 import { LLM } from "./llm"
 import { MessageV2 } from "./message-v2"
@@ -106,6 +107,7 @@ export const layer = Layer.effect(
     const events = yield* EventV2Bridge.Service
     const flags = yield* RuntimeFlags.Service
     const database = yield* Database.Service
+    const learning = yield* Effect.serviceOption(Learning.Service)
 
     const create = Effect.fn("SessionProcessor.create")(function* (input: Input) {
       // Pre-capture snapshot before the LLM stream starts. The AI SDK
@@ -1020,6 +1022,22 @@ export const layer = Layer.effect(
 
           if (ctx.needsCompaction) return "compact"
           if (ctx.blocked || ctx.assistantMessage.error) return "stop"
+
+          // ponytail: fire-and-forget learning review — placeholder until full impl
+          if (Option.isSome(learning)) {
+            yield* Effect.forkIn(scope)(
+              learning.value.review({
+                sessionID: ctx.sessionID,
+                trigger: "turn_complete",
+                userMessage: "", // ponytail: populate from streamInput.messages when implemented
+                assistantMessage: "", // ponytail: extract text from ctx.assistantMessage.parts when implemented
+                agent: input.assistantMessage.agent ?? input.assistantMessage.agent,
+                providerID: input.model.providerID,
+                modelID: input.model.id,
+              }),
+            ).pipe(Effect.ignore)
+          }
+
           return "continue"
         })
       })
