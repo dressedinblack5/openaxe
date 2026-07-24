@@ -8,6 +8,7 @@ import { MessageV2 } from "./message-v2"
 import { Token } from "@/util/token"
 import { SessionProcessor } from "./processor"
 import { Agent } from "@/agent/agent"
+import { Skill } from "@/skill"
 import { Plugin } from "@/plugin"
 import { Compressor } from "./compressor/compressor"
 import { Config } from "@/config/config"
@@ -168,6 +169,7 @@ export const layer = Layer.effect(
     const provider = yield* Provider.Service
     const events = yield* EventV2Bridge.Service
     const flags = yield* RuntimeFlags.Service
+    const skill = yield* Skill.Service
 
     const isOverflow = Effect.fn("SessionCompaction.isOverflow")(function* (input: {
       tokens: SessionV1.Assistant["tokens"]
@@ -352,7 +354,7 @@ export const layer = Layer.effect(
       )
       const nextPrompt = compacting.prompt ?? buildPrompt({ previousSummary, context: compacting.context })
 
-      // ponytail: structured compressor hook — replaces flat summary with sections + ghost skills when enabled
+      const allSkillNames = yield* skill.all().pipe(Effect.map((skills) => skills.map((s) => s.name)))
       const compressedPrompt = Option.isSome(compressor)
         ? yield* compressor.value.compress({
             sessionID: input.sessionID,
@@ -360,15 +362,22 @@ export const layer = Layer.effect(
               role: m.info.role,
               parts: m.parts.map((p) => p.type === "text" ? p.text : `[${p.type}]`),
             }))),
-            skills: [], // ponytail: populate from active agent skills when implemented
+            skills: allSkillNames,
             providerID: model.providerID,
             modelID: model.id,
           }).pipe(
-            Effect.map((compressed) =>
-              compressed.sections.length > 0
-                ? `${nextPrompt}\n\n<structured_summary>\n${compressed.sections.map((s) => `<section title="${s.title}">\n${s.content}\n</section>`).join("\n")}\n</structured_summary>`
+            Effect.map((compressed) => {
+              const allSections = [...compressed.sections]
+              if (compressed.ghostSkills.length > 0) {
+                allSections.push({
+                  title: "Detected Skills",
+                  content: compressed.ghostSkills.map((s) => `- ${s}`).join("\n"),
+                })
+              }
+              return allSections.length > 0
+                ? `${nextPrompt}\n\n<structured_summary>\n${allSections.map((s) => `<section title="${s.title}">\n${s.content}\n</section>`).join("\n")}\n</structured_summary>`
                 : nextPrompt
-            ),
+            }),
           )
         : nextPrompt
 
@@ -620,6 +629,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(RuntimeFlags.defaultLayer),
     Layer.provide(EventV2Bridge.defaultLayer),
     Layer.provide(Compressor.defaultLayer),
+    Layer.provide(Skill.defaultLayer),
   ),
 )
 
@@ -633,6 +643,7 @@ export const node = LayerNode.make(layer, [
   EventV2Bridge.node,
   RuntimeFlags.node,
   Compressor.node,
+  Skill.node,
 ])
 
 export * as SessionCompaction from "./compaction"

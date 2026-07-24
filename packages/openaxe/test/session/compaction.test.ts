@@ -26,6 +26,7 @@ import { SessionExecution } from "@opencode-ai/core/session/execution"
 import type { Provider } from "@/provider/provider"
 import * as SessionProcessorModule from "../../src/session/processor"
 import { Snapshot } from "../../src/snapshot"
+import { Skill } from "../../src/skill"
 import { ProviderTest } from "../fake/provider"
 import { testEffect } from "../lib/effect"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
@@ -235,6 +236,7 @@ const deps = Layer.mergeAll(
   RuntimeFlags.layer({ experimentalEventSystem: true }),
   Database.defaultLayer,
   EventV2Bridge.defaultLayer,
+  Skill.defaultLayer,
 )
 
 const env = Layer.mergeAll(
@@ -252,6 +254,7 @@ const compactionEnv = Layer.mergeAll(
   Database.defaultLayer,
   EventV2Bridge.defaultLayer,
   CrossSpawnSpawner.defaultLayer,
+  Skill.defaultLayer,
 )
 const itCompaction = testEffect(compactionEnv)
 
