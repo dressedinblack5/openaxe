@@ -436,7 +436,33 @@ export function withCliFixture<A, E>(
       )
 
       const stderrChunks: string[] = []
-      yield* forkStderrDrain(proc.stderr, stderrChunks)
+      const acpReadyDeferred = yield* Deferred.make<void>()
+      yield* Effect.forkScoped(
+        fromBunStream("stderr", () => proc.stderr).pipe(
+          Stream.decodeText(),
+          Stream.splitLines,
+          Stream.runForEach((line) => {
+            stderrChunks.push(line)
+            if (line === "acp ready") {
+              return Deferred.succeed(acpReadyDeferred, void 0)
+            }
+            return Effect.void
+          }),
+          Effect.ignore({ log: true }),
+        ),
+      )
+      yield* Deferred.await(acpReadyDeferred).pipe(
+        Effect.timeoutOrElse({
+          duration: Duration.seconds(15),
+          orElse: () =>
+            Effect.fail(
+              new Error(
+                `opencode acp did not become ready within 15s\n` +
+                  `stderr (last 2000):\n${stderrChunks.join("").slice(-2000)}`,
+              ),
+            ),
+        }),
+      )
 
       // Each ndjson line becomes one queue entry. JSON.parse failures are
       // surfaced as the raw string so a malformed protocol message doesn't

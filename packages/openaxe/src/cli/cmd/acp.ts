@@ -61,6 +61,7 @@ export const AcpCommand = effectCmd({
     }, stream)
 
     yield* Effect.logInfo("setup connection")
+    console.error("acp ready")
     process.stdin.resume()
     yield* Effect.promise(
       () =>
