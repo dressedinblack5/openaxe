@@ -170,7 +170,10 @@ export const layer = Layer.effect(
       const bytes = Buffer.from(base64, "base64").length
 
       if (bytes <= maxBase64Bytes) {
-        const photon = yield* Effect.promise(() => import("@silvia-odwyer/photon-node"))
+        const photon = yield* Effect.tryPromise({
+          try: () => import("@silvia-odwyer/photon-node"),
+          catch: () => new ResizerUnavailableError({}),
+        })
         const source = photon.PhotonImage.new_from_byteslice(Buffer.from(base64, "base64"))
         const width = source.get_width()
         const height = source.get_height()
@@ -196,7 +199,10 @@ export const layer = Layer.effect(
         })
       }
 
-      const photon = yield* Effect.promise(() => import("@silvia-odwyer/photon-node"))
+      const photon = yield* Effect.tryPromise({
+        try: () => import("@silvia-odwyer/photon-node"),
+        catch: () => new ResizerUnavailableError({}),
+      })
       const imageBuffer = Buffer.from(base64, "base64")
 
       // Get image dimensions first
