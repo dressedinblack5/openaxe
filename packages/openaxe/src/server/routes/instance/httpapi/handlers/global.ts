@@ -96,14 +96,11 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
 
     const upgrade = Effect.fn("GlobalHttpApi.upgrade")(function* (ctx: { payload: typeof GlobalUpgradeInput.Type }) {
       const method = yield* installation.method()
-      if (method === "unknown") {
-        return {
-          status: 400,
-          body: { success: false as const, error: "Unknown installation method" },
-        }
-      }
-      const target = ctx.payload.target || (yield* installation.latest(method))
-      const result = yield* installation.upgrade(method, target).pipe(
+      // ponytail: fall back to curl when the install method can't be detected —
+      // the install script works regardless of how the binary got on disk.
+      const upgradeMethod = method === "unknown" ? ("curl" as Installation.Method) : method
+      const target = ctx.payload.target || (yield* installation.latest(upgradeMethod))
+      const result = yield* installation.upgrade(upgradeMethod, target).pipe(
         Effect.as({ status: 200, body: { success: true as const, version: target } }),
         Effect.catch((err) =>
           Effect.succeed({
