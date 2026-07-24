@@ -62,6 +62,8 @@ Set your provider API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) and you'
 - **Auto-verification guardrails** — automatic LSP diagnostics + `tsc`/`cargo`/`ruff`/`go vet` after every file mutation
 - **Versioned artifact store** with TUI preview
 - **Auto-commit**, **error journal**, **/revert** — productivity trio for AI change management
+- **Learning review** — post-turn background eval that auto-discovers skill and observation updates from each interaction (opt-in via `experimental.learning.review`)
+- **Context compressor** — LLM-driven structured compression with ghost-skill re-injection: produces sectioned summaries that preserve agent context across long sessions (opt-in via `experimental.compressor.enabled`)
 
 ---
 
@@ -121,6 +123,42 @@ Servers can be configured, overridden, or disabled per-project via `openaxe.json
 ### Auto-Verification Guardrail
 
 Every file mutation (`edit`, `write`, `apply_patch`) automatically opens the file in LSP and fetches diagnostics — surfacing compile errors, type errors, and lint issues to the AI immediately after the change. The `read` tool also refreshes LSP state when opening a file.
+
+---
+
+## 🧠 Hermes-Inspired Intelligence
+
+Two optional systems ported from the [Hermes agent](https://github.com/NousResearch/hermes-agent) architecture:
+
+### Learning Review (`packages/openaxe/src/session/learning/`)
+
+A post-turn background task that evaluates completed interactions to automatically discover skill updates and observations. Fire-and-forget — no blocking.
+
+```jsonc
+{
+  "experimental": {
+    "learning": {
+      "review": true,        // enable post-turn learning eval
+      "model": "provider/model"  // optional: separate model for reviews
+    }
+  }
+}
+```
+
+### Context Compressor (`packages/openaxe/src/session/compressor/`)
+
+LLM-driven structured compression with ghost-skill re-injection. Produces sectioned summaries (decisions, code changes, context, unresolved items) and tracks which skills were referenced — so the agent retains awareness of its toolset after compaction.
+
+```jsonc
+{
+  "experimental": {
+    "compressor": {
+      "enabled": true,       // enable LLM-driven structured compression
+      "model": "provider/model" // optional: separate model for compression
+    }
+  }
+}
+```
 
 ---
 
