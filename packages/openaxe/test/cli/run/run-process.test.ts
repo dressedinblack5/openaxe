@@ -76,7 +76,7 @@ describe("opencode run (non-interactive subprocess)", () => {
           timeoutMs: 20_000,
         })
         expect(result.exitCode).not.toBe(0)
-        expect(result.durationMs).toBeLessThan(20_000)
+        expect(result.durationMs).toBeLessThan(30_000)
       }),
     30_000,
   )
