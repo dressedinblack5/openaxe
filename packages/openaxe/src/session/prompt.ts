@@ -1043,8 +1043,7 @@ export const layer = Layer.effect(
         (part) =>
           part.type === "file" && part.mime.startsWith("image/")
             ? image.normalize(part).pipe(
-                Effect.catchIf(
-                  (error) => error instanceof Image.ResizerUnavailableError,
+                Effect.catch(
                   () => Effect.succeed(part),
                 ),
               )

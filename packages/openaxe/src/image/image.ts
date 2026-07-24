@@ -169,21 +169,29 @@ export const layer = Layer.effect(
       const base64 = extractBase64(input.url)
       const bytes = Buffer.from(base64, "base64").length
 
+      // Crashes from the native photon-node module (missing build toolchain,
+      // incompatible ABI, or Windows runner quirks) must not become defects.
+      // Wrap every native call path so a throw here becomes a typed error that
+      // the caller can recover from.
       if (bytes <= maxBase64Bytes) {
         const photon = yield* Effect.tryPromise({
           try: () => import("@silvia-odwyer/photon-node"),
           catch: () => new ResizerUnavailableError({}),
         })
-        const source = photon.PhotonImage.new_from_byteslice(Buffer.from(base64, "base64"))
-        const width = source.get_width()
-        const height = source.get_height()
+        const { width, height } = yield* Effect.catch(
+          Effect.sync(() => {
+            const source = photon.PhotonImage.new_from_byteslice(Buffer.from(base64, "base64"))
+            const w = source.get_width()
+            const h = source.get_height()
+            source.free()
+            return { width: w, height: h }
+          }),
+          () => new ResizerUnavailableError({}),
+        )
 
         if (width <= maxWidth && height <= maxHeight) {
-          source.free()
           return input
         }
-
-        source.free()
       }
 
       if (!AUTO_RESIZE) {
@@ -205,11 +213,16 @@ export const layer = Layer.effect(
       })
       const imageBuffer = Buffer.from(base64, "base64")
 
-      // Get image dimensions first
-      const source = photon.PhotonImage.new_from_byteslice(imageBuffer)
-      const width = source.get_width()
-      const height = source.get_height()
-      source.free()
+      const { width, height } = yield* Effect.catch(
+        Effect.sync(() => {
+          const source = photon.PhotonImage.new_from_byteslice(imageBuffer)
+          const w = source.get_width()
+          const h = source.get_height()
+          source.free()
+          return { width: w, height: h }
+        }),
+        () => new ResizerUnavailableError({}),
+      )
 
       const result = yield* Effect.tryPromise({
         try: () => tryResize(photon, imageBuffer, mime, maxWidth, maxHeight, maxBase64Bytes),
