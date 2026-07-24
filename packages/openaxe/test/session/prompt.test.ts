@@ -224,6 +224,7 @@ function makePrompt(input?: { mcpInstructions?: MCP.ServerInstructions[]; proces
           Layer.provideMerge(deps),
         )
   const compact = SessionCompaction.layer.pipe(
+    Layer.provide(Skill.defaultLayer),
     Layer.provide(RuntimeFlags.layer({ experimentalEventSystem: true })),
     Layer.provideMerge(proc),
     Layer.provideMerge(deps),
