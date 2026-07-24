@@ -36,6 +36,7 @@ permissions:
 
 jobs:
   version:
+    if: github.repository == 'anomalyco/opencode'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -71,6 +72,7 @@ jobs:
       repo: ${{ steps.version.outputs.repo }}
 
   build-cli:
+    if: github.repository == 'anomalyco/opencode'
     needs: version
     runs-on: ubuntu-latest
     steps:
@@ -219,11 +221,11 @@ jobs:
             packages/openaxe/dist/opencode-windows-x64-baseline
 
   publish:
+    if: github.repository == 'anomalyco/opencode'
     needs:
       - version
       - build-cli
       - sign-cli-windows
-    if: always() && !failure() && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
