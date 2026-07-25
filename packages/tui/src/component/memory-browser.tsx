@@ -38,7 +38,7 @@ export function MemoryBrowser() {
   const [list] = createResource(
     () => view().type === "list",
     async () => {
-      return fetchJson<MemoryEntry[]>(`${baseUrl()}/api/memory`, doFetch)
+      return fetchJson<MemoryEntry[]>(`${baseUrl()}/memory`, doFetch)
     },
   )
 
