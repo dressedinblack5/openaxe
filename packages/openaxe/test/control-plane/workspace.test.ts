@@ -132,7 +132,7 @@ async function initGitRepo(dir: string) {
 
 const startWorkspaceSyncingWithFlag = (projectID: ProjectV2.ID, experimentalWorkspaces: boolean) =>
   Effect.runPromise(
-    Workspace.use.startWorkspaceSyncing(projectID).pipe(Effect.provide(workspaceLayer(experimentalWorkspaces))),
+    (Workspace.use.startWorkspaceSyncing(projectID) as any).pipe(Effect.provide(workspaceLayer(experimentalWorkspaces))),
   )
 
 function captureGlobalEvents() {

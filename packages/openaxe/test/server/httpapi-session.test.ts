@@ -204,7 +204,7 @@ const liveLayer = Layer.mergeAll(
   instanceRefLayer,
 ).pipe(Layer.provide(configDefaultLayer), Layer.provide(Ripgrep.defaultLayer))
 
-const it = make(testLayer, liveLayer)
+const it = make(testLayer as any, liveLayer as any)
 
 function pathFor(path: string, params: Record<string, string>) {
   return Object.entries(params).reduce((result, [key, value]) => result.replace(`:${key}`, value), path)

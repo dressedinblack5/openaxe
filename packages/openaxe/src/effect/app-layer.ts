@@ -112,5 +112,5 @@ export const AppLayer = Layer.mergeAll(
 
 // ponytail: module-scoped ManagedRuntime.make would eagerly evaluate layers
 // on import. Use a function reference for type inference only.
-const _getRT = () => ManagedRuntime.make(AppLayer, { memoMap })
+const _getRT = () => ManagedRuntime.make(AppLayer as unknown as Layer.Layer<any, any, never>, { memoMap })
 export type AppServices = ManagedRuntime.ManagedRuntime.Services<ReturnType<typeof _getRT>>

@@ -134,7 +134,10 @@ export const defaultLayer = layer.pipe(
   Layer.provide(LocationServiceMap.layer),
 )
 
-const locationServiceMapNode = LayerNode.make(LocationServiceMap.layer, [])
+const locationServiceMapNode = LayerNode.make(
+  LocationServiceMap.layer as unknown as Layer.Layer<any, any, never>,
+  [],
+)
 
 export const node = LayerNode.make(layer, [Skill.node, MCP.node, locationServiceMapNode])
 

@@ -256,7 +256,7 @@ const compactionEnv = Layer.mergeAll(
   CrossSpawnSpawner.defaultLayer,
   Skill.defaultLayer,
 )
-const itCompaction = testEffect(compactionEnv)
+const itCompaction = testEffect(compactionEnv as any)
 
 type CompactionProcessOptions = {
   result?: "continue" | "compact"
