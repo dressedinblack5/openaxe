@@ -27,7 +27,7 @@ import { RunPromptBody, createPromptState } from "./footer.prompt"
 import { RunPermissionBody } from "./footer.permission"
 import { RunQuestionBody } from "./footer.question"
 import { footerWidthPolicy } from "./footer.width"
-import { OPENCODE_BASE_MODE, useBindings, type OpenTuiKeymap } from "@opencode-ai/tui/keymap"
+
 import type {
   FooterPromptRoute,
   FooterQueuedPrompt,
@@ -170,10 +170,12 @@ export function RunFooterView(props: RunFooterViewProps) {
     const detail = currentRoute.type === "subagent" ? currentSubagent.details[currentRoute.sessionID] : undefined
 
     const leaderKey = currentTuiConfig.keybinds.get("leader")?.[0]?.key ?? "ctrl+x"
-    const resolveKey = (key: string) => key.replace(/<leader>/gi, leaderKey + " ")
+    const leaderStr = String(leaderKey)
+    const resolveKey = (key: string) => key.replace(/<leader>/gi, leaderStr + " ")
     const formatKey = (name: string) => {
       const entry = currentTuiConfig.keybinds.get(name)?.[0]
-      return entry?.key ? resolveKey(String(entry.key)) : ""
+      const keyStr = typeof entry.key === "string" ? entry.key : String(entry.key)
+      return entry?.key ? resolveKey(keyStr) : ""
     }
 
     const keymaps = {
@@ -283,10 +285,7 @@ export function RunFooterView(props: RunFooterViewProps) {
   const question = () => derived().question
   const promptView = () => derived().promptView
 
-  const openCommand = () => {
-    setRoute({ type: "command" })
-    props.onSubagentSelect?.(undefined)
-  }
+
 
   const openModel = () => {
     setRoute({ type: "model" })

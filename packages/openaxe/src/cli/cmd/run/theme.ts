@@ -73,12 +73,12 @@ export type RunTheme = {
 type ThemeColor = Exclude<keyof TuiThemeCurrent, "thinkingOpacity">
 type RefName = string
 type Variant = {
-  dark: HexColor | RefName
-  light: HexColor | RefName
+  dark: RefName
+  light: RefName
 }
-type ColorValue = HexColor | RefName | Variant | RGBA | number
+type ColorValue = RefName | Variant | RGBA | number
 type ThemeJson = {
-  defs?: Record<string, HexColor | RefName>
+  defs?: Record<string, RefName>
   theme: Omit<Record<ThemeColor, ColorValue>, "selectedListItemText" | "backgroundMenu"> & {
     selectedListItemText?: ColorValue
     backgroundMenu?: ColorValue
