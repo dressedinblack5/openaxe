@@ -361,23 +361,17 @@ const waitForBusy = (sessionID: SessionID, duration: Duration.Input = "2 seconds
 
 const hasBash = Effect.sync(() => Bun.which("bash") !== null)
 
-const deferredAsPromise = <A>(deferred: Deferred.Deferred<A>): PromiseLike<A> => ({
-  then: (onfulfilled, onrejected) => {
+const deferredAsPromise = <A>(deferred: Deferred.Deferred<A>): Promise<A> =>
+  new Promise((resolve, reject) => {
     Effect.runFork(
       Deferred.await(deferred).pipe(
         Effect.match({
-          onFailure: (error) => {
-            onrejected?.(error)
-          },
-          onSuccess: (value) => {
-            onfulfilled?.(value)
-          },
+          onFailure: (error) => reject(error),
+          onSuccess: (value) => resolve(value),
         }),
       ),
     )
-    return deferredAsPromise(deferred) as PromiseLike<never>
-  },
-})
+  })
 
 function defer<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void

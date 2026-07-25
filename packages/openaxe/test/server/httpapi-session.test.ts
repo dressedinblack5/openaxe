@@ -79,7 +79,7 @@ const httpApiLayer = servedRoutes.pipe(
 )
 
 function isInstanceOptions(options: unknown): options is InstanceOptions<never, never> {
-  return !!options && typeof options === "object" && ("git" in (options as object) || "config" in (options as object) || "init" in (options as object))
+  return !!options && typeof options === "object" && ("git" in (options) || "config" in (options) || "init" in (options))
 }
 
 function instanceArgs<E, R>(

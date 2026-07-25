@@ -107,8 +107,9 @@ function feed<T, R = never>(returnValue: R = StreamClosed) {
   let wake: (() => void) | undefined
 
   const wrapped = (async function* (): AsyncGenerator<T, R, unknown> {
-    while (!done || list.length > 0) {
+    while (true) {
       if (list.length === 0) {
+        if (done) break
         await new Promise<void>((resolve) => {
           wake = resolve
         })

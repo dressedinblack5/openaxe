@@ -186,7 +186,7 @@ export type CliFixture = {
 // the surrounding Scope.
 export function withCliFixture<A, E>(
   fn: (input: CliFixture) => Effect.Effect<A, E, Scope.Scope | HttpClient.HttpClient>,
-): Effect.Effect<A, E | unknown, Scope.Scope> {
+): Effect.Effect<A, unknown, Scope.Scope> {
   return Effect.gen(function* () {
     const llm = yield* TestLLMServer
     const fs = yield* FSUtil.Service

@@ -56,15 +56,13 @@ const editorService: EditorIntegration = {
 function createWebSocketImpl(...sockets: FakeWebSocket[]) {
   let index = 0
 
-  return class {
-    constructor(url: string, options?: { headers?: Record<string, string> }) {
-      const socket = sockets[index]
-      index += 1
-      expect(socket).toBeDefined()
-      expect(url).toBe(socket.url)
-      expect(options).toEqual(socket.options)
-      return socket as unknown as object
-    }
+  return function(url: string, options?: { headers?: Record<string, string> }) {
+    const socket = sockets[index]
+    index += 1
+    expect(socket).toBeDefined()
+    expect(url).toBe(socket.url)
+    expect(options).toEqual(socket.options)
+    return socket as unknown as object
   } as unknown as typeof WebSocket
 }
 

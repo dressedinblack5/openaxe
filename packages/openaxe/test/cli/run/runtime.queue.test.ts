@@ -52,7 +52,7 @@ function footer() {
       }
 
       closed = true
-      for (const fn of [...closes]) {
+      for (const fn of closes) {
         fn()
       }
     },
@@ -69,12 +69,12 @@ function footer() {
     commits,
     submit(text: string, mode?: RunPrompt["mode"]) {
       const next = mode ? { text, parts: [] as RunPrompt["parts"], mode } : { text, parts: [] as RunPrompt["parts"] }
-      for (const fn of [...prompts]) {
+      for (const fn of prompts) {
         fn(next)
       }
     },
     removeQueued(messageID: string) {
-      for (const fn of [...queuedRemoves]) fn(messageID)
+      for (const fn of queuedRemoves) fn(messageID)
     },
   }
 }
