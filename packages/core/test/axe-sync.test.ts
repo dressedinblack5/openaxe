@@ -88,6 +88,34 @@ describe("AxeSync", () => {
     ),
   )
 
+  it.effect("load sets kind/scope/source metadata", () =>
+    withTmpDir((dir) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const content = [
+          "# AXE - Project Memory",
+          "",
+          "## config",
+          "",
+          "- **theme**: dark",
+          "- **font-size**: 14",
+          "",
+        ].join("\n")
+        yield* fs.writeFileString(`${dir}/AXE.md`, content)
+
+        const axeSync = yield* AxeSync.Service
+        yield* axeSync.load(dir)
+
+        const memory = yield* Memory.Service
+        const entries = yield* memory.list()
+        const theme = entries.find((e) => e.key === "theme")
+        expect(theme!.kind).toBe("config")
+        expect(theme!.scope).toBe("project")
+        expect(theme!.source).toBe("axe-md")
+      }),
+    ),
+  )
+
   it.effect("load handles missing AXE.md gracefully", () =>
     withTmpDir((dir) =>
       Effect.gen(function* () {
