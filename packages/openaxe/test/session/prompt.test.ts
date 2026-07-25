@@ -1,4 +1,5 @@
 import { NodeFileSystem } from "@effect/platform-node"
+import { Memory } from "@opencode-ai/core/memory"
 import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Database } from "@opencode-ai/core/database/database"
@@ -168,7 +169,7 @@ const lsp = Layer.succeed(
 
 const status = SessionStatus.layer.pipe(Layer.provideMerge(EventV2Bridge.defaultLayer))
 const run = SessionRunState.layer.pipe(Layer.provide(status))
-const infra = Layer.mergeAll(NodeFileSystem.layer, CrossSpawnSpawner.defaultLayer)
+const infra = Layer.mergeAll(NodeFileSystem.layer, CrossSpawnSpawner.defaultLayer, Memory.defaultLayer)
 
 const processorCreateStarted: Array<() => void> = []
 const blockingProcessor = Layer.succeed(

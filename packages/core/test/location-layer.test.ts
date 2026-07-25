@@ -29,11 +29,13 @@ import { Project } from "../src/project"
 import { Reference } from "../src/reference"
 import { ToolRegistry } from "../src/tool/registry"
 import { ApplicationTools } from "../src/tool/application-tools"
+import { Memory } from "../src/memory"
+import { NodeFileSystem } from "@effect/platform-node"
 
 const applicationTools = ApplicationTools.layer
 const it = testEffect(
   Layer.merge(
-    Layer.mergeAll(applicationTools, Database.defaultLayer, EventV2.defaultLayer),
+    Layer.mergeAll(applicationTools, Database.defaultLayer, EventV2.defaultLayer, Memory.defaultLayer, NodeFileSystem.layer),
     LocationServiceMap.layer.pipe(
       Layer.provide(applicationTools),
       Layer.provide(

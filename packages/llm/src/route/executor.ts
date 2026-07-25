@@ -1,4 +1,4 @@
-import { Cause, Context, Effect, Layer, Random, Ref } from "effect"
+import { Cause, Context, Effect, Layer, Random, Ref, Redacted } from "effect"
 import {
   FetchHttpClient,
   Headers,
@@ -61,7 +61,7 @@ const redactHeaders = (headers: Headers.Headers, redactedNames: ReadonlyArray<st
   Object.fromEntries(
     Object.entries(Headers.redact(headers, [...redactedNames, SENSITIVE_NAME])).map(([name, value]) => [
       name,
-      JSON.stringify(value),
+      Redacted.isRedacted(value) ? REDACTED : value,
     ]),
   )
 
