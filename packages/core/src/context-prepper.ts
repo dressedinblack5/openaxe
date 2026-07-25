@@ -31,7 +31,7 @@ function parseLine(line: string): Change | null {
   const c = line[0]
   if (c === "R") {
     const parts = line.slice(1).trim().split("\t")
-    return new Change({ path: parts[parts.length - 1]!, status: "M" })
+    return new Change({ path: parts[parts.length - 1], status: "M" })
   }
   return c === "A" || c === "M" || c === "D"
     ? new Change({ path: line.slice(1).trim(), status: c })

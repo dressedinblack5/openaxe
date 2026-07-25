@@ -65,7 +65,7 @@ export const Plugin = define({
               symlink: true,
             })
             .pipe(Effect.orElseSucceed(() => []))
-          files.sort()
+          files.sort((a, b) => a.localeCompare(b))
           for (const file of files) configured.push({ package: file })
         }
       }

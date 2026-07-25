@@ -15,7 +15,7 @@ export class FileSystemError extends Schema.TaggedErrorClass<FileSystemError>()(
   cause: Schema.optional(Schema.Defect()),
 }) {
   override get message() {
-    const detail = this.cause instanceof Error ? this.cause.message : this.cause ? String(this.cause) : undefined
+    const detail = this.cause instanceof Error ? this.cause.message : this.cause ? `${this.cause}` : undefined
     return `Filesystem operation failed: ${this.method}${detail !== undefined ? `: ${detail}` : ""}`
   }
 }
