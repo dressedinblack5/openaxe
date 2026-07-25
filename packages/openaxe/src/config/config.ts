@@ -44,7 +44,6 @@ export const BUNDLED_PLUGINS = [
   "opencode-vibeguard",
   "@tarquinen/opencode-dcp",
   "ecc-universal",
-  "DietrichGebert/ponytail",
 ] as const
 
 import { mergeDeep } from "@/util/merge-deep"
