@@ -354,7 +354,7 @@ function isPullRequest() {
 }
 
 function useContext() {
-  return isMock() ? (JSON.parse(useEnvMock().mockEvent!) as GitHubContext) : github.context
+  return isMock() ? (JSON.parse(useEnvMock().mockEvent) as GitHubContext) : github.context
 }
 
 function useIssueId() {

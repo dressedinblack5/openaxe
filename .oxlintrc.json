@@ -24,7 +24,7 @@
     "typescript/no-floating-promises": "warn",
     "typescript/no-misused-spread": "warn"
   },
-  "ignorePatterns": ["**/node_modules", "**/dist", "**/.build", "**/.sst", "**/*.d.ts", "**/sdk.gen.ts", "**/v2/gen"],
+  "ignorePatterns": ["**/node_modules", "**/dist", "**/.build", "**/.sst", "**/*.d.ts", "**/sdk.gen.ts", "**/v2/gen", "**/src/gen/**"],
   "overrides": [
     {
       "files": ["**/test/**", "**/*.test.ts"],
