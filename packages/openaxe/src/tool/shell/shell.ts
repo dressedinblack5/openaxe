@@ -19,6 +19,17 @@ export const Parameters = Schema.Struct({
   timeout: Schema.optional(Schema.Number).annotate({
     description: `Timeout in milliseconds. Defaults to ${DEFAULT_TIMEOUT_MS} and may not exceed ${MAX_TIMEOUT_MS}.`,
   }),
+  shell: Schema.optional(Schema.String).annotate({
+    description:
+      "Shell binary to use. Defaults to /bin/sh on POSIX and cmd.exe on Windows. Examples: /bin/bash, /bin/zsh, pwsh.exe",
+  }),
+  stdin: Schema.optional(Schema.String).annotate({
+    description: "Optional input to pipe to the command's stdin.",
+  }),
+  env: Schema.optional(Schema.Record(Schema.String, Schema.String)).annotate({
+    description:
+      "Environment variables to set for the command. Merged into the current process environment when provided.",
+  }),
 })
 
 export const ShellTool = define(
@@ -29,7 +40,17 @@ export const ShellTool = define(
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (params: { command: string; workdir?: string; timeout?: number }, ctx: Context) =>
+      execute: (
+          params: {
+            command: string
+            workdir?: string
+            timeout?: number
+            shell?: string
+            stdin?: string
+            env?: Record<string, string>
+          },
+          ctx: Context,
+        ) =>
         Effect.gen(function* () {
           const ins = yield* InstanceState.context
           const cwd = params.workdir
@@ -47,10 +68,11 @@ export const ShellTool = define(
 
           const command = ChildProcess.make(params.command, [], {
             cwd,
-            shell: process.platform === "win32" ? (process.env.COMSPEC ?? "cmd.exe") : "/bin/sh",
+            shell: params.shell ?? (process.platform === "win32" ? (process.env.COMSPEC ?? "cmd.exe") : "/bin/sh"),
             stdin: "ignore",
             detached: process.platform !== "win32",
             forceKillAfter: Duration.seconds(3),
+            ...(params.env ? { env: params.env, extendEnv: true } : {}),
           })
 
           const timeout = params.timeout ?? DEFAULT_TIMEOUT_MS
@@ -59,6 +81,7 @@ export const ShellTool = define(
               timeout: Duration.millis(timeout),
               maxOutputBytes: MAX_CAPTURE_BYTES,
               maxErrorBytes: MAX_CAPTURE_BYTES,
+              ...(params.stdin ? { stdin: params.stdin } : {}),
             })
             .pipe(
               Effect.catchTag("AppProcessError", (error) =>

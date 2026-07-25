@@ -5,9 +5,12 @@ Usage:
 - The active project directory is the default working directory
 - Relative workdir values resolve from that directory
 - Timeout values are milliseconds (default: 120000; max: 600000)
-- Uses /bin/sh on POSIX and cmd.exe on Windows
+- Uses /bin/sh on POSIX and cmd.exe on Windows (overridable via `shell` parameter)
 - Output is captured up to 1MB (stdout + stderr combined)
 - Stderr is labeled when both stdout and stderr are present
 - Exit code is included in the output summary
 - Non-zero exits are reported but not treated as errors
 - Timeouts return a message without failing the tool
+- Optional `stdin` parameter pipes input to the command's stdin
+- Optional `env` parameter sets environment variables (merged with current env)
+- Optional `shell` parameter overrides the default shell binary
