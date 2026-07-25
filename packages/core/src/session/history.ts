@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, ne, or } from "drizzle-orm"
+import { and, asc, desc, eq, gt, gte, lt, ne, or } from "drizzle-orm"
 import { Effect, Schema } from "effect"
 import { Database } from "../database/database"
 import { MessageDecodeError } from "./error"
@@ -52,20 +52,7 @@ const messageRowsOptimized = Effect.fnUntraced(function* (
   const baselineSeq = epochResult?.baselineSeq
   const compactionSeq = compactionResult?.seq
 
-  const whereClause = and(
-    eq(SessionMessageTable.session_id, sessionID),
-    compactionSeq
-      ? or(
-          gte(SessionMessageTable.seq, compactionSeq),
-          baselineSeq === undefined
-            ? undefined
-            : and(eq(SessionMessageTable.type, "system"), gt(SessionMessageTable.seq, baselineSeq)),
-        )
-      : undefined,
-    baselineSeq === undefined
-      ? undefined
-      : or(ne(SessionMessageTable.type, "system"), gt(SessionMessageTable.seq, baselineSeq)),
-  )
+  const whereClause = sessionMessageFilter(sessionID, compactionSeq, baselineSeq)
 
   const rows = yield* db
     .select()
@@ -87,20 +74,7 @@ const messageRows = Effect.fnUntraced(function* (
     .select()
     .from(SessionMessageTable)
     .where(
-      and(
-        eq(SessionMessageTable.session_id, sessionID),
-        compaction
-          ? or(
-              gte(SessionMessageTable.seq, compaction.seq),
-              baselineSeq === undefined
-                ? undefined
-                : and(eq(SessionMessageTable.type, "system"), gt(SessionMessageTable.seq, baselineSeq)),
-            )
-          : undefined,
-        baselineSeq === undefined
-          ? undefined
-          : or(ne(SessionMessageTable.type, "system"), gt(SessionMessageTable.seq, baselineSeq)),
-      ),
+      sessionMessageFilter(sessionID, compaction?.seq, baselineSeq),
     )
     .orderBy(asc(SessionMessageTable.seq))
     .all()
@@ -146,6 +120,68 @@ export const entriesForRunner = Effect.fn("SessionHistory.entriesForRunner")(fun
     (row) => decodeMessageRow(row).pipe(Effect.map((message) => ({ seq: row.seq, message }))),
     { concurrency: "unbounded" },
   ).pipe(Effect.mapError(() => new MessageDecodeError({ sessionID, messageID: SessionMessage.ID.make("unknown") })))
+})
+
+const sessionMessageFilter = (
+  sessionID: SessionSchema.ID,
+  compactionSeq: number | undefined,
+  baselineSeq: number | undefined,
+  cursor?: number,
+) =>
+  and(
+    eq(SessionMessageTable.session_id, sessionID),
+    compactionSeq
+      ? or(
+          gte(SessionMessageTable.seq, compactionSeq),
+          baselineSeq === undefined
+            ? undefined
+            : and(eq(SessionMessageTable.type, "system"), gt(SessionMessageTable.seq, baselineSeq)),
+        )
+      : undefined,
+    baselineSeq === undefined
+      ? undefined
+      : or(ne(SessionMessageTable.type, "system"), gt(SessionMessageTable.seq, baselineSeq)),
+    cursor !== undefined ? lt(SessionMessageTable.seq, cursor) : undefined,
+  )
+
+// Cursor-based pagination for runner - loads only recent entries to avoid O(N) per turn
+export const entriesForRunnerPaginated = Effect.fn("SessionHistory.entriesForRunnerPaginated")(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+  baselineSeq: number,
+  options?: { readonly cursor?: number; readonly limit?: number },
+) {
+  const compaction = yield* latestCompaction(db, sessionID)
+  const { cursor, limit = 100 } = options ?? {}
+  const whereClause = sessionMessageFilter(sessionID, compaction?.seq, baselineSeq, cursor)
+  const rows = yield* db
+    .select()
+    .from(SessionMessageTable)
+    .where(whereClause)
+    .orderBy(desc(SessionMessageTable.seq))
+    .limit(limit + 1)
+    .all()
+    .pipe(Effect.orDie)
+  const more = rows.length > limit
+  const slice = more ? rows.slice(0, limit) : rows
+  const entries = yield* Effect.forEach(
+    slice.reverse(), // Return in ascending order (oldest first)
+    (row) => decodeMessageRow(row).pipe(Effect.map((message) => ({ seq: row.seq, message }))),
+    { concurrency: "unbounded" },
+  ).pipe(Effect.mapError(() => new MessageDecodeError({ sessionID, messageID: SessionMessage.ID.make("unknown") })))
+  const nextCursor = more && slice.length > 0 ? slice[slice.length - 1].seq : undefined
+  return { entries, more, nextCursor }
+})
+
+// Load latest N entries for runner, returned in ascending order (oldest first)
+export const loadLatestForRunner = Effect.fn("SessionHistory.loadLatestForRunner")(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+  baselineSeq: number,
+  limit: number = 100,
+) {
+  const result = yield* entriesForRunnerPaginated(db, sessionID, baselineSeq, { limit })
+  return result.entries
 })
 
 // ponytail: bounded 1-row load for failInterruptedTools, avoids loading all messages
