@@ -1184,6 +1184,15 @@ export const layer = Layer.effect(
         let structured: unknown
         let step = 0
         const session = yield* sessions.get(sessionID).pipe(Effect.orDie)
+        // ponytail: cache system prompt parts per (agent, model) — stable across ticks
+        let sysCache: {
+          agentName: string
+          modelId: string
+          skills: string | undefined
+          env: string[]
+          instructions: string[]
+          mcpInstructions: string | undefined
+        } | undefined
 
         while (true) {
           yield* status.set(sessionID, { type: "busy" })
@@ -1353,13 +1362,21 @@ export const layer = Layer.effect(
 
             yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
-            const [skills, env, instructions, mcpInstructions, modelMsgs] = yield* Effect.all([
-              sys.skills(agent),
-              sys.environment(model),
-              instruction.system().pipe(Effect.orDie),
-              sys.mcp(agent, session.permission),
-              MessageV2.toModelMessagesEffect(msgs, model),
-            ])
+            const sysEffect = sysCache?.agentName === agent.name && sysCache?.modelId === model.id
+              ? Effect.succeed([sysCache.skills, sysCache.env, sysCache.instructions, sysCache.mcpInstructions] as const)
+              : Effect.all([
+                  sys.skills(agent),
+                  sys.environment(model),
+                  instruction.system().pipe(Effect.orDie),
+                  sys.mcp(agent, session.permission),
+                ]).pipe(
+                  Effect.map(([skills, env, instructions, mcpInstructions]) => {
+                    sysCache = { agentName: agent.name, modelId: model.id, skills, env, instructions, mcpInstructions }
+                    return [skills, env, instructions, mcpInstructions] as const
+                  }),
+                )
+            const [skills, env, instructions, mcpInstructions] = yield* sysEffect
+            const modelMsgs = yield* MessageV2.toModelMessagesEffect(msgs, model)
             const system = [
               ...env,
               ...instructions,
