@@ -27,7 +27,7 @@ let _rt: ManagedRuntime.ManagedRuntime<any, any> | undefined
 const getRuntime = () => {
   if (_rt) return _rt
   mark("managed-runtime-make")
-  _rt = ManagedRuntime.make(AppLayer as unknown as Layer.Layer<any, any, never>, { memoMap })
+  _rt = ManagedRuntime.make(AppLayer as unknown as Layer.Layer<any, any>, { memoMap })
   return _rt
 }
 

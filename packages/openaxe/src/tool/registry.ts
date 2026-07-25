@@ -406,9 +406,7 @@ function normalizeZodJsonSchema(value: unknown): unknown {
   return Object.fromEntries(
     Object.entries(value)
       .filter((entry) =>
-        (entry[0] === "exclusiveMaximum" || entry[0] === "exclusiveMinimum") && typeof entry[1] === "boolean"
-          ? false
-          : true,
+        !((entry[0] === "exclusiveMaximum" || entry[0] === "exclusiveMinimum") && typeof entry[1] === "boolean"),
       )
       .map(([key, item]) => [key, normalizeZodJsonSchema(item)]),
   )

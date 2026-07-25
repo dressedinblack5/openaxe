@@ -135,7 +135,7 @@ export const defaultLayer = layer.pipe(
 )
 
 const locationServiceMapNode = LayerNode.make(
-  LocationServiceMap.layer as unknown as Layer.Layer<any, any, never>,
+  LocationServiceMap.layer as unknown as Layer.Layer<any, any>,
   [],
 )
 
