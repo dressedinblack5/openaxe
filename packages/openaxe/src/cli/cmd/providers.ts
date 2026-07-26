@@ -72,7 +72,6 @@ const handlePluginAuth = Effect.fn("Cli.providers.pluginAuth")(function* (
   })
   const method = plugin.auth.methods[index]
 
-  yield* Effect.sleep("10 millis")
   const inputs: Record<string, string> = {}
   if (method.prompts) {
     for (const prompt of method.prompts) {

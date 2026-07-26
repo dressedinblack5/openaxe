@@ -144,7 +144,7 @@ export const layer = Layer.effect(
     // (e.g. before instance bootstrap or in standalone test layers).
     const svc = yield* Effect.serviceOption(Config.Service)
     if (svc._tag === "Some") {
-      const cfg = yield* svc.value.get().pipe(Effect.catchDefect(() => Effect.succeed(undefined)))
+      const cfg = yield* svc.value.get().pipe(Effect.catchDefect(() => Effect.void))
       if (cfg) {
         const attachment = cfg.attachment?.image
         yield* Ref.set(configRef, {
