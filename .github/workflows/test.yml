@@ -75,7 +75,7 @@ jobs:
       - name: Run core/ui tests
         if: matrix.shard == 1
         timeout-minutes: ${{ matrix.settings.name == 'windows' && 20 || 10 }}
-        run: GITHUB_ACTIONS=false bun turbo test --coverage --filter=@opencode-ai/core --filter=@opencode-ai/ui
+        run: GITHUB_ACTIONS=false bun turbo test --filter=@opencode-ai/core --filter=@opencode-ai/ui -- --coverage
 
       - name: Run openaxe tests
         working-directory: packages/openaxe
