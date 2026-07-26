@@ -1,9 +1,5 @@
-import { Session } from "@/session/session"
-import { SessionV1 } from "@opencode-ai/core/v1/session"
-import { SessionID } from "../../session/schema"
 import { effectCmd, fail } from "../effect-cmd"
 import { UI } from "../ui"
-import { autocomplete, intro, isCancel, log, outro } from "@clack/prompts"
 import { EOL } from "os"
 import { Effect } from "effect"
 
@@ -31,7 +27,7 @@ function diff(kind: string, diffs: { file?: string; patch?: string }[] | undefin
   }))
 }
 
-function source(part: SessionV1.FilePart) {
+function source(part: any) {
   if (!part.source) return part.source
   if (part.source.type === "symbol") {
     return {
@@ -56,7 +52,7 @@ function source(part: SessionV1.FilePart) {
   }
 }
 
-function filepart(part: SessionV1.FilePart): SessionV1.FilePart {
+function filepart(part: any) {
   return {
     ...part,
     url: redact("file-url", part.id, part.url),
@@ -65,7 +61,7 @@ function filepart(part: SessionV1.FilePart): SessionV1.FilePart {
   }
 }
 
-function part(part: SessionV1.Part): SessionV1.Part {
+function part(part: any) {
   switch (part.type) {
     case "text":
       return {
@@ -159,7 +155,7 @@ function part(part: SessionV1.Part): SessionV1.Part {
 
 const partFn = part
 
-function sanitize(data: { info: Session.Info; messages: SessionV1.WithParts[] }) {
+function sanitize(data: { info: any; messages: any[] }) {
   return {
     info: {
       ...data.info,
@@ -185,7 +181,7 @@ function sanitize(data: { info: Session.Info; messages: SessionV1.WithParts[] })
                 : redact("revert-diff", data.info.id, data.info.revert.diff),
           },
     },
-    messages: data.messages.map((msg) => ({
+    messages: data.messages.map((msg: any) => ({
       info:
         msg.info.role === "user"
           ? {
@@ -237,6 +233,11 @@ export const ExportCommand = effectCmd({
 })
 
 const run = Effect.fn("Cli.export.body")(function* (args: { sessionID?: string; sanitize?: boolean }) {
+  const { Session } = yield* Effect.promise(() => import("@/session/session"))
+  const { SessionV1 } = yield* Effect.promise(() => import("@opencode-ai/core/v1/session"))
+  const { SessionID } = yield* Effect.promise(() => import("../../session/schema"))
+  const { autocomplete, intro, isCancel, log, outro } = yield* Effect.promise(() => import("@clack/prompts"))
+
   const svc = yield* Session.Service
   let sessionID = args.sessionID ? SessionID.make(args.sessionID) : undefined
   process.stderr.write(`Exporting session: ${sessionID ?? "latest"}\n`)
