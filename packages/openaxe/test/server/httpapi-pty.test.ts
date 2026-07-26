@@ -67,7 +67,7 @@ function serverUrl() {
   return HttpServer.HttpServer.use((server) => Effect.succeed(HttpServer.formatAddress(server.address)))
 }
 
-const directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
+const _directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
 
 afterEach(async () => {
   await disposeAllInstances()

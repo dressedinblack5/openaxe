@@ -15,11 +15,10 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import { testEffect } from "../lib/effect"
 import { Permission } from "../../src/permission"
 import type * as Tool from "../../src/tool/tool"
-import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Git } from "@/git"
 import { Filesystem } from "@/util/filesystem"
 
-const toolLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
+const toolLayer = () =>
   Layer.mergeAll(
     CrossSpawnSpawner.defaultLayer,
     FSUtil.defaultLayer,
@@ -44,9 +43,9 @@ const ctx = {
 }
 
 const root = path.join(__dirname, "../..")
-const full = (p: string) => (process.platform === "win32" ? Filesystem.normalizePath(p) : p)
+const _full = (p: string) => (process.platform === "win32" ? Filesystem.normalizePath(p) : p)
 
-const githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>
+const _githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>
   Effect.acquireUseRelease(
     Effect.sync(() => {
       const previous = process.env.OPENCODE_REPO_CLONE_GITHUB_BASE_URL

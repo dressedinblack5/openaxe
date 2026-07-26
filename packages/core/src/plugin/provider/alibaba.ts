@@ -7,7 +7,7 @@ export const AlibabaPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/alibaba") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/alibaba"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/alibaba"))
         evt.sdk = mod.createAlibaba(evt.options)
       }),
     )

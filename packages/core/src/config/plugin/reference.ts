@@ -1,7 +1,7 @@
 export * as ConfigReferencePlugin from "./reference"
 
 import { define } from "../../plugin/internal"
-import path from "path"
+import path from "node:path"
 import { Effect } from "effect"
 import { Config } from "../../config"
 import { ConfigReference } from "../reference"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun"
-import { parseArgs } from "util"
+import { parseArgs } from "node:util"
 
 type Release = {
   tag_name: string

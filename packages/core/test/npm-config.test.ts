@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 import { describe, expect, test } from "bun:test"
 import { Effect } from "effect"
 import { NpmConfig } from "@opencode-ai/core/npm-config"

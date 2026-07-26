@@ -395,7 +395,7 @@ const validateChat = (input: {
 
 const validateBedrock = (env: Env) =>
   Effect.gen(function* () {
-    const request = yield* Effect.promise(() =>
+    const request = yield* Effect.promise( async () =>
       new AwsV4Signer({
         url: `https://bedrock.${env.BEDROCK_RECORDING_REGION || "us-east-1"}.amazonaws.com/foundation-models`,
         method: "GET",
@@ -457,7 +457,7 @@ const chooseConfigurableProviders = Effect.fn("RecordingEnv.chooseConfigurablePr
   fileEnv: Env,
 ) {
   const configurable = providers.filter((provider) => requiredVars(provider).length > 0)
-  const selected = yield* prompt<ReadonlyArray<string>>(() =>
+  const selected = yield* prompt<ReadonlyArray<string>>( async () =>
     prompts.multiselect({
       message: "Select provider credentials to add or override",
       options: configurable.map((provider) => ({
@@ -476,7 +476,7 @@ const chooseConfigurableProviders = Effect.fn("RecordingEnv.chooseConfigurablePr
 })
 
 const promptEnvVar = (item: Provider["vars"][number]) =>
-  prompt<string>(() => {
+  prompt<string>( async () => {
     const input = {
       message: item.label ?? item.name,
       validate: (input: string | undefined) => {
@@ -506,7 +506,7 @@ const main = Effect.fn("RecordingEnv.main")(function* () {
   prompts.intro("LLM recording credentials")
   const contents = yield* readEnvFile()
   const fileEnv = yield* parseEnv(contents)
-  const providers = yield* Effect.promise(() => chooseProviders())
+  const providers = yield* Effect.promise( async () => chooseProviders())
   printStatus(providers, fileEnv)
   if (checkOnly) {
     prompts.outro("Check complete")
@@ -527,7 +527,7 @@ const main = Effect.fn("RecordingEnv.main")(function* () {
 
   if (
     interactive &&
-    (yield* prompt(() => prompts.confirm({ message: "Validate credentials before saving?", initialValue: true })))
+    (yield* prompt( async () => prompts.confirm({ message: "Validate credentials before saving?", initialValue: true })))
   ) {
     yield* validateProviders(selectedProviders, envWithValues(fileEnv, values))
   }

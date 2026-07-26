@@ -16,7 +16,7 @@ const users = sqliteTable("users", {
   name: text().notNull(),
 })
 
-const run = <A, E>(effect: Effect.Effect<A, E, SqlClientService>) =>
+const run =  async <A, E>(effect: Effect.Effect<A, E, SqlClientService>) =>
   Effect.runPromise(
     effect.pipe(Effect.provide(SqliteClient.layer({ filename: ":memory:", disableWAL: true })), Effect.scoped),
   )

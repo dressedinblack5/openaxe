@@ -924,7 +924,7 @@ describe("OpenAI Responses route", () => {
           dynamicResponse((input) =>
             Effect.gen(function* () {
               const web = yield* HttpClientRequest.toWeb(input.request).pipe(Effect.orDie)
-              expect(yield* Effect.promise(() => web.json())).toMatchObject({
+              expect(yield* Effect.promise( async () => web.json())).toMatchObject({
                 input: [
                   { role: "user", content: [{ type: "input_text", text: "What changed?" }] },
                   {

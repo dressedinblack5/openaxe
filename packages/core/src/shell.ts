@@ -1,9 +1,9 @@
 export * as Shell from "./shell"
 
-import path from "path"
-import { spawn, type ChildProcess } from "child_process"
-import { readFile } from "fs/promises"
-import { statSync } from "fs"
+import path from "node:path"
+import { spawn, type ChildProcess } from "node:child_process"
+import { readFile } from "node:fs/promises"
+import { statSync } from "node:fs"
 import { setTimeout } from "node:timers/promises"
 import { Flag } from "./flag/flag"
 import { FSUtil } from "./fs-util"

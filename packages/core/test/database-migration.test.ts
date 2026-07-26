@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { $ } from "bun"
-import { fileURLToPath } from "url"
-import path from "path"
+import { fileURLToPath } from "node:url"
+import path from "node:path"
 import { SqliteClient } from "@effect/sql-sqlite-bun"
 import { EffectDrizzleSqlite } from "@opencode-ai/effect-drizzle-sqlite"
 import { Effect, Layer } from "effect"
@@ -28,7 +28,7 @@ import { SessionProjector } from "@opencode-ai/core/session/projector"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { tmpdir } from "./fixture/tmpdir"
 
-const run = <A, E>(effect: Effect.Effect<A, E, SqlClientService>) =>
+const run =  async <A, E>(effect: Effect.Effect<A, E, SqlClientService>) =>
   Effect.runPromise(
     effect.pipe(Effect.provide(SqliteClient.layer({ filename: ":memory:", disableWAL: true })), Effect.scoped),
   )

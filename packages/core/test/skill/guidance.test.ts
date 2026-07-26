@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
 import { AgentV2 } from "@opencode-ai/core/agent"

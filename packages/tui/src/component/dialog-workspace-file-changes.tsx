@@ -130,7 +130,7 @@ export function DialogWorkspaceFileChanges(props: {
   )
 }
 
-DialogWorkspaceFileChanges.show = (
+DialogWorkspaceFileChanges.show =  async (
   dialog: DialogContext,
   files: VcsFileStatus[],
   options?: { title?: string; message?: string },

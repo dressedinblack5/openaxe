@@ -15,8 +15,8 @@ const it = testEffect(
 
 function withTmpDir<A, E, R>(body: (dir: string) => Effect.Effect<A, E, R>) {
   return Effect.acquireRelease(
-    Effect.promise(() => tmpdir()),
-    (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+    Effect.promise( async () => tmpdir()),
+    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
   ).pipe(Effect.flatMap((tmp) => body(tmp.path)))
 }
 

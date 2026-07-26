@@ -1,6 +1,6 @@
 export * as AgentPlugin from "./agent"
 
-import path from "path"
+import path from "node:path"
 import { define } from "./internal"
 import { Effect } from "effect"
 import { AgentV2 } from "../agent"

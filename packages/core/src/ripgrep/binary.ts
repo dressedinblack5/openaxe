@@ -1,6 +1,6 @@
-import { exec } from "child_process"
-import { promisify } from "util"
-import path from "path"
+import { exec } from "node:child_process"
+import { promisify } from "node:util"
+import path from "node:path"
 import { Context, Effect, Layer, Stream } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http"
 import { ChildProcess } from "effect/unstable/process"
@@ -65,14 +65,14 @@ export const layer = Layer.effect(
 
       if (config.extension === "zip") {
         const unzipOk = yield* Effect.tryPromise({
-          try: () => execAsync(`unzip -o "${archive}" -d "${dir}"`, { shell: true }),
+          try:  async () => execAsync(`unzip -o "${archive}" -d "${dir}"`, { shell: true }),
           catch: (cause) => cause,
         }).pipe(Effect.isSuccess)
         if (!unzipOk) {
           const shell = which("powershell.exe") ?? which("pwsh.exe") ?? "powershell.exe"
           const psCmd = `& { $global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force }`
           yield* Effect.tryPromise({
-            try: () =>
+            try:  async () =>
               execAsync(`"${shell}" -NoProfile -NonInteractive -Command "${psCmd.replaceAll('"', '\\"')}"`, {
                 shell: true,
               }),

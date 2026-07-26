@@ -1,6 +1,6 @@
 import { Config, Effect, Layer, Schema, Stream } from "effect"
 import { LLM, LLMClient, Message, Tool, ToolRuntime } from "@opencode-ai/llm"
-import { Route, Auth, Endpoint, Framing, Protocol, RequestExecutor, WebSocketExecutor } from "@opencode-ai/llm/route"
+import { Protocol, RequestExecutor, WebSocketExecutor } from "@opencode-ai/llm/route"
 import { OpenAI } from "@opencode-ai/llm/providers"
 
 /**
@@ -118,7 +118,7 @@ const FakeBody = Schema.Struct({
 })
 type FakeBody = Schema.Schema.Type<typeof FakeBody>
 
-const FakeProtocol: Protocol<FakeBody, string, string, void> = {
+const _FakeProtocol: Protocol<FakeBody, string, string, void> = {
   // Protocol ids are open strings, so external packages can define their own
   // protocols without changing this package.
   id: "fake-echo",

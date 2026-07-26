@@ -10,7 +10,7 @@ import { WebSocketExecutor } from "./transport"
 import type { Protocol } from "./protocol"
 import { applyCachePolicy } from "../cache-policy"
 import { encodeJson, eventError, validateWith } from "../protocols/shared";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type {
   GenerationOptionsInput,
   HttpOptionsInput,

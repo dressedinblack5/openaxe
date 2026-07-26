@@ -1,7 +1,7 @@
 export * as ReadTool from "./read"
 
 import { ToolFailure } from "@opencode-ai/llm"
-import path from "path"
+import path from "node:path"
 import { Effect, Layer, Schema } from "effect"
 import { FileSystem } from "../filesystem"
 import { FSUtil } from "../fs-util"

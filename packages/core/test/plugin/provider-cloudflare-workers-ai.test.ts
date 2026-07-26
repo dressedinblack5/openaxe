@@ -197,7 +197,7 @@ describe("CloudflareWorkersAIPlugin", () => {
             headers: { custom: "header" },
           },
         })
-        const headers = yield* Effect.promise(() => Promise.resolve(cloudflareHeaders(result.sdk)))
+        const headers = yield* Effect.promise( async () => Promise.resolve(cloudflareHeaders(result.sdk)))
         expect(headers.authorization).toBe("Bearer env-key")
         expect(headers.custom).toBe("header")
         expect(headers["user-agent"]).toMatch(/^opencode\/.* cloudflare-workers-ai \(.+\) ai-sdk\/openai-compatible\//)

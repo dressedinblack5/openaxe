@@ -1,5 +1,5 @@
 import { describe, expect } from "bun:test"
-import path from "path"
+import path from "node:path"
 import { Effect, Layer } from "effect"
 import { NodeFileSystem } from "@effect/platform-node"
 import { Artifact } from "@opencode-ai/core/artifact"
@@ -10,7 +10,7 @@ const withStore = <A, E>(
   body: (store: Artifact.Interface) => Effect.Effect<A, E>,
 ) =>
   Effect.acquireUseRelease(
-    Effect.promise(() => tmpdir()),
+    Effect.promise( async () => tmpdir()),
     (tmp) => {
       const baseDir = path.join(tmp.path, "artifacts")
       const artifactLayer = Artifact.layer(baseDir).pipe(
@@ -20,7 +20,7 @@ const withStore = <A, E>(
         return yield* body(yield* Artifact.Service)
       }).pipe(Effect.provide(artifactLayer))
     },
-    (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
   )
 
 const it = testEffect(Layer.empty)
@@ -151,7 +151,7 @@ describe("Artifact", () => {
 
   it.live("respects custom truncation threshold", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         const tinyThreshold = 5
         const baseDir = path.join(tmp.path, "custom-threshold")
@@ -168,7 +168,7 @@ describe("Artifact", () => {
           expect(retrieved!.content).toBe("hello world")
         }).pipe(Effect.provide(artifactLayer))
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 })

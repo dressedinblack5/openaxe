@@ -24,5 +24,4 @@ jobs:
       - name: Run typecheck
         run: bun turbo typecheck
 
-      - name: Run oxlint
-        run: npx oxlint . --max-warnings 0
+

@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 import { Context, Effect, Layer, Schema } from "effect"
 import { FileSystem } from "effect"
 import type { PlatformError } from "effect/PlatformError"
@@ -94,7 +94,7 @@ export const layer = (baseDir: string, threshold: number = DEFAULT_TRUNCATION_TH
         const entries = yield* catchFs(fs.readDirectory(dir), [])
         const versions = entries
           .filter((e) => e.endsWith(".json"))
-          .map((e) => parseInt(e.replace(".json", ""), 10))
+          .map((e) => Number.parseInt(e.replace(".json", ""), 10))
           .filter((n) => !isNaN(n))
         return versions.length > 0 ? Math.max(...versions) + 1 : 1
       })
@@ -165,7 +165,7 @@ export const layer = (baseDir: string, threshold: number = DEFAULT_TRUNCATION_TH
           const entries = yield* catchFs(fs.readDirectory(dir), [])
           const versions = entries
             .filter((e) => e.endsWith(".json"))
-            .map((e) => parseInt(e.replace(".json", ""), 10))
+            .map((e) => Number.parseInt(e.replace(".json", ""), 10))
             .filter((n) => !isNaN(n))
           if (versions.length === 0) return null
           version = Math.max(...versions)
@@ -213,7 +213,7 @@ export const layer = (baseDir: string, threshold: number = DEFAULT_TRUNCATION_TH
           const versionEntries = yield* catchFs(fs.readDirectory(entryDir), [])
           const versions = versionEntries
             .filter((e) => e.endsWith(".json"))
-            .map((e) => parseInt(e.replace(".json", ""), 10))
+            .map((e) => Number.parseInt(e.replace(".json", ""), 10))
             .filter((n) => !isNaN(n))
 
           for (const ver of versions) {

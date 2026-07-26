@@ -1,6 +1,6 @@
 export * as SessionRunnerModel from "./model"
 
-import { type Model } from "@opencode-ai/llm"
+import type { Model } from "@opencode-ai/llm"
 import { route as anthropicMessagesRoute } from "@opencode-ai/llm/protocols/anthropic-messages" // renamed to avoid conflict with 3 route imports
 import { route as openaiCompatibleChatRoute } from "@opencode-ai/llm/protocols/openai-compatible-chat" // renamed to avoid conflict with 3 route imports
 import { route as openaiResponsesRoute } from "@opencode-ai/llm/protocols/openai-responses" // renamed to avoid conflict with 3 route imports

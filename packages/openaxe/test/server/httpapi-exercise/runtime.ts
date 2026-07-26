@@ -24,7 +24,6 @@ export function runtime() {
     const publicApi = await import("../../../src/server/routes/instance/httpapi/public")
     const httpApiServer = await import("../../../src/server/routes/instance/httpapi/server")
     const appRuntime = await import("../../../src/effect/app-layer")
-    const { Layer } = await import("effect")
     const instanceRef = await import("../../../src/effect/instance-ref")
     const instanceStore = await import("../../../src/project/instance-store")
     const session = await import("../../../src/session/session")

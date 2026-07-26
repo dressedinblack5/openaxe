@@ -1,7 +1,7 @@
 import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
-import fs from "fs/promises"
-import path from "path"
+import fs from "node:fs/promises"
+import path from "node:path"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
 import { InstructionContext } from "@opencode-ai/core/instruction-context"
@@ -18,8 +18,8 @@ const it = testEffect(Layer.empty)
 describe("InstructionContext", () => {
   it.live("loads global and upward project AGENTS.md files as one aggregate context", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
@@ -67,13 +67,13 @@ describe("InstructionContext", () => {
           )
           expect(initialized.baseline).not.toContain("outside")
 
-          yield* Effect.promise(() => fs.writeFile(packageFile, "changed"))
+          yield* Effect.promise( async () => fs.writeFile(packageFile, "changed"))
           expect(yield* SystemContext.reconcile(yield* load, initialized.snapshot)).toMatchObject({
             _tag: "Updated",
             text: expect.stringContaining(`Instructions from: ${packageFile}\nchanged`),
           })
 
-          yield* Effect.promise(() => fs.rm(packageFile))
+          yield* Effect.promise( async () => fs.rm(packageFile))
           const partial = yield* SystemContext.reconcile(yield* load, initialized.snapshot)
           expect(partial).toEqual({
             _tag: "Updated",
@@ -85,7 +85,7 @@ describe("InstructionContext", () => {
             snapshot: expect.any(Object),
           })
 
-          yield* Effect.promise(() => Promise.all([fs.rm(globalFile), fs.rm(projectFile)]))
+          yield* Effect.promise( async () => Promise.all([fs.rm(globalFile), fs.rm(projectFile)]))
           expect(yield* SystemContext.reconcile(yield* load, initialized.snapshot)).toEqual({
             _tag: "Updated",
             text: "Previously loaded instructions no longer apply.",
@@ -98,13 +98,13 @@ describe("InstructionContext", () => {
 
   it.live("keeps an empty AGENTS.md as available context", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
           const file = path.join(tmp.path, "AGENTS.md")
-          yield* Effect.promise(() => fs.writeFile(file, ""))
+          yield* Effect.promise( async () => fs.writeFile(file, ""))
           const context = yield* SystemContextRegistry.Service.pipe(
             Effect.flatMap((service) => service.load()),
             Effect.provide(InstructionContext.layer.pipe(Layer.provideMerge(SystemContextRegistry.layer))),

@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 
 process.env.OPENCODE_DB = ":memory:"
 process.env.OPENCODE_MODELS_PATH = path.join(import.meta.dir, "plugin", "fixtures", "models-dev.json")

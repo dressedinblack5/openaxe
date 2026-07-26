@@ -121,10 +121,10 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
         yield* sync.load(location.project.directory)
 
         // Register real-time sync: after every memory.set(), flush to AXE.md
-        yield* memory.onSet((key, value, kind, scope, source) =>
+        yield* memory.onSet((_key, _value, _kind, _scope, _source) =>
           sync.save(location.project.directory),
         )
-        yield* memory.onRemove((key) =>
+        yield* memory.onRemove((_key) =>
           sync.save(location.project.directory),
         )
       }),

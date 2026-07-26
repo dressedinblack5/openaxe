@@ -11,11 +11,11 @@ export type LocalAttachment =
   | Readonly<{ type: "text"; mime: "image/svg+xml"; content: string }>
   | Readonly<{ type: "binary"; mime: string; content: Uint8Array }>
 
-export function readLocalAttachment(file: string) {
+export async function readLocalAttachment(file: string) {
   return readLocalAttachmentWith(
     {
-      readText: (value) => readFile(value, "utf8"),
-      readBytes: (value) => readFile(value),
+      readText:  async (value) => readFile(value, "utf8"),
+      readBytes:  async (value) => readFile(value),
       mime: async (value) => mimeTypes[path.extname(value).toLowerCase()] ?? "application/octet-stream",
     },
     file,

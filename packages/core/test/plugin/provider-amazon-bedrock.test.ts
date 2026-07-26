@@ -269,7 +269,7 @@ describe("AmazonBedrockPlugin", () => {
             },
           },
         })
-        yield* Effect.promise(() => bedrockFetch(result.sdk)("https://bedrock.example", { method: "POST" }))
+        yield* Effect.promise( async () => bedrockFetch(result.sdk)("https://bedrock.example", { method: "POST" }))
         expect(process.env.AWS_BEARER_TOKEN_BEDROCK).toBe("option-token")
         expect(headers).toEqual(["Bearer option-token"])
       }),
@@ -298,7 +298,7 @@ describe("AmazonBedrockPlugin", () => {
             },
           },
         })
-        yield* Effect.promise(() => bedrockFetch(result.sdk)("https://bedrock.example", { method: "POST" }))
+        yield* Effect.promise( async () => bedrockFetch(result.sdk)("https://bedrock.example", { method: "POST" }))
         expect(process.env.AWS_BEARER_TOKEN_BEDROCK).toBe("env-token")
         expect(headers).toEqual(["Bearer env-token"])
       }),
@@ -424,7 +424,7 @@ describe("AmazonBedrockPlugin", () => {
               },
             },
           })
-          yield* Effect.promise(() =>
+          yield* Effect.promise( async () =>
             bedrockFetch(result.sdk)("https://bedrock-runtime.us-east-1.amazonaws.com/model/test/invoke", {
               body: "{}",
               method: "POST",

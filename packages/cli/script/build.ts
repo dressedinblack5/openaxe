@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun"
-import fs from "fs"
-import { rm } from "fs/promises"
-import path from "path"
+import fs from "node:fs"
+import { rm } from "node:fs/promises"
+import path from "node:path"
 import { Script } from "@opencode-ai/script"
 import { createSolidTransformPlugin } from "@opentui/solid/bun-plugin"
 import pkg from "../package.json"

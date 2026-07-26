@@ -1,10 +1,10 @@
 import { Npm } from "@opencode-ai/core/npm"
 import { describe, expect } from "bun:test"
 import { Cause, Effect, Layer } from "effect"
-import fs from "fs/promises"
-import os from "os"
-import path from "path"
-import { fileURLToPath } from "url"
+import fs from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { AISDK } from "@opencode-ai/core/aisdk"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { PluginV2 } from "@opencode-ai/core/plugin"
@@ -41,7 +41,7 @@ function tempEntrypoint(source: string) {
       await Bun.write(entrypoint, source)
       return { directory, entrypoint }
     }),
-    (tmp) => Effect.promise(() => fs.rm(tmp.directory, { recursive: true, force: true })),
+    (tmp) => Effect.promise( async () => fs.rm(tmp.directory, { recursive: true, force: true })),
   )
 }
 

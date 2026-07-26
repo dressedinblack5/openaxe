@@ -26,12 +26,12 @@ export function fromPromise(plugin: Plugin) {
         const context = yield* Effect.context<Scope.Scope>()
 
         // Run a hook registration on the plugin scope and resolve once it is registered.
-        const register = (effect: Effect.Effect<HostRegistration, never, Scope.Scope>): Promise<Registration> =>
+        const register =  async (effect: Effect.Effect<HostRegistration, never, Scope.Scope>): Promise<Registration> =>
           Effect.runPromiseWith(context)(Scope.provide(scope)(effect)).then((registration) => ({
-            dispose: () => Effect.runPromiseWith(context)(registration.dispose),
+            dispose:  async () => Effect.runPromiseWith(context)(registration.dispose),
           }))
 
-        const run = (effect: Effect.Effect<void>) => Effect.runPromiseWith(context)(effect)
+        const run =  async (effect: Effect.Effect<void>) => Effect.runPromiseWith(context)(effect)
 
         const transform =
           <Draft>(domain: {
@@ -39,55 +39,55 @@ export function fromPromise(plugin: Plugin) {
               callback: (draft: Draft) => Effect.Effect<void> | void,
             ) => Effect.Effect<HostRegistration, never, Scope.Scope>
           }) =>
-          (callback: (draft: Draft) => Promise<void> | void) =>
-            register(domain.transform((draft) => Effect.promise(() => Promise.resolve(callback(draft)))))
+           async (callback: (draft: Draft) => Promise<void> | void) =>
+            register(domain.transform((draft) => Effect.promise( async () => Promise.resolve(callback(draft)))))
 
         const context2: PluginContext = {
           options: host.options,
           agent: {
             transform: transform(host.agent),
-            reload: () => run(host.agent.reload()),
+            reload:  async () => run(host.agent.reload()),
           },
           aisdk: {
-            sdk: (callback) =>
-              register(host.aisdk.sdk((event) => Effect.promise(() => Promise.resolve(callback(event))))),
-            language: (callback) =>
-              register(host.aisdk.language((event) => Effect.promise(() => Promise.resolve(callback(event))))),
+            sdk:  async (callback) =>
+              register(host.aisdk.sdk((event) => Effect.promise( async () => Promise.resolve(callback(event))))),
+            language:  async (callback) =>
+              register(host.aisdk.language((event) => Effect.promise( async () => Promise.resolve(callback(event))))),
           },
           catalog: {
             transform: transform(host.catalog),
-            reload: () => run(host.catalog.reload()),
+            reload:  async () => run(host.catalog.reload()),
           },
           command: {
             transform: transform(host.command),
-            reload: () => run(host.command.reload()),
+            reload:  async () => run(host.command.reload()),
           },
           integration: {
             transform: transform(host.integration),
-            reload: () => run(host.integration.reload()),
+            reload:  async () => run(host.integration.reload()),
             connection: {
-              active: (id) => Effect.runPromiseWith(context)(host.integration.connection.active(id)),
-              resolve: (connection) => Effect.runPromiseWith(context)(host.integration.connection.resolve(connection)),
+              active:  async (id) => Effect.runPromiseWith(context)(host.integration.connection.active(id)),
+              resolve:  async (connection) => Effect.runPromiseWith(context)(host.integration.connection.resolve(connection)),
             },
           },
           plugin: {
-            add: (input) => {
+            add:  async (input) => {
               const child = fromPromise(input)
               return run(host.plugin.add(child))
             },
-            remove: (id) => run(host.plugin.remove(id)),
+            remove:  async (id) => run(host.plugin.remove(id)),
           },
           reference: {
             transform: transform(host.reference),
-            reload: () => run(host.reference.reload()),
+            reload:  async () => run(host.reference.reload()),
           },
           skill: {
             transform: transform(host.skill),
-            reload: () => run(host.skill.reload()),
+            reload:  async () => run(host.skill.reload()),
           },
         }
 
-        yield* Effect.promise(() => Promise.resolve(plugin.setup(context2)))
+        yield* Effect.promise( async () => Promise.resolve(plugin.setup(context2)))
       }),
   })
 }

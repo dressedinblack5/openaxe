@@ -6,7 +6,7 @@ import { promisify } from "node:util"
 
 const exec = promisify(execFile)
 
-function command(command: string, args: string[] = [], input?: string) {
+ async function command(command: string, args: string[] = [], input?: string) {
   return new Promise<Buffer>((resolve, reject) => {
     const child = spawn(command, args, { stdio: [input === undefined ? "ignore" : "pipe", "pipe", "ignore"] })
     const output: Buffer[] = []
@@ -98,7 +98,7 @@ export function copyCommand(
 
 let copyMethod: Promise<(text: string) => Promise<void>> | undefined
 
-function getCopyMethod() {
+ async function getCopyMethod() {
   return (copyMethod ??= (async () => {
     const { which } = await import("@opencode-ai/core/util/which")
     const native = copyCommand(platform(), Boolean(process.env.WAYLAND_DISPLAY), (name) => Boolean(which(name)))

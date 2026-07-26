@@ -113,7 +113,7 @@ const headless = {
         callback: Effect.gen(function* () {
           while (true) {
             const response = yield* Effect.tryPromise({
-              try: (signal) =>
+              try:  async (signal) =>
                 fetch(`${issuer}/api/accounts/deviceauth/token`, {
                   method: "POST",
                   headers: headers("application/json"),
@@ -123,7 +123,7 @@ const headless = {
               catch: (cause) => cause,
             })
             if (response.ok) {
-              const data = (yield* Effect.promise(() => response.json())) as {
+              const data = (yield* Effect.promise( async () => response.json())) as {
                 authorization_code: string
                 code_verifier: string
               }
@@ -170,7 +170,7 @@ export const OpenAIPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/openai") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/openai"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/openai"))
         evt.sdk = mod.createOpenAI(evt.options)
       }),
     )

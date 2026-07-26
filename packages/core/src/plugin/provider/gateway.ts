@@ -7,7 +7,7 @@ export const GatewayPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/gateway") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/gateway"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/gateway"))
         evt.sdk = mod.createGateway(evt.options)
       }),
     )

@@ -5,7 +5,7 @@ import { Flock } from "@opencode-ai/core/util/flock"
 import { Global } from "@opencode-ai/core/global"
 import { readJson, writeJsonAtomic } from "../util/persistence"
 import { useTuiPaths } from "./runtime"
-import path from "path"
+import path from "node:path"
 
 export const { use: useKV, provider: KVProvider } = createSimpleContext({
   name: "KV",
@@ -19,7 +19,7 @@ export const { use: useKV, provider: KVProvider } = createSimpleContext({
     // Queue same-process writes so rapid updates persist in order.
     let write = Promise.resolve()
 
-    Flock.withLock(lock, () => readJson<Record<string, unknown>>(file))
+    Flock.withLock(lock,  async () => readJson<Record<string, unknown>>(file))
       .then((x) => {
         setStore(x)
       })
@@ -55,7 +55,7 @@ export const { use: useKV, provider: KVProvider } = createSimpleContext({
         setStore(key, value)
         const snapshot = structuredClone(unwrap(store))
         write = write
-          .then(() => Flock.withLock(lock, () => writeJsonAtomic(file, snapshot)))
+          .then( async () => Flock.withLock(lock,  async () => writeJsonAtomic(file, snapshot)))
           .catch((error) => {
             console.error("Failed to write KV state", { error })
           })

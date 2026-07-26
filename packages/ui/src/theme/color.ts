@@ -19,7 +19,7 @@ export function hexToRgb(hex: HexColor): { r: number; g: number; b: number } {
       : h
   const rgb = full.length === 8 ? full.slice(0, 6) : full
 
-  const num = parseInt(rgb, 16)
+  const num = Number.parseInt(rgb, 16)
   return {
     r: ((num >> 16) & 255) / 255,
     g: ((num >> 8) & 255) / 255,

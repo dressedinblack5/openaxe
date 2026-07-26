@@ -1,5 +1,5 @@
-import { lstat, mkdir, readdir, rm, symlink } from "fs/promises"
-import { join, relative } from "path"
+import { lstat, mkdir, readdir, rm, symlink } from "node:fs/promises"
+import { join, relative } from "node:path"
 
 type PackageManifest = {
   name?: string

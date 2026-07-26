@@ -1,7 +1,7 @@
 export * as ReadToolFileSystem from "./read-filesystem"
 
-import path from "path"
-import { pathToFileURL } from "url"
+import path from "node:path"
+import { pathToFileURL } from "node:url"
 import { Context, Effect, Layer, Option, Schema } from "effect"
 import { FileSystem } from "../filesystem"
 import { FSUtil } from "../fs-util"

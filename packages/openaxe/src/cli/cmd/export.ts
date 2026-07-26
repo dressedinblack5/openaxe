@@ -234,7 +234,6 @@ export const ExportCommand = effectCmd({
 
 const run = Effect.fn("Cli.export.body")(function* (args: { sessionID?: string; sanitize?: boolean }) {
   const { Session } = yield* Effect.promise(() => import("@/session/session"))
-  const { SessionV1 } = yield* Effect.promise(() => import("@opencode-ai/core/v1/session"))
   const { SessionID } = yield* Effect.promise(() => import("../../session/schema"))
   const { autocomplete, intro, isCancel, log, outro } = yield* Effect.promise(() => import("@clack/prompts"))
 

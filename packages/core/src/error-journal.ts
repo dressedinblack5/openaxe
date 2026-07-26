@@ -12,7 +12,7 @@ export const appendError = Effect.fn("ErrorJournal.appendError")(function* (para
 }) {
   const dir = path.join(process.cwd(), ".openaxe")
 
-  yield* Effect.promise(() => fs.mkdir(dir, { recursive: true })).pipe(Effect.ignoreCause)
+  yield* Effect.promise( async () => fs.mkdir(dir, { recursive: true })).pipe(Effect.ignoreCause)
 
   const entry =
     JSON.stringify({
@@ -22,5 +22,5 @@ export const appendError = Effect.fn("ErrorJournal.appendError")(function* (para
       error: params.error,
     }) + "\n"
 
-  yield* Effect.promise(() => fs.appendFile(path.join(dir, "errors.jsonl"), entry)).pipe(Effect.ignoreCause)
+  yield* Effect.promise( async () => fs.appendFile(path.join(dir, "errors.jsonl"), entry)).pipe(Effect.ignoreCause)
 })

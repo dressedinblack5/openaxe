@@ -1,5 +1,5 @@
-import path from "path"
-import fs from "fs/promises"
+import path from "node:path"
+import fs from "node:fs/promises"
 import { describe, expect } from "bun:test"
 import { Effect, Layer, Schema } from "effect"
 import { FastCheck } from "effect/testing"
@@ -146,8 +146,8 @@ describe("Config", () => {
 
   it.live("returns an empty configuration when directory files do not exist", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
@@ -164,12 +164,12 @@ describe("Config", () => {
 
   it.live("loads JSON and JSONC files from lowest to highest priority", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
-          yield* Effect.promise(() =>
+          yield* Effect.promise( async () =>
             Promise.all([
               fs.writeFile(
                 path.join(tmp.path, "config.json"),
@@ -200,7 +200,7 @@ describe("Config", () => {
             expect(documents[0]?.path).toBe(path.join(tmp.path, "config.json"))
             expect(documents[2]?.info.providers?.last).toBeInstanceOf(ConfigProvider.Info)
 
-            yield* Effect.promise(() =>
+            yield* Effect.promise( async () =>
               fs.writeFile(path.join(tmp.path, "openaxe.jsonc"), JSON.stringify({ $schema: "changed" })),
             )
             expect(
@@ -216,8 +216,8 @@ describe("Config", () => {
 
   it.live("accepts $schema metadata without writing it into config files", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
@@ -227,7 +227,7 @@ describe("Config", () => {
             experimental: { policies: [{ effect: "deny", action: "provider.use", resource: "openai" }] },
             providers: { local: provider },
           })
-          yield* Effect.promise(() => fs.writeFile(file, contents))
+          yield* Effect.promise( async () => fs.writeFile(file, contents))
 
           return yield* Effect.gen(function* () {
             const config = yield* Config.Service
@@ -240,7 +240,7 @@ describe("Config", () => {
               action: "provider.use",
               resource: "openai",
             })
-            expect(yield* Effect.promise(() => fs.readFile(file, "utf8"))).toBe(contents)
+            expect(yield* Effect.promise( async () => fs.readFile(file, "utf8"))).toBe(contents)
           }).pipe(Effect.provide(testLayer(tmp.path)))
         }),
       ),
@@ -249,12 +249,12 @@ describe("Config", () => {
 
   it.live("loads supported scalar and resource configuration", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
-          yield* Effect.promise(() =>
+          yield* Effect.promise( async () =>
             fs.writeFile(
               path.join(tmp.path, "openaxe.json"),
               JSON.stringify({
@@ -435,12 +435,12 @@ describe("Config", () => {
 
   it.live("migrates the deprecated reference key into references", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
-          yield* Effect.promise(() =>
+          yield* Effect.promise( async () =>
             fs.writeFile(
               path.join(tmp.path, "openaxe.json"),
               JSON.stringify({
@@ -471,12 +471,12 @@ describe("Config", () => {
 
   it.live("migrates v1 configuration when a v1-only key is present", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
-          yield* Effect.promise(() =>
+          yield* Effect.promise( async () =>
             fs.writeFile(
               path.join(tmp.path, "openaxe.json"),
               JSON.stringify({
@@ -642,12 +642,12 @@ describe("Config", () => {
 
   it.live("ignores invalid files while loading valid config values", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
-          yield* Effect.promise(() =>
+          yield* Effect.promise( async () =>
             Promise.all([
               fs.writeFile(path.join(tmp.path, "config.json"), JSON.stringify({ $schema: "base" })),
               fs.writeFile(path.join(tmp.path, "openaxe.json"), "{ invalid"),
@@ -667,8 +667,8 @@ describe("Config", () => {
 
   it.live("loads policy statements in reverse config order", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) => {
         const global = path.join(tmp.path, "global")
@@ -701,8 +701,8 @@ describe("Config", () => {
 
   it.live("loads global, ancestor, and .openaxe configuration up to the project boundary", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) => {
         const global = path.join(tmp.path, "global")

@@ -1,4 +1,4 @@
-import { type ComponentProps, Show, splitProps } from "solid-js"
+import { type ComponentProps, splitProps } from "solid-js"
 
 export interface ButtonProps
   extends ComponentProps<"box">,

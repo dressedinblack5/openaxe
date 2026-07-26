@@ -19,7 +19,7 @@ opencode.tool.add({
     },
     required: ["command"],
   },
-  execute(input, ctx) {},
+  execute(_input, _ctx) {},
 })
 
 opencode.auth.add({

@@ -11,12 +11,11 @@ import { Truncate } from "@/tool/truncate"
 import { Agent } from "../../src/agent/agent"
 import { TestInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
-import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Git } from "@/git"
 import { Filesystem } from "@/util/filesystem"
 import type * as Tool from "../../src/tool/tool"
 
-const toolLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
+const toolLayer = () =>
   Layer.mergeAll(
     CrossSpawnSpawner.defaultLayer,
     FSUtil.defaultLayer,
@@ -27,7 +26,7 @@ const toolLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
   )
 
 const it = testEffect(toolLayer())
-const full = (p: string) => (process.platform === "win32" ? Filesystem.normalizePath(p) : p)
+const _full = (p: string) => (process.platform === "win32" ? Filesystem.normalizePath(p) : p)
 
 const ctx = {
   sessionID: SessionID.make("ses_test"),
@@ -40,7 +39,7 @@ const ctx = {
   ask: () => Effect.void,
 }
 
-const asks = () => {
+const _asks = () => {
   const items: Array<Omit<PermissionV1.Request, "id" | "sessionID" | "tool">> = []
   return {
     items,
@@ -54,7 +53,7 @@ const asks = () => {
   }
 }
 
-const githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>
+const _githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>
   Effect.acquireUseRelease(
     Effect.sync(() => {
       const previous = process.env.OPENCODE_REPO_CLONE_GITHUB_BASE_URL

@@ -1,7 +1,7 @@
 import { NodeFileSystem } from "@effect/platform-node"
-import { dirname, isAbsolute, join, relative, resolve as pathResolve, sep } from "path"
-import { realpathSync } from "fs"
-import { readdir } from "fs/promises"
+import { dirname, isAbsolute, join, relative, resolve as pathResolve, sep } from "node:path"
+import { realpathSync } from "node:fs"
+import { readdir } from "node:fs/promises"
 import { lookup } from "mime-types"
 import { Context, Effect, FileSystem, Layer, Schema } from "effect"
 import type { PlatformError } from "effect/PlatformError"
@@ -128,7 +128,7 @@ export const layer = Layer.effect(
 
     const glob = Effect.fn("FileSystem.glob")(function* (pattern: string, options?: Glob.Options) {
       return yield* Effect.tryPromise({
-        try: () => Glob.scan(pattern, options),
+        try:  async () => Glob.scan(pattern, options),
         catch: (cause) => new FileSystemError({ method: "glob", cause }),
       })
     })

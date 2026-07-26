@@ -188,7 +188,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
   const result = yield* Effect.scoped(
     Effect.gen(function* () {
       const renderer = yield* Effect.acquireRelease(
-        Effect.tryPromise(() =>
+        Effect.tryPromise( async () =>
           createCliRenderer({
             externalOutputMode: "passthrough",
             targetFps: 60,

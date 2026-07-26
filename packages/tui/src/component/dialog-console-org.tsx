@@ -29,7 +29,7 @@ export function DialogConsoleOrg() {
 
   const [loadError, setLoadError] = createSignal<unknown>()
 
-  const [orgs] = createResource(() =>
+  const [orgs] = createResource( async () =>
     sdk.client.experimental.console
       .listOrgs({}, { throwOnError: true })
       .then((result) => result.data?.orgs ?? [])

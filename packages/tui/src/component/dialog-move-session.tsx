@@ -1,7 +1,7 @@
 import { useTerminalDimensions } from "@opentui/solid"
 import { TextAttributes } from "@opentui/core"
 import { createMemo, createResource, createSignal, onMount, Show } from "solid-js"
-import path from "path"
+import path from "node:path"
 import { DialogSelect, type DialogSelectOption } from "../ui/dialog-select"
 import { useDialog } from "../ui/dialog"
 import { useSDK } from "../context/sdk"
@@ -59,7 +59,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
   // swallow it and let the directory list render without a current marker.
   const [loadedProject] = createResource(
     () => (projectContext.project() === props.projectID ? undefined : props.projectID),
-    (projectID) =>
+     async (projectID) =>
       sdk.client.project
         .current({}, { throwOnError: true })
         .then((result) => (result.data?.id === projectID ? result.data.worktree : undefined))

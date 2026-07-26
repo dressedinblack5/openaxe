@@ -49,7 +49,7 @@ export const layer = Layer.effect(
     const config = yield* Config.Service
     const loadAdapter = yield* Effect.cached(
       Effect.tryPromise({
-        try: () => import("./image/photon"),
+        try:  async () => import("./image/photon"),
         catch: () => new ResizerUnavailableError(),
       }).pipe(Effect.flatMap((adapter) => adapter.make)),
     )

@@ -1,6 +1,6 @@
 export * as FileSystemSearch from "./search"
 
-import path from "path"
+import path from "node:path"
 import { Context, Effect, Layer } from "effect"
 import { Fff } from "#fff"
 import fuzzysort from "fuzzysort"

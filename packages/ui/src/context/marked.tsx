@@ -377,7 +377,7 @@ export const OpenCodeTheme = {
   },
 } as unknown as ThemeRegistrationResolved
 
-registerCustomTheme("OpenCode", () => Promise.resolve(OpenCodeTheme))
+registerCustomTheme("OpenCode",  async () => Promise.resolve(OpenCodeTheme))
 
 function renderMathInText(text: string): string {
   let result = text

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import path from "path"
-import { pathToFileURL } from "url"
+import path from "node:path"
+import { pathToFileURL } from "node:url"
 import { Repository } from "@opencode-ai/core/repository"
 
 describe("Repository", () => {

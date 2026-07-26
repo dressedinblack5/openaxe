@@ -15,8 +15,8 @@ export function location(ref: Location.Ref, input: { projectDirectory?: Absolute
 
 export const tempLocationLayer = Layer.unwrap(
   Effect.acquireRelease(
-    Effect.promise(() => tmpdir()),
-    (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+    Effect.promise( async () => tmpdir()),
+    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
   ).pipe(
     Effect.map((tmp) => {
       const ref = Location.Ref.make({ directory: AbsolutePath.make(tmp.path) })

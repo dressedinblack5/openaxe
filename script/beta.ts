@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun"
-import fs from "fs/promises"
+import fs from "node:fs/promises"
 
 const model = "openaxe/gpt-5.3-codex"
 

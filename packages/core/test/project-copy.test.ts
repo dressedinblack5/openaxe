@@ -1,7 +1,7 @@
 import { describe, expect } from "bun:test"
 import { $ } from "bun"
-import fs from "fs/promises"
-import path from "path"
+import fs from "node:fs/promises"
+import path from "node:path"
 import { eq } from "drizzle-orm"
 import { Effect, Fiber, Layer, Stream } from "effect"
 import { AbsolutePath } from "@opencode-ai/core/schema"
@@ -45,11 +45,11 @@ async function initRepo(directory: string) {
 function setup() {
   return Effect.gen(function* () {
     const root = yield* Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (dir) => Effect.promise(() => dir[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (dir) => Effect.promise( async () => dir[Symbol.asyncDispose]()),
     )
-    yield* Effect.promise(() => initRepo(root.path))
-    const sourceDirectory = abs(yield* Effect.promise(() => fs.realpath(root.path)))
+    yield* Effect.promise( async () => initRepo(root.path))
+    const sourceDirectory = abs(yield* Effect.promise( async () => fs.realpath(root.path)))
     const projectID = Project.ID.make("copy-project")
     const { db } = yield* Database.Service
     yield* db
@@ -123,11 +123,11 @@ describe("ProjectCopy", () => {
       const input = yield* setup()
       const copy = yield* ProjectCopy.Service
       const events = yield* EventV2.Service
-      const temp = yield* Effect.promise(() => fs.realpath(path.dirname(input.root.path)))
+      const temp = yield* Effect.promise( async () => fs.realpath(path.dirname(input.root.path)))
       const parent = abs(path.join(temp, path.basename(input.root.path) + "-copy-created"))
       const target = abs(path.join(parent, "copy"))
       yield* Effect.addFinalizer(() =>
-        Effect.promise(() => fs.rm(parent, { recursive: true, force: true })).pipe(Effect.ignore),
+        Effect.promise( async () => fs.rm(parent, { recursive: true, force: true })).pipe(Effect.ignore),
       )
       const fiber = yield* events
         .subscribe(ProjectCopy.Event.Updated)
@@ -153,7 +153,7 @@ describe("ProjectCopy", () => {
       yield* copy.remove({ projectID: input.projectID, directory: created.directory, force: false })
 
       expect(yield* stored(input.projectID)).toEqual([{ directory: input.sourceDirectory, strategy: null }])
-      expect(yield* Effect.promise(() => Bun.file(target).exists())).toBe(false)
+      expect(yield* Effect.promise( async () => Bun.file(target).exists())).toBe(false)
     }),
   )
 
@@ -161,10 +161,10 @@ describe("ProjectCopy", () => {
     Effect.gen(function* () {
       const input = yield* setup()
       const copy = yield* ProjectCopy.Service
-      const temp = yield* Effect.promise(() => fs.realpath(path.dirname(input.root.path)))
+      const temp = yield* Effect.promise( async () => fs.realpath(path.dirname(input.root.path)))
       const parent = abs(path.join(temp, path.basename(input.root.path) + "-copy-dirty"))
       yield* Effect.addFinalizer(() =>
-        Effect.promise(() => fs.rm(parent, { recursive: true, force: true })).pipe(Effect.ignore),
+        Effect.promise( async () => fs.rm(parent, { recursive: true, force: true })).pipe(Effect.ignore),
       )
       const created = yield* copy.create({
         projectID: input.projectID,
@@ -173,7 +173,7 @@ describe("ProjectCopy", () => {
         directory: parent,
         name: "copy",
       })
-      yield* Effect.promise(() => Bun.write(path.join(created.directory, "dirty.txt"), "dirty"))
+      yield* Effect.promise( async () => Bun.write(path.join(created.directory, "dirty.txt"), "dirty"))
 
       const error = yield* copy
         .remove({ projectID: input.projectID, directory: created.directory, force: false })
@@ -185,10 +185,10 @@ describe("ProjectCopy", () => {
         expect(error.forceRequired).toBe(true)
       }
       expect(yield* stored(input.projectID)).toContainEqual({ directory: created.directory, strategy: "git_worktree" })
-      expect(yield* Effect.promise(() => Bun.file(path.join(created.directory, "dirty.txt")).exists())).toBe(true)
+      expect(yield* Effect.promise( async () => Bun.file(path.join(created.directory, "dirty.txt")).exists())).toBe(true)
 
       yield* copy.remove({ projectID: input.projectID, directory: created.directory, force: true })
-      expect(yield* Effect.promise(() => Bun.file(created.directory).exists())).toBe(false)
+      expect(yield* Effect.promise( async () => Bun.file(created.directory).exists())).toBe(false)
     }),
   )
 
@@ -197,8 +197,8 @@ describe("ProjectCopy", () => {
       const input = yield* setup()
       const copy = yield* ProjectCopy.Service
       const unavailable = abs(`${input.root.path}-copy-unavailable`)
-      yield* Effect.promise(() => fs.mkdir(unavailable))
-      yield* Effect.addFinalizer(() => Effect.promise(() => fs.rm(unavailable, { recursive: true, force: true })))
+      yield* Effect.promise( async () => fs.mkdir(unavailable))
+      yield* Effect.addFinalizer(() => Effect.promise( async () => fs.rm(unavailable, { recursive: true, force: true })))
       yield* input.db
         .insert(ProjectDirectoryTable)
         .values({ project_id: input.projectID, directory: unavailable, strategy: "acme/missing" })
@@ -218,14 +218,14 @@ describe("ProjectCopy", () => {
     Effect.gen(function* () {
       const input = yield* setup()
       const copy = yield* ProjectCopy.Service
-      const temp = yield* Effect.promise(() => fs.realpath(path.dirname(input.root.path)))
+      const temp = yield* Effect.promise( async () => fs.realpath(path.dirname(input.root.path)))
       const parent = abs(path.join(temp, path.basename(input.root.path) + "-copy-suffix"))
       const target = abs(path.join(parent, "copy-3"))
       yield* Effect.addFinalizer(() =>
-        Effect.promise(() => fs.rm(parent, { recursive: true, force: true })).pipe(Effect.ignore),
+        Effect.promise( async () => fs.rm(parent, { recursive: true, force: true })).pipe(Effect.ignore),
       )
-      yield* Effect.promise(() => fs.mkdir(path.join(parent, "copy"), { recursive: true }))
-      yield* Effect.promise(() => fs.mkdir(path.join(parent, "copy-2")))
+      yield* Effect.promise( async () => fs.mkdir(path.join(parent, "copy"), { recursive: true }))
+      yield* Effect.promise( async () => fs.mkdir(path.join(parent, "copy-2")))
 
       const created = yield* copy.create({
         projectID: input.projectID,
@@ -236,10 +236,10 @@ describe("ProjectCopy", () => {
       })
 
       expect(created.directory).toBe(target)
-      expect(yield* Effect.promise(() => fs.stat(path.join(parent, "copy")).then((item) => item.isDirectory()))).toBe(
+      expect(yield* Effect.promise( async () => fs.stat(path.join(parent, "copy")).then((item) => item.isDirectory()))).toBe(
         true,
       )
-      expect(yield* Effect.promise(() => fs.stat(path.join(parent, "copy-2")).then((item) => item.isDirectory()))).toBe(
+      expect(yield* Effect.promise( async () => fs.stat(path.join(parent, "copy-2")).then((item) => item.isDirectory()))).toBe(
         true,
       )
 
@@ -251,14 +251,14 @@ describe("ProjectCopy", () => {
     Effect.gen(function* () {
       const input = yield* setup()
       const copy = yield* ProjectCopy.Service
-      const temp = yield* Effect.promise(() => fs.realpath(path.dirname(input.root.path)))
+      const temp = yield* Effect.promise( async () => fs.realpath(path.dirname(input.root.path)))
       const parent = abs(path.join(temp, path.basename(input.root.path) + "-copy-conflicts"))
       yield* Effect.addFinalizer(() =>
-        Effect.promise(() => fs.rm(parent, { recursive: true, force: true })).pipe(Effect.ignore),
+        Effect.promise( async () => fs.rm(parent, { recursive: true, force: true })).pipe(Effect.ignore),
       )
-      yield* Effect.promise(() =>
+      yield* Effect.promise( async () =>
         Promise.all(
-          Array.from({ length: 10 }, (_, index) =>
+          Array.from({ length: 10 },  async (_, index) =>
             fs.mkdir(path.join(parent, index === 0 ? "copy" : `copy-${index + 1}`), { recursive: true }),
           ),
         ),
@@ -309,9 +309,9 @@ describe("ProjectCopy", () => {
       const events = yield* EventV2.Service
       const target = abs(`${input.root.path}-copy-external`)
       yield* Effect.addFinalizer(() =>
-        Effect.promise(() => fs.rm(target, { recursive: true, force: true })).pipe(Effect.ignore),
+        Effect.promise( async () => fs.rm(target, { recursive: true, force: true })).pipe(Effect.ignore),
       )
-      yield* Effect.promise(() => $`git worktree add --detach ${target} HEAD`.cwd(input.root.path).quiet())
+      yield* Effect.promise( async () => $`git worktree add --detach ${target} HEAD`.cwd(input.root.path).quiet())
       yield* input.db
         .insert(ProjectDirectoryTable)
         .values({ project_id: input.projectID, directory: target })
@@ -322,7 +322,7 @@ describe("ProjectCopy", () => {
         .pipe(Stream.take(1), Stream.runCollect, Effect.forkScoped)
       yield* Effect.yieldNow
 
-      const discovered = abs(yield* Effect.promise(() => fs.realpath(target)))
+      const discovered = abs(yield* Effect.promise( async () => fs.realpath(target)))
       expect(yield* copy.refresh({ projectID: input.projectID })).toEqual({ updated: [discovered], removed: [] })
 
       expect(yield* stored(input.projectID)).toEqual(
@@ -333,7 +333,7 @@ describe("ProjectCopy", () => {
       )
       expect(Array.from(yield* Fiber.join(fiber))[0]?.data).toEqual({ projectID: input.projectID })
 
-      yield* Effect.promise(() => $`git worktree remove --force ${target}`.cwd(input.root.path).quiet())
+      yield* Effect.promise( async () => $`git worktree remove --force ${target}`.cwd(input.root.path).quiet())
       expect(yield* copy.refresh({ projectID: input.projectID })).toEqual({ updated: [], removed: [discovered] })
       expect(yield* stored(input.projectID)).toEqual([{ directory: input.sourceDirectory, strategy: null }])
     }),
@@ -346,15 +346,15 @@ describe("ProjectCopy", () => {
       const stale = abs(`${input.root.path}-copy-stale`)
       const target = abs(`${input.root.path}-copy-after-stale`)
       yield* Effect.addFinalizer(() =>
-        Effect.promise(() => fs.rm(target, { recursive: true, force: true })).pipe(Effect.ignore),
+        Effect.promise( async () => fs.rm(target, { recursive: true, force: true })).pipe(Effect.ignore),
       )
-      yield* Effect.promise(() => $`git worktree add --detach ${stale} HEAD`.cwd(input.root.path).quiet())
-      yield* Effect.promise(() => fs.rm(stale, { recursive: true, force: true }))
-      yield* Effect.promise(() => $`git worktree add --detach ${target} HEAD`.cwd(input.root.path).quiet())
+      yield* Effect.promise( async () => $`git worktree add --detach ${stale} HEAD`.cwd(input.root.path).quiet())
+      yield* Effect.promise( async () => fs.rm(stale, { recursive: true, force: true }))
+      yield* Effect.promise( async () => $`git worktree add --detach ${target} HEAD`.cwd(input.root.path).quiet())
 
       yield* copy.refresh({ projectID: input.projectID })
 
-      const discovered = abs(yield* Effect.promise(() => fs.realpath(target)))
+      const discovered = abs(yield* Effect.promise( async () => fs.realpath(target)))
       expect(yield* stored(input.projectID)).toEqual(
         [
           { directory: input.sourceDirectory, strategy: null },
@@ -367,7 +367,7 @@ describe("ProjectCopy", () => {
   it.live("refresh ignores existing directories that are no longer git checkouts", () =>
     Effect.gen(function* () {
       const input = yield* setup()
-      yield* Effect.promise(() => fs.rm(path.join(input.sourceDirectory, ".git"), { recursive: true }))
+      yield* Effect.promise( async () => fs.rm(path.join(input.sourceDirectory, ".git"), { recursive: true }))
       const copy = yield* ProjectCopy.Service
 
       yield* copy.refresh({ projectID: input.projectID })

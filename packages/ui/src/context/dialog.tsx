@@ -182,11 +182,11 @@ export function useDialog() {
     get active() {
       return ctx.stack().at(-1)
     },
-    show(element: DialogElement, onClose?: () => void) {
+     async show(element: DialogElement, onClose?: () => void) {
       const base = ctx.stack().at(-1)?.owner ?? owner
       return startTransition(() => ctx.show(element, base, onClose))
     },
-    push(element: DialogElement, onClose?: () => void) {
+     async push(element: DialogElement, onClose?: () => void) {
       const base = ctx.stack().at(-1)?.owner ?? owner
       return startTransition(() => ctx.push(element, base, onClose))
     },

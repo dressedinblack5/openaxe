@@ -2,7 +2,7 @@
 import { $ } from "bun"
 import pkg from "../package.json"
 import { Script } from "@opencode-ai/script"
-import { fileURLToPath } from "url"
+import { fileURLToPath } from "node:url"
 
 const dir = fileURLToPath(new URL("..", import.meta.url))
 process.chdir(dir)
@@ -46,7 +46,7 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
 )
 
 await Promise.all(
-  Object.entries(binaries).map(([name, version]) =>
+  Object.entries(binaries).map( async ([name, version]) =>
     publish(`./dist/${name.replace("@opencode-ai/", "")}`, name, version),
   ),
 )

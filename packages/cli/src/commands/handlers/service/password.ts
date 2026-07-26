@@ -1,4 +1,4 @@
-import { EOL } from "os"
+import { EOL } from "node:os"
 import { Option } from "effect"
 import { fn } from "effect/Effect";
 import { Commands } from "../../commands"

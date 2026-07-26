@@ -1,7 +1,7 @@
 export * as ConfigAgentPlugin from "./agent"
 
 import { define } from "../../plugin/internal"
-import path from "path"
+import path from "node:path"
 import { Effect, Option, Schema } from "effect"
 import { AgentV2 } from "../../agent"
 import { Config } from "../../config"

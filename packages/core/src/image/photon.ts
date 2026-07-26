@@ -5,7 +5,7 @@ import { DecodeError, ResizerUnavailableError, SizeError } from "../image"
 export const make = Effect.gen(function* () {
   const loadPhoton = yield* Effect.cached(
     Effect.tryPromise({
-      try: () => import("@silvia-odwyer/photon-node") as Promise<typeof import("@silvia-odwyer/photon-node")>,
+      try:  async () => import("@silvia-odwyer/photon-node") as Promise<typeof import("@silvia-odwyer/photon-node")>,
       catch: () => new ResizerUnavailableError(),
     }),
   )

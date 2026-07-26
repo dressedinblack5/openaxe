@@ -1,6 +1,6 @@
 import { describe, expect } from "bun:test"
 import { NodeFileSystem } from "@effect/platform-node"
-import path from "path"
+import path from "node:path"
 import { Effect, FileSystem, Layer } from "effect"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { ReadToolFileSystem } from "@opencode-ai/core/tool/read-filesystem"

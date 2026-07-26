@@ -10,7 +10,7 @@ import { SessionExecution } from "../session/execution"
 import { SessionEvent } from "../session/event"
 import { SessionSchema } from "../session/schema"
 import { AbsolutePath, RelativePath } from "../schema"
-import path from "path"
+import path from "node:path"
 
 export const Destination = Schema.Struct({
   directory: AbsolutePath,

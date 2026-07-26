@@ -1,5 +1,5 @@
-import fs from "fs/promises"
-import path from "path"
+import fs from "node:fs/promises"
+import path from "node:path"
 import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
 import { NodeFileSystem } from "@effect/platform-node"
@@ -77,9 +77,9 @@ const guardrailLayer = Guardrail.layer.pipe(Layer.provideMerge(NodeFileSystem.la
 describe("guardrail settlement verification", () => {
   gw.live("appends auto-verification warnings on edit that introduces unbalanced brackets", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) =>
-        Effect.promise(() => fs.writeFile(path.join(tmp.path, "broken.ts"), "const x = { ok: 1 };")).pipe(
+        Effect.promise( async () => fs.writeFile(path.join(tmp.path, "broken.ts"), "const x = { ok: 1 };")).pipe(
           Effect.andThen(
             withTool(tmp.path, guardrailLayer, (registry) =>
               settleTool(registry, call({ path: "broken.ts", oldString: "ok: 1", newString: "ok: 1, bad: {" })),
@@ -92,15 +92,15 @@ describe("guardrail settlement verification", () => {
             ),
           ),
         ),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("does not add warnings when guardrail is not in context", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) =>
-        Effect.promise(() => fs.writeFile(path.join(tmp.path, "bad.ts"), "const x = 1;")).pipe(
+        Effect.promise( async () => fs.writeFile(path.join(tmp.path, "bad.ts"), "const x = 1;")).pipe(
           Effect.andThen(
             withTool(tmp.path, Layer.empty, (registry) =>
               settleTool(registry, call({ path: "bad.ts", oldString: "1", newString: "{ bad" })),
@@ -114,15 +114,15 @@ describe("guardrail settlement verification", () => {
             ),
           ),
         ),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   gw.live("does not add warnings for a structurally clean file", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) =>
-        Effect.promise(() => fs.writeFile(path.join(tmp.path, "clean.ts"), "const x = 1;")).pipe(
+        Effect.promise( async () => fs.writeFile(path.join(tmp.path, "clean.ts"), "const x = 1;")).pipe(
           Effect.andThen(
             withTool(tmp.path, guardrailLayer, (registry) =>
               settleTool(registry, call({ path: "clean.ts", oldString: "1", newString: "2" })),
@@ -136,7 +136,7 @@ describe("guardrail settlement verification", () => {
             ),
           ),
         ),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 })

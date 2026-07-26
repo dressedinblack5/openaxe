@@ -5,7 +5,6 @@ import path from "path"
 import { Agent } from "../../src/agent/agent"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { LSP } from "@/lsp/lsp"
 import { Permission } from "../../src/permission"
@@ -41,7 +40,7 @@ const ctx = {
   ask: () => Effect.void,
 }
 
-const readLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
+const readLayer = () =>
   Layer.mergeAll(
     Agent.defaultLayer,
     FSUtil.defaultLayer,
@@ -91,7 +90,7 @@ const fail = Effect.fn("ReadToolTest.fail")(function* (
 const full = (p: string) => (process.platform === "win32" ? Filesystem.normalizePath(p) : p)
 const glob = (p: string) =>
   process.platform === "win32" ? Filesystem.normalizePathPattern(p) : p.replaceAll("\\", "/")
-const githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>
+const _githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>
   Effect.acquireUseRelease(
     Effect.sync(() => {
       const previous = process.env.OPENCODE_REPO_CLONE_GITHUB_BASE_URL

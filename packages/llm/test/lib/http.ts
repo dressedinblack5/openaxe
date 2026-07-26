@@ -22,7 +22,7 @@ const handlerLayer = (handler: Handler): Layer.Layer<HttpClient.HttpClient> =>
     HttpClient.make((request) =>
       Effect.gen(function* () {
         const web = yield* HttpClientRequest.toWeb(request).pipe(Effect.orDie)
-        const text = yield* Effect.promise(() => web.text())
+        const text = yield* Effect.promise( async () => web.text())
         return yield* handler({
           request,
           text,

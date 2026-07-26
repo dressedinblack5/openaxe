@@ -103,15 +103,15 @@ describe("cross-spawn spawner", () => {
       "uses cwd when spawning commands",
       Effect.gen(function* () {
         const tmp = yield* Effect.acquireRelease(
-          Effect.promise(() => tmpdir()),
-          (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+          Effect.promise( async () => tmpdir()),
+          (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
         )
         const out = yield* ChildProcessSpawner.ChildProcessSpawner.use((svc) =>
           svc.string(
             ChildProcess.make(process.execPath, ["-e", "process.stdout.write(process.cwd())"], { cwd: tmp.path }),
           ),
         )
-        expect(yield* Effect.promise(() => fs.realpath(out))).toBe(yield* Effect.promise(() => fs.realpath(tmp.path)))
+        expect(yield* Effect.promise( async () => fs.realpath(out))).toBe(yield* Effect.promise( async () => fs.realpath(tmp.path)))
       }),
     )
 
@@ -251,7 +251,7 @@ describe("cross-spawn spawner", () => {
             return Number(handle.pid)
           }),
         )
-        const done = yield* Effect.promise(() => gone(pid))
+        const done = yield* Effect.promise( async () => gone(pid))
         expect(done).toBe(true)
       }),
     )
@@ -400,14 +400,14 @@ describe("cross-spawn spawner", () => {
         if (process.platform !== "win32") return
 
         const tmp = yield* Effect.acquireRelease(
-          Effect.promise(() => tmpdir()),
-          (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+          Effect.promise( async () => tmpdir()),
+          (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
         )
         const dir = path.join(tmp.path, "with space")
         const file = path.join(dir, "echo cmd.cmd")
 
-        yield* Effect.promise(() => fs.mkdir(dir, { recursive: true }))
-        yield* Effect.promise(() => fs.writeFile(file, "@echo off\r\nif %~1==--stdio exit /b 0\r\nexit /b 7\r\n"))
+        yield* Effect.promise( async () => fs.mkdir(dir, { recursive: true }))
+        yield* Effect.promise( async () => fs.writeFile(file, "@echo off\r\nif %~1==--stdio exit /b 0\r\nexit /b 7\r\n"))
 
         const code = yield* ChildProcessSpawner.ChildProcessSpawner.use((svc) =>
           svc.exitCode(

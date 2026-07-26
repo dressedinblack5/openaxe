@@ -61,11 +61,11 @@ const effectIt = testEffect(
   ),
 )
 
-const directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
+const _directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
 
 const serverUrl = () => HttpServer.HttpServer.use((server) => Effect.succeed(HttpServer.formatAddress(server.address)))
 
-const httpClientRequest = (method: "get" | "post" | "put" | "delete", path: string) =>
+const _httpClientRequest = (method: "get" | "post" | "put" | "delete", path: string) =>
   Effect.gen(function* () {
     const base = yield* serverUrl()
     return HttpClientRequest[method](`${base}${path}`)

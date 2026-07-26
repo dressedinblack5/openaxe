@@ -4,7 +4,6 @@ import type { Command, Environment } from "effect/unstable/cli/Command"
 import { run as commandRun, withHandler, withSubcommands } from "effect/unstable/cli/Command"
 import { Spec } from "./spec"
 import { Daemon } from "../services/daemon"
-import { Scope } from "effect/Scope"
 
 export type Input<Value> =
   Value extends Spec.Node<infer _Name, infer Command, infer _Commands>
@@ -13,11 +12,11 @@ export type Input<Value> =
       ? Input
       : never
 
-type RuntimeHandler = (input: unknown) => Effect<void, unknown, Daemon.Service | Scope>
+type RuntimeHandler = (input: unknown) => Effect<void, unknown, Daemon.Service>
 type Loader<Node extends Spec.Any> = () => Promise<{
-  default: (input: Input<Node>) => Effect<void, any, Daemon.Service | Scope>
+  default: (input: Input<Node>) => Effect<void, any, Daemon.Service>
 }>
-type ProvidedCommand = Command<string, unknown, unknown, unknown, Daemon.Service | Scope>
+type ProvidedCommand = Command<string, unknown, unknown, unknown, Daemon.Service>
 
 export type Handlers<Node extends Spec.Any> = keyof Node["commands"] extends never
   ? Loader<Node>

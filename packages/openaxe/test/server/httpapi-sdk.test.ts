@@ -186,7 +186,7 @@ function sessionTitles(value: unknown) {
     .sort()
 }
 
-function resetState() {
+function _resetState() {
   return Effect.promise(async () => {
     await disposeAllInstances()
     await resetDatabase()

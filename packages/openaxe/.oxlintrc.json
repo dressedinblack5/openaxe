@@ -8,7 +8,14 @@
   "categories": {
     "correctness": "error"
   },
-  "rules": {},
+  "rules": {
+    "require-yield": "off",
+    "no-control-regex": "off",
+    "no-unused-expressions": "warn",
+    "no-unassigned-vars": "warn",
+    "triple-slash-reference": "warn",
+    "no-unused-vars": "warn"
+  },
   "env": {
     "builtin": true
   }

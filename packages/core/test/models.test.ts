@@ -7,8 +7,8 @@ import { Global } from "@opencode-ai/core/global"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
 import { EventV2 } from "@opencode-ai/core/event"
 import { it } from "./lib/effect"
-import { readFile, rm, writeFile, utimes, mkdir } from "fs/promises"
-import path from "path"
+import { readFile, rm, writeFile, utimes, mkdir } from "node:fs/promises"
+import path from "node:path"
 
 // test/preload.ts pins OPENCODE_MODELS_PATH to a fixture so other tests can
 // resolve providers without network. These tests need to drive the on-disk
@@ -169,7 +169,7 @@ describe("ModelsDev Service", () => {
           }),
       )
       expect(result).toEqual(fixture2)
-      expect(yield* Effect.promise(() => readFile(cacheFile, "utf8"))).toBe(JSON.stringify(fixture2))
+      expect(yield* Effect.promise( async () => readFile(cacheFile, "utf8"))).toBe(JSON.stringify(fixture2))
       const final = yield* Ref.get(state)
       expect(final.calls.length).toBe(1)
     }),

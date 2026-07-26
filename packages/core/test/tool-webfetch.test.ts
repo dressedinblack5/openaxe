@@ -136,7 +136,7 @@ describe("WebFetchTool registration", () => {
             { sessionID, action: "webfetch", resources: [url], save: ["*"], metadata: { url, format: "text" } },
           ])
         }),
-      (server) => Effect.promise(() => server.stop(true)),
+      (server) => Effect.promise( async () => server.stop(true)),
     ),
   )
 

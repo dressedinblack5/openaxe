@@ -1,7 +1,5 @@
 import type { Argv } from "yargs"
 import { Effect, Schema } from "effect"
-import type { AppServices } from "@/effect/app-runtime"
-import type { InstanceStore } from "@/project/instance-store"
 import { cmd, type WithDoubleDash } from "./cmd/cmd"
 
 /**

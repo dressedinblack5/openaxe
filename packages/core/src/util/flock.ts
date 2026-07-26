@@ -1,7 +1,7 @@
-import path from "path"
-import os from "os"
-import { randomBytes, randomUUID } from "crypto"
-import { mkdir, readFile, rm, stat, utimes, writeFile } from "fs/promises"
+import path from "node:path"
+import os from "node:os"
+import { randomBytes, randomUUID } from "node:crypto"
+import { mkdir, readFile, rm, stat, utimes, writeFile } from "node:fs/promises"
 import { Hash } from "./hash"
 import { Effect } from "effect"
 
@@ -72,7 +72,7 @@ function code(err: unknown) {
   return value
 }
 
-function sleep(ms: number, signal?: AbortSignal) {
+ async function sleep(ms: number, signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {
       reject(signal.reason ?? new Error("Aborted"))
@@ -329,10 +329,10 @@ export async function acquire(key: string, input: Options = {}): Promise<Lease> 
   )
   lock.startHeartbeat()
 
-  const release = () => lock.release()
+  const release =  async () => lock.release()
   return {
     release,
-    [Symbol.asyncDispose]() {
+     async [Symbol.asyncDispose]() {
       return release()
     },
   }
@@ -346,12 +346,12 @@ export async function withLock<T>(key: string, fn: () => Promise<T>, input: Opti
 
 export const effect = Effect.fn("Flock.effect")(function* (key: string, input: Options = {}) {
   return yield* Effect.acquireRelease(
-    Effect.promise((signal) => acquire(key, { ...input, signal })).pipe(
+    Effect.promise( async (signal) => acquire(key, { ...input, signal })).pipe(
       Effect.withSpan("Flock.acquire", {
         attributes: { key },
       }),
     ),
-    (lock) => Effect.promise(() => lock.release()).pipe(Effect.withSpan("Flock.release")),
+    (lock) => Effect.promise( async () => lock.release()).pipe(Effect.withSpan("Flock.release")),
   ).pipe(Effect.asVoid)
 })
 

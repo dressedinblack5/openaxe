@@ -1,5 +1,5 @@
 import { describe, expect } from "bun:test"
-import fs from "fs/promises"
+import fs from "node:fs/promises"
 import { realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
@@ -139,7 +139,7 @@ describe("AppProcess", () => {
       it.live(
         "timeout cleans up the scoped child process",
         Effect.acquireUseRelease(
-          Effect.promise(() => fs.mkdtemp(path.join(tmpdir(), "opencode-process-timeout-"))),
+          Effect.promise( async () => fs.mkdtemp(path.join(tmpdir(), "opencode-process-timeout-"))),
           (directory) => {
             const ready = path.join(directory, "ready")
             const settled = path.join(directory, "settled")
@@ -152,7 +152,7 @@ describe("AppProcess", () => {
               expect(yield* waitForFile(settled)).toBe("settled")
             })
           },
-          (directory) => Effect.promise(() => fs.rm(directory, { recursive: true, force: true })),
+          (directory) => Effect.promise( async () => fs.rm(directory, { recursive: true, force: true })),
         ),
         5_000,
       )
@@ -160,7 +160,7 @@ describe("AppProcess", () => {
       it.live(
         "fiber interruption cleans up the scoped child process after readiness",
         Effect.acquireUseRelease(
-          Effect.promise(() => fs.mkdtemp(path.join(tmpdir(), "opencode-process-interrupt-"))),
+          Effect.promise( async () => fs.mkdtemp(path.join(tmpdir(), "opencode-process-interrupt-"))),
           (directory) => {
             const ready = path.join(directory, "ready")
             const settled = path.join(directory, "settled")
@@ -173,7 +173,7 @@ describe("AppProcess", () => {
               expect(yield* waitForFile(settled)).toBe("settled")
             })
           },
-          (directory) => Effect.promise(() => fs.rm(directory, { recursive: true, force: true })),
+          (directory) => Effect.promise( async () => fs.rm(directory, { recursive: true, force: true })),
         ),
         5_000,
       )

@@ -349,8 +349,6 @@ export const layer = Layer.effect(
         let result: Info = {}
         const authEnv: Record<string, string> = {}
         const consoleManagedProviders = new Set<string>()
-        let activeOrgName: string | undefined
-
         const pluginScopeForSource = Effect.fnUntraced(function* (source: string) {
           if (source.startsWith("http://") || source.startsWith("https://")) return "global"
           if (source === "OPENCODE_CONFIG_CONTENT") return "local"
@@ -631,7 +629,7 @@ export const layer = Layer.effect(
           deps,
           consoleState: {
             consoleManagedProviders: Array.from(consoleManagedProviders),
-            activeOrgName,
+            activeOrgName: undefined,
             switchableOrgCount: 0,
           },
         }

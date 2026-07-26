@@ -184,7 +184,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
   )
 }
 
-DialogExportOptions.show = (
+DialogExportOptions.show =  async (
   dialog: DialogContext,
   defaultFilename: string,
   defaultThinking: boolean,

@@ -1,6 +1,6 @@
-import fs from "fs/promises"
-import path from "path"
-import { fileURLToPath } from "url"
+import fs from "node:fs/promises"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { describe, expect, test } from "bun:test"
 import { Effect, Layer } from "effect"
 import { FileMutation } from "@opencode-ai/core/file-mutation"
@@ -87,7 +87,7 @@ const it = testEffect(Layer.empty)
 describe("WriteTool", () => {
   it.live("registers and creates a relative file through FileMutation once", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         return withTool(tmp.path, (registry) =>
@@ -99,31 +99,31 @@ describe("WriteTool", () => {
               output: {
                 structured: {
                   operation: "write",
-                  target: path.join(yield* Effect.promise(() => fs.realpath(tmp.path)), "src", "new.txt"),
+                  target: path.join(yield* Effect.promise( async () => fs.realpath(tmp.path)), "src", "new.txt"),
                   resource: "src/new.txt",
                   existed: false,
                 },
                 content: [{ type: "text", text: "Created file successfully: src/new.txt" }],
               },
             })
-            expect(yield* Effect.promise(() => fs.readFile(path.join(tmp.path, "src", "new.txt"), "utf8"))).toBe(
+            expect(yield* Effect.promise( async () => fs.readFile(path.join(tmp.path, "src", "new.txt"), "utf8"))).toBe(
               "created",
             )
             expect(assertions).toMatchObject([{ sessionID, action: "edit", resources: ["src/new.txt"], save: ["*"] }])
-            expect(writes).toEqual([path.join(yield* Effect.promise(() => fs.realpath(tmp.path)), "src", "new.txt")])
+            expect(writes).toEqual([path.join(yield* Effect.promise( async () => fs.realpath(tmp.path)), "src", "new.txt")])
           }),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("overwrites a relative existing file and reports that it wrote the file", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
-        return Effect.promise(() => fs.writeFile(path.join(tmp.path, "existing.txt"), "before")).pipe(
+        return Effect.promise( async () => fs.writeFile(path.join(tmp.path, "existing.txt"), "before")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) => settleTool(registry, call({ path: "existing.txt", content: "after" }))),
           ),
@@ -131,7 +131,7 @@ describe("WriteTool", () => {
             Effect.gen(function* () {
               expect(settled.result).toEqual({ type: "text", value: "Wrote file successfully: existing.txt" })
               expect(settled.output?.structured).toMatchObject({ resource: "existing.txt", existed: true })
-              expect(yield* Effect.promise(() => fs.readFile(path.join(tmp.path, "existing.txt"), "utf8"))).toBe(
+              expect(yield* Effect.promise( async () => fs.readFile(path.join(tmp.path, "existing.txt"), "utf8"))).toBe(
                 "after",
               )
               expect(writes).toHaveLength(1)
@@ -139,18 +139,18 @@ describe("WriteTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("preserves exactly one BOM when overwriting existing files", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         const preserved = path.join(tmp.path, "preserved.txt")
         const deduplicated = path.join(tmp.path, "deduplicated.txt")
-        return Effect.promise(() =>
+        return Effect.promise( async () =>
           Promise.all([fs.writeFile(preserved, "\uFEFFbefore"), fs.writeFile(deduplicated, "\uFEFFbefore")]),
         ).pipe(
           Effect.andThen(
@@ -162,20 +162,20 @@ describe("WriteTool", () => {
                   call({ path: "deduplicated.txt", content: "\uFEFFafter" }, "call-deduplicated"),
                 )
 
-                expect(yield* Effect.promise(() => fs.readFile(preserved, "utf8"))).toBe("\uFEFFafter")
-                expect(yield* Effect.promise(() => fs.readFile(deduplicated, "utf8"))).toBe("\uFEFFafter")
+                expect(yield* Effect.promise( async () => fs.readFile(preserved, "utf8"))).toBe("\uFEFFafter")
+                expect(yield* Effect.promise( async () => fs.readFile(deduplicated, "utf8"))).toBe("\uFEFFafter")
               }),
             ),
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("accepts an absolute file path inside the active Location", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         const target = path.join(tmp.path, "absolute.txt")
@@ -184,18 +184,18 @@ describe("WriteTool", () => {
             Effect.gen(function* () {
               expect(result).toEqual({ type: "text", value: "Created file successfully: absolute.txt" })
               expect(assertions.map((input) => input.action)).toEqual(["edit"])
-              expect(yield* Effect.promise(() => fs.readFile(target, "utf8"))).toBe("inside")
+              expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("inside")
             }),
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("approves an explicit external absolute path before edit", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => Promise.all([tmpdir(), tmpdir()])),
+      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
       ([active, outside]) => {
         reset()
         const target = path.join(outside.path, "external.txt")
@@ -204,11 +204,11 @@ describe("WriteTool", () => {
         ).pipe(
           Effect.andThen((settled) =>
             Effect.gen(function* () {
-              const canonicalTarget = path.join(yield* Effect.promise(() => fs.realpath(outside.path)), "external.txt")
+              const canonicalTarget = path.join(yield* Effect.promise( async () => fs.realpath(outside.path)), "external.txt")
               expect(assertions.map((input) => input.action)).toEqual(["external_directory", "edit"])
               expect(assertions[0]).toMatchObject({
                 resources: [
-                  path.join(yield* Effect.promise(() => fs.realpath(outside.path)), "*").replaceAll("\\", "/"),
+                  path.join(yield* Effect.promise( async () => fs.realpath(outside.path)), "*").replaceAll("\\", "/"),
                 ],
               })
               expect(assertions[1]).toMatchObject({ resources: [canonicalTarget.replaceAll("\\", "/")], save: ["*"] })
@@ -217,14 +217,14 @@ describe("WriteTool", () => {
                 resource: canonicalTarget.replaceAll("\\", "/"),
                 existed: false,
               })
-              expect(yield* Effect.promise(() => fs.readFile(target, "utf8"))).toBe("external")
+              expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("external")
               expect(writes).toEqual([canonicalTarget])
             }),
           ),
         )
       },
       ([active, outside]) =>
-        Effect.promise(() =>
+        Effect.promise( async () =>
           Promise.all([active[Symbol.asyncDispose](), outside[Symbol.asyncDispose]()]).then(() => undefined),
         ),
     ),
@@ -232,7 +232,7 @@ describe("WriteTool", () => {
 
   it.live("does not write when external_directory or edit approval is denied", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => Promise.all([tmpdir(), tmpdir()])),
+      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
       ([active, outside]) =>
         Effect.gen(function* () {
           const external = path.join(outside.path, "denied.txt")
@@ -263,7 +263,7 @@ describe("WriteTool", () => {
           expect(writes).toEqual([])
         }),
       ([active, outside]) =>
-        Effect.promise(() =>
+        Effect.promise( async () =>
           Promise.all([active[Symbol.asyncDispose](), outside[Symbol.asyncDispose]()]).then(() => undefined),
         ),
     ),

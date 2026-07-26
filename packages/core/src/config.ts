@@ -1,6 +1,6 @@
 export * as Config from "./config"
 
-import path from "path"
+import path from "node:path"
 import { type ParseError, parse } from "jsonc-parser"
 import { Context, Effect, Layer, Option, Schema } from "effect"
 import { Permission } from "@opencode-ai/schema/permission"

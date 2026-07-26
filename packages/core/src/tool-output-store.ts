@@ -1,6 +1,6 @@
 export * as ToolOutputStore from "./tool-output-store"
 
-import path from "path"
+import path from "node:path"
 import { Context, Duration, Effect, Layer, Option, Schedule, Schema } from "effect"
 import { Config } from "./config"
 import { FSUtil } from "./fs-util"

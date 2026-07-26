@@ -1,6 +1,6 @@
 export * as Npm from "./npm"
 
-import path from "path"
+import path from "node:path"
 import { Effect, Schema, Context, Layer, Option, FileSystem } from "effect"
 import { NodeFileSystem } from "@effect/platform-node"
 import { FSUtil } from "./fs-util"
@@ -125,7 +125,7 @@ export const layer = Layer.effect(
     const reify = (input: { dir: string; add?: string[] }) =>
       Effect.gen(function* () {
         yield* flock.acquire(`npm-install:${input.dir}`)
-        const { Arborist } = yield* Effect.promise(() => import("@npmcli/arborist"))
+        const { Arborist } = yield* Effect.promise( async () => import("@npmcli/arborist"))
         const add = input.add ?? []
         const npmOptions = yield* NpmConfig.load(input.dir)
         const arborist = new Arborist({
@@ -137,7 +137,7 @@ export const layer = Layer.effect(
           ignoreScripts: true,
         })
         return yield* Effect.tryPromise({
-          try: () =>
+          try:  async () =>
             arborist.reify({
               ...npmOptions,
               add,

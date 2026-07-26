@@ -1,5 +1,5 @@
-import fs from "fs/promises"
-import path from "path"
+import fs from "node:fs/promises"
+import path from "node:path"
 import { describe, expect, test } from "bun:test"
 import { NodeFileSystem } from "@effect/platform-node"
 import { Effect, Layer } from "effect"
@@ -11,7 +11,7 @@ import { tmpdir } from "./fixture/tmpdir"
 
 const win = process.platform === "win32"
 
-const writePackage = (dir: string, pkg: Record<string, unknown>) =>
+const writePackage =  async (dir: string, pkg: Record<string, unknown>) =>
   Bun.write(
     path.join(dir, "package.json"),
     JSON.stringify({

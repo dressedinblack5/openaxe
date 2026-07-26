@@ -42,7 +42,7 @@ export const AzurePlugin = define({
             )
           }
         }
-        const mod = yield* Effect.promise(() => import("@ai-sdk/azure"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/azure"))
         evt.sdk = mod.createAzure(evt.options)
       }),
     )

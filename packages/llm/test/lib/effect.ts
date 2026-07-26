@@ -8,7 +8,7 @@ type Body<A, E, R> = Effect.Effect<A, E, R> | (() => Effect.Effect<A, E, R>)
 
 const body = <A, E, R>(value: Body<A, E, R>) => Effect.suspend(() => (typeof value === "function" ? value() : value))
 
-const run = <A, E, R, E2>(value: Body<A, E, R | Scope.Scope>, layer: Layer.Layer<R, E2>) =>
+const run =  async <A, E, R, E2>(value: Body<A, E, R | Scope.Scope>, layer: Layer.Layer<R, E2>) =>
   Effect.gen(function* () {
     const exit = yield* body(value).pipe(Effect.scoped, Effect.provide(layer), Effect.exit)
     if (Exit.isFailure(exit)) {
@@ -21,22 +21,22 @@ const run = <A, E, R, E2>(value: Body<A, E, R | Scope.Scope>, layer: Layer.Layer
 
 const make = <R, E>(testLayer: Layer.Layer<R, E>, liveLayer: Layer.Layer<R, E>) => {
   const effect = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: TestOptions) =>
-    test(name, () => run(value, testLayer), opts)
+    test(name,  async () => run(value, testLayer), opts)
 
   effect.only = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: TestOptions) =>
-    test.only(name, () => run(value, testLayer), opts)
+    test.only(name,  async () => run(value, testLayer), opts)
 
   effect.skip = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: TestOptions) =>
-    test.skip(name, () => run(value, testLayer), opts)
+    test.skip(name,  async () => run(value, testLayer), opts)
 
   const live = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: TestOptions) =>
-    test(name, () => run(value, liveLayer), opts)
+    test(name,  async () => run(value, liveLayer), opts)
 
   live.only = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: TestOptions) =>
-    test.only(name, () => run(value, liveLayer), opts)
+    test.only(name,  async () => run(value, liveLayer), opts)
 
   live.skip = <A, E2>(name: string, value: Body<A, E2, R | Scope.Scope>, opts?: TestOptions) =>
-    test.skip(name, () => run(value, liveLayer), opts)
+    test.skip(name,  async () => run(value, liveLayer), opts)
 
   return { effect, live }
 }

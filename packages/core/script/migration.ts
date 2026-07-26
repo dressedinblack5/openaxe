@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun"
-import fs from "fs/promises"
-import os from "os"
-import path from "path"
-import { pathToFileURL } from "url"
-import { parseArgs } from "util"
+import fs from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
+import { pathToFileURL } from "node:url"
+import { parseArgs } from "node:util"
 
 const root = path.resolve(import.meta.dirname, "../../..")
 const snapshot = path.join(root, "packages/core/schema.json")

@@ -8,7 +8,7 @@ export const XAIPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/xai") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/xai"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/xai"))
         evt.sdk = mod.createXai(evt.options)
       }),
     )

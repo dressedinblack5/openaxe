@@ -1,4 +1,4 @@
-import { createHash } from "crypto"
+import { createHash } from "node:crypto"
 
 export function fast(input: string | Buffer): string {
   return createHash("sha1").update(input).digest("hex")

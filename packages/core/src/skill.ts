@@ -1,6 +1,6 @@
 export * as SkillV2 from "./skill"
 
-import path from "path"
+import path from "node:path"
 import { Context, Effect, Layer, Schema, Types } from "effect"
 import { Skill } from "@opencode-ai/schema/skill"
 import { AgentV2 } from "./agent"

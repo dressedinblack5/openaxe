@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 import { Context, Effect, Layer, Schema } from "effect"
 import { FSUtil } from "./fs-util"
 import { Git } from "./git"

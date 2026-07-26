@@ -1245,6 +1245,7 @@ export function createPromptState(input: PromptInput): PromptState {
     menu.reset()
 
     // Effect 3: Focus area when phase becomes idle
+    // eslint-disable-next-line no-unused-expressions -- SolidJS signal read for reactive tracking
     input.state().phase
     if (input.prompt() && area && !area.isDestroyed && input.state().phase === "idle") {
       queueMicrotask(() => {

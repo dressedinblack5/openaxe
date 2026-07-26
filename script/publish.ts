@@ -2,7 +2,7 @@
 
 import { Script } from "@opencode-ai/script"
 import { $ } from "bun"
-import { fileURLToPath } from "url"
+import { fileURLToPath } from "node:url"
 
 console.log("=== publishing ===\n")
 

@@ -190,7 +190,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
 
     const loads = new Map<string, Promise<DesktopTheme | undefined>>()
 
-    const load = (id: string) => {
+    const load =  async (id: string) => {
       const next = normalize(id)
       if (!next) return Promise.resolve(undefined)
       const hit = store.themes[next]
@@ -226,7 +226,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       return [...all, ...extra]
     }
 
-    const loadThemes = () => Promise.all(themeIDs().map(load)).then(() => store.themes)
+    const loadThemes =  async () => Promise.all(themeIDs().map(load)).then(() => store.themes)
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEYS.THEME_ID && e.newValue) {

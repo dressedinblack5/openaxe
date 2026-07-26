@@ -91,7 +91,7 @@ export const GoogleVertexPlugin = define({
           return
         }
         if (evt.package !== "@ai-sdk/google-vertex") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/google-vertex"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/google-vertex"))
         const project = resolveProject(evt.options)
         const location = resolveLocation(evt.options)
         const options = { ...evt.options }
@@ -140,7 +140,7 @@ export const GoogleVertexAnthropicPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/google-vertex/anthropic") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/google-vertex/anthropic"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/google-vertex/anthropic"))
         const project =
           typeof evt.options.project === "string"
             ? evt.options.project

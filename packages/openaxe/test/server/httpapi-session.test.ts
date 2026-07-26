@@ -106,7 +106,7 @@ const isolatedRun: Runner = (value, layer) =>
     return yield* exit
   }).pipe(Effect.runPromise)
 
-const sharedRun: Runner = (value, layer) =>
+const _sharedRun: Runner = (value, layer) =>
   Effect.gen(function* () {
     const scope = yield* Scope.make()
     const ctx = yield* Layer.buildWithMemoMap(layer, coreMemoMap, scope)

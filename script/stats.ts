@@ -143,9 +143,9 @@ async function save(githubTotal: number, npmDownloads: number) {
           /\|\s*[\d-]+\s*\|\s*([\d,]+)\s*(?:\([^)]*\))?\s*\|\s*([\d,]+)\s*(?:\([^)]*\))?\s*\|\s*([\d,]+)\s*(?:\([^)]*\))?\s*\|/,
         )
         if (match) {
-          previousGithub = parseInt(match[1].replace(/,/g, ""))
-          previousNpm = parseInt(match[2].replace(/,/g, ""))
-          previousTotal = parseInt(match[3].replace(/,/g, ""))
+          previousGithub = Number.parseInt(match[1].replace(/,/g, ""))
+          previousNpm = Number.parseInt(match[2].replace(/,/g, ""))
+          previousTotal = Number.parseInt(match[3].replace(/,/g, ""))
           break
         }
       }

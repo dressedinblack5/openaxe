@@ -50,7 +50,7 @@ const walk = async (dir: string): Promise<ReadonlyArray<string>> =>
       ...(await Promise.all(
         (await fs.readdir(dir, { withFileTypes: true }))
           .filter((entry) => entry.isDirectory())
-          .map((entry) => walk(path.join(dir, entry.name))),
+          .map( async (entry) => walk(path.join(dir, entry.name))),
       )),
     )
 

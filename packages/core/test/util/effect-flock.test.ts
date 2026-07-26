@@ -1,8 +1,8 @@
 import { describe, expect } from "bun:test"
-import { spawn } from "child_process"
-import fs from "fs/promises"
-import path from "path"
-import os from "os"
+import { spawn } from "node:child_process"
+import fs from "node:fs/promises"
+import path from "node:path"
+import os from "node:os"
 import { Cause, Effect, Exit, Layer } from "effect"
 import { testEffect } from "../lib/effect"
 import { FSUtil } from "@opencode-ai/core/fs-util"
@@ -14,7 +14,7 @@ function lock(dir: string, key: string) {
   return path.join(dir, Hash.fast(key) + ".lock")
 }
 
-function sleep(ms: number) {
+ async function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
@@ -45,7 +45,7 @@ type Msg = {
 const root = path.join(import.meta.dir, "../..")
 const worker = path.join(import.meta.dir, "../fixture/effect-flock-worker.ts")
 
-function run(msg: Msg) {
+ async function run(msg: Msg) {
   return new Promise<{ code: number; stdout: Buffer; stderr: Buffer }>((resolve) => {
     const proc = spawn(process.execPath, [worker, JSON.stringify(msg)], { cwd: root })
     const stdout: Buffer[] = []
@@ -122,14 +122,14 @@ describe("util.effect-flock", () => {
     "acquire and release via scoped Effect",
     Effect.gen(function* () {
       const flock = yield* EffectFlock.Service
-      const tmp = yield* Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
+      const tmp = yield* Effect.promise( async () => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
       const dir = path.join(tmp, "locks")
       const lockDir = lock(dir, "eflock:acquire")
 
       yield* Effect.scoped(flock.acquire("eflock:acquire", dir))
 
-      expect(yield* Effect.promise(() => exists(lockDir))).toBe(false)
-      yield* Effect.promise(() => fs.rm(tmp, { recursive: true, force: true }))
+      expect(yield* Effect.promise( async () => exists(lockDir))).toBe(false)
+      yield* Effect.promise( async () => fs.rm(tmp, { recursive: true, force: true }))
     }),
   )
 
@@ -137,7 +137,7 @@ describe("util.effect-flock", () => {
     "withLock data-first",
     Effect.gen(function* () {
       const flock = yield* EffectFlock.Service
-      const tmp = yield* Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
+      const tmp = yield* Effect.promise( async () => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
       const dir = path.join(tmp, "locks")
 
       let hit = false
@@ -149,7 +149,7 @@ describe("util.effect-flock", () => {
         dir,
       )
       expect(hit).toBe(true)
-      yield* Effect.promise(() => fs.rm(tmp, { recursive: true, force: true }))
+      yield* Effect.promise( async () => fs.rm(tmp, { recursive: true, force: true }))
     }),
   )
 
@@ -157,7 +157,7 @@ describe("util.effect-flock", () => {
     "withLock pipeable",
     Effect.gen(function* () {
       const flock = yield* EffectFlock.Service
-      const tmp = yield* Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
+      const tmp = yield* Effect.promise( async () => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
       const dir = path.join(tmp, "locks")
 
       let hit = false
@@ -165,7 +165,7 @@ describe("util.effect-flock", () => {
         hit = true
       }).pipe(flock.withLock("eflock:pipe", dir))
       expect(hit).toBe(true)
-      yield* Effect.promise(() => fs.rm(tmp, { recursive: true, force: true }))
+      yield* Effect.promise( async () => fs.rm(tmp, { recursive: true, force: true }))
     }),
   )
 
@@ -173,7 +173,7 @@ describe("util.effect-flock", () => {
     "writes owner metadata",
     Effect.gen(function* () {
       const flock = yield* EffectFlock.Service
-      const tmp = yield* Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
+      const tmp = yield* Effect.promise( async () => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
       const dir = path.join(tmp, "locks")
       const key = "eflock:meta"
       const file = path.join(lock(dir, key), "meta.json")
@@ -181,7 +181,7 @@ describe("util.effect-flock", () => {
       yield* Effect.scoped(
         Effect.gen(function* () {
           yield* flock.acquire(key, dir)
-          const json = yield* Effect.promise(() =>
+          const json = yield* Effect.promise( async () =>
             readJson<{ token?: unknown; pid?: unknown; hostname?: unknown; createdAt?: unknown }>(file),
           )
           expect(typeof json.token).toBe("string")
@@ -190,7 +190,7 @@ describe("util.effect-flock", () => {
           expect(typeof json.createdAt).toBe("string")
         }),
       )
-      yield* Effect.promise(() => fs.rm(tmp, { recursive: true, force: true }))
+      yield* Effect.promise( async () => fs.rm(tmp, { recursive: true, force: true }))
     }),
   )
 
@@ -198,7 +198,7 @@ describe("util.effect-flock", () => {
     "breaks stale lock dirs",
     Effect.gen(function* () {
       const flock = yield* EffectFlock.Service
-      const tmp = yield* Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
+      const tmp = yield* Effect.promise( async () => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
       const dir = path.join(tmp, "locks")
       const key = "eflock:stale"
       const lockDir = lock(dir, key)
@@ -218,7 +218,7 @@ describe("util.effect-flock", () => {
         dir,
       )
       expect(hit).toBe(true)
-      yield* Effect.promise(() => fs.rm(tmp, { recursive: true, force: true }))
+      yield* Effect.promise( async () => fs.rm(tmp, { recursive: true, force: true }))
     }),
   )
 
@@ -226,7 +226,7 @@ describe("util.effect-flock", () => {
     "recovers from stale breaker",
     Effect.gen(function* () {
       const flock = yield* EffectFlock.Service
-      const tmp = yield* Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
+      const tmp = yield* Effect.promise( async () => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
       const dir = path.join(tmp, "locks")
       const key = "eflock:stale-breaker"
       const lockDir = lock(dir, key)
@@ -249,8 +249,8 @@ describe("util.effect-flock", () => {
         dir,
       )
       expect(hit).toBe(true)
-      expect(yield* Effect.promise(() => exists(breaker))).toBe(false)
-      yield* Effect.promise(() => fs.rm(tmp, { recursive: true, force: true }))
+      expect(yield* Effect.promise( async () => exists(breaker))).toBe(false)
+      yield* Effect.promise( async () => fs.rm(tmp, { recursive: true, force: true }))
     }),
   )
 
@@ -258,14 +258,14 @@ describe("util.effect-flock", () => {
     "detects compromise when lock dir removed",
     Effect.gen(function* () {
       const flock = yield* EffectFlock.Service
-      const tmp = yield* Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
+      const tmp = yield* Effect.promise( async () => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
       const dir = path.join(tmp, "locks")
       const key = "eflock:compromised"
       const lockDir = lock(dir, key)
 
       const result = yield* flock
         .withLock(
-          Effect.promise(() => fs.rm(lockDir, { recursive: true, force: true })),
+          Effect.promise( async () => fs.rm(lockDir, { recursive: true, force: true })),
           key,
           dir,
         )
@@ -273,7 +273,7 @@ describe("util.effect-flock", () => {
 
       expect(Exit.isFailure(result)).toBe(true)
       expect(Exit.isFailure(result) ? Cause.pretty(result.cause) : "").toContain("missing")
-      yield* Effect.promise(() => fs.rm(tmp, { recursive: true, force: true }))
+      yield* Effect.promise( async () => fs.rm(tmp, { recursive: true, force: true }))
     }),
   )
 
@@ -281,7 +281,7 @@ describe("util.effect-flock", () => {
     "detects token mismatch",
     Effect.gen(function* () {
       const flock = yield* EffectFlock.Service
-      const tmp = yield* Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
+      const tmp = yield* Effect.promise( async () => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
       const dir = path.join(tmp, "locks")
       const key = "eflock:token"
       const lockDir = lock(dir, key)
@@ -301,8 +301,8 @@ describe("util.effect-flock", () => {
 
       expect(Exit.isFailure(result)).toBe(true)
       expect(Exit.isFailure(result) ? Cause.pretty(result.cause) : "").toContain("token mismatch")
-      expect(yield* Effect.promise(() => exists(lockDir))).toBe(true)
-      yield* Effect.promise(() => fs.rm(tmp, { recursive: true, force: true }))
+      expect(yield* Effect.promise( async () => exists(lockDir))).toBe(true)
+      yield* Effect.promise( async () => fs.rm(tmp, { recursive: true, force: true }))
     }),
   )
 
@@ -311,7 +311,7 @@ describe("util.effect-flock", () => {
     Effect.gen(function* () {
       if (process.platform === "win32") return
       const flock = yield* EffectFlock.Service
-      const tmp = yield* Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
+      const tmp = yield* Effect.promise( async () => fs.mkdtemp(path.join(os.tmpdir(), "eflock-test-")))
       const dir = path.join(tmp, "locks")
 
       yield* Effect.promise(async () => {
@@ -322,7 +322,7 @@ describe("util.effect-flock", () => {
       const result = yield* flock.withLock(Effect.void, "eflock:perm", dir).pipe(Effect.exit)
       // oxlint-disable-next-line no-base-to-string -- Exit has a useful toString for test assertions
       expect(String(result)).toContain("PermissionDenied")
-      yield* Effect.promise(() => fs.chmod(dir, 0o700).then(() => fs.rm(tmp, { recursive: true, force: true })))
+      yield* Effect.promise( async () => fs.chmod(dir, 0o700).then( async () => fs.rm(tmp, { recursive: true, force: true })))
     }),
   )
 
@@ -338,7 +338,7 @@ describe("util.effect-flock", () => {
 
         try {
           const out = await Promise.all(
-            Array.from({ length: n }, () => run({ key: "eflock:stress", dir, done, active, holdMs: 30 })),
+            Array.from({ length: n },  async () => run({ key: "eflock:stress", dir, done, active, holdMs: 30 })),
           )
 
           expect(out.map((x) => x.code)).toEqual(Array.from({ length: n }, () => 0))

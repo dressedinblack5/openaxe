@@ -7,7 +7,7 @@ export const GooglePlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/google") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/google"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/google"))
         evt.sdk = mod.createGoogleGenerativeAI(evt.options)
       }),
     )

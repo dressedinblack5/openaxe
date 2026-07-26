@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { parseArgs } from "util"
+import { parseArgs } from "node:util"
 
 const defaultRepo = "dressedinblack5/openaxe"
 const defaultAgeMonths = 1
@@ -383,7 +383,7 @@ function subtractMonths(date: Date, months: number) {
   return result
 }
 
-function sleep(ms: number) {
+ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 

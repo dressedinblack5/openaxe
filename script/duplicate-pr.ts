@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
-import path from "path"
+import path from "node:path"
 import { pathToFileURL } from "bun"
 import { createOpencode } from "@opencode-ai/sdk"
-import { parseArgs } from "util"
+import { parseArgs } from "node:util"
 
 async function main() {
   const { values, positionals } = parseArgs({
