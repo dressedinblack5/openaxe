@@ -15,7 +15,10 @@
     "prepare": "husky",
     "random": "echo 'Random script'",
     "sso": "aws sso login --sso-session=openaxe --no-browser",
-    "test": "echo 'do not run tests from root' && exit 1"
+    "test": "echo 'do not run tests from root' && exit 1",
+    "lint:ci": "npx oxlint . --deny-warnings",
+    "typecheck:ci": "bun turbo typecheck",
+    "test:coverage": "bun test --coverage"
   },
   "workspaces": {
     "packages": [

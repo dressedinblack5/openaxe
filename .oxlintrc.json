@@ -4,10 +4,14 @@
     "typeAware": true
   },
   "categories": {
-    "suspicious": "warn"
+    "suspicious": "error",
+    "correctness": "error",
+    "restriction": "error"
   },
   "rules": {
-    "typescript/no-base-to-string": "warn",
+    "no-explicit-any": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-base-to-string": "error",
     "require-yield": "off",
     "no-unassigned-vars": "off",
     "no-unused-expressions": "off",
@@ -21,8 +25,9 @@
     "unicorn/require-module-specifiers": "off",
     "unicorn/require-post-message-target-origin": "off",
     "no-new": "off",
-    "typescript/no-floating-promises": "warn",
-    "typescript/no-misused-spread": "warn"
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-spread": "error",
+    "typescript/no-non-null-assertion": "error"
   },
   "ignorePatterns": ["**/node_modules", "**/dist", "**/.build", "**/.sst", "**/*.d.ts", "**/sdk.gen.ts", "**/v2/gen", "**/src/gen/**"],
   "overrides": [
