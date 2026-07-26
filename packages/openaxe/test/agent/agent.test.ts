@@ -1,11 +1,14 @@
 import { afterEach, expect } from "bun:test"
 import { Cause, Effect, Exit, Layer } from "effect"
+import { NodeFileSystem } from "@effect/platform-node"
 import path from "path"
 import { disposeAllInstances, TestInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 import { Agent } from "../../src/agent/agent"
 import { Auth } from "../../src/auth"
 import { Config } from "../../src/config/config"
+import { Database } from "@opencode-ai/core/database/database"
+import { Memory } from "@opencode-ai/core/memory"
 import { RuntimeFlags } from "../../src/effect/runtime-flags"
 import { Global } from "@opencode-ai/core/global"
 import { Permission } from "../../src/permission"
@@ -23,8 +26,11 @@ const agentLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
     Layer.provide(Auth.defaultLayer),
     Layer.provide(Config.defaultLayer),
     Layer.provide(Skill.defaultLayer),
+    Layer.provide(Database.defaultLayer),
+    Layer.provide(Memory.defaultLayer),
     Layer.provide(LocationServiceMap.layer),
     Layer.provide(RuntimeFlags.layer(flags)),
+    Layer.provide(NodeFileSystem.layer),
   )
 
 const it = testEffect(agentLayer())

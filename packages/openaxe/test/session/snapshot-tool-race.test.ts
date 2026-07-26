@@ -31,6 +31,8 @@ import { LSP } from "@/lsp/lsp"
 import { MCP } from "../../src/mcp"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { RuntimeFlags } from "@/effect/runtime-flags"
+import { Memory } from "@opencode-ai/core/memory"
+import { NodeFileSystem } from "@effect/platform-node"
 
 const mcp = Layer.succeed(
   MCP.Service,
@@ -93,6 +95,8 @@ const root = LayerNode.group([
   SessionSummary.node,
   Database.node,
   CrossSpawnSpawner.node,
+  Memory.node,
+  LayerNode.make(NodeFileSystem.layer, []),
   LayerNode.make(TestLLMServer.layer, []),
 ])
 const it = testEffect(

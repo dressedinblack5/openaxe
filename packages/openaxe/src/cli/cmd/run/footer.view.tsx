@@ -174,8 +174,9 @@ export function RunFooterView(props: RunFooterViewProps) {
     const resolveKey = (key: string) => key.replace(/<leader>/gi, leaderStr + " ")
     const formatKey = (name: string) => {
       const entry = currentTuiConfig.keybinds.get(name)?.[0]
+      if (!entry?.key) return ""
       const keyStr = typeof entry.key === "string" ? entry.key : String(entry.key)
-      return entry?.key ? resolveKey(keyStr) : ""
+      return resolveKey(keyStr)
     }
 
     const keymaps = {
