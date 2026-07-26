@@ -76,7 +76,9 @@ export async function createOpencodeServer(options?: ServerOptions) {
             }
           }
         }
-      } catch { /* stream closed */ }
+      } catch {
+        /* stream closed */
+      }
     }
 
     const readStderr = async () => {
@@ -89,7 +91,9 @@ export async function createOpencodeServer(options?: ServerOptions) {
           if (done) break
           output += decoder.decode(value, { stream: true })
         }
-      } catch { /* stream closed */ }
+      } catch {
+        /* stream closed */
+      }
     }
 
     void readStdout()
