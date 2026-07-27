@@ -2,7 +2,9 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { ConfigPermissionV1 } from "@opencode-ai/core/v1/config/permission"
 import { InstanceState } from "@/effect/instance-state"
 import { Wildcard } from "@opencode-ai/core/util/wildcard"
-import { Deferred, Effect, Layer, Context } from "effect"
+import { Deferred, Effect, Layer, Context, Option } from "effect"
+import { Plugin } from "@/plugin"
+import type { Permission as SDKPermission } from "@opencode-ai/sdk"
 import os from "os"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { EventV2Bridge } from "@/event-v2-bridge"
@@ -83,6 +85,29 @@ export const layer = Layer.effect(
       }
 
       if (!needsAsk) return
+
+      const pluginOption = yield* Effect.serviceOption(Plugin.Service)
+      if (Option.isSome(pluginOption)) {
+        const sdkPermission: SDKPermission = {
+          id: request.id ?? PermissionV1.ID.ascending(),
+          type: request.permission,
+          pattern: [...request.patterns],
+          sessionID: request.sessionID ?? "",
+          messageID: request.tool?.messageID ?? "",
+          callID: request.tool?.callID,
+          title: request.permission,
+          metadata: request.metadata ?? {},
+          time: { created: Date.now() },
+        }
+        const output: { status: "ask" | "deny" | "allow" } = { status: "ask" }
+        yield* pluginOption.value.trigger("permission.ask", sdkPermission, output)
+        if (output.status === "allow") return
+        if (output.status === "deny") {
+          return yield* new PermissionV1.DeniedError({
+            ruleset: ruleset.filter((rule) => Wildcard.match(request.permission, rule.permission)),
+          })
+        }
+      }
 
       const id = request.id ?? PermissionV1.ID.ascending()
       const info: PermissionV1.Request = {

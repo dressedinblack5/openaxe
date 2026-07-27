@@ -345,6 +345,15 @@ export function readPluginId(id: unknown, spec: string) {
   return value
 }
 
+export async function resolveToolsEntrypoint(spec: string, pkg: PluginPackage): Promise<string | undefined> {
+  const exports = pkg.json.exports
+  if (!isRecord(exports)) return undefined
+  const raw = extractExportValue(exports["./tools"])
+  if (!raw) return undefined
+  const file = resolvePackageFile(spec, raw, "tools", pkg)
+  return pathToFileURL(file).href
+}
+
 export function readV1Plugin(
   mod: Record<string, unknown>,
   spec: string,

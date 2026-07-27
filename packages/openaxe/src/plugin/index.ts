@@ -4,6 +4,7 @@ import type {
   PluginInput,
   Plugin as PluginInstance,
   PluginModule,
+  ToolDefinition,
   WorkspaceAdapter as PluginWorkspaceAdapter,
 } from "@opencode-ai/plugin"
 import { Config } from "@/config/config"
@@ -26,7 +27,7 @@ import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { errorMessage } from "@/util/error"
 import { PluginLoader } from "./loader"
-import { parsePluginSpecifier, readPluginId, readV1Plugin, resolvePluginId } from "./shared"
+import { parsePluginSpecifier, readPluginId, readV1Plugin, resolvePluginId, resolveToolsEntrypoint } from "./shared"
 import { registerAdapter } from "@/control-plane/adapters"
 import type { WorkspaceAdapter } from "@/control-plane/types"
 import { RuntimeFlags } from "@/effect/runtime-flags"
@@ -267,6 +268,32 @@ export const layer = Layer.effect(
                   return Effect.void
                 }),
               )
+
+              if (load.pkg) {
+                yield* Effect.tryPromise({
+                  try: async () => {
+                    const entry = await resolveToolsEntrypoint(load.spec, load.pkg!)
+                    if (!entry) return
+                    const toolsMod = await import(entry)
+                    const toolDefs: Record<string, ToolDefinition> = {}
+                    for (const [id, def] of Object.entries(toolsMod)) {
+                      if (def && typeof def === "object" && "args" in def && "description" in def && "execute" in def) {
+                        const toolId = id === "default"
+                          ? new URL(entry).pathname.split("/").pop()?.replace(/\.[^/.]+$/, "") ?? "unknown"
+                          : id
+                        toolDefs[toolId] = def as unknown as ToolDefinition
+                      }
+                    }
+                    if (Object.keys(toolDefs).length > 0) {
+                      hooks.push({ tool: toolDefs } as Hooks)
+                    }
+                  },
+                  catch: errorMessage,
+                }).pipe(
+                  Effect.tapError((error) => Effect.logError("failed to load plugin tools", { spec: load.spec, error })),
+                  Effect.ignore,
+                )
+              }
             }
 
             // Notify all plugins (internal + newly loaded external) of current config
