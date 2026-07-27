@@ -48,7 +48,8 @@ Examples:
 await rm(file, { force: true })
 
 const quiet = values.quiet
-const cmd = ["openaxe", "run"]
+const openaxeDir = path.resolve(root, "packages/openaxe")
+const cmd = ["bun", "run", "--cwd", openaxeDir, "--conditions=browser", "src/index.ts", "run"]
 cmd.push("--variant", values.variant)
 cmd.push("--command", "changelog", "--", ...args)
 
