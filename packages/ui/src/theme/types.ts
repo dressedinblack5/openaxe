@@ -68,7 +68,7 @@ export type CssVarRef = `var(--${string})`
 
 export type ColorValue = HexColor | CssVarRef
 
-export type V2ColorValue = HexColor | CssVarRef | string
+export type V2ColorValue = string
 
 export type ResolvedTheme = Record<ThemeToken, ColorValue>
 

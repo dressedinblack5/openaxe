@@ -27,4 +27,4 @@ async function measure() {
   await time(`@opencode-ai/core/v1/config/mcp`, () => import("@opencode-ai/core/v1/config/mcp"))
 }
 
-measure()
+void measure()

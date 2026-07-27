@@ -4,6 +4,7 @@ import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { InvalidCursorError, SessionNotFoundError, UnknownError } from "../errors"
 import { SessionLocationMiddleware } from "../middleware/session-location"
+import { httpError } from "./util"
 
 export const SessionMessagesQuery = Schema.Struct({
   limit: Schema.optional(
@@ -34,7 +35,7 @@ export const MessageGroup = HttpApiGroup.make("server.message")
           next: Schema.String.pipe(Schema.optional),
         }),
       }).annotate({ identifier: "SessionMessagesResponse" }),
-      error: [InvalidCursorError, SessionNotFoundError, UnknownError] as any,
+      error: httpError([InvalidCursorError, SessionNotFoundError, UnknownError]),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(

@@ -1,4 +1,4 @@
-import nodePath from "path"
+import nodePath from "node:path"
 import { customType } from "drizzle-orm/sqlite-core"
 import { AbsolutePath } from "../schema"
 

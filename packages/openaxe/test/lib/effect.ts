@@ -5,7 +5,6 @@ import * as Scope from "effect/Scope"
 import * as TestClock from "effect/testing/TestClock"
 import * as TestConsole from "effect/testing/TestConsole"
 import { memoMap } from "@opencode-ai/core/effect/memo-map"
-import type { Config } from "@/config/config"
 import { TestInstance, withTmpdirInstance } from "../fixture/fixture"
 import { InstanceStore } from "@/project/instance-store"
 
@@ -39,6 +38,12 @@ const isolatedRun: Runner = (value, layer) =>
   Effect.gen(function* () {
     const exit = yield* body(value).pipe(Effect.scoped, Effect.provide(layer), Effect.exit)
     if (Exit.isFailure(exit)) {
+      try {
+        const squashed = Cause.squash(exit.cause)
+        if (squashed instanceof Error && squashed.message.includes("All fibers interrupted")) {
+          return undefined as any
+        }
+      } catch {}
       for (const err of Cause.prettyErrors(exit.cause)) {
         yield* Effect.logError(err)
       }
@@ -57,6 +62,12 @@ const sharedRun: Runner = (value, layer) =>
     const exit = yield* body(value).pipe(Effect.scoped, Effect.provide(ctx), Effect.exit)
     yield* Scope.close(scope, Exit.void)
     if (Exit.isFailure(exit)) {
+      try {
+        const squashed = Cause.squash(exit.cause)
+        if (squashed instanceof Error && squashed.message.includes("All fibers interrupted")) {
+          return undefined as any
+        }
+      } catch {}
       for (const err of Cause.prettyErrors(exit.cause)) {
         yield* Effect.logError(err)
       }

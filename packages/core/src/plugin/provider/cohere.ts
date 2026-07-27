@@ -7,7 +7,7 @@ export const CoherePlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/cohere") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/cohere"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/cohere"))
         evt.sdk = mod.createCohere(evt.options)
       }),
     )

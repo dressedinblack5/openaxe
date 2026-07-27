@@ -175,7 +175,7 @@ describe("Storage", () => {
       const { root, svc } = yield* scope().pipe(Effect.provide(Storage.defaultLayer))
       const key = [...root, "a", "b", "c", "deep"]
 
-      yield* svc.write<{ nested: boolean }>(key, { nested: true })
+      yield* svc.write(key, { nested: true })
 
       expect(yield* svc.read<{ nested: boolean }>(key)).toEqual({ nested: true })
       expect(yield* svc.list([...root, "a"])).toEqual([key])

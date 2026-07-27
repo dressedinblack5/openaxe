@@ -1,8 +1,7 @@
 import { NodeHttpServer } from "@effect/platform-node"
 import { Credential } from "@opencode-ai/core/credential"
 import { PermissionSaved } from "@opencode-ai/core/permission/saved"
-import { Context, Layer, Option } from "effect"
-import { Effect } from "effect"
+import { Context, Effect, Layer, Option } from "effect"
 import { HttpRouter, HttpServer } from "effect/unstable/http"
 import { createServer } from "node:http"
 import { createRoutes } from "@opencode-ai/server/routes"
@@ -16,11 +15,12 @@ export default Runtime.handler(
     return yield* Effect.scoped(
       Effect.gen(function* () {
         const daemon = yield* Daemon.Service
-        const address = yield* listen(input.hostname, input.port, yield* daemon.password())
+        const password = yield* daemon.password()
+        const address = yield* listen(input.hostname, input.port, password)
         if (input.register) yield* daemon.register(address)
         console.log(`server listening on ${HttpServer.formatAddress(address)}`)
         return yield* Effect.never
-      }),
+      }) as unknown as Effect.Effect<void, any, Daemon.Service>,
     )
   }),
 )

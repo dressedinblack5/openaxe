@@ -1,5 +1,5 @@
-import fs from "fs/promises"
-import path from "path"
+import fs from "node:fs/promises"
+import path from "node:path"
 import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
 import { AgentV2 } from "@opencode-ai/core/agent"
@@ -29,7 +29,7 @@ const it = testEffect(
   ),
 )
 
-function write(directory: string, name: string, description: string) {
+ async function write(directory: string, name: string, description: string) {
   return fs.writeFile(
     path.join(directory, name, "SKILL.md"),
     `---
@@ -43,8 +43,8 @@ description: ${description}
 describe("SkillV2", () => {
   it.live("registers sources and resolves later source precedence", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
@@ -94,8 +94,8 @@ describe("SkillV2", () => {
 
   it.live("loads URL sources and filters skills for agents", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {

@@ -89,12 +89,14 @@ const runReplay = <A, E, R>(
           const current = yield* Ref.get(state.progress)
           const event = state.interaction.events[current.position]
           if (!event) return
-          if (yield* Ref.get(state.closed))
-            return yield* Effect.die(
+          if (yield* Ref.get(state.closed)) {
+            yield* Effect.die(
               new Error(
                 `WebSocket closed with unconsumed events: used ${current.position} of ${state.interaction.events.length}`,
               ),
             )
+            return
+          }
           if (event.direction === "server") {
             yield* Ref.set(state.progress, {
               position: current.position + 1,
@@ -140,7 +142,10 @@ const makeRecordingSocket = (
             valid: true,
           }
           const occupied = yield* Ref.modify(active, (current) => [current !== undefined, current ?? state])
-          if (occupied) return yield* Effect.die("Concurrent runs of a recorded WebSocket are not supported")
+          if (occupied) {
+            yield* Effect.die("Concurrent runs of a recorded WebSocket are not supported")
+            return
+          }
           yield* upstream
             .runRaw(
               (message) => {
@@ -238,7 +243,10 @@ const makeReplaySocket = (
             closed: yield* Ref.make(false),
           }
           const occupied = yield* Ref.modify(active, (current) => [current !== undefined, current ?? state])
-          if (occupied) return yield* Effect.die("Concurrent runs of a replayed WebSocket are not supported")
+          if (occupied) {
+            yield* Effect.die("Concurrent runs of a replayed WebSocket are not supported")
+            return
+          }
           yield* runReplay(state, handler, decodeEvent, runOptions?.onOpen).pipe(
             Effect.ensuring(Ref.set(active, undefined)),
           )
@@ -254,11 +262,12 @@ const makeReplaySocket = (
                       yield* Ref.set(state.closed, true)
                       yield* Deferred.succeed(current.changed, undefined)
                       if (current.position === state.interaction.events.length) return
-                      return yield* Effect.die(
+                      yield* Effect.die(
                         new Error(
                           `WebSocket closed with unconsumed events: used ${current.position} of ${state.interaction.events.length}`,
                         ),
                       )
+                      return
                     }
                     const actual = redactEvent(encodeEvent("client", message), redactor)
                     yield* assertEvent(

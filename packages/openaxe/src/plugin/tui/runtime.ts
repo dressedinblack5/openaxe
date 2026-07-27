@@ -992,7 +992,6 @@ export async function init(input: {
   dispose?: () => void
   disposeTimeoutMs?: number
 }) {
-
   const cwd = process.cwd()
   if (loaded) {
     if (dir !== cwd) {
@@ -1088,7 +1087,7 @@ async function load(input: {
     const flags = await Effect.runPromise(
       Effect.gen(function* () {
         return yield* RuntimeFlags.Service
-      }    ).pipe(Effect.provide(RuntimeFlags.defaultLayer)),
+      }).pipe(Effect.provide(RuntimeFlags.defaultLayer)),
     )
     const pluginOrigins = config.plugin_origins ?? (await TuiConfig.pluginOrigins())
     const records = Flag.OPENCODE_PURE ? [] : pluginOrigins
@@ -1110,13 +1109,13 @@ async function load(input: {
     await addExternalPluginEntries(next, ready)
 
     applyInitialPluginEnabledState(next, config)
-    const enabledPlugins = next.plugins.filter(p => p.enabled)
+    const enabledPlugins = next.plugins.filter((p) => p.enabled)
 
     await Effect.runPromise(
       Effect.all(
-        enabledPlugins.map(plugin => Effect.promise(() => activatePluginEntry(next, plugin, false))),
-        { concurrency: 1 }
-      )
+        enabledPlugins.map((plugin) => Effect.promise(() => activatePluginEntry(next, plugin, false))),
+        { concurrency: 1 },
+      ),
     )
     next.view.update({ status: listPluginStatus(next) })
   } catch (error) {

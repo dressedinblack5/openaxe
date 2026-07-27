@@ -650,11 +650,11 @@ test("continues loading when a plugin is missing config metadata", async () => {
   try {
     await TuiPluginRuntime.init({ api: createTuiPluginApi(), config })
     // bad plugin was skipped (no metadata entry)
-    await expect(fs.readFile(path.join(tmp.path, "bad.txt"), "utf8")).rejects.toThrow()
+     expect(fs.readFile(path.join(tmp.path, "bad.txt"), "utf8")).rejects.toThrow()
     // good plugin loaded fine
-    await expect(fs.readFile(tmp.extra.goodMarker, "utf8")).resolves.toBe("called")
+     expect(fs.readFile(tmp.extra.goodMarker, "utf8")).resolves.toBe("called")
     // bare string spec gets undefined options
-    await expect(fs.readFile(tmp.extra.bareMarker, "utf8")).resolves.toBe("undefined")
+     expect(fs.readFile(tmp.extra.bareMarker, "utf8")).resolves.toBe("undefined")
   } finally {
     await TuiPluginRuntime.dispose()
     cwd.mockRestore()
@@ -715,7 +715,7 @@ test("does not wait on permanent tui plugin startup failures", async () => {
     })
 
     expect(wait).toHaveBeenCalledTimes(0)
-    await expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("called")
+     expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("called")
     expect(TuiPluginRuntime.list().find((item) => item.id === "demo.good.after-bad")?.active).toBe(true)
     expect(TuiPluginRuntime.list().some((item) => item.spec === tmp.extra.binarySpec)).toBe(false)
     expect(TuiPluginRuntime.list().some((item) => item.spec === tmp.extra.invalidShapeSpec)).toBe(false)
@@ -840,7 +840,7 @@ test("does not bootstrap server plugins while initializing tui plugins", async (
   const mock = mockTuiRuntime(tmp.path, [])
   try {
     await TuiPluginRuntime.init({ api: createTuiPluginApi(), config: mock.config })
-    await expect(fs.stat(tmp.extra.marker)).rejects.toThrow()
+     expect(fs.stat(tmp.extra.marker)).rejects.toThrow()
   } finally {
     await TuiPluginRuntime.dispose()
     mock.restore()
@@ -1014,7 +1014,7 @@ test("plugin keymap proxy preserves real keymap receiver", async () => {
       }),
     })
 
-    await expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("ok")
+     expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("ok")
     expect(harness.keymap.getData("demo.receiver")).toBe("ok")
   } finally {
     await TuiPluginRuntime.dispose()
@@ -1296,7 +1296,7 @@ test("updates installed theme when plugin metadata changes", async () => {
   try {
     await TuiPluginRuntime.init({ api: mkApi(), config: mkConfig() })
     await TuiPluginRuntime.dispose()
-    await expect(fs.readFile(tmp.extra.dest, "utf8")).resolves.toContain("#111111")
+     expect(fs.readFile(tmp.extra.dest, "utf8")).resolves.toContain("#111111")
 
     await Bun.write(tmp.extra.themePath, JSON.stringify({ theme: { primary: "#222222" } }, null, 2))
     await Bun.write(

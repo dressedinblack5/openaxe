@@ -7,7 +7,7 @@ export const VenicePlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "venice-ai-sdk-provider") return
-        const mod = yield* Effect.promise(() => import("venice-ai-sdk-provider"))
+        const mod = yield* Effect.promise( async () => import("venice-ai-sdk-provider"))
         evt.sdk = mod.createVenice(evt.options)
       }),
     )

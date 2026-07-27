@@ -1,7 +1,8 @@
 import { Schema } from "effect"
 import { JsonSchema, ModelID, ProviderID } from "./ids"
 import type { AnyRoute } from "../route/client"
-import { isRecord } from "../utils/record"
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
 
 export const mergeJsonRecords = (
   ...items: ReadonlyArray<Record<string, unknown> | undefined>

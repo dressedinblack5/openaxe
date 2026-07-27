@@ -1,5 +1,5 @@
 import { Formatter, Logger, type LogLevel } from "effect"
-import path from "path"
+import path from "node:path"
 import { Global } from "../global"
 import { runID } from "./shared"
 

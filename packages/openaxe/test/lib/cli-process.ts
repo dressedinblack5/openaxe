@@ -186,7 +186,7 @@ export type CliFixture = {
 // the surrounding Scope.
 export function withCliFixture<A, E>(
   fn: (input: CliFixture) => Effect.Effect<A, E, Scope.Scope | HttpClient.HttpClient>,
-): Effect.Effect<A, E | unknown, Scope.Scope> {
+): Effect.Effect<A, unknown, Scope.Scope> {
   return Effect.gen(function* () {
     const llm = yield* TestLLMServer
     const fs = yield* FSUtil.Service
@@ -421,7 +421,7 @@ export function withCliFixture<A, E>(
           // window to exit, then SIGTERM. The Effect.timeoutOrElse expresses
           // exactly that race without raw setTimeout or Promise.race.
           Effect.gen(function* () {
-            yield* Effect.sync(() => p.stdin.end())
+            void (yield* Effect.sync(() => p.stdin.end()))
             yield* Effect.promise(() => p.exited).pipe(
               Effect.timeoutOrElse({
                 duration: Duration.seconds(2),
@@ -436,7 +436,33 @@ export function withCliFixture<A, E>(
       )
 
       const stderrChunks: string[] = []
-      yield* forkStderrDrain(proc.stderr, stderrChunks)
+      const acpReadyDeferred = yield* Deferred.make<void>()
+      yield* Effect.forkScoped(
+        fromBunStream("stderr", () => proc.stderr).pipe(
+          Stream.decodeText(),
+          Stream.splitLines,
+          Stream.runForEach((line) => {
+            stderrChunks.push(line)
+            if (line === "acp ready") {
+              return Deferred.succeed(acpReadyDeferred, void 0)
+            }
+            return Effect.void
+          }),
+          Effect.ignore({ log: true }),
+        ),
+      )
+      yield* Deferred.await(acpReadyDeferred).pipe(
+        Effect.timeoutOrElse({
+          duration: Duration.seconds(15),
+          orElse: () =>
+            Effect.fail(
+              new Error(
+                `opencode acp did not become ready within 15s\n` +
+                  `stderr (last 2000):\n${stderrChunks.join("").slice(-2000)}`,
+              ),
+            ),
+        }),
+      )
 
       // Each ndjson line becomes one queue entry. JSON.parse failures are
       // surfaced as the raw string so a malformed protocol message doesn't

@@ -11,7 +11,7 @@ import {
   type ScrollbackSnapshot,
   type ScrollbackWriter,
 } from "@opentui/core"
-import { truncate, truncateMiddle } from "@/util/locale";
+import { truncate, truncateMiddle } from "@/util/locale"
 import type { RunSplashTheme } from "./theme"
 
 export const SPLASH_TITLE_LIMIT = 50

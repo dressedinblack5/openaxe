@@ -12,7 +12,7 @@ import { normalizePromptContent } from "@opencode-ai/tui/editor"
 import fuzzysort from "fuzzysort"
 import path from "path"
 import { createEffect, createMemo, createResource, createSignal, onCleanup, onMount, type Accessor } from "solid-js"
-import { truncateMiddle } from "@/util/locale";
+import { truncateMiddle } from "@/util/locale"
 import {
   createPromptHistory,
   displayCharAt,
@@ -1239,12 +1239,13 @@ export function createPromptState(input: PromptInput): PromptState {
     if (input.prompt()) {
       scheduleRows()
     }
-    
+
     // Effect 2: Query changes reset menu
     query()
     menu.reset()
-    
+
     // Effect 3: Focus area when phase becomes idle
+    // eslint-disable-next-line no-unused-expressions -- SolidJS signal read for reactive tracking
     input.state().phase
     if (input.prompt() && area && !area.isDestroyed && input.state().phase === "idle") {
       queueMicrotask(() => {
@@ -1253,7 +1254,7 @@ export function createPromptState(input: PromptInput): PromptState {
         }
       })
     }
-    
+
     // Effect 4: View changes sync draft and restore
     const kind = input.view()
     if (kind !== prev) {

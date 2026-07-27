@@ -1,6 +1,6 @@
 export * as BashTool from "./bash"
 
-import path from "path"
+import path from "node:path"
 import { ToolFailure } from "@opencode-ai/llm"
 import { Duration, Effect, Layer, Schema } from "effect"
 import { ChildProcess } from "effect/unstable/process"

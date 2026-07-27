@@ -42,20 +42,22 @@ export type Content =
 export function extractFilePaths(call: ToolCall, output: unknown): readonly string[] {
   const paths = new Set<string>()
   if (typeof call.input === "object" && call.input !== null && !Array.isArray(call.input)) {
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by typeof checks above
     const input = call.input as Record<string, unknown>
     if (typeof input.path === "string") paths.add(input.path)
   }
   if (typeof output === "object" && output !== null) {
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by typeof checks above
     const structured = output as Record<string, unknown>
     if (typeof structured.resource === "string") paths.add(structured.resource)
     if (typeof structured.target === "string") paths.add(structured.target)
     if (Array.isArray(structured.applied)) {
       for (const item of structured.applied) {
         if (typeof item === "object" && item !== null) {
-          if (typeof (item as Record<string, unknown>).resource === "string")
-            paths.add((item as Record<string, unknown>).resource as string)
-          if (typeof (item as Record<string, unknown>).target === "string")
-            paths.add((item as Record<string, unknown>).target as string)
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by typeof checks
+          const obj = item as Record<string, unknown>
+          if (typeof obj.resource === "string") paths.add(obj.resource)
+          if (typeof obj.target === "string") paths.add(obj.target)
         }
       }
     }
@@ -88,6 +90,7 @@ const runtimes = new WeakMap<AnyTool, Runtime>()
 export function make<Input extends SchemaType<any>, Output extends SchemaType<any>>(
   config: Config<Input, Output>,
 ): Definition<Input, Output> {
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- tool is decorated with runtime behavior via WeakMap
   const tool = Object.freeze({}) as Definition<Input, Output>
   const definitions = new Map<string, ToolDefinition>()
   runtimes.set(tool, {
@@ -138,6 +141,7 @@ export function make<Input extends SchemaType<any>, Output extends SchemaType<an
               return Effect.serviceOption(Guardrail.Service).pipe(
                 Effect.flatMap((option) => {
                   if (option._tag === "None") return Effect.succeed(toOutput())
+                  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- verifyProject returns VerificationResult[]
                   return (option.value.verifyProject(files) as Effect.Effect<readonly Guardrail.VerificationResult[]>).pipe(
                     Effect.flatMap((results) => {
                       const failed = results.filter((r) => !r.passed)
@@ -168,6 +172,7 @@ export const withPermission = <Input extends SchemaType<any>, Output extends Sch
   tool: Definition<Input, Output>,
   permission: string,
 ) => {
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — same pattern as make()
   const decorated = Object.freeze({}) as Definition<Input, Output>
   runtimes.set(decorated, { ...runtimeOf(tool), permission })
   return decorated

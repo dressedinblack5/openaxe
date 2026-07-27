@@ -111,7 +111,7 @@ export const recordingLayer = (
             method: web.method,
             url: web.url,
             headers: Object.fromEntries(web.headers.entries()),
-            body: yield* Effect.promise(() => web.text()),
+            body: yield* Effect.promise( async () => web.text()),
           })
         })
 

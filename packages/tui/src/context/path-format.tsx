@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 import { abbreviateHome } from "../runtime"
 import { useLocation } from "./location"
 import { useTuiPaths } from "./runtime"

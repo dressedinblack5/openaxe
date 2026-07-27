@@ -47,7 +47,6 @@ const makeHint = (ttlSeconds: number | undefined): CacheHint =>
 const markLastTool = (tools: ReadonlyArray<ToolDefinition>, hint: CacheHint): ReadonlyArray<ToolDefinition> => {
   if (tools.length === 0) return tools
   const last = tools.length - 1
-  console.log("[cache-policy] markLastTool tools.length:", tools.length, "last tool cache:", tools[last].cache, "hint type:", hint.type)
   if (tools[last].cache) return tools
   return tools.map((tool, i) => (i === last ? new ToolDefinition({ ...tool, cache: hint }) : tool))
 }
@@ -73,8 +72,9 @@ const markMessageAt = (messages: ReadonlyArray<Message>, index: number, hint: Ca
   const markAt = lastTextIndex >= 0 ? lastTextIndex : target.content.length - 1
   const existing = target.content[markAt]
   if ("cache" in existing && existing.cache) return messages
-  const nextContent = target.content.map((part, i) => (i === markAt ? ({ ...part, cache: hint } as ContentPart) : part))
-  const next = new Message({ ...target, content: nextContent })
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — ContentPart is a union of plain objects, spread is safe
+  const nextContent = target.content.map((part, i) => (i === markAt ? { ...part, cache: hint } as ContentPart : part))
+  const next = new Message({ id: target.id, role: target.role, content: nextContent })
   // Single pass over `messages`, substituting the one updated entry. Long
   // conversations call this on every request, so avoid `.map()` here — its
   // closure dispatch and identity copies show up in profiling.
@@ -99,7 +99,6 @@ const markMessages = (
 
 export const applyCachePolicy = (request: LLMRequest): LLMRequest => {
   const routeId = request.model.route.id
-  console.log("[cache-policy] routeId:", routeId, "RESPECTS:", RESPECTS_INLINE_HINTS.has(routeId))
   if (!RESPECTS_INLINE_HINTS.has(routeId)) return request
   const policy = resolve(request.cache)
   if (!policy.tools && !policy.system && !policy.messages) return request

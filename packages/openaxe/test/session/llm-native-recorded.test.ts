@@ -267,7 +267,7 @@ const testPluginLayer = Layer.effect(
   Plugin.Service,
   Effect.succeed(
     Plugin.Service.of({
-      trigger: <Name, Input, Output>(_name: Name, _input: Input, output: Output) => Effect.succeed(output),
+      trigger: <Output>(_name: unknown, _input: unknown, output: Output) => Effect.succeed(output),
       list: () => Effect.succeed([] as never[]),
       init: () => Effect.void,
     }),

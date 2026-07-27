@@ -1,5 +1,5 @@
 import path from "path"
-import { run } from "./process";
+import { run } from "./process"
 export async function extractZip(zipPath: string, destDir: string) {
   if (process.platform === "win32") {
     const winZipPath = path.resolve(zipPath)

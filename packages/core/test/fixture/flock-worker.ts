@@ -1,4 +1,4 @@
-import fs from "fs/promises"
+import fs from "node:fs/promises"
 import { Flock } from "@opencode-ai/core/util/flock"
 
 type Msg = {
@@ -14,7 +14,7 @@ type Msg = {
   done?: string
 }
 
-function sleep(ms: number) {
+ async function sleep(ms: number) {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, ms)
   })
@@ -56,7 +56,7 @@ async function job(input: Msg) {
 async function main() {
   const msg = input()
 
-  await Flock.withLock(msg.key, () => job(msg), {
+  await Flock.withLock(msg.key,  async () => job(msg), {
     dir: msg.dir,
     staleMs: msg.staleMs,
     timeoutMs: msg.timeoutMs,

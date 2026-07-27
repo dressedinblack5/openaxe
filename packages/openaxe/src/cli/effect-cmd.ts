@@ -1,7 +1,5 @@
 import type { Argv } from "yargs"
 import { Effect, Schema } from "effect"
-import type { AppServices } from "@/effect/app-runtime"
-import type { InstanceStore } from "@/project/instance-store"
 import { cmd, type WithDoubleDash } from "./cmd/cmd"
 
 /**
@@ -60,7 +58,7 @@ interface EffectCmdOpts<Args, A> {
   layer?: "full" | "core"
   /** Defaults to process.cwd(). Override for commands that take a directory positional. */
   directory?: (args: Args) => string
-  handler: (args: WithDoubleDash<Args>) => Effect.Effect<A, CliError, AppServices | InstanceStore.Service>
+  handler: (args: WithDoubleDash<Args>) => Effect.Effect<A, CliError, any>
 }
 
 /**

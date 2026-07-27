@@ -2,21 +2,24 @@ import { SessionID, MessageID } from "./schema"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import {
-  APIError,
   AbortedError,
   Assistant,
-  AuthError,
   CompactionPart,
-  ContextOverflowError,
   Info,
-  OutputLengthError,
   Part,
   SubtaskPart,
   User,
   WithParts,
 } from "@opencode-ai/core/v1/session"
 
-import { APICallError, convertToModelMessages, LoadAPIKeyError, type ModelMessage, type ToolSet, type UIMessage } from "ai"
+import {
+  APICallError,
+  convertToModelMessages,
+  LoadAPIKeyError,
+  type ModelMessage,
+  type ToolSet,
+  type UIMessage,
+} from "ai"
 import { Database } from "@opencode-ai/core/database/database"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { NotFoundError } from "@/storage/storage"

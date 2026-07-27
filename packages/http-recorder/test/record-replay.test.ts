@@ -1,7 +1,7 @@
 import { NodeFileSystem } from "@effect/platform-node"
 import { describe, expect, test } from "bun:test"
-import { Cause, Deferred, Effect, Exit, Layer, Scope, Stream } from "effect"
-import { Headers, HttpBody, HttpClient, HttpClientRequest } from "effect/unstable/http"
+import { Cause, Deferred, Effect, Exit, Layer, Scope } from "effect"
+import { HttpBody, HttpClient, HttpClientRequest } from "effect/unstable/http"
 import { Socket } from "effect/unstable/socket"
 import * as fs from "node:fs"
 import * as os from "node:os"
@@ -11,7 +11,7 @@ import { HttpRecorderInternal } from "../src/internal"
 import { redactedErrorRequest } from "../src/internal-effect"
 import type { Interaction } from "../src/schema"
 
-const seedCassetteDirectory = (directory: string, name: string, interactions: ReadonlyArray<Interaction>) =>
+const seedCassetteDirectory =  async (directory: string, name: string, interactions: ReadonlyArray<Interaction>) =>
   Effect.runPromise(
     Effect.gen(function* () {
       const cassette = yield* HttpRecorderInternal.Cassette.Service
@@ -33,16 +33,16 @@ const post = (url: string, body: object) =>
     return yield* response.text
   })
 
-const run = <A, E>(effect: Effect.Effect<A, E, HttpClient.HttpClient>) =>
+const run =  async <A, E>(effect: Effect.Effect<A, E, HttpClient.HttpClient>) =>
   Effect.runPromise(effect.pipe(Effect.provide(HttpRecorder.http("record-replay/multi-step"))))
 
-const runWith = <A, E>(
+const runWith =  async <A, E>(
   name: string,
   options: RecorderOptions,
   effect: Effect.Effect<A, E, HttpClient.HttpClient>,
 ) => Effect.runPromise(effect.pipe(Effect.provide(HttpRecorder.http(name, options))))
 
-const runRecorder = <A, E>(effect: Effect.Effect<A, E, HttpRecorderInternal.Cassette.Service | Scope.Scope>) =>
+const _runRecorder =  async <A, E>(effect: Effect.Effect<A, E, HttpRecorderInternal.Cassette.Service | Scope.Scope>) =>
   Effect.runPromise(
     Effect.scoped(
       effect.pipe(

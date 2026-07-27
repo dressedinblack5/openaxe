@@ -1,8 +1,8 @@
-import { execFile } from "child_process"
-import fs from "fs/promises"
-import path from "path"
-import { promisify } from "util"
-import { pathToFileURL } from "url"
+import { execFile } from "node:child_process"
+import fs from "node:fs/promises"
+import path from "node:path"
+import { promisify } from "node:util"
+import { pathToFileURL } from "node:url"
 import { Repository } from "@opencode-ai/core/repository"
 
 const exec = promisify(execFile)

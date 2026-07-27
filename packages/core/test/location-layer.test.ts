@@ -1,5 +1,5 @@
-import fs from "fs/promises"
-import path from "path"
+import fs from "node:fs/promises"
+import path from "node:path"
 import { describe, expect } from "bun:test"
 import { DateTime, Effect, Equal, Hash, Layer, Schema } from "effect"
 import { Tool } from "@opencode-ai/core/public"
@@ -29,11 +29,13 @@ import { Project } from "../src/project"
 import { Reference } from "../src/reference"
 import { ToolRegistry } from "../src/tool/registry"
 import { ApplicationTools } from "../src/tool/application-tools"
+import { Memory } from "../src/memory"
+import { NodeFileSystem } from "@effect/platform-node"
 
 const applicationTools = ApplicationTools.layer
 const it = testEffect(
   Layer.merge(
-    Layer.mergeAll(applicationTools, Database.defaultLayer, EventV2.defaultLayer),
+    Layer.mergeAll(applicationTools, Database.defaultLayer, EventV2.defaultLayer, Memory.defaultLayer, NodeFileSystem.layer),
     LocationServiceMap.layer.pipe(
       Layer.provide(applicationTools),
       Layer.provide(
@@ -54,8 +56,8 @@ const it = testEffect(
 describe("LocationServiceMap", () => {
   it.live("reuses cached services for constructed and decoded location refs", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (dir) => Effect.promise(() => dir[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (dir) => Effect.promise( async () => dir[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((dir) =>
         Effect.scoped(
@@ -78,8 +80,8 @@ describe("LocationServiceMap", () => {
 
   it.live("isolates location state while sharing location policy with catalog", () =>
     Effect.acquireRelease(
-      Effect.promise(() => Promise.all([tmpdir(), tmpdir()])),
-      (dirs) => Effect.promise(() => Promise.all(dirs.map((dir) => dir[Symbol.asyncDispose]())).then(() => undefined)),
+      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
+      (dirs) => Effect.promise( async () => Promise.all(dirs.map( async (dir) => dir[Symbol.asyncDispose]())).then(() => undefined)),
     ).pipe(
       Effect.flatMap(([blocked, allowed]) =>
         Effect.gen(function* () {
@@ -91,7 +93,7 @@ describe("LocationServiceMap", () => {
               execute: () => Effect.succeed({ ok: true }),
             }),
           })
-          yield* Effect.promise(() =>
+          yield* Effect.promise( async () =>
             fs.writeFile(
               path.join(blocked.path, "openaxe.json"),
               JSON.stringify({
@@ -155,13 +157,13 @@ describe("LocationServiceMap", () => {
 
   it.live("rejects an unavailable selected model during location model resolution", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (dir) => Effect.promise(() => dir[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (dir) => Effect.promise( async () => dir[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((dir) =>
         Effect.gen(function* () {
           const location = Location.Ref.make({ directory: AbsolutePath.make(dir.path) })
-          yield* Effect.promise(() =>
+          yield* Effect.promise( async () =>
             fs.writeFile(
               path.join(dir.path, "openaxe.json"),
               JSON.stringify({
@@ -205,8 +207,8 @@ describe("LocationServiceMap", () => {
 
   it.live("installs public plugins into a location", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (dir) => Effect.promise(() => dir[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (dir) => Effect.promise( async () => dir[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((dir) =>
         Effect.gen(function* () {

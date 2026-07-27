@@ -191,15 +191,15 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
   tokens["input-focus"] = isDark ? interactive[6] : interactive[0]
   tokens["input-disabled"] = neutral[3]
 
-  tokens["text-base"] = colors.compact ? (body as HexColor) : neutral[10]
-  tokens["text-weak"] = colors.compact ? shift(body as HexColor, { l: isDark ? -0.11 : 0.11, c: 0.9 }) : neutral[8]
+  tokens["text-base"] = colors.compact ? (body!) : neutral[10]
+  tokens["text-weak"] = colors.compact ? shift(body!, { l: isDark ? -0.11 : 0.11, c: 0.9 }) : neutral[8]
   tokens["text-weaker"] = colors.compact
-    ? shift(body as HexColor, { l: isDark ? -0.2 : 0.21, c: isDark ? 0.78 : 0.72 })
+    ? shift(body!, { l: isDark ? -0.2 : 0.21, c: isDark ? 0.78 : 0.72 })
     : neutral[7]
   tokens["text-strong"] = colors.compact
     ? isDark
-      ? blend("#ffffff", body as HexColor, 0.9)
-      : shift(body as HexColor, { l: -0.07, c: 1.04 })
+      ? blend("#ffffff", body!, 0.9)
+      : shift(body!, { l: -0.07, c: 1.04 })
     : neutral[11]
   tokens["text-invert-base"] = isDark ? neutral[10] : neutral[1]
   tokens["text-invert-weak"] = isDark ? neutral[8] : neutral[2]
@@ -525,6 +525,7 @@ function getHex(value: ColorValue | undefined): HexColor | undefined {
   if (!value?.startsWith("#")) return
   return value as HexColor
 }
+// ponytail: type guard for HexColor, value is already narrowed by startsWith("#")
 
 export function resolveTheme(theme: DesktopTheme): { light: ResolvedTheme; dark: ResolvedTheme } {
   return {

@@ -6,7 +6,6 @@ import { Effect, Layer } from "effect"
 import { Session } from "@/session/session"
 
 import { SessionRevert } from "../../src/session/revert"
-import { MessageV2 } from "../../src/session/message-v2"
 import { Snapshot } from "../../src/snapshot"
 import { MessageID, PartID, SessionID } from "../../src/session/schema"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"

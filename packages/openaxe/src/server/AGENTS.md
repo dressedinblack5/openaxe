@@ -1,9 +1,11 @@
 # HTTP SERVER
 
 ## OVERVIEW
+
 Effect HTTP API server for openaxe. HttpApi groups, middleware, handlers, SSE streaming, WebSocket upgrade routes. ~9 server files + ~42 route files + ~9 middleware files.
 
 ## STRUCTURE
+
 ```
 src/server/
 ├── server.ts              Server assembly — HttpApi + middleware provision
@@ -17,16 +19,18 @@ src/server/
 ```
 
 ## WHERE TO LOOK
-| Task | File |
-|------|------|
-| Server assembly | `src/server/server.ts` |
-| Route groups | `src/server/routes/instance/httpapi/groups/` |
-| Handlers | `src/server/routes/instance/httpapi/handlers/` |
-| Middleware | `src/server/routes/instance/httpapi/middleware/` |
-| Route patterns | `src/server/routes/instance/httpapi/AGENTS.md` |
-| Shared utils | `src/server/shared/` |
+
+| Task            | File                                             |
+| --------------- | ------------------------------------------------ |
+| Server assembly | `src/server/server.ts`                           |
+| Route groups    | `src/server/routes/instance/httpapi/groups/`     |
+| Handlers        | `src/server/routes/instance/httpapi/handlers/`   |
+| Middleware      | `src/server/routes/instance/httpapi/middleware/` |
+| Route patterns  | `src/server/routes/instance/httpapi/AGENTS.md`   |
+| Shared utils    | `src/server/shared/`                             |
 
 ## KEY PATTERNS
+
 - **Route Groups**: `HttpApiBuilder.group(...)` for endpoint groups. Yield stable services once at group construction, close over them in handlers.
 - **SSE Streaming**: Return `HttpServerResponse.stream(...)` from handler. Annotate success schema with `HttpApiSchema.asText({ contentType: "text/event-stream" })`.
 - **WebSocket**: Use `handleRaw(...)` in `HttpApiBuilder.group` for WebSocket upgrade routes.
@@ -35,6 +39,7 @@ src/server/
 - **Error Contracts**: Public JSON errors use explicit `Schema.ErrorClass` declared on each endpoint. Translate domain errors at the handler boundary.
 
 ## TESTING
+
 - `NodeHttpServer.layerTest` for in-test Effect HTTP server.
 - `testEffect(Layer)` with `NodeHttpServer.layerTest` for client requests.
 - Tiny `HttpApiBuilder` probe groups for focused middleware tests.

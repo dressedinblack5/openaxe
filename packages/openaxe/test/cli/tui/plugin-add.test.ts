@@ -45,8 +45,8 @@ test("adds tui plugin at runtime from spec", async () => {
       config,
     })
 
-    await expect(TuiPluginRuntime.addPlugin(tmp.extra.spec)).resolves.toBe(true)
-    await expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("called")
+     expect(TuiPluginRuntime.addPlugin(tmp.extra.spec)).resolves.toBe(true)
+     expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("called")
     expect(TuiPluginRuntime.list().find((item) => item.id === "demo.add")).toEqual({
       id: "demo.add",
       source: "file",
@@ -99,8 +99,8 @@ test("retries runtime add for file plugins after dependency wait", async () => {
       config,
     })
 
-    await expect(TuiPluginRuntime.addPlugin(tmp.extra.spec)).resolves.toBe(true)
-    await expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("called")
+     expect(TuiPluginRuntime.addPlugin(tmp.extra.spec)).resolves.toBe(true)
+     expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("called")
     expect(wait).toHaveBeenCalledTimes(1)
     expect(TuiPluginRuntime.list().find((item) => item.id === "demo.add.retry")?.active).toBe(true)
   } finally {

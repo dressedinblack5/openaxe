@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect"
 import { HttpClient, HttpClientRequest } from "effect/unstable/http"
 import { Parser } from "htmlparser2"
 import type { Context } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 import TurndownService from "turndown"
 import DESCRIPTION from "./webfetch.txt"
 import { isImageAttachment } from "@/util/media"

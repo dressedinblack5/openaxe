@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect } from "bun:test"
-import path from "path"
+import path from "node:path"
 import { Effect, Exit, Layer, PlatformError } from "effect"
 import { Config } from "@opencode-ai/core/config"
 import { ConfigAttachments } from "@opencode-ai/core/config/attachments"
@@ -226,7 +226,7 @@ describe("ReadTool", () => {
 
   it.effect("preserves a PNG above the generic text limit as native media", () =>
     Effect.gen(function* () {
-      const photon = yield* Effect.promise(() => import("@silvia-odwyer/photon-node"))
+      const photon = yield* Effect.promise( async () => import("@silvia-odwyer/photon-node"))
       const pixels = Uint8Array.from({ length: 256 * 256 * 4 }, (_, index) => (index * 73 + (index >> 3)) % 256)
       const source = new photon.PhotonImage(pixels, 256, 256)
       const png = Buffer.from(source.get_bytes()).toString("base64")
@@ -312,7 +312,7 @@ describe("ReadTool", () => {
 
   it.effect("rejects oversized images when resizing is disabled", () =>
     Effect.gen(function* () {
-      const photon = yield* Effect.promise(() => import("@silvia-odwyer/photon-node"))
+      const photon = yield* Effect.promise( async () => import("@silvia-odwyer/photon-node"))
       const source = new photon.PhotonImage(new Uint8Array(Array.from({ length: 16 * 4 }, () => 255)), 16, 1)
       const base64 = Buffer.from(source.get_bytes()).toString("base64")
       source.free()
@@ -347,7 +347,7 @@ describe("ReadTool", () => {
 
   it.effect("resizes images to configured dimensions before returning media", () =>
     Effect.gen(function* () {
-      const photon = yield* Effect.promise(() => import("@silvia-odwyer/photon-node"))
+      const photon = yield* Effect.promise( async () => import("@silvia-odwyer/photon-node"))
       const source = new photon.PhotonImage(new Uint8Array(Array.from({ length: 16 * 4 }, () => 255)), 16, 1)
       const base64 = Buffer.from(source.get_bytes()).toString("base64")
       source.free()

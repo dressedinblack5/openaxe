@@ -1,6 +1,7 @@
 import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
 import * as TestClock from "effect/testing/TestClock"
+import { AppProcess } from "@opencode-ai/core/process"
 import { Database } from "@opencode-ai/core/database/database"
 import { EventV2 } from "@opencode-ai/core/event"
 import { Location } from "@opencode-ai/core/location"
@@ -32,6 +33,7 @@ const baseLayer = Layer.mergeAll(
   EventV2.defaultLayer,
   FSUtil.defaultLayer,
   Global.layerWith({ config: "/global" }),
+  AppProcess.defaultLayer,
   locationLayer,
 )
 const it = testEffect(

@@ -22,7 +22,7 @@ import { MCP } from "../mcp"
 import { LSP } from "@/lsp/lsp"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
-import { decodeText, filter, map, mkString, runForEach } from "effect/Stream";
+import { decodeText, filter, map, mkString, runForEach } from "effect/Stream"
 import { Command } from "../command"
 import { pathToFileURL, fileURLToPath } from "url"
 import { Config } from "@/config/config"
@@ -53,13 +53,12 @@ import { SessionMessage } from "@opencode-ai/core/session/message"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { AgentAttachment, FileAttachment, Prompt, Source } from "@opencode-ai/core/session/prompt"
-import { makeUnsafe } from "effect/DateTime";
+import { makeUnsafe } from "effect/DateTime"
 import { eq } from "drizzle-orm"
 import { SessionTable } from "@opencode-ai/core/session/sql"
 import { SessionReminders } from "./reminders"
 import { SessionTools } from "./tools"
 import { LLMEvent } from "@opencode-ai/llm"
-
 ;(globalThis as { AI_SDK_LOG_WARNINGS: boolean }).AI_SDK_LOG_WARNINGS = false
 
 const decodeMessageInfo = Schema.decodeUnknownExit(SessionV1.Info)
@@ -287,8 +286,8 @@ export const layer = Layer.effect(
         messageID: assistantMessage.id,
         sessionID: assistantMessage.sessionID,
         type: "tool",
-          callID: crypto.randomUUID(),
-          tool: TaskTool.id,
+        callID: crypto.randomUUID(),
+        tool: TaskTool.id,
         state: {
           status: "running",
           input: {
@@ -510,8 +509,8 @@ export const layer = Layer.effect(
               messageID: msg.id,
               sessionID: input.sessionID,
               tool: ShellID.ToolID,
-          callID: crypto.randomUUID(),
-          state: {
+              callID: crypto.randomUUID(),
+              state: {
                 status: "running",
                 time: { start: started },
                 input: { command: input.command },
@@ -1044,8 +1043,7 @@ export const layer = Layer.effect(
         (part) =>
           part.type === "file" && part.mime.startsWith("image/")
             ? image.normalize(part).pipe(
-                Effect.catchIf(
-                  (error) => error instanceof Image.ResizerUnavailableError,
+                Effect.catch(
                   () => Effect.succeed(part),
                 ),
               )
@@ -1186,6 +1184,15 @@ export const layer = Layer.effect(
         let structured: unknown
         let step = 0
         const session = yield* sessions.get(sessionID).pipe(Effect.orDie)
+        // ponytail: cache system prompt parts per (agent, model) — stable across ticks
+        let sysCache: {
+          agentName: string
+          modelId: string
+          skills: string | undefined
+          env: string[]
+          instructions: string[]
+          mcpInstructions: string | undefined
+        } | undefined
 
         while (true) {
           yield* status.set(sessionID, { type: "busy" })
@@ -1355,13 +1362,21 @@ export const layer = Layer.effect(
 
             yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
-            const [skills, env, instructions, mcpInstructions, modelMsgs] = yield* Effect.all([
-              sys.skills(agent),
-              sys.environment(model),
-              instruction.system().pipe(Effect.orDie),
-              sys.mcp(agent, session.permission),
-              MessageV2.toModelMessagesEffect(msgs, model),
-            ])
+            const sysEffect = sysCache?.agentName === agent.name && sysCache?.modelId === model.id
+              ? Effect.succeed([sysCache.skills, sysCache.env, sysCache.instructions, sysCache.mcpInstructions] as const)
+              : Effect.all([
+                  sys.skills(agent),
+                  sys.environment(model),
+                  instruction.system().pipe(Effect.orDie),
+                  sys.mcp(agent, session.permission),
+                ]).pipe(
+                  Effect.map(([skills, env, instructions, mcpInstructions]) => {
+                    sysCache = { agentName: agent.name, modelId: model.id, skills, env, instructions, mcpInstructions }
+                    return [skills, env, instructions, mcpInstructions] as const
+                  }),
+                )
+            const [skills, env, instructions, mcpInstructions] = yield* sysEffect
+            const modelMsgs = yield* MessageV2.toModelMessagesEffect(msgs, model)
             const system = [
               ...env,
               ...instructions,

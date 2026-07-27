@@ -10,14 +10,26 @@ Supported operations:
 - prepareCallHierarchy: Get call hierarchy item at a position (functions/methods)
 - incomingCalls: Find all functions/methods that call the function at a position
 - outgoingCalls: Find all functions/methods called by the function at a position
+- codeAction: Get available code actions (quick fixes, refactorings, auto-imports) at a position
+- rename: Rename a symbol across the entire codebase using the language server's semantic understanding
+- prepareRename: Check if a symbol at a position can be renamed, and get the range to rename
+- typeDefinition: Find the type definition of a symbol (e.g., the class of a variable)
+- signatureHelp: Get function signature and parameter information at a call site
+- completion: Get code completion suggestions at a position
+- formatting: Format a document using the language server's formatter. Returns text edits to apply.
+- applyCodeAction: Find and apply a specific code action (quick fix, auto-import, refactoring) by title. First call codeAction to list available actions, then pass the title to this operation.
 
 All operations require:
-- filePath: The file to operate on
-- line: The line number (1-based, as shown in editors)
-- character: The character offset (1-based, as shown in editors)
+- filePath: The file to operate on (for workspaceSymbol and formatting, this is used to select the LSP server)
+- line: The line number (1-based, as shown in editors) — not needed for workspaceSymbol, documentSymbol, or formatting
+- character: The character offset (1-based, as shown in editors) — not needed for workspaceSymbol, documentSymbol, or formatting
 
-workspaceSymbol also accepts:
-- query: A query string to filter symbols by. Empty string requests all symbols.
+Some operations also accept:
+- query: A query string for workspaceSymbol. Empty string requests all symbols.
+- newName: The new name for the rename operation (required for rename).
+- title: The title of the code action to apply (required for applyCodeAction).
+- tabSize: Tab size for formatting (default 2).
+- insertSpaces: Use spaces for formatting (default true).
 
 For workspaceSymbol, filePath is not sent in the LSP workspace/symbol request. It is used by opencode to select and start the matching LSP server.
 

@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Lint
+echo "  → oxlint"
+npx oxlint . || { echo "❌ lint failed"; exit 1; }
+
+# Typecheck
+echo "  → typecheck"
+bun typecheck || { echo "❌ typecheck failed"; exit 1; }
+
+echo "✅ Pre-commit checks passed"

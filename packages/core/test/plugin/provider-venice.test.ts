@@ -14,7 +14,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  const aisdk = yield* AISDK.Service
+  
   const host = yield* PluginHost.make(plugin)
   yield* VenicePlugin.effect(host)
 })
@@ -35,7 +35,7 @@ function fakeSelectorSdk(calls: string[]) {
 describe("VenicePlugin", () => {
   it.effect("creates a Venice SDK for venice-ai-sdk-provider", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -52,7 +52,7 @@ describe("VenicePlugin", () => {
 
   it.effect("uses the model provider ID as the bundled Venice SDK name", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -70,7 +70,7 @@ describe("VenicePlugin", () => {
 
   it.effect("only handles the bundled venice-ai-sdk-provider package", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const similar = yield* aisdk.runSDK({
@@ -96,7 +96,7 @@ describe("VenicePlugin", () => {
 
   it.effect("leaves Venice language selection to the default languageModel fallback", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()

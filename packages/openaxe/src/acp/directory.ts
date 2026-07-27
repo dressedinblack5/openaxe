@@ -6,7 +6,7 @@ import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { Provider } from "@/provider/provider"
 import { Context, Effect, Layer, SynchronizedRef } from "effect"
-import type { Error } from "./error";
+import type { Error } from "./error"
 export type ModelOption = {
   readonly providerID: ProviderV2.ID
   readonly providerName: string

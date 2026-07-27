@@ -1,6 +1,6 @@
 export * as Git from "./git"
 
-import path from "path"
+import path from "node:path"
 import { Context, Duration, Effect, Layer, Schema, Stream } from "effect"
 import { ChildProcess } from "effect/unstable/process"
 import { AbsolutePath } from "./schema"

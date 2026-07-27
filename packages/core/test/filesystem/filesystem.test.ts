@@ -3,7 +3,7 @@ import { Effect, Layer, FileSystem } from "effect"
 import { NodeFileSystem } from "@effect/platform-node"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { testEffect } from "../lib/effect"
-import path from "path"
+import path from "node:path"
 
 const live = Layer.merge(FSUtil.defaultLayer, NodeFileSystem.layer)
 const { effect: it } = testEffect(live)

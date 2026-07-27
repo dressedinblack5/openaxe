@@ -29,7 +29,7 @@ import { createSimpleContext } from "./helper"
 import { useExit } from "./exit"
 import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
-import path from "path"
+import path from "node:path"
 import { useKV } from "./kv"
 
 const emptyConsoleState: ConsoleState = {
@@ -159,7 +159,7 @@ export const {
       }
     }
 
-    function listSessions() {
+     async function listSessions() {
       return sdk.client.session
         .list({ start: Date.now() - 30 * 24 * 60 * 60 * 1000, ...sessionListQuery() })
         .then((x) => (x.data ?? []).toSorted((a, b) => a.id.localeCompare(b.id)))
@@ -435,7 +435,7 @@ export const {
       const fatal = input.fatal ?? true
       const workspace = project.workspace.current()
       const projectPromise = project.sync()
-      const sessionListPromise = projectPromise.then(() => listSessions())
+      const sessionListPromise = projectPromise.then( async () => listSessions())
 
       // blocking - include session.list when continuing a session
       const providersPromise = sdk.client.config.providers({ workspace }, { throwOnError: true })

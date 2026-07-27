@@ -2,13 +2,14 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Image } from "@/image/image"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
-import { Cause, Deferred, Effect, Exit, Layer, Context, Scope, Schema } from "effect"
-import { runDrain, takeUntil, tap } from "effect/Stream";
+import { Cause, Deferred, Effect, Exit, Layer, Context, Scope, Schema, Option } from "effect"
+import { runDrain, takeUntil, tap } from "effect/Stream"
 import { Agent } from "@/agent/agent"
 import { Config } from "@/config/config"
 import { Permission } from "@/permission"
 import { Plugin } from "@/plugin"
 import { Snapshot } from "@/snapshot"
+import { Learning } from "./learning/learning"
 import { Session } from "./session"
 import { LLM } from "./llm"
 import { MessageV2 } from "./message-v2"
@@ -28,11 +29,24 @@ import { SessionEvent } from "@opencode-ai/core/session/event"
 import { SessionMessage } from "@opencode-ai/core/session/message"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
-import { makeUnsafe } from "effect/DateTime";
+import { makeUnsafe } from "effect/DateTime"
 import { RuntimeFlags } from "@/effect/runtime-flags"
-import { ToolOutput, Usage, type LLMEvent } from "@opencode-ai/llm"
+import { Usage, type LLMEvent } from "@opencode-ai/llm"
+import type { ModelMessage } from "ai"
 
 const DOOM_LOOP_THRESHOLD = 3
+
+function lastUserText(messages: ModelMessage[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]
+    if (m.role !== "user") continue
+    if (typeof m.content === "string") return m.content
+    if (Array.isArray(m.content)) return m.content.filter(p => p.type === "text").map(p => p.text ?? "").join("\n")
+    return ""
+  }
+  return ""
+}
+
 export type Result = "compact" | "stop" | "continue"
 
 export interface Handle {
@@ -81,6 +95,7 @@ interface ProcessorContext extends Input {
   needsCompaction: boolean
   currentText: SessionV1.TextPart | undefined
   currentTextID: string | undefined
+  fullAssistantText: string
   reasoningMap: Record<string, SessionV1.ReasoningPart>
   v2AssistantMessageID: SessionMessage.ID | undefined
 }
@@ -106,6 +121,7 @@ export const layer = Layer.effect(
     const events = yield* EventV2Bridge.Service
     const flags = yield* RuntimeFlags.Service
     const database = yield* Database.Service
+    const learning = yield* Effect.serviceOption(Learning.Service)
 
     const create = Effect.fn("SessionProcessor.create")(function* (input: Input) {
       // Pre-capture snapshot before the LLM stream starts. The AI SDK
@@ -123,6 +139,7 @@ export const layer = Layer.effect(
         needsCompaction: false,
         currentText: undefined,
         currentTextID: undefined,
+        fullAssistantText: "",
         reasoningMap: {},
         v2AssistantMessageID: undefined,
       }
@@ -772,6 +789,7 @@ export const layer = Layer.effect(
           case "text-delta":
             if (!ctx.currentText) return
             ctx.currentText.text += value.text
+            ctx.fullAssistantText += value.text
             if (value.providerMetadata) ctx.currentText.metadata = value.providerMetadata
             if (mirrorAssistant) {
               yield* events.publish(SessionEvent.Text.Delta, {
@@ -961,6 +979,7 @@ export const layer = Layer.effect(
           yield* Effect.gen(function* () {
             ctx.currentText = undefined
             ctx.currentTextID = undefined
+            ctx.fullAssistantText = ""
             ctx.reasoningMap = {}
             yield* status.set(ctx.sessionID, { type: "busy" })
             const stream = llm.stream(streamInput)
@@ -1020,6 +1039,25 @@ export const layer = Layer.effect(
 
           if (ctx.needsCompaction) return "compact"
           if (ctx.blocked || ctx.assistantMessage.error) return "stop"
+
+          // ponytail: fire-and-forget learning review
+          if (Option.isSome(learning)) {
+            const userMessage = lastUserText(streamInput.messages)
+            const assistantMessage = ctx.fullAssistantText
+
+            yield* Effect.forkIn(scope)(
+              learning.value.review({
+                sessionID: ctx.sessionID,
+                trigger: "turn_complete",
+                userMessage,
+                assistantMessage,
+                agent: input.assistantMessage.agent ?? input.assistantMessage.agent,
+                providerID: input.model.providerID,
+                modelID: input.model.id,
+              }),
+            ).pipe(Effect.ignore)
+          }
+
           return "continue"
         })
       })
@@ -1053,6 +1091,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(RuntimeFlags.defaultLayer),
     Layer.provide(Database.defaultLayer),
     Layer.provide(EventV2Bridge.defaultLayer),
+    Layer.provide(Learning.defaultLayer),
   ),
 )
 
@@ -1070,6 +1109,7 @@ export const node = LayerNode.make(layer, [
   EventV2Bridge.node,
   RuntimeFlags.node,
   Database.node,
+  Learning.node,
 ])
 
 export * as SessionProcessor from "./processor"

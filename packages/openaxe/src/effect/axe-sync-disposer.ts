@@ -13,9 +13,6 @@ const disposerLayer = AxeSync.defaultLayer.pipe(
 
 registerDisposer((directory) =>
   Effect.runPromise(
-    AxeSync.Service.use((svc) => svc.save(directory)).pipe(
-      Effect.provide(disposerLayer),
-      Effect.ignoreCause,
-    ),
+    AxeSync.Service.use((svc) => svc.save(directory)).pipe(Effect.provide(disposerLayer), Effect.ignoreCause),
   ),
 )

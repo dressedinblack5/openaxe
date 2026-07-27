@@ -1,7 +1,6 @@
 import { AISDK } from "@opencode-ai/core/aisdk"
 import { describe, expect, mock } from "bun:test"
 import { Effect } from "effect"
-import { Catalog } from "@opencode-ai/core/catalog"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { PluginV2 } from "@opencode-ai/core/plugin"
 import { PluginHost } from "@opencode-ai/core/plugin/host"
@@ -15,7 +14,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  const aisdk = yield* AISDK.Service
+  
   const host = yield* PluginHost.make(plugin)
   yield* GitLabPlugin.effect(host)
 })
@@ -64,7 +63,7 @@ describe("GitLabPlugin", () => {
       () =>
         Effect.gen(function* () {
           gitlabSDKOptions.length = 0
-          const plugin = yield* PluginV2.Service
+          
           const aisdk = yield* AISDK.Service
           yield* addPlugin()
           yield* aisdk.runSDK({
@@ -81,7 +80,7 @@ describe("GitLabPlugin", () => {
           expect(gitlabSDKOptions[0].aiGatewayHeaders).toMatchObject({
             "anthropic-beta": "context-1m-2025-08-07",
           })
-          expect(String((gitlabSDKOptions[0].aiGatewayHeaders as Record<string, string>)["User-Agent"])).toContain(
+          expect((gitlabSDKOptions[0].aiGatewayHeaders as Record<string, string>)["User-Agent"]).toContain(
             "gitlab-ai-provider/test-version",
           )
           expect(gitlabSDKOptions[0].featureFlags).toEqual({
@@ -101,7 +100,7 @@ describe("GitLabPlugin", () => {
       () =>
         Effect.gen(function* () {
           gitlabSDKOptions.length = 0
-          const plugin = yield* PluginV2.Service
+          
           const aisdk = yield* AISDK.Service
           yield* addPlugin()
           yield* aisdk.runSDK({
@@ -126,7 +125,7 @@ describe("GitLabPlugin", () => {
       () =>
         Effect.gen(function* () {
           gitlabSDKOptions.length = 0
-          const plugin = yield* PluginV2.Service
+          
           const aisdk = yield* AISDK.Service
           yield* addPlugin()
           yield* aisdk.runSDK({
@@ -167,7 +166,7 @@ describe("GitLabPlugin", () => {
   it.effect("ignores non-GitLab SDK packages", () =>
     Effect.gen(function* () {
       gitlabSDKOptions.length = 0
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -185,7 +184,7 @@ describe("GitLabPlugin", () => {
 
   it.effect("uses workflowChat for duo workflow models and preserves selectedModelRef", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: [string, unknown][] = []
       yield* addPlugin()
@@ -220,7 +219,7 @@ describe("GitLabPlugin", () => {
 
   it.effect("uses exact static workflow model ids when the provider recognizes them", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: [string, unknown][] = []
       yield* addPlugin()
@@ -247,7 +246,7 @@ describe("GitLabPlugin", () => {
 
   it.effect("uses provider feature flags instead of request feature flags", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: [string, unknown][] = []
       yield* addPlugin()
@@ -275,7 +274,7 @@ describe("GitLabPlugin", () => {
 
   it.effect("uses agenticChat with provider aiGatewayHeaders and feature flags for normal models", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: [string, unknown][] = []
       yield* addPlugin()

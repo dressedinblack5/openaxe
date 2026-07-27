@@ -14,7 +14,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  const aisdk = yield* AISDK.Service
+  
   const host = yield* PluginHost.make(plugin)
   yield* MistralPlugin.effect(host)
 })
@@ -22,7 +22,7 @@ const addPlugin = Effect.fn(function* () {
 describe("MistralPlugin", () => {
   it.effect("creates a Mistral SDK for @ai-sdk/mistral", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -39,7 +39,7 @@ describe("MistralPlugin", () => {
 
   it.effect("ignores non-Mistral SDK packages", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -56,7 +56,7 @@ describe("MistralPlugin", () => {
 
   it.effect("matches the old bundled Mistral SDK provider name for the bundled provider ID", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const providers: string[] = []
       yield* addPlugin()
@@ -80,7 +80,7 @@ describe("MistralPlugin", () => {
 
   it.effect("matches the old bundled Mistral SDK provider name for custom provider IDs", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const providers: string[] = []
       yield* addPlugin()
@@ -103,7 +103,7 @@ describe("MistralPlugin", () => {
 
   it.effect("leaves Mistral language selection on the default sdk.languageModel(api.id) path", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       const sdk = {

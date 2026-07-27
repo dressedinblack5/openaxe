@@ -1,6 +1,6 @@
 export * as FileSystem from "./filesystem"
 
-import path from "path"
+import path from "node:path"
 import { Context, Effect, Layer, Schema } from "effect"
 import { FSUtil } from "./fs-util"
 import { Location } from "./location"

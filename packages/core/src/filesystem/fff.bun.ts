@@ -152,7 +152,7 @@ export function create(opts: Init): Result<Picker> {
     value: {
       destroy: () => pick.destroy(),
       isScanning: () => pick.isScanning(),
-      waitForScan: (timeoutMs) => pick.waitForScan(timeoutMs),
+      waitForScan:  async (timeoutMs) => pick.waitForScan(timeoutMs),
       refreshGitStatus: () => pick.refreshGitStatus(),
       fileSearch: (query, next) => cachedFileSearch(pick, query, next),
       glob: (pattern, next) => pick.glob(pattern, next),

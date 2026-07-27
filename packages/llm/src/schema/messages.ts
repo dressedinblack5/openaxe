@@ -2,7 +2,8 @@ import { Schema } from "effect"
 import { ToolContent, ToolFileContent, ToolTextContent } from "@opencode-ai/schema/llm"
 import { JsonSchema, MessageRole, ProviderMetadata } from "./ids"
 import { CacheHint, CachePolicy, GenerationOptions, HttpOptions, ModelSchema, ProviderOptions } from "./options"
-import { isRecord } from "../utils/record"
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const systemPartSchema = Schema.Struct({
   type: Schema.Literal("text"),
@@ -98,6 +99,8 @@ export const ToolOutput = Object.assign(
         case "content":
           return { structured: {}, content: result.value }
         case "error":
+          return undefined
+        default:
           return undefined
       }
     },

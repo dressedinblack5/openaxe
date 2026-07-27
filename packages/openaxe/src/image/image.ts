@@ -1,7 +1,6 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { Config } from "@/config/config"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
-import type { MessageV2 } from "@/session/message-v2"
 import { Context, Effect, Layer, Ref, Schema } from "effect"
 
 const MAX_BASE64_BYTES = 5 * 1024 * 1024
@@ -145,9 +144,7 @@ export const layer = Layer.effect(
     // (e.g. before instance bootstrap or in standalone test layers).
     const svc = yield* Effect.serviceOption(Config.Service)
     if (svc._tag === "Some") {
-      const cfg = yield* svc.value.get().pipe(
-        Effect.catchDefect(() => Effect.succeed(undefined)),
-      )
+      const cfg = yield* svc.value.get().pipe(Effect.catchDefect(() => Effect.void))
       if (cfg) {
         const attachment = cfg.attachment?.image
         yield* Ref.set(configRef, {
@@ -172,18 +169,29 @@ export const layer = Layer.effect(
       const base64 = extractBase64(input.url)
       const bytes = Buffer.from(base64, "base64").length
 
+      // Crashes from the native photon-node module (missing build toolchain,
+      // incompatible ABI, or Windows runner quirks) must not become defects.
+      // Wrap every native call path so a throw here becomes a typed error that
+      // the caller can recover from.
       if (bytes <= maxBase64Bytes) {
-        const photon = yield* Effect.promise(() => import("@silvia-odwyer/photon-node"))
-        const source = photon.PhotonImage.new_from_byteslice(Buffer.from(base64, "base64"))
-        const width = source.get_width()
-        const height = source.get_height()
+        const photon = yield* Effect.tryPromise({
+          try: () => import("@silvia-odwyer/photon-node"),
+          catch: () => new ResizerUnavailableError({}),
+        })
+        const { width, height } = yield* Effect.catch(
+          Effect.sync(() => {
+            const source = photon.PhotonImage.new_from_byteslice(Buffer.from(base64, "base64"))
+            const w = source.get_width()
+            const h = source.get_height()
+            source.free()
+            return { width: w, height: h }
+          }),
+          () => new ResizerUnavailableError({}),
+        )
 
         if (width <= maxWidth && height <= maxHeight) {
-          source.free()
           return input
         }
-
-        source.free()
       }
 
       if (!AUTO_RESIZE) {
@@ -199,14 +207,22 @@ export const layer = Layer.effect(
         })
       }
 
-      const photon = yield* Effect.promise(() => import("@silvia-odwyer/photon-node"))
+      const photon = yield* Effect.tryPromise({
+        try: () => import("@silvia-odwyer/photon-node"),
+        catch: () => new ResizerUnavailableError({}),
+      })
       const imageBuffer = Buffer.from(base64, "base64")
 
-      // Get image dimensions first
-      const source = photon.PhotonImage.new_from_byteslice(imageBuffer)
-      const width = source.get_width()
-      const height = source.get_height()
-      source.free()
+      const { width, height } = yield* Effect.catch(
+        Effect.sync(() => {
+          const source = photon.PhotonImage.new_from_byteslice(imageBuffer)
+          const w = source.get_width()
+          const h = source.get_height()
+          source.free()
+          return { width: w, height: h }
+        }),
+        () => new ResizerUnavailableError({}),
+      )
 
       const result = yield* Effect.tryPromise({
         try: () => tryResize(photon, imageBuffer, mime, maxWidth, maxHeight, maxBase64Bytes),

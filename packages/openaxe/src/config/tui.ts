@@ -51,19 +51,7 @@ function pluginScope(file: string, ctx: { directory: string }): ConfigPlugin.Sco
   return "global"
 }
 
-function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = { ...target }
-  for (const key of Object.keys(source)) {
-    const sv = source[key]
-    const rv = result[key]
-    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
-      result[key] = mergeDeep(rv, sv)
-    } else if (sv !== undefined) {
-      result[key] = sv
-    }
-  }
-  return result
-}
+import { mergeDeep } from "@/util/merge-deep"
 
 function normalize(raw: Record<string, unknown>) {
   const data = { ...raw }
@@ -217,32 +205,35 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
   const dirs = [...new Set(directories)].filter((dir) => dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR)
 
   // Parallel read across all .openaxe dirs, then sequential merge
-  const [fileEntries, pluginDeps] = yield* Effect.all([
-    Effect.forEach(
-      dirs,
-      (dir) =>
-        Effect.forEach(fileInDirectory(dir, "tui"), (file) =>
-          loadFile(file).pipe(Effect.map((data) => ({ file, data }))),
-        ),
-      { concurrency: "unbounded" },
-    ).pipe(Effect.map((groups) => groups.flat())),
-    Effect.forEach(
-      dirs,
-      (dir) =>
-        npm
-          .install(dir, {
-            add: [
-              {
-                name: "@opencode-ai/plugin",
-                version: InstallationLocal ? undefined : InstallationVersion,
-              },
-              ...BUNDLED_PLUGINS.map((name) => ({ name })),
-            ],
-          })
-          .pipe(Effect.forkScoped),
-      { concurrency: "unbounded" },
-    ),
-  ], { concurrency: "unbounded" })
+  const [fileEntries, pluginDeps] = yield* Effect.all(
+    [
+      Effect.forEach(
+        dirs,
+        (dir) =>
+          Effect.forEach(fileInDirectory(dir, "tui"), (file) =>
+            loadFile(file).pipe(Effect.map((data) => ({ file, data }))),
+          ),
+        { concurrency: "unbounded" },
+      ).pipe(Effect.map((groups) => groups.flat())),
+      Effect.forEach(
+        dirs,
+        (dir) =>
+          npm
+            .install(dir, {
+              add: [
+                {
+                  name: "@opencode-ai/plugin",
+                  version: InstallationLocal ? undefined : InstallationVersion,
+                },
+                ...BUNDLED_PLUGINS.map((name) => ({ name })),
+              ],
+            })
+            .pipe(Effect.forkScoped),
+        { concurrency: "unbounded" },
+      ),
+    ],
+    { concurrency: "unbounded" },
+  )
 
   for (const { file, data } of fileEntries) {
     if (Object.keys(data).length) {

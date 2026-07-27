@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 import { onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createSimpleContext } from "../context/helper"

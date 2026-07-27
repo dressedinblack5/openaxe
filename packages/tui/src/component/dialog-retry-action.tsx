@@ -147,7 +147,7 @@ export function DialogRetryAction(props: DialogRetryActionProps) {
   )
 }
 
-DialogRetryAction.show = (
+DialogRetryAction.show =  async (
   dialog: DialogContext,
   props: Pick<DialogRetryActionProps, "title" | "message" | "label" | "link">,
 ) => {

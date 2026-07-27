@@ -27,7 +27,7 @@ const cli: any = yargs(["--help"])
     },
   })
 
-const result = await cli.parse()
+await cli.parse()
 process.stderr.write(`test builder called: ${builderCalled}\n`)
 process.stderr.write(`test handler called: ${handlerCalled}\n`)
 process.exit(0)

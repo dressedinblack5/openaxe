@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { Script } from "@opencode-ai/script"
 import { $ } from "bun"
-import { fileURLToPath } from "url"
+import { fileURLToPath } from "node:url"
 
 const dir = fileURLToPath(new URL("..", import.meta.url))
 process.chdir(dir)

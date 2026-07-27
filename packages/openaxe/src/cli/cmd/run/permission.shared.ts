@@ -116,6 +116,15 @@ export function permissionInfo(request: PermissionRequest): PermissionInfo {
     }
   }
 
+  if (request.permission === "bash") {
+    const command = text(input.command)
+    return {
+      icon: "$",
+      title: "Shell command",
+      lines: command ? [`$ ${command}`] : [],
+    }
+  }
+
   return {
     icon: "⚙",
     title: `Call tool ${request.permission}`,

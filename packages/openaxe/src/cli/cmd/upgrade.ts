@@ -1,8 +1,5 @@
 import type { Argv } from "yargs"
 import { UI } from "../ui"
-import { intro, outro, select, spinner as createSpinner, log } from "@clack/prompts"
-import { Installation } from "../../installation"
-import { InstallationVersion } from "@opencode-ai/core/installation/version"
 
 export const UpgradeCommand = {
   command: "upgrade [target]",
@@ -21,12 +18,16 @@ export const UpgradeCommand = {
       })
   },
   handler: async (args: { target?: string; method?: string }) => {
+    const { intro, outro, select, spinner: createSpinner, log } = await import("@clack/prompts")
+    const { Installation } = await import("../../installation")
+    const { InstallationVersion } = await import("@opencode-ai/core/installation/version")
+
     UI.empty()
     UI.println(UI.logo("  "))
     UI.empty()
     intro("Upgrade")
     const detectedMethod = await Installation.method()
-    const method = (args.method as Installation.Method) ?? detectedMethod
+    const method = args.method ?? detectedMethod
     if (method === "unknown") {
       log.error(`opencode is installed to ${process.execPath} and may be managed by a package manager`)
       const install = await select({
@@ -66,7 +67,7 @@ export const UpgradeCommand = {
     log.info(`From ${InstallationVersion} → ${target}`)
     const spinner = createSpinner()
     spinner.start("Upgrading...")
-    const err = await Installation.upgrade(method, target).catch((err) => err)
+    const err = await Installation.upgrade(method as any, target).catch((err) => err)
     if (err) {
       spinner.stop("Upgrade failed", 1)
       if (err instanceof Installation.UpgradeFailedError) {

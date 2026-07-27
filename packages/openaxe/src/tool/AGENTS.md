@@ -19,18 +19,19 @@ src/tool/
 
 ## WHERE TO LOOK
 
-| Concern | File | Role |
-|---------|------|------|
-| Registration | `registry.ts` | Built-in and plugin tool discovery |
-| Base Types | `tool.ts` | `Def`, `Context`, `ExecuteResult` |
-| File Mutation | `edit.ts`, `write.ts` | `edit` (fuzzy), `write` (full) |
-| File Discovery | `glob.ts`, `grep.ts` | `glob` (patterns), `grep` (content) |
-| Subagents | `task.ts` | Spawning child agents |
-| External Tools | `registry.ts` | Loading from `tool/` dirs or plugins |
+| Concern        | File                  | Role                                 |
+| -------------- | --------------------- | ------------------------------------ |
+| Registration   | `registry.ts`         | Built-in and plugin tool discovery   |
+| Base Types     | `tool.ts`             | `Def`, `Context`, `ExecuteResult`    |
+| File Mutation  | `edit.ts`, `write.ts` | `edit` (fuzzy), `write` (full)       |
+| File Discovery | `glob.ts`, `grep.ts`  | `glob` (patterns), `grep` (content)  |
+| Subagents      | `task.ts`             | Spawning child agents                |
+| External Tools | `registry.ts`         | Loading from `tool/` dirs or plugins |
 
 ## KEY PATTERNS
 
 ### Tool Definition
+
 Tools use `define(id, init)` from `tool.ts`. `init` is an Effect that returns the tool's description, parameters (Schema), and `execute` function.
 
 ```ts
@@ -44,6 +45,7 @@ export const MyTool = define("my_tool", Effect.gen(function*() {
 ```
 
 ### Execution Flow
+
 1. **Lookup**: `ToolRegistry.tools()` returns available tools for a model/agent.
 2. **Validation**: `tool.ts` wraps `execute` to validate arguments against `parameters` schema.
 3. **Context**: `Context` provides `sessionID`, `messageID`, and `ask` (permission requests).

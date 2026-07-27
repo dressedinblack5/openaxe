@@ -8,12 +8,14 @@ import { MessageV2 } from "./message-v2"
 import { Token } from "@/util/token"
 import { SessionProcessor } from "./processor"
 import { Agent } from "@/agent/agent"
+import { Skill } from "@/skill"
 import { Plugin } from "@/plugin"
+import { Compressor } from "./compressor/compressor"
 import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
 
-import { Effect, Layer, Context } from "effect"
-import { makeUnsafe } from "effect/DateTime";
+import { Effect, Layer, Context, Option } from "effect"
+import { makeUnsafe } from "effect/DateTime"
 import { InstanceState } from "@/effect/instance-state"
 import { isOverflow as overflow, usable } from "./overflow" // renamed to avoid conflict with local isOverflow
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
@@ -167,6 +169,7 @@ export const layer = Layer.effect(
     const provider = yield* Provider.Service
     const events = yield* EventV2Bridge.Service
     const flags = yield* RuntimeFlags.Service
+    const skill = yield* Skill.Service
 
     const isOverflow = Effect.fn("SessionCompaction.isOverflow")(function* (input: {
       tokens: SessionV1.Assistant["tokens"]
@@ -328,6 +331,7 @@ export const layer = Layer.effect(
         }
       }
 
+      const compressor = yield* Effect.serviceOption(Compressor.Service)
       const agent = yield* agents.get("compaction")
       const model = agent.model
         ? yield* provider.getModel(agent.model.providerID, agent.model.modelID).pipe(Effect.orDie)
@@ -349,6 +353,34 @@ export const layer = Layer.effect(
         { context: [], prompt: undefined },
       )
       const nextPrompt = compacting.prompt ?? buildPrompt({ previousSummary, context: compacting.context })
+
+      const allSkillNames = yield* skill.all().pipe(Effect.map((skills) => skills.map((s) => s.name)))
+      const compressedPrompt = Option.isSome(compressor)
+        ? yield* compressor.value.compress({
+            sessionID: input.sessionID,
+            messages: JSON.stringify(selected.head.map((m) => ({
+              role: m.info.role,
+              parts: m.parts.map((p) => p.type === "text" ? p.text : `[${p.type}]`),
+            }))),
+            skills: allSkillNames,
+            providerID: model.providerID,
+            modelID: model.id,
+          }).pipe(
+            Effect.map((compressed) => {
+              const allSections = [...compressed.sections]
+              if (compressed.ghostSkills.length > 0) {
+                allSections.push({
+                  title: "Detected Skills",
+                  content: compressed.ghostSkills.map((s) => `- ${s}`).join("\n"),
+                })
+              }
+              return allSections.length > 0
+                ? `${nextPrompt}\n\n<structured_summary>\n${allSections.map((s) => `<section title="${s.title}">\n${s.content}\n</section>`).join("\n")}\n</structured_summary>`
+                : nextPrompt
+            }),
+          )
+        : nextPrompt
+
       const msgs = structuredClone(selected.head)
       yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
       const modelMessages = yield* MessageV2.toModelMessagesEffect(msgs, model, {
@@ -410,7 +442,7 @@ export const layer = Layer.effect(
           ...modelMessages,
           {
             role: "user",
-            content: [{ type: "text", text: nextPrompt }],
+            content: [{ type: "text", text: compressedPrompt }],
           },
         ],
         model,
@@ -596,6 +628,8 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Config.defaultLayer),
     Layer.provide(RuntimeFlags.defaultLayer),
     Layer.provide(EventV2Bridge.defaultLayer),
+    Layer.provide(Compressor.defaultLayer),
+    Layer.provide(Skill.defaultLayer),
   ),
 )
 
@@ -608,6 +642,8 @@ export const node = LayerNode.make(layer, [
   Provider.node,
   EventV2Bridge.node,
   RuntimeFlags.node,
+  Compressor.node,
+  Skill.node,
 ])
 
 export * as SessionCompaction from "./compaction"

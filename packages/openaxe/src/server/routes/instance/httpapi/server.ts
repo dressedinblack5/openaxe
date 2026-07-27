@@ -1,9 +1,9 @@
 import { Config as EffectConfig, Context, Effect, Layer } from "effect"
 import { HttpApiBuilder, OpenApi } from "effect/unstable/httpapi"
 import { HttpClient, HttpMiddleware, HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http"
-import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket";
+import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import { layer } from "@opencode-ai/core/observability";
+import { layer } from "@opencode-ai/core/observability"
 import { Account } from "@/account/account"
 import { Agent } from "@/agent/agent"
 import { Auth } from "@/auth"
@@ -142,7 +142,7 @@ const eventApiRoutes = HttpApiBuilder.layer(EventApi).pipe(
 )
 const ptyConnectApiRoutes = HttpApiBuilder.layer(PtyConnectApi).pipe(
   Layer.provide(ptyConnectHandlers),
-  Layer.provide([ptyConnectHttpApiAuthLayer, workspaceRoutingLive, instanceContextLayer]),
+  Layer.provide([ptyConnectHttpApiAuthLayer, workspaceRoutingLive, instanceContextLayer, Memory.layer]),
 )
 const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
   Layer.provide([
@@ -286,7 +286,7 @@ export function createRoutes(
     Layer.provideMerge(LayerNode.buildLayer(app)),
     Layer.provide(Layer.succeed(CorsConfig)(corsOptions)),
     Layer.provideMerge(layer),
-  )
+  ) as Layer.Layer<never, EffectConfig.ConfigError, RouteRequirements>
 }
 
 export const routes = createRoutes()

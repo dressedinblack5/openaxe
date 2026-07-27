@@ -60,7 +60,7 @@ test("toggles plugin runtime state by exported id", async () => {
   try {
     await TuiPluginRuntime.init({ api, config })
 
-    await expect(fs.readFile(tmp.extra.marker, "utf8")).rejects.toThrow()
+     expect(fs.readFile(tmp.extra.marker, "utf8")).rejects.toThrow()
     expect(TuiPluginRuntime.list().find((item) => item.id === "demo.toggle")).toEqual({
       id: "demo.toggle",
       source: "file",
@@ -70,19 +70,19 @@ test("toggles plugin runtime state by exported id", async () => {
       active: false,
     })
 
-    await expect(TuiPluginRuntime.activatePlugin("demo.toggle")).resolves.toBe(true)
-    await expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("start\n")
+     expect(TuiPluginRuntime.activatePlugin("demo.toggle")).resolves.toBe(true)
+     expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("start\n")
     expect(api.kv.get("plugin_enabled", {})).toEqual({
       "demo.toggle": true,
     })
 
-    await expect(TuiPluginRuntime.deactivatePlugin("demo.toggle")).resolves.toBe(true)
-    await expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("start\nstop\n")
+     expect(TuiPluginRuntime.deactivatePlugin("demo.toggle")).resolves.toBe(true)
+     expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("start\nstop\n")
     expect(api.kv.get("plugin_enabled", {})).toEqual({
       "demo.toggle": false,
     })
 
-    await expect(TuiPluginRuntime.activatePlugin("missing.id")).resolves.toBe(false)
+     expect(TuiPluginRuntime.activatePlugin("missing.id")).resolves.toBe(false)
   } finally {
     await TuiPluginRuntime.dispose()
     cwd.mockRestore()
@@ -144,7 +144,7 @@ test("deactivating plugin pops pushed mode", async () => {
     expect(api.mode.current()).toBe("demo.mode")
     expect(popCount).toBe(0)
 
-    await expect(TuiPluginRuntime.deactivatePlugin("demo.mode")).resolves.toBe(true)
+     expect(TuiPluginRuntime.deactivatePlugin("demo.mode")).resolves.toBe(true)
 
     expect(api.mode.current()).toBe("base")
     expect(popCount).toBe(1)
@@ -204,7 +204,7 @@ test("kv plugin_enabled overrides tui config on startup", async () => {
   try {
     await TuiPluginRuntime.init({ api, config })
 
-    await expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("on")
+     expect(fs.readFile(tmp.extra.marker, "utf8")).resolves.toBe("on")
     expect(TuiPluginRuntime.list().find((item) => item.id === "demo.startup")).toEqual({
       id: "demo.startup",
       source: "file",
@@ -246,7 +246,7 @@ test("loads disabled-by-default internal plugin inactive and activates on demand
       active: false,
     })
 
-    await expect(TuiPluginRuntime.activatePlugin("which-key")).resolves.toBe(true)
+     expect(TuiPluginRuntime.activatePlugin("which-key")).resolves.toBe(true)
     expect(TuiPluginRuntime.list().find((item) => item.id === "which-key")).toEqual({
       id: "which-key",
       source: "internal",

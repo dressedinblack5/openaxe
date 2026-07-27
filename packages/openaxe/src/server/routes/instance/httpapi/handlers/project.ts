@@ -1,4 +1,4 @@
-import { context } from "@/effect/instance-state";
+import { context } from "@/effect/instance-state"
 import { Project } from "@/project/project"
 import { ProjectV2 } from "@opencode-ai/core/project"
 import { Effect } from "effect"

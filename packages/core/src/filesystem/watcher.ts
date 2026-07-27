@@ -5,7 +5,7 @@ import { createWrapper } from "@parcel/watcher/wrapper"
 import type ParcelWatcher from "@parcel/watcher"
 import { Cause, Context, Effect, Layer } from "effect"
 import { FileSystemWatcher } from "@opencode-ai/schema/filesystem-watcher"
-import path from "path"
+import path from "node:path"
 import { Config } from "../config"
 import { EventV2 } from "../event"
 import { Flag } from "../flag/flag"
@@ -28,9 +28,10 @@ const watcher = lazy((): typeof import("@parcel/watcher") | undefined => {
     const binding = require(
       `@parcel/watcher-${process.platform}-${process.arch}${process.platform === "linux" ? `-${libc || "glibc"}` : ""}`,
     )
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- createWrapper returns the watcher API
     return createWrapper(binding) as typeof import("@parcel/watcher")
   } catch {
-    return
+    return undefined
   }
 })
 
@@ -38,6 +39,7 @@ function getBackend() {
   if (process.platform === "win32") return "windows"
   if (process.platform === "darwin") return "fs-events"
   if (process.platform === "linux") return "inotify"
+  return undefined
 }
 
 function protecteds(dir: string) {
@@ -79,7 +81,7 @@ export const layer = Layer.effect(
     const runFork = Effect.runForkWith(context)
     const subscriptions: ParcelWatcher.AsyncSubscription[] = []
     yield* Effect.addFinalizer(() =>
-      Effect.promise(() => Promise.allSettled(subscriptions.map((subscription) => subscription.unsubscribe()))),
+      Effect.promise( async () => Promise.allSettled(subscriptions.map( async (subscription) => subscription.unsubscribe()))),
     )
 
     const callback: ParcelWatcher.SubscribeCallback = (_error, updates) => {
@@ -92,16 +94,16 @@ export const layer = Layer.effect(
 
     const subscribe = (directory: string, ignore: string[]) => {
       const pending = w.subscribe(directory, callback, { ignore, backend })
-      return Effect.promise(() => pending).pipe(
+      return Effect.promise( async () => pending).pipe(
         Effect.tap((subscription) => Effect.sync(() => subscriptions.push(subscription))),
         Effect.timeout(SUBSCRIBE_TIMEOUT_MS),
         Effect.catchCause((cause) => {
-          pending.then((subscription) => subscription.unsubscribe()).catch(() => {})
+          pending.then( async (subscription) => subscription.unsubscribe()).catch(() => {})
           const limit =
             process.platform === "linux"
               ? Effect.sync(() => {
                   try {
-                    return require("fs").readFileSync("/proc/sys/fs/inotify/max_user_watches", "utf8").trim()
+                    return require("node:fs").readFileSync("/proc/sys/fs/inotify/max_user_watches", "utf8").trim()
                   } catch {
                     return "unknown"
                   }

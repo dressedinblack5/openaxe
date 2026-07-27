@@ -465,7 +465,7 @@ const finishEvents = (state: ParserState): ReadonlyArray<LLMEvent> => {
  * over HTTP+SSE: native OpenAI, DeepSeek, TogetherAI, Cerebras, Baseten,
  * Fireworks, DeepInfra, and (once added) Azure OpenAI Chat.
  */
-export const protocol = Protocol.make({
+export const protocol = {
   id: ADAPTER,
   body: {
     schema: OpenAIChatBody,
@@ -477,7 +477,7 @@ export const protocol = Protocol.make({
     step,
     onHalt: finishEvents,
   },
-})
+}
 
 export const httpTransport = HttpTransport.sseJson.with<OpenAIChatBody>()
 

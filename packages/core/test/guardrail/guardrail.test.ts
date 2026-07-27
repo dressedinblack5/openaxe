@@ -11,8 +11,8 @@ const gw = testEffect(
 
 function withTmpDir<A, E, R>(body: (dir: string) => Effect.Effect<A, E, R>) {
   return Effect.acquireRelease(
-    Effect.promise(() => tmpdir()),
-    (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+    Effect.promise( async () => tmpdir()),
+    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
   ).pipe(Effect.flatMap((tmp) => body(tmp.path)))
 }
 
@@ -126,6 +126,78 @@ describe("Guardrail", () => {
           expect(results).toHaveLength(1)
           expect(results[0].passed).toBe(true)
           expect(results[0].errors).toEqual([])
+        }),
+      ),
+    )
+
+    gw.live("ignores brackets in line comments", () =>
+      withTmpDir((dir) =>
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem
+          const guardrail = yield* Guardrail.Service
+
+          const filePath = `${dir}/comment.ts`
+          yield* fs.writeFileString(
+            filePath,
+            [
+              "const x = { a: 1 }",
+              "// { unclosed bracket in line comment",
+              "const y = 2",
+            ].join("\n"),
+          )
+
+          const results = yield* guardrail.verifyStructural([filePath])
+          expect(results).toHaveLength(1)
+          expect(results[0].passed).toBe(true)
+          expect(results[0].errors).toEqual([])
+        }),
+      ),
+    )
+
+    gw.live("ignores brackets in block comments", () =>
+      withTmpDir((dir) =>
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem
+          const guardrail = yield* Guardrail.Service
+
+          const filePath = `${dir}/block.ts`
+          yield* fs.writeFileString(
+            filePath,
+            [
+              "const x = { a: 1 }",
+              "/* { unclosed bracket in block comment */",
+              "const y = 2",
+            ].join("\n"),
+          )
+
+          const results = yield* guardrail.verifyStructural([filePath])
+          expect(results).toHaveLength(1)
+          expect(results[0].passed).toBe(true)
+          expect(results[0].errors).toEqual([])
+        }),
+      ),
+    )
+
+    gw.live("detects bracket errors outside comments", () =>
+      withTmpDir((dir) =>
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem
+          const guardrail = yield* Guardrail.Service
+
+          const filePath = `${dir}/mixed.ts`
+          yield* fs.writeFileString(
+            filePath,
+            [
+              "// { comment is fine",
+              "const x = { a: 1;", // unclosed brace outside comment
+              "/* } block comment is fine */",
+            ].join("\n"),
+          )
+
+          const results = yield* guardrail.verifyStructural([filePath])
+          expect(results).toHaveLength(1)
+          expect(results[0].passed).toBe(false)
+          expect(results[0].errors.some((e) => e.message.includes("unclosed brace"))).toBe(true)
         }),
       ),
     )

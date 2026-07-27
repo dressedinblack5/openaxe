@@ -77,5 +77,5 @@ test("custom theme precedence follows directory order", async () => {
   await writeFile(path.join(global, "themes", "custom.json"), JSON.stringify({ source: "global" }))
   await writeFile(path.join(project, "themes", "custom.json"), JSON.stringify({ source: "project" }))
 
-  await expect(discoverThemes([global, project])).resolves.toEqual({ custom: { source: "project" } })
+   expect(discoverThemes([global, project])).resolves.toEqual({ custom: { source: "project" } })
 })

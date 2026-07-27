@@ -620,7 +620,7 @@ export const layer: Layer.Layer<Service, never, FSUtil.Service | AppProcess.Serv
                   }
                   const out = batch.stdout
 
-                  const fail = (msg: string, extra?: Record<string, string>) => {
+                  const fail = (_msg: string, _extra?: Record<string, string>) => {
                     return undefined
                   }
 

@@ -1,6 +1,6 @@
-import fs from "fs/promises"
-import { tmpdir as osTmpdir } from "os"
-import path from "path"
+import fs from "node:fs/promises"
+import { tmpdir as osTmpdir } from "node:os"
+import path from "node:path"
 
 export const tmpdir = async () => {
   const dir = await fs.realpath(await fs.mkdtemp(path.join(osTmpdir(), "opencode-core-test-")))

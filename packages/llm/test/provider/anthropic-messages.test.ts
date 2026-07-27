@@ -729,7 +729,7 @@ describe("Anthropic Messages route", () => {
           dynamicResponse((input) =>
             Effect.gen(function* () {
               const web = yield* HttpClientRequest.toWeb(input.request).pipe(Effect.orDie)
-              expect(yield* Effect.promise(() => web.json())).toMatchObject({
+              expect(yield* Effect.promise( async () => web.json())).toMatchObject({
                 messages: [
                   {
                     role: "user",

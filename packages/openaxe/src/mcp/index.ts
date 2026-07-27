@@ -19,8 +19,6 @@ import {
 } from "@modelcontextprotocol/sdk/types.js"
 import { Config } from "@/config/config"
 import { ConfigMCPV1 } from "@opencode-ai/core/v1/config/mcp"
-import { ConfigMCP } from "@opencode-ai/core/config/mcp"
-import { NamedError } from "@opencode-ai/core/util/error"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { withTimeout } from "@/util/timeout"
 import { FSUtil } from "@opencode-ai/core/fs-util"
@@ -338,7 +336,7 @@ export const layer = Layer.effect(
 
       return {
         client: undefined as MCPClient | undefined,
-        status: (lastStatus ?? { status: "failed", error: "Unknown error" }),
+        status: lastStatus ?? { status: "failed", error: "Unknown error" },
       }
     })
 
@@ -375,10 +373,8 @@ export const layer = Layer.effect(
       )
     })
 
-    let createCounter = 0
     const create = Effect.fn("MCP.create")(
       function* (key: string, mcp: ConfigMCPV1.Info) {
-        createCounter++
         if (mcp.enabled === false) {
           return DISABLED_RESULT
         }
@@ -500,7 +496,7 @@ export const layer = Layer.effect(
     const state = yield* InstanceState.make<State>(
       Effect.fn("MCP.state")(function* () {
         const cfg = yield* cfgSvc.get()
-        const bridge = yield* EffectBridge.make()
+
         const servers = getMcpServers(cfg.mcp)
 
         // ponytail: inject CodeGraph as built-in MCP when installed; user config overrides
@@ -629,9 +625,7 @@ export const layer = Layer.effect(
       const mcp = s.config[name]
       if (!mcp) return
       s.connecting.add(name)
-      const result = yield* create(name, mcp).pipe(
-        Effect.ensuring(Effect.sync(() => s.connecting.delete(name))),
-      )
+      const result = yield* create(name, mcp).pipe(Effect.ensuring(Effect.sync(() => s.connecting.delete(name))))
       s.status[name] = result.status
       if (result.mcpClient) {
         s.clients[name] = result.mcpClient
@@ -644,9 +638,7 @@ export const layer = Layer.effect(
     // Connects all servers still in pending status. Uses connectOne per server.
     const connectAll = Effect.fn("MCP.connectAll")(function* () {
       const s = yield* InstanceState.get(state)
-      const pending = Object.keys(s.status).filter(
-        (name) => s.status[name]?.status === "pending"
-      )
+      const pending = Object.keys(s.status).filter((name) => s.status[name]?.status === "pending")
       for (const name of pending) {
         yield* connectOne(name)
       }

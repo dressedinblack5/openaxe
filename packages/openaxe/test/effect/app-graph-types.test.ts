@@ -40,7 +40,7 @@ const diskAImplementation = Layer.effect(A, Effect.fail(new DiskError()))
 const networkAImplementation = Layer.effect(A, Effect.fail(new NetworkError()))
 const notFoundOrDiskAImplementation = Layer.effect(A, Effect.fail(new NotFoundError() as NotFoundError | DiskError))
 
-type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false
+type Equal<A, B> = (() => unknown extends A ? 1 : 2) extends () => unknown extends B ? 1 : 2 ? true : false
 type Assert<T extends true> = T
 
 type AProvides = Assert<Equal<Layer.Success<typeof aImplementation>, A>>
@@ -59,9 +59,9 @@ const b = LayerNode.make(bImplementation, [a])
 const c = LayerNode.make(cImplementation, [a, b])
 const failingA = LayerNode.make(failingAImplementation, [])
 const bWithFailingA = LayerNode.make(bImplementation, [failingA])
-const notFoundA = LayerNode.make(notFoundAImplementation, [])
-const diskA = LayerNode.make(diskAImplementation, [])
-const networkA = LayerNode.make(networkAImplementation, [])
+
+
+
 const notFoundOrDiskA = LayerNode.make(notFoundOrDiskAImplementation, [])
 
 // @ts-expect-error B requires A

@@ -25,6 +25,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/core"
@@ -32,6 +36,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/tui"
@@ -39,6 +47,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/llm"
@@ -46,6 +58,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/server"
@@ -53,6 +69,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/ui"
@@ -60,6 +80,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/schema"
@@ -67,6 +91,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/plugin"
@@ -74,6 +102,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/sdk"
@@ -81,6 +113,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/cli"
@@ -88,6 +124,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/effect-drizzle-sqlite"
@@ -95,6 +135,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/http-recorder"
@@ -102,6 +146,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/packages/script"
@@ -109,6 +157,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    groups:
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"

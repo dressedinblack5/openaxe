@@ -180,6 +180,8 @@ try {
   if (args.includes("-h") || args.includes("--help")) {
     const out = await cli.getHelp()
     if (out) show(out)
+  } else if (args.includes("-v") || args.includes("--version")) {
+    process.stdout.write(InstallationVersion + EOL)
   } else {
     await cli.parse()
   }

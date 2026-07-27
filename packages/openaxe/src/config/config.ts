@@ -44,24 +44,9 @@ export const BUNDLED_PLUGINS = [
   "opencode-vibeguard",
   "@tarquinen/opencode-dcp",
   "ecc-universal",
-  "DietrichGebert/ponytail",
 ] as const
 
-function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = { ...target }
-  for (const key of Object.keys(source)) {
-    const sv = source[key]
-    const rv = result[key]
-    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
-      result[key] = mergeDeep(rv, sv)
-    } else if (sv !== undefined) {
-      result[key] = sv
-    } else {
-      delete result[key]
-    }
-  }
-  return result
-}
+import { mergeDeep } from "@/util/merge-deep"
 
 // Custom merge function that concatenates array fields instead of replacing them
 function mergeConfig(target: Info, source: Info): Info {
@@ -282,14 +267,17 @@ export const layer = Layer.effect(
           if (!disableDefaultPlugins) {
             defaultConfig.plugin = [...BUNDLED_PLUGINS]
           }
-          yield* fs
-            .writeWithDirs(file, JSON.stringify(defaultConfig, null, 2))
-            .pipe(Effect.catch(() => Effect.void))
+          yield* fs.writeWithDirs(file, JSON.stringify(defaultConfig, null, 2)).pipe(Effect.catch(() => Effect.void))
         }
       }
-      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "config.json"), env))
-      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "openaxe.json"), env))
-      result = mergeConfig(result, yield* loadFile(path.join(Global.Path.config, "openaxe.jsonc"), env))
+      const [configJson, openaxeJson, openaxeJsonc] = yield* Effect.all([
+        loadFile(path.join(Global.Path.config, "config.json"), env),
+        loadFile(path.join(Global.Path.config, "openaxe.json"), env),
+        loadFile(path.join(Global.Path.config, "openaxe.jsonc"), env),
+      ])
+      result = mergeConfig(result, configJson)
+      result = mergeConfig(result, openaxeJson)
+      result = mergeConfig(result, openaxeJsonc)
 
       const legacy = path.join(Global.Path.config, "config")
       if (yield* fs.existsSafe(legacy)) {
@@ -361,8 +349,6 @@ export const layer = Layer.effect(
         let result: Info = {}
         const authEnv: Record<string, string> = {}
         const consoleManagedProviders = new Set<string>()
-        let activeOrgName: string | undefined
-
         const pluginScopeForSource = Effect.fnUntraced(function* (source: string) {
           if (source.startsWith("http://") || source.startsWith("https://")) return "global"
           if (source === "OPENCODE_CONFIG_CONTENT") return "local"
@@ -478,28 +464,31 @@ export const layer = Layer.effect(
 
           yield* ensureGitignore(dir).pipe(Effect.orDie)
 
-          const dep = yield* npmSvc
-            .install(dir, {
-              add: [
-                {
-                  name: "@opencode-ai/plugin",
-                  version: InstallationLocal ? undefined : InstallationVersion,
-                },
-              ],
-            })
-            .pipe(
-              Effect.exit,
-              Effect.tap((exit) =>
-                Exit.isFailure(exit)
-                  ? String(exit.cause).includes("catalog:")
-                    ? Effect.void
-                    : Effect.logWarning("background dependency install failed", { dir, error: String(exit.cause) })
-                  : Effect.void,
-              ),
-              Effect.asVoid,
-              Effect.forkDetach,
-            )
-          deps.push(dep)
+          // ponytail: skip npm install if @opencode-ai/plugin already installed
+          if (!existsSync(path.join(dir, "node_modules", "@opencode-ai", "plugin"))) {
+            const dep = yield* npmSvc
+              .install(dir, {
+                add: [
+                  {
+                    name: "@opencode-ai/plugin",
+                    version: InstallationLocal ? undefined : InstallationVersion,
+                  },
+                ],
+              })
+              .pipe(
+                Effect.exit,
+                Effect.tap((exit) =>
+                  Exit.isFailure(exit)
+                    ? String(exit.cause).includes("catalog:")
+                      ? Effect.void
+                      : Effect.logWarning("background dependency install failed", { dir, error: String(exit.cause) })
+                    : Effect.void,
+                ),
+                Effect.asVoid,
+                Effect.forkDetach,
+              )
+            deps.push(dep)
+          }
 
           result.command = mergeDeep(result.command ?? {}, yield* Effect.promise(() => ConfigCommand.load(dir)))
           result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.load(dir)))
@@ -640,7 +629,7 @@ export const layer = Layer.effect(
           deps,
           consoleState: {
             consoleManagedProviders: Array.from(consoleManagedProviders),
-            activeOrgName,
+            activeOrgName: undefined,
             switchableOrgCount: 0,
           },
         }

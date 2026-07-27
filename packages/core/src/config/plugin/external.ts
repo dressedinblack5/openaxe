@@ -3,8 +3,8 @@ export * as ConfigExternalPlugin from "./external"
 import type { Plugin as EffectPlugin } from "@opencode-ai/plugin/v2/effect"
 import type { Plugin as PromisePlugin } from "@opencode-ai/plugin/v2/promise"
 import { Effect, Schema } from "effect"
-import path from "path"
-import { fileURLToPath, pathToFileURL } from "url"
+import path from "node:path"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import { Config } from "../../config"
 import { FSUtil } from "../../fs-util"
 import { Location } from "../../location"
@@ -65,7 +65,7 @@ export const Plugin = define({
               symlink: true,
             })
             .pipe(Effect.orElseSucceed(() => []))
-          files.sort()
+          files.sort((a, b) => a.localeCompare(b))
           for (const file of files) configured.push({ package: file })
         }
       }
@@ -77,7 +77,7 @@ export const Plugin = define({
             : (yield* npm.add(ref.package)).entrypoint
           if (!entrypoint) return
 
-          const mod = yield* Effect.promise(() => import(entrypoint))
+          const mod = yield* Effect.promise( async () => import(entrypoint))
           const value = (yield* Schema.decodeUnknownEffect(PluginModule)(mod)).default
           const plugin = "effect" in value ? value : PluginPromise.fromPromise(value)
           yield* ctx.plugin.add({

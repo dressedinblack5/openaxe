@@ -458,7 +458,7 @@ const step = (state: ParserState, event: GeminiEvent) => {
  * streaming-event state machine. Used by Google AI Studio Gemini and (once
  * registered) Vertex Gemini.
  */
-export const protocol = Protocol.make({
+export const protocol = {
   id: ADAPTER,
   body: {
     schema: GeminiBody,
@@ -470,7 +470,7 @@ export const protocol = Protocol.make({
     step,
     onHalt: finish,
   },
-})
+}
 
 export const route = Route.make({
   id: ADAPTER,

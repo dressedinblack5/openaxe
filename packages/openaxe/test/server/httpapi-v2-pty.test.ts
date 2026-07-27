@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import { Context, Config as EffectConfig, Effect, Layer, Queue, Schema } from "effect"
 import { NodeHttpServer, NodeServices } from "@effect/platform-node"
-import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
+import { HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
 import * as Socket from "effect/unstable/socket/Socket"
 import path from "path"
 import { pathToFileURL } from "url"
@@ -61,11 +61,11 @@ const effectIt = testEffect(
   ),
 )
 
-const directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
+const _directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
 
 const serverUrl = () => HttpServer.HttpServer.use((server) => Effect.succeed(HttpServer.formatAddress(server.address)))
 
-const httpClientRequest = (method: "get" | "post" | "put" | "delete", path: string) =>
+const _httpClientRequest = (method: "get" | "post" | "put" | "delete", path: string) =>
   Effect.gen(function* () {
     const base = yield* serverUrl()
     return HttpClientRequest[method](`${base}${path}`)

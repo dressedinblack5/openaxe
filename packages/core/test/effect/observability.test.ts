@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import { NodeFileSystem } from "@effect/platform-node"
 import { Effect, Layer, Logger } from "effect"
-import fs from "fs/promises"
-import os from "os"
-import path from "path"
+import fs from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
 import { fileLogger } from "../../src/observability/logging"
 import { resource } from "../../src/observability/otlp"
 

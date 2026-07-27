@@ -1,6 +1,6 @@
 import { describe, expect } from "bun:test"
-import fs from "fs/promises"
-import path from "path"
+import fs from "node:fs/promises"
+import path from "node:path"
 import { Effect, Layer, Schema } from "effect"
 import { AgentV2 } from "@opencode-ai/core/agent"
 import { Config } from "@opencode-ai/core/config"
@@ -196,8 +196,8 @@ describe("ConfigAgentPlugin.Plugin", () => {
 
   it.live("loads legacy file-based agents from config directories", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {

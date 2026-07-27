@@ -20,7 +20,7 @@ function getAudio() {
   }
 }
 
-export function loadSoundFile(file: string) {
+export async function loadSoundFile(file: string) {
   const current = getAudio()
   if (!current) return Promise.resolve(null)
   const cached = sounds.get(file)

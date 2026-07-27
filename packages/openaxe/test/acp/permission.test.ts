@@ -142,7 +142,7 @@ describe("acp permissions", () => {
     const harness = createHarness()
     await createSession(harness.session, "ses_a")
 
-    harness.subscription.handle(permissionAsked("ses_a", "perm_1", { tool: { messageID: "msg_1", callID: "call_1" } }))
+    void harness.subscription.handle(permissionAsked("ses_a", "perm_1", { tool: { messageID: "msg_1", callID: "call_1" } }))
 
     await pollUntil(() => harness.replies.length === 1, "permission was never replied")
 
@@ -169,7 +169,7 @@ describe("acp permissions", () => {
     const harness = createHarness()
     await createSession(harness.session, "ses_a")
 
-    harness.subscription.handle(
+    void harness.subscription.handle(
       permissionAsked("ses_a", "perm_external", {
         permission: "external_directory",
         metadata: {
@@ -205,7 +205,7 @@ describe("acp permissions", () => {
     const harness = createHarness(() => Promise.resolve({ outcome: { outcome: "cancelled" } }))
     await createSession(harness.session, "ses_a")
 
-    harness.subscription.handle(permissionAsked("ses_a", "perm_cancelled"))
+    void harness.subscription.handle(permissionAsked("ses_a", "perm_cancelled"))
 
     await pollUntil(() => harness.replies.length === 1, "cancelled permission was never replied")
 
@@ -216,7 +216,7 @@ describe("acp permissions", () => {
     const harness = createHarness(() => Promise.reject(new Error("client permission UI failed")))
     await createSession(harness.session, "ses_a")
 
-    harness.subscription.handle(permissionAsked("ses_a", "perm_failed"))
+    void harness.subscription.handle(permissionAsked("ses_a", "perm_failed"))
 
     await pollUntil(() => harness.replies.length === 1, "failed permission was never rejected")
 
@@ -233,7 +233,7 @@ describe("acp permissions", () => {
     await createSession(harness.session, "ses_b")
     await createKnownTextPart(harness.session, "ses_b", "msg_b", "part_b")
 
-    harness.subscription.handle(permissionAsked("ses_a", "perm_blocked"))
+    void harness.subscription.handle(permissionAsked("ses_a", "perm_blocked"))
     await pollUntil(() => harness.requests.length === 1, "blocked permission was never requested")
 
     await harness.subscription.handle(textDelta("ses_b", "msg_b", "part_b", "session_b_message"))
@@ -255,8 +255,8 @@ describe("acp permissions", () => {
     )
     await createSession(harness.session, "ses_a")
 
-    harness.subscription.handle(permissionAsked("ses_a", "perm_1"))
-    harness.subscription.handle(permissionAsked("ses_a", "perm_2"))
+    void harness.subscription.handle(permissionAsked("ses_a", "perm_1"))
+    void harness.subscription.handle(permissionAsked("ses_a", "perm_2"))
 
     await pollUntil(() => harness.requests.length === 1, "first permission was never requested")
     expect(harness.requests.map((request) => request.toolCall.toolCallId)).toEqual(["perm_1"])

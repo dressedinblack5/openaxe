@@ -82,6 +82,7 @@ const names: Record<string, string> = {
   vesper: "Vesper",
   zenburn: "Zenburn",
 }
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- JSON import, structurally matches DesktopTheme
 const oc2Theme = oc2ThemeJson as DesktopTheme
 
 function normalize(id: string | null | undefined) {
@@ -117,8 +118,8 @@ function clear() {
 }
 
 function ensureThemeStyleElement(): HTMLStyleElement {
-  const existing = document.getElementById(THEME_STYLE_ID) as HTMLStyleElement | null
-  if (existing) return existing
+  const el = document.getElementById(THEME_STYLE_ID)
+  if (el instanceof HTMLStyleElement) return el
   const element = document.createElement("style")
   element.id = THEME_STYLE_ID
   document.head.appendChild(element)
@@ -178,9 +179,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     const colorScheme = (read(STORAGE_KEYS.COLOR_SCHEME) as ColorScheme | null) ?? "system"
     const mode = colorScheme === "system" ? getSystemMode() : colorScheme
     const [store, setStore] = createStore({
-      themes: {
-        "oc-2": oc2Theme,
-      } as Record<string, DesktopTheme>,
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- needed for index signature in store
+      themes: { "oc-2": oc2Theme } as Record<string, DesktopTheme>,
       themeId,
       colorScheme,
       mode,
@@ -190,7 +190,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
 
     const loads = new Map<string, Promise<DesktopTheme | undefined>>()
 
-    const load = (id: string) => {
+    const load =  async (id: string) => {
       const next = normalize(id)
       if (!next) return Promise.resolve(undefined)
       const hit = store.themes[next]
@@ -226,7 +226,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       return [...all, ...extra]
     }
 
-    const loadThemes = () => Promise.all(themeIDs().map(load)).then(() => store.themes)
+    const loadThemes =  async () => Promise.all(themeIDs().map(load)).then(() => store.themes)
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEYS.THEME_ID && e.newValue) {

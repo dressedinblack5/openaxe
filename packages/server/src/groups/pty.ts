@@ -6,6 +6,7 @@ import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 import { ForbiddenError, PtyNotFoundError } from "../errors"
 import { LocationQuery, locationQueryOpenApi, LocationMiddleware } from "./location"
+import { httpError } from "./util"
 
 export const PTY_CONNECT_TICKET_QUERY = "ticket"
 export const PTY_CONNECT_TOKEN_HEADER = "x-opencode-ticket"
@@ -54,7 +55,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
       params: { ptyID: PtyID },
       query: LocationQuery,
       success: Location.response(Pty.Info),
-      error: PtyNotFoundError as any,
+      error: httpError(PtyNotFoundError),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -71,7 +72,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
       query: LocationQuery,
       payload: Pty.UpdateInput,
       success: Location.response(Pty.Info),
-      error: PtyNotFoundError as any,
+      error: httpError(PtyNotFoundError),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -87,7 +88,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
       params: { ptyID: PtyID },
       query: LocationQuery,
       success: HttpApiSchema.NoContent,
-      error: PtyNotFoundError as any,
+      error: httpError(PtyNotFoundError),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -103,7 +104,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
       params: { ptyID: PtyID },
       query: LocationQuery,
       success: Location.response(PtyTicket.ConnectToken),
-      error: [ForbiddenError, PtyNotFoundError] as any,
+      error: httpError([ForbiddenError, PtyNotFoundError]),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -120,7 +121,7 @@ export const PtyGroup = HttpApiGroup.make("server.pty")
     HttpApiEndpoint.get("pty.connect", "/api/pty/:ptyID/connect", {
       params: { ptyID: PtyID },
       success: Schema.Boolean,
-      error: [ForbiddenError, PtyNotFoundError] as any,
+      error: httpError([ForbiddenError, PtyNotFoundError]),
     }).annotateMerge(
       OpenApi.annotations({
         identifier: "v2.pty.connect",

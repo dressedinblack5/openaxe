@@ -4,14 +4,14 @@ import { Workspace } from "@/control-plane/workspace"
 import { WorkspaceAdapterRuntime } from "@/control-plane/workspace-adapter-runtime"
 import { Session } from "@/session/session"
 import { HttpApiProxy } from "./proxy"
-import { parse, wait } from "@/server/shared/fence";
+import { parse, wait } from "@/server/shared/fence"
 import { getWorkspaceRouteSessionID, isLocalWorkspaceRoute, workspaceProxyURL } from "@/server/shared/workspace-routing"
 import { NotFoundError } from "@/storage/storage"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { Context, Data, Effect, Layer, Option, Schema } from "effect"
 import { HttpClient, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiMiddleware } from "effect/unstable/httpapi"
-import { WebSocketConstructor } from "effect/unstable/socket/Socket";
+import { WebSocketConstructor } from "effect/unstable/socket/Socket"
 import { InvalidRequestError } from "../errors"
 
 // Query fields this middleware reads from the URL. Spread into every

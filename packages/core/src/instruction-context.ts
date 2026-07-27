@@ -1,7 +1,7 @@
 export * as InstructionContext from "./instruction-context"
 
 import { Array, Effect, Layer, Schema } from "effect"
-import { isAbsolute, join, relative, sep } from "path"
+import { isAbsolute, join, relative, sep } from "node:path"
 import { FSUtil } from "./fs-util"
 import { Flag } from "./flag/flag"
 import { Global } from "./global"

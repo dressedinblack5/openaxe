@@ -16,16 +16,12 @@
 //   check gates output: if we see a text delta before the message.updated
 //   event that tells us the role, we stash it and flush later via `replay()`.
 //
-// - Tool echo stripping: bash tools may echo their own output in the next
-//   assistant text part. `stashEcho()` records completed bash output, and
-//   `stripEcho()` removes it from the start of the next assistant chunk.
-//
 // - Permission and question requests queue in `data.permissions` and
 //   `data.questions`. The footer shows whichever is first. When a reply
 //   event arrives, the queue entry is removed and the footer falls back
 //   to the next pending request or to the prompt view.
 import type { Event, Part, PermissionRequest, QuestionRequest, ToolPart } from "@opencode-ai/sdk/v2"
-import { number } from "@/util/locale";
+import { number } from "@/util/locale"
 import { toolView } from "./tool"
 import type { FooterOutput, FooterPatch, FooterView, StreamCommit } from "./types"
 
@@ -63,7 +59,6 @@ type SessionCommit = StreamCommit
 // - visible: part ID → rendered text for an active part after display transforms
 // - end:    part IDs whose time.end has arrived (part is finished)
 // - shell:  shell call ID → chosen transcript source for direct shell calls
-// - echo:   message ID → bash outputs to strip from the next assistant chunk
 type ShellCall = {
   source: "shell" | "tool"
   command?: string
@@ -85,7 +80,7 @@ export type SessionData = {
   sent: Map<string, number>
   visible: Map<string, string>
   end: Set<string>
-  echo: Map<string, Set<string>>
+  lastBashOutput?: string
 }
 
 export type SessionDataInput = {
@@ -124,7 +119,7 @@ export function createSessionData(
     sent: new Map(),
     visible: new Map(),
     end: new Set(),
-    echo: new Map(),
+    lastBashOutput: undefined,
   }
 }
 
@@ -151,8 +146,7 @@ function formatUsage(
     return undefined
   }
 
-  const text =
-    limit && limit > 0 ? `${number(total)} (${Math.round((total / limit) * 100)}%)` : number(total)
+  const text = limit && limit > 0 ? `${number(total)} (${Math.round((total / limit) * 100)}%)` : number(total)
 
   if (typeof cost === "number" && cost > 0) {
     return `${text} · ${money.format(cost)}`
@@ -457,61 +451,6 @@ function syncText(data: SessionData, partID: string, next: string) {
   return prev
 }
 
-// Records bash tool output for echo stripping. Some models echo bash output
-// verbatim at the start of their next text part. We save both the raw and
-// trimmed forms so stripEcho() can match either.
-function stashEcho(data: SessionData, part: ToolPart) {
-  if (part.tool !== "bash") {
-    return
-  }
-
-  if (typeof part.messageID !== "string" || !part.messageID) {
-    return
-  }
-
-  const output = "output" in part.state ? part.state.output : undefined
-  if (typeof output !== "string") {
-    return
-  }
-
-  // ponytail: only first 10K chars needed for echo detection (startsWith match)
-  const text = output.replace(/^\n+/, "").slice(0, 10_000)
-  if (!text.trim()) {
-    return
-  }
-
-  const set = data.echo.get(part.messageID) ?? new Set<string>()
-  set.add(text)
-  const trim = text.replace(/\n+$/, "")
-  if (trim && trim !== text) {
-    set.add(trim)
-  }
-  data.echo.set(part.messageID, set)
-}
-
-function stripEcho(data: SessionData, msg: string | undefined, chunk: string): string {
-  if (!msg) {
-    return chunk
-  }
-
-  const set = data.echo.get(msg)
-  if (!set || set.size === 0) {
-    return chunk
-  }
-
-  data.echo.delete(msg)
-  const list = [...set].sort((a, b) => b.length - a.length)
-  for (const item of list) {
-    if (!item || !chunk.startsWith(item)) {
-      continue
-    }
-
-    return chunk.slice(item.length).replace(/^\n+/, "")
-  }
-
-  return chunk
-}
-
 function flushPart(
   data: SessionData,
   commits: SessionCommit[],
@@ -531,6 +470,12 @@ function flushPart(
 
   if (sent === 0) {
     chunk = chunk.replace(/^\n+/, "")
+    // Some models echo back the bash output before generating their own text.
+    // Strip the echoed bash output from the first flush so it doesn't appear
+    // duplicated in the scrollback.
+    if (kind === "assistant" && data.lastBashOutput && chunk.startsWith(data.lastBashOutput)) {
+      chunk = chunk.slice(data.lastBashOutput.length)
+    }
     // Some models emit a standalone whitespace token before real content.
     // Keep buffering until we have visible text so scrollback doesn't get a blank row.
     if (!chunk.trim()) {
@@ -539,11 +484,8 @@ function flushPart(
     if (kind === "reasoning" && chunk) {
       chunk = `Thinking: ${chunk.replace(/\[REDACTED\]/g, "")}`
     }
-    if (kind === "assistant" && chunk) {
-      chunk = stripEcho(data, msg, chunk)
-      if (!chunk.trim()) {
-        return
-      }
+    if (kind === "assistant" && chunk && !chunk.trim()) {
+      return
     }
   }
 
@@ -675,20 +617,6 @@ function claimShell(data: SessionData, callID: string, source: ShellCall["source
   return next
 }
 
-function bashCommand(part: ToolPart): string | undefined {
-  if (part.tool !== "bash") {
-    return undefined
-  }
-
-  const input = part.state.input
-  if (!input || typeof input !== "object" || Array.isArray(input)) {
-    return undefined
-  }
-
-  const command = Reflect.get(input, "command")
-  return typeof command === "string" ? command : undefined
-}
-
 function shellCommit(
   input: {
     callID: string
@@ -800,6 +728,7 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
     }
 
     const shell = claimShell(data, event.properties.callID, "shell", event.properties.command)
+
     if (shell.source !== "shell") {
       return out(data, commits)
     }
@@ -820,6 +749,7 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
     }
 
     const shell = claimShell(data, event.properties.callID, "shell")
+
     if (shell.source !== "shell") {
       return out(data, commits)
     }
@@ -942,15 +872,17 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
 
     if (part.type === "tool") {
       const view = syncPermission(data, part) ?? syncQuestion(data, part)
-      if (part.tool === "bash" && part.callID) {
-        if (claimShell(data, part.callID, "tool", bashCommand(part)).source === "shell") {
-          return out(data, commits, view)
-        }
-      }
 
       if (part.state.status === "running") {
         if (data.ids.has(part.id)) {
           return out(data, commits, view)
+        }
+
+        if (part.tool === "bash" && part.callID) {
+          const shell = claimShell(data, part.callID, "tool")
+          if (shell.source !== "tool") {
+            return out(data, commits, view)
+          }
         }
 
         if (!data.tools.has(part.id)) {
@@ -962,6 +894,13 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
       }
 
       if (part.state.status === "completed") {
+        if (part.tool === "bash" && part.callID) {
+          const shell = claimShell(data, part.callID, "tool")
+          if (shell.source !== "tool") {
+            return out(data, commits, view)
+          }
+        }
+
         const seen = data.tools.has(part.id)
         const mode = toolView(part.tool)
         data.tools.delete(part.id)
@@ -974,7 +913,6 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
         }
 
         data.ids.add(part.id)
-        stashEcho(data, part)
 
         const output = part.state.output
         if (mode.output && typeof output === "string" && output.trim()) {
@@ -995,10 +933,21 @@ export function reduceSessionData(input: SessionDataInput): SessionDataOutput {
           commits.push(doneTool(part))
         }
 
+        if (part.tool === "bash" && typeof output === "string") {
+          data.lastBashOutput = output
+        }
+
         return out(data, commits, view)
       }
 
       if (part.state.status === "error") {
+        if (part.tool === "bash" && part.callID) {
+          const shell = claimShell(data, part.callID, "tool")
+          if (shell.source !== "tool") {
+            return out(data, commits, view)
+          }
+        }
+
         const seen = data.tools.has(part.id)
         data.tools.delete(part.id)
         if (data.ids.has(part.id)) {

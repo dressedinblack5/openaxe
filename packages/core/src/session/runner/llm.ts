@@ -187,11 +187,14 @@ export const layer = Layer.effect(
       const system =
         initialized ?? (yield* SessionContextEpoch.prepare(db, events, loadSystemContext(agent), session.id))
       const model = yield* models.resolve(session)
-      const entries = yield* SessionHistory.entriesForRunner(db, session.id, system.baselineSeq)
+      // Fast path: load recent messages only (100). If compaction needs more,
+      // reload full history and retry the compaction check.
+      const pagination = yield* SessionHistory.entriesForRunnerPaginated(db, session.id, system.baselineSeq, { limit: 100 })
+      let entries = pagination.entries
       const isLastStep = agent.info?.steps !== undefined && currentStep >= agent.info.steps
       const toolMaterialization = isLastStep ? undefined : yield* tools.materialize(agent.info?.permissions)
       const promptCacheKey = /^ses_[0-9a-f]{64}$/.test(session.id) ? session.id.slice(4) : session.id
-      const request = LLM.request({
+      let request = LLM.request({
         model,
         providerOptions: { openai: { promptCacheKey } },
         system: [agent.info?.system, system.baseline]
@@ -203,8 +206,31 @@ export const layer = Layer.effect(
         tools: toolMaterialization?.definitions ?? [],
         toolChoice: isLastStep ? "none" : undefined,
       })
-      if (yield* compaction.compactIfNeeded({ sessionID: session.id, entries, model, request }))
-        return yield* Effect.die(continueAfterCompaction(currentStep))
+      if (yield* compaction.compactIfNeeded({ sessionID: session.id, entries, model, request })) {
+        // The EventV2 projector must process the compaction event before we reload,
+        // otherwise SessionHistory.entriesForRunner won't see it and will return the
+        // same stale entries — causing a spurious second compaction call.
+        yield* Effect.yieldNow
+        // Reload entries from DB after compaction — the in-memory array is stale
+        // (compaction was persisted but entries weren't updated). Always reload so
+        // the second compactIfNeeded check reflects the compacted state accurately.
+        entries = yield* SessionHistory.entriesForRunner(db, session.id, system.baselineSeq)
+        request = LLM.request({
+          model,
+          providerOptions: { openai: { promptCacheKey } },
+          system: [agent.info?.system, system.baseline]
+            .filter((part): part is string => part !== undefined && part.length > 0)
+            .map(SystemPart.make),
+          messages: isLastStep
+            ? [...entries.flatMap(({ message }) => toLLMMessage(message, model)), Message.assistant(MAX_STEPS_PROMPT)]
+            : entries.flatMap(({ message }) => toLLMMessage(message, model)),
+          tools: toolMaterialization?.definitions ?? [],
+          toolChoice: isLastStep ? "none" : undefined,
+        })
+        if (yield* compaction.compactIfNeeded({ sessionID: session.id, entries, model, request })) {
+          return yield* Effect.die(continueAfterCompaction(currentStep))
+        }
+      }
       const publisher = createLLMEventPublisher(events, {
         sessionID: session.id,
         agent: agent.id,
@@ -214,7 +240,7 @@ export const layer = Layer.effect(
           ...(session.model?.variant === undefined ? {} : { variant: session.model.variant }),
         },
       })
-      const withPublication = Semaphore.makeUnsafe(1).withPermit
+      const withPublication = (effect: Effect.Effect<void>) => Semaphore.makeUnsafe(1).withPermit(effect)
       const publish = (event: LLMEvent, outputPaths: ReadonlyArray<string> = []) =>
         withPublication(publisher.publish(event, outputPaths))
       let overflowFailure: ProviderErrorEvent | undefined

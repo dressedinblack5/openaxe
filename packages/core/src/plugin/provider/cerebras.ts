@@ -18,7 +18,7 @@ export const CerebrasPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/cerebras") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/cerebras"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/cerebras"))
         evt.sdk = mod.createCerebras(evt.options)
       }),
     )

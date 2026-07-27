@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import path from "path"
+import path from "node:path"
 import { Shell } from "@opencode-ai/core/shell"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { which } from "@opencode-ai/core/util/which"

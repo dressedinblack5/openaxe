@@ -19,6 +19,7 @@ import { SessionLocationMiddleware } from "../middleware/session-location"
 import { AgentV2 } from "@opencode-ai/core/agent"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { Location } from "@opencode-ai/core/location"
+import { httpError } from "./util"
 
 const SessionsQueryFields = {
   workspace: WorkspaceV2.ID.pipe(Schema.optional),
@@ -62,7 +63,7 @@ const decodeSessionsCursor = Schema.decodeUnknownEffect(SessionsCursorJson)
 export const SessionsCursor = Schema.String.pipe(
   Schema.brand("SessionsCursor"),
   withStatics((schema) => {
-    const make = schema.make
+    const make = schema.make.bind(schema)
     return {
       make: (input: typeof SessionsCursorInput.Type) =>
         make(Buffer.from(encodeSessionsCursor(input)).toString("base64url")),
@@ -98,7 +99,7 @@ export const SessionGroup = HttpApiGroup.make("server.session")
           next: SessionsCursor.pipe(Schema.optional),
         }),
       }).annotate({ identifier: "SessionsResponse" }),
-      error: [InvalidCursorError, InvalidRequestError] as any,
+      error: httpError([InvalidCursorError, InvalidRequestError]),
     }).annotateMerge(
       OpenApi.annotations({
         identifier: "v2.session.list",
@@ -129,7 +130,7 @@ export const SessionGroup = HttpApiGroup.make("server.session")
     HttpApiEndpoint.get("session.get", "/api/session/:sessionID", {
       params: { sessionID: SessionV2.ID },
       success: Schema.Struct({ data: SessionV2.Info }),
-      error: SessionNotFoundError as any,
+      error: httpError(SessionNotFoundError),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -145,7 +146,7 @@ export const SessionGroup = HttpApiGroup.make("server.session")
       params: { sessionID: SessionV2.ID },
       payload: Schema.Struct({ agent: AgentV2.ID }),
       success: HttpApiSchema.NoContent,
-      error: SessionNotFoundError as any,
+      error: httpError(SessionNotFoundError),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -161,7 +162,7 @@ export const SessionGroup = HttpApiGroup.make("server.session")
       params: { sessionID: SessionV2.ID },
       payload: Schema.Struct({ model: ModelV2.Ref }),
       success: HttpApiSchema.NoContent,
-      error: SessionNotFoundError as any,
+      error: httpError(SessionNotFoundError),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -182,7 +183,7 @@ export const SessionGroup = HttpApiGroup.make("server.session")
         resume: Schema.Boolean.pipe(Schema.optional),
       }),
       success: Schema.Struct({ data: SessionInput.Admitted }),
-      error: [ConflictError, SessionNotFoundError] as any,
+      error: httpError([ConflictError, SessionNotFoundError]),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -197,7 +198,7 @@ export const SessionGroup = HttpApiGroup.make("server.session")
     HttpApiEndpoint.post("session.compact", "/api/session/:sessionID/compact", {
       params: { sessionID: SessionV2.ID },
       success: HttpApiSchema.NoContent,
-      error: [SessionNotFoundError, ServiceUnavailableError] as any,
+      error: httpError([SessionNotFoundError, ServiceUnavailableError]),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -212,7 +213,7 @@ export const SessionGroup = HttpApiGroup.make("server.session")
     HttpApiEndpoint.post("session.wait", "/api/session/:sessionID/wait", {
       params: { sessionID: SessionV2.ID },
       success: HttpApiSchema.NoContent,
-      error: [SessionNotFoundError, ServiceUnavailableError] as any,
+      error: httpError([SessionNotFoundError, ServiceUnavailableError]),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -227,7 +228,7 @@ export const SessionGroup = HttpApiGroup.make("server.session")
     HttpApiEndpoint.get("session.context", "/api/session/:sessionID/context", {
       params: { sessionID: SessionV2.ID },
       success: Schema.Struct({ data: Schema.Array(SessionMessage.Message) }),
-      error: [SessionNotFoundError, UnknownError] as any,
+      error: httpError([SessionNotFoundError, UnknownError]),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(

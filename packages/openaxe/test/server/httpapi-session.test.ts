@@ -6,7 +6,7 @@ import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { mkdir } from "node:fs/promises"
 import path from "node:path"
 import { Cause, Config, Effect, Exit, Layer, Scope } from "effect"
-import { HttpClient, HttpClientRequest, HttpClientResponse, HttpRouter, HttpServer } from "effect/unstable/http"
+import { HttpClientRequest, HttpClientResponse, HttpRouter, HttpServer } from "effect/unstable/http"
 import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { Flag } from "@opencode-ai/core/flag/flag"
@@ -36,9 +36,7 @@ import { disposeAllInstances, provideInstanceEffect, TestInstance, tmpdirScoped,
 import { TestLLMServer } from "../lib/llm-server"
 import { testProviderConfig } from "../lib/test-provider"
 import { type TestOptions, test } from "bun:test"
-import type { InstanceContext } from "@/project/instance-context"
 import { ProjectV2 } from "@opencode-ai/core/project"
-import type { TestClock } from "effect/testing/TestClock"
 import { memoMap as coreMemoMap } from "@opencode-ai/core/effect/memo-map"
 
 type Body<A, E, R> = Effect.Effect<A, E, R> | (() => Effect.Effect<A, E, R>)
@@ -81,7 +79,7 @@ const httpApiLayer = servedRoutes.pipe(
 )
 
 function isInstanceOptions(options: unknown): options is InstanceOptions<never, never> {
-  return !!options && typeof options === "object" && ("git" in (options as object) || "config" in (options as object) || "init" in (options as object))
+  return !!options && typeof options === "object" && ("git" in (options) || "config" in (options) || "init" in (options))
 }
 
 function instanceArgs<E, R>(
@@ -108,7 +106,7 @@ const isolatedRun: Runner = (value, layer) =>
     return yield* exit
   }).pipe(Effect.runPromise)
 
-const sharedRun: Runner = (value, layer) =>
+const _sharedRun: Runner = (value, layer) =>
   Effect.gen(function* () {
     const scope = yield* Scope.make()
     const ctx = yield* Layer.buildWithMemoMap(layer, coreMemoMap, scope)
@@ -206,7 +204,7 @@ const liveLayer = Layer.mergeAll(
   instanceRefLayer,
 ).pipe(Layer.provide(configDefaultLayer), Layer.provide(Ripgrep.defaultLayer))
 
-const it = make(testLayer, liveLayer)
+const it = make(testLayer as any, liveLayer as any)
 
 function pathFor(path: string, params: Record<string, string>) {
   return Object.entries(params).reduce((result, [key, value]) => result.replace(`:${key}`, value), path)

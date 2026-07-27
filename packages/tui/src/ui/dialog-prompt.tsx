@@ -114,7 +114,7 @@ export function DialogPrompt(props: DialogPromptProps) {
   )
 }
 
-DialogPrompt.show = (dialog: DialogContext, title: string, options?: Omit<DialogPromptProps, "title">) => {
+DialogPrompt.show =  async (dialog: DialogContext, title: string, options?: Omit<DialogPromptProps, "title">) => {
   return new Promise<string | null>((resolve) => {
     dialog.replace(
       () => (

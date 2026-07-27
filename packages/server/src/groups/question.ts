@@ -6,6 +6,7 @@ import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/un
 import { QuestionNotFoundError, SessionNotFoundError } from "../errors"
 import { SessionLocationMiddleware } from "../middleware/session-location"
 import { LocationQuery, locationQueryOpenApi, LocationMiddleware } from "./location"
+import { httpError } from "./util"
 
 export const QuestionGroup = HttpApiGroup.make("server.question")
   .add(
@@ -28,7 +29,7 @@ export const QuestionGroup = HttpApiGroup.make("server.question")
     HttpApiEndpoint.get("session.question.list", "/api/session/:sessionID/question", {
       params: { sessionID: SessionV2.ID },
       success: Schema.Struct({ data: Schema.Array(QuestionV2.Request) }),
-      error: SessionNotFoundError as any,
+      error: httpError(SessionNotFoundError),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -44,7 +45,7 @@ export const QuestionGroup = HttpApiGroup.make("server.question")
       params: { sessionID: SessionV2.ID, requestID: QuestionV2.ID },
       payload: QuestionV2.Reply,
       success: HttpApiSchema.NoContent,
-      error: [SessionNotFoundError, QuestionNotFoundError] as any,
+      error: httpError([SessionNotFoundError, QuestionNotFoundError]),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(
@@ -59,7 +60,7 @@ export const QuestionGroup = HttpApiGroup.make("server.question")
     HttpApiEndpoint.post("session.question.reject", "/api/session/:sessionID/question/:requestID/reject", {
       params: { sessionID: SessionV2.ID, requestID: QuestionV2.ID },
       success: HttpApiSchema.NoContent,
-      error: [SessionNotFoundError, QuestionNotFoundError] as any,
+      error: httpError([SessionNotFoundError, QuestionNotFoundError]),
     })
       .middleware(SessionLocationMiddleware)
       .annotateMerge(

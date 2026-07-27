@@ -178,20 +178,22 @@ function whollyDisabled(action: string, rules: PermissionV2.Ruleset) {
 function extractFilePaths(call: ToolCall, output: ToolOutput): readonly string[] {
   const paths = new Set<string>()
   if (typeof call.input === "object" && call.input !== null && !Array.isArray(call.input)) {
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by typeof checks above
     const input = call.input as Record<string, unknown>
     if (typeof input.path === "string") paths.add(input.path)
   }
   if (typeof output.structured === "object" && output.structured !== null) {
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by typeof checks above
     const structured = output.structured as Record<string, unknown>
     if (typeof structured.resource === "string") paths.add(structured.resource)
     if (typeof structured.target === "string") paths.add(structured.target)
     if (Array.isArray(structured.applied)) {
       for (const item of structured.applied) {
         if (typeof item === "object" && item !== null) {
-          if (typeof (item as Record<string, unknown>).resource === "string")
-            paths.add((item as Record<string, unknown>).resource as string)
-          if (typeof (item as Record<string, unknown>).target === "string")
-            paths.add((item as Record<string, unknown>).target as string)
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by typeof checks
+          const obj = item as Record<string, unknown>
+          if (typeof obj.resource === "string") paths.add(obj.resource)
+          if (typeof obj.target === "string") paths.add(obj.target)
         }
       }
     }

@@ -83,7 +83,7 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
               Object.entries(result.models).filter(([, model]) => result.pickerEnabled.has(model.api.id)),
             )
           })
-          .catch((error) => {
+          .catch(() => {
             models = {}
             return Object.fromEntries(
               Object.entries(provider.models).map(([id, model]) => [id, fix(model, base(auth.enterpriseUrl))]),

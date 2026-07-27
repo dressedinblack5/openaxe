@@ -7,7 +7,7 @@ export const MistralPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/mistral") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/mistral"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/mistral"))
         evt.sdk = mod.createMistral(evt.options)
       }),
     )

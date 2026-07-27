@@ -1,4 +1,4 @@
-import { EOL } from "os"
+import { EOL } from "node:os"
 import { Option } from "effect"
 import { fn } from "effect/Effect";
 import { Commands } from "../../commands"
@@ -11,6 +11,6 @@ export default Runtime.handler(
     const daemon = yield* Daemon.Service
     const value = Option.getOrUndefined(input.value)
     if (value !== undefined) yield* daemon.stop()
-    process.stdout.write((yield* daemon.password(value)) + EOL)
+    process.stdout.write((yield* daemon.password(value as string | undefined)) + EOL)
   }),
 )

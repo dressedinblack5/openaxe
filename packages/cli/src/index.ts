@@ -8,20 +8,20 @@ import { Runtime } from "./framework/runtime"
 import { Daemon } from "./services/daemon"
 
 const Handlers = Runtime.handlers(Commands, {
-  $: () => import("./commands/handlers/default"),
-  api: () => import("./commands/handlers/api"),
+  $:  async () => import("./commands/handlers/default"),
+  api:  async () => import("./commands/handlers/api"),
   debug: {
-    agents: () => import("./commands/handlers/debug/agents"),
+    agents:  async () => import("./commands/handlers/debug/agents"),
   },
-  migrate: () => import("./commands/handlers/migrate"),
+  migrate:  async () => import("./commands/handlers/migrate"),
   service: {
-    start: () => import("./commands/handlers/service/start"),
-    restart: () => import("./commands/handlers/service/restart"),
-    status: () => import("./commands/handlers/service/status"),
-    stop: () => import("./commands/handlers/service/stop"),
-    password: () => import("./commands/handlers/service/password"),
+    start:  async () => import("./commands/handlers/service/start"),
+    restart:  async () => import("./commands/handlers/service/restart"),
+    status:  async () => import("./commands/handlers/service/status"),
+    stop:  async () => import("./commands/handlers/service/stop"),
+    password:  async () => import("./commands/handlers/service/password"),
   },
-  serve: () => import("./commands/handlers/serve"),
+  serve:  async () => import("./commands/handlers/serve"),
 })
 
 Runtime.run(Commands, Handlers, { version: "local" }).pipe(

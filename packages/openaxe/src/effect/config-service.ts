@@ -48,6 +48,7 @@ export const Service =
       }
 
       static get defaultLayer() {
+        // oxlint-disable-next-line typescript-eslint/no-this-alias
         const tag = this
         return Layer.effect(
           tag,

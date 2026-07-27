@@ -41,11 +41,11 @@ describe("control-plane/adapters", () => {
     registerAdapter(one, type, adapter("/one"))
     registerAdapter(two, type, adapter("/two"))
 
-    expect(await (await getAdapter(one, type)).target(info(one, type))).toEqual({
+    expect(await ( getAdapter(one, type)).target(info(one, type))).toEqual({
       type: "local",
       directory: "/one",
     })
-    expect(await (await getAdapter(two, type)).target(info(two, type))).toEqual({
+    expect(await ( getAdapter(two, type)).target(info(two, type))).toEqual({
       type: "local",
       directory: "/two",
     })
@@ -56,14 +56,14 @@ describe("control-plane/adapters", () => {
     const id = ProjectV2.ID.make(`project-${Math.random().toString(36).slice(2)}`)
     registerAdapter(id, type, adapter("/one"))
 
-    expect(await (await getAdapter(id, type)).target(info(id, type))).toEqual({
+    expect(await ( getAdapter(id, type)).target(info(id, type))).toEqual({
       type: "local",
       directory: "/one",
     })
 
     registerAdapter(id, type, adapter("/two"))
 
-    expect(await (await getAdapter(id, type)).target(info(id, type))).toEqual({
+    expect(await ( getAdapter(id, type)).target(info(id, type))).toEqual({
       type: "local",
       directory: "/two",
     })

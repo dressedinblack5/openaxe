@@ -72,6 +72,7 @@ const isCloudflareChallenge = (error: unknown) => {
     !("response" in reason)
   )
     return false
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — guarded by reason._tag and "response" in reason checks
   const response = reason.response as HttpClientResponse.HttpClientResponse
   return response.status === 403 && response.headers["cf-mitigated"] === "challenge"
 }

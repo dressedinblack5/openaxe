@@ -1,4 +1,4 @@
-import { afterEach, describe, expect } from "bun:test"
+import { describe, expect } from "bun:test"
 import path from "path"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"

@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun"
-import fs from "fs"
-import { rm } from "fs/promises"
-import path from "path"
+import fs from "node:fs"
+import { rm } from "node:fs/promises"
+import path from "node:path"
 import { Script } from "@opencode-ai/script"
 import { createSolidTransformPlugin } from "@opentui/solid/bun-plugin"
 import pkg from "../package.json"
@@ -84,13 +84,13 @@ for (const item of targets) {
       target: target.replace(binary, "bun") as Bun.Build.CompileTarget,
       outfile: `./dist/${name}/bin/${binary}`,
       execArgv: [`--user-agent=${binary}/${Script.version}`, "--use-system-ca", "--"],
-      windows: {},
+      windows: { icon: path.resolve(dir, "resources/icon.ico") },
     },
     define: {
-      OPENCODE_VERSION: `'${Script.version}'`,
+      OPENAXE_VERSION: `'${Script.version}'`,
       OPENCODE_CLI_NAME: `'${binary}'`,
       OPENCODE_MODELS_DEV: modelsData,
-      OPENCODE_CHANNEL: `'${Script.channel}'`,
+      OPENAXE_CHANNEL: `'${Script.channel}'`,
       OPENCODE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "undefined",
       // FFF_LIBC selects the fff native lib variant: "musl" or "gnu".
       FFF_LIBC: item.os === "linux" ? `'${item.abi ?? "gnu"}'` : "undefined",

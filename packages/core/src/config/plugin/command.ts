@@ -1,7 +1,7 @@
 export * as ConfigCommandPlugin from "./command"
 
 import { define } from "../../plugin/internal"
-import path from "path"
+import path from "node:path"
 import { Effect, Option, Schema } from "effect"
 import { Config } from "../../config"
 import { FSUtil } from "../../fs-util"

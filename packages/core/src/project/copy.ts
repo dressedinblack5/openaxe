@@ -1,7 +1,7 @@
 export * as ProjectCopy from "./copy"
 
 import { Context, Effect, Layer, Schema } from "effect"
-import path from "path"
+import path from "node:path"
 import { AbsolutePath } from "../schema"
 import { FSUtil } from "../fs-util"
 import { Git } from "../git"

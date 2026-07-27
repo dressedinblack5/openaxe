@@ -13,7 +13,7 @@ import type {
 import type { Provider as ProviderV2, Model as ModelV2, Auth } from "@opencode-ai/sdk/v2"
 
 import type { BunShell } from "./shell.js"
-import { type ToolDefinition } from "./tool.js"
+import type { ToolDefinition } from "./tool.js"
 
 export * from "./tool.js"
 
@@ -29,7 +29,7 @@ export type WorkspaceInfo = {
   name: string
   branch: string | null
   directory: string | null
-  extra: unknown | null
+  extra: unknown
   projectID: string
 }
 
@@ -215,9 +215,6 @@ export type ProviderHook = {
   id: string
   models?: (provider: ProviderV2, ctx: ProviderHookContext) => Promise<Record<string, ModelV2>>
 }
-
-/** @deprecated Use AuthOAuthResult instead. */
-export type AuthOuathResult = AuthOAuthResult
 
 export interface Hooks {
   dispose?: () => Promise<void>

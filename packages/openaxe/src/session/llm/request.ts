@@ -5,7 +5,6 @@ import type { RuntimeFlags } from "@/effect/runtime-flags"
 import { InstanceState } from "@/effect/instance-state"
 import { Permission } from "@/permission"
 import type { Agent } from "@/agent/agent"
-import type { MessageV2 } from "../message-v2"
 import type { Provider } from "@/provider/provider"
 import { ProviderTransform } from "@/provider/transform"
 import { SystemPrompt } from "../system"
@@ -13,20 +12,7 @@ import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Effect, Record } from "effect"
 import { jsonSchema, tool, type ModelMessage, type Tool } from "ai"
 import type { Plugin } from "@/plugin"
-
-function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = { ...target }
-  for (const key of Object.keys(source)) {
-    const sv = source[key]
-    const rv = result[key]
-    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
-      result[key] = mergeDeep(rv, sv)
-    } else if (sv !== undefined) {
-      result[key] = sv
-    }
-  }
-  return result
-}
+import { mergeDeep } from "@/util/merge-deep"
 
 const USER_AGENT = `opencode/${InstallationVersion}`
 

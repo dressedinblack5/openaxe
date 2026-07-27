@@ -1,6 +1,6 @@
-import fs from "fs/promises"
+import fs from "node:fs/promises"
 import { realpathSync } from "node:fs"
-import path from "path"
+import path from "node:path"
 import { describe, expect, test } from "bun:test"
 import { Effect, Layer } from "effect"
 import { ChildProcess } from "effect/unstable/process"
@@ -126,7 +126,7 @@ const it = testEffect(Layer.empty)
 describe("BashTool", () => {
   it.live("registers and returns structured successful output from the active Location", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         return withTool(tmp.path, (registry) =>
@@ -158,16 +158,16 @@ describe("BashTool", () => {
           }),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("resolves a relative workdir from the active Location", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
-        return Effect.promise(() => fs.mkdir(path.join(tmp.path, "src"))).pipe(
+        return Effect.promise( async () => fs.mkdir(path.join(tmp.path, "src"))).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) => executeTool(registry, call({ command: "pwd", workdir: "src" }))),
           ),
@@ -176,13 +176,13 @@ describe("BashTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("rejects a workdir that stops being a directory during approval", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         const workdir = path.join(tmp.path, "src")
@@ -193,7 +193,7 @@ describe("BashTool", () => {
                 await fs.writeFile(workdir, "not a directory")
               }).pipe(Effect.orDie)
             : Effect.void
-        return Effect.promise(() => fs.mkdir(workdir)).pipe(
+        return Effect.promise( async () => fs.mkdir(workdir)).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) => executeTool(registry, call({ command: "pwd", workdir: "src" }))),
           ),
@@ -205,14 +205,14 @@ describe("BashTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   if (process.platform !== "win32") {
     it.live("executes a real shell command through AppProcess", () =>
       Effect.acquireUseRelease(
-        Effect.promise(() => tmpdir()),
+        Effect.promise( async () => tmpdir()),
         (tmp) => {
           reset()
           return withTool(
@@ -233,14 +233,14 @@ describe("BashTool", () => {
             ),
           )
         },
-        (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+        (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
       ),
     )
   }
 
   it.live("approves an explicit external workdir before bash execution", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => Promise.all([tmpdir(), tmpdir()])),
+      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
       ([active, outside]) => {
         reset()
         return withTool(active.path, (registry) =>
@@ -258,7 +258,7 @@ describe("BashTool", () => {
         )
       },
       ([active, outside]) =>
-        Effect.promise(() =>
+        Effect.promise( async () =>
           Promise.all([active[Symbol.asyncDispose](), outside[Symbol.asyncDispose]()]).then(() => undefined),
         ),
     ),
@@ -266,7 +266,7 @@ describe("BashTool", () => {
 
   it.live("does not execute after external-directory or bash denial", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => Promise.all([tmpdir(), tmpdir()])),
+      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
       ([active, outside]) =>
         Effect.gen(function* () {
           reset()
@@ -284,7 +284,7 @@ describe("BashTool", () => {
           expect(runs).toEqual([])
         }),
       ([active, outside]) =>
-        Effect.promise(() =>
+        Effect.promise( async () =>
           Promise.all([active[Symbol.asyncDispose](), outside[Symbol.asyncDispose]()]).then(() => undefined),
         ),
     ),
@@ -292,7 +292,7 @@ describe("BashTool", () => {
 
   it.live("reports external command arguments as advisory warnings without enforcing approval", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => Promise.all([tmpdir(), tmpdir()])),
+      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
       ([active, outside]) => {
         reset()
         denyAction = "external_directory"
@@ -313,7 +313,7 @@ describe("BashTool", () => {
         )
       },
       ([active, outside]) =>
-        Effect.promise(() =>
+        Effect.promise( async () =>
           Promise.all([active[Symbol.asyncDispose](), outside[Symbol.asyncDispose]()]).then(() => undefined),
         ),
     ),
@@ -321,7 +321,7 @@ describe("BashTool", () => {
 
   it.live("keeps non-zero exits useful", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         result = { ...result, exitCode: 7, stdout: Buffer.from("HEAD full output TAIL") }
@@ -343,13 +343,13 @@ describe("BashTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("surfaces bounded process-capture truncation", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         result = { ...result, stdoutTruncated: true }
@@ -366,13 +366,13 @@ describe("BashTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("returns a useful timeout settlement", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         runFailure = new AppProcess.AppProcessError({ command: "sleep", cause: new Error("Timed out") })
@@ -392,7 +392,7 @@ describe("BashTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 })

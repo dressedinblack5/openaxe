@@ -1,5 +1,5 @@
-import fs from "fs/promises"
-import os from "os"
+import fs from "node:fs/promises"
+import os from "node:os"
 import { Effect, Layer } from "effect"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { EffectFlock } from "@opencode-ai/core/util/effect-flock"
@@ -14,7 +14,7 @@ type Msg = {
   done?: string
 }
 
-function sleep(ms: number) {
+ async function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
@@ -48,7 +48,7 @@ await Effect.runPromise(
   Effect.gen(function* () {
     const flock = yield* EffectFlock.Service
     yield* flock.withLock(
-      Effect.promise(() => job()),
+      Effect.promise( async () => job()),
       msg.key,
       msg.dir,
     )

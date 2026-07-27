@@ -15,12 +15,12 @@ import { Schema } from "effect"
 import stripAnsi from "strip-ansi"
 import { loadSoundFile, play, stopVoice, dispose } from "./audio"
 const TuiAudio = { loadSoundFile, play, stopVoice, dispose }
-import defaultSoundPath from "@opencode-ai/ui/audio/bip-bop-01.mp3" with { type: "file" }
-import questionSoundPath from "@opencode-ai/ui/audio/bip-bop-03.mp3" with { type: "file" }
-import permissionSoundPath from "@opencode-ai/ui/audio/staplebops-06.mp3" with { type: "file" }
-import errorSoundPath from "@opencode-ai/ui/audio/nope-03.mp3" with { type: "file" }
-import doneSoundPath from "@opencode-ai/ui/audio/bip-bop-01.mp3" with { type: "file" }
-import subagentDoneSoundPath from "@opencode-ai/ui/audio/yup-01.mp3" with { type: "file" }
+import defaultSoundPath from "./assets/audio/bip-bop-01.mp3" with { type: "file" }
+import questionSoundPath from "./assets/audio/bip-bop-03.mp3" with { type: "file" }
+import permissionSoundPath from "./assets/audio/staplebops-06.mp3" with { type: "file" }
+import errorSoundPath from "./assets/audio/nope-03.mp3" with { type: "file" }
+import doneSoundPath from "./assets/audio/bip-bop-01.mp3" with { type: "file" }
+import subagentDoneSoundPath from "./assets/audio/yup-01.mp3" with { type: "file" }
 
 type FocusState = "unknown" | "focused" | "blurred"
 
@@ -46,7 +46,7 @@ const TITLE_LIMIT = 80
 const MESSAGE_LIMIT = 240
 const BUILTIN_PACK: RegisteredSoundPack = {
   id: DEFAULT_PACK_ID,
-  name: "OpenCode Default",
+  name: "OpenAxe Default",
   builtin: true,
   sounds: {
     default: defaultSoundPath,

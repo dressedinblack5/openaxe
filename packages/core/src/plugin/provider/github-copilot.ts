@@ -28,7 +28,7 @@ export const GithubCopilotPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/github-copilot") return
-        const mod = yield* Effect.promise(() => import("../../github-copilot/copilot-provider"))
+        const mod = yield* Effect.promise( async () => import("../../github-copilot/copilot-provider"))
         evt.sdk = mod.createOpenaiCompatible(evt.options)
       }),
     )

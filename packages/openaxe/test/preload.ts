@@ -11,7 +11,7 @@ const dir = path.join(os.tmpdir(), "openaxe-test-data-" + process.pid)
 await fs.mkdir(dir, { recursive: true })
 afterAll(async () => {
   const { AppRuntime } = await import("../src/effect/app-runtime")
-  await AppRuntime.dispose()
+   AppRuntime.dispose()
 
   const busy = (error: unknown) =>
     typeof error === "object" && error !== null && "code" in error && error.code === "EBUSY"
@@ -90,6 +90,3 @@ process.env["OPENCODE_DISABLE_DEFAULT_PLUGINS"] = "true"
 process.env["OPENCODE_DB"] = ":memory:"
 
 // Now safe to import from src/
-const { initProjectors } = await import("../src/server/projectors")
-
-initProjectors()

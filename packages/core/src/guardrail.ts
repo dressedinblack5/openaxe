@@ -54,9 +54,35 @@ function checkSource(source: string): ReadonlyArray<FileError> {
   for (const pair of pairs) {
     let depth = 0
     let inString: string | null = null
+    let inLineComment = false
+    let inBlockComment = false
     let escaped = false
     for (let i = 0; i < lines.length; i++) {
-      for (const ch of lines[i]) {
+      for (let j = 0; j < lines[i].length; j++) {
+        const ch = lines[i][j]
+        const next = lines[i][j + 1] ?? ""
+
+        if (inLineComment) {
+          continue
+        }
+        if (inBlockComment) {
+          if (ch === "*" && next === "/") {
+            inBlockComment = false
+            j++
+          }
+          continue
+        }
+
+        if (ch === "/" && next === "/") {
+          inLineComment = true
+          continue
+        }
+        if (ch === "/" && next === "*") {
+          inBlockComment = true
+          j++
+          continue
+        }
+
         if (escaped) {
           escaped = false
           continue
@@ -82,6 +108,7 @@ function checkSource(source: string): ReadonlyArray<FileError> {
           }
         }
       }
+      inLineComment = false
     }
     if (depth > 0) {
       errors.push({ message: `unclosed ${pair.label} at end of file` })

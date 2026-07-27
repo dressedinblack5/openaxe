@@ -32,7 +32,16 @@ import {
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import type { Message, OpencodeClient, SessionMessageResponse } from "@opencode-ai/sdk/v2"
 import { Context, Effect, Layer, ManagedRuntime } from "effect"
-import { type Error as ErrorUnion, UnknownAuthMethodError, InvalidConfigOptionError, InvalidModelError, InvalidEffortError, InvalidModeError, AuthRequiredError, ServiceFailureError } from "./error"
+import {
+  type Error as ErrorUnion,
+  UnknownAuthMethodError,
+  InvalidConfigOptionError,
+  InvalidModelError,
+  InvalidEffortError,
+  InvalidModeError,
+  AuthRequiredError,
+  ServiceFailureError,
+} from "./error"
 import { buildConfigOptions, parseModelSelection } from "./config-option"
 import { promptContentToParts } from "./content"
 import { Directory } from "./directory"
@@ -1005,12 +1014,27 @@ function isSdkResponse<T>(value: T | SdkResponse<T>): value is SdkResponse<T> {
   return typeof value === "object" && value !== null && ("data" in value || "error" in value)
 }
 
+function extractErrorDetail(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null) return undefined
+  const data = (error as Record<string, unknown>).data
+  if (typeof data === "object" && data !== null && typeof (data as Record<string, unknown>).message === "string") {
+    const msg = (data as Record<string, unknown>).message as string
+    const ref = "ref" in data ? ` (${(data as Record<string, unknown>).ref})` : ""
+    return msg + ref
+  }
+  if (typeof (error as Record<string, unknown>).message === "string") {
+    return (error as Record<string, unknown>).message as string
+  }
+  return undefined
+}
+
 function fromUnknownError(error: unknown, service?: string): Error {
   if (isACPError(error)) return error
   if (isAuthRequired(error)) {
     return new AuthRequiredError({ providerId: findProviderID(error) })
   }
-  return new ServiceFailureError({ safeMessage: "OpenCode service failure", service })
+  const detail = extractErrorDetail(error) ?? (error instanceof Error ? error.message : String(error))
+  return new ServiceFailureError({ safeMessage: `OpenCode service failure: ${detail}`, service })
 }
 
 function isACPError(error: unknown): error is Error {

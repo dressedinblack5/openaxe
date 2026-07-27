@@ -1,5 +1,5 @@
-import fs from "fs/promises"
-import path from "path"
+import fs from "node:fs/promises"
+import path from "node:path"
 import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
 import { FSUtil } from "@opencode-ai/core/fs-util"
@@ -18,16 +18,16 @@ const sessionID = SessionV2.ID.make("ses_skill_tool_test")
 describe("SkillTool", () => {
   it.live("lists available skills, authorizes the selected name, and loads model-facing content", () =>
     Effect.acquireRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      Effect.promise( async () => tmpdir()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
           const directory = path.join(tmp.path, "effect")
           const location = path.join(directory, "SKILL.md")
           const reference = path.join(directory, "reference.md")
-          yield* Effect.promise(() => fs.mkdir(directory, { recursive: true }))
-          yield* Effect.promise(() =>
+          yield* Effect.promise( async () => fs.mkdir(directory, { recursive: true }))
+          yield* Effect.promise( async () =>
             Promise.all([fs.writeFile(location, "unused"), fs.writeFile(reference, "reference")]),
           )
 
@@ -125,7 +125,7 @@ describe("SkillTool", () => {
               location: AbsolutePath.make(path.join(tmp.path, "public.md")),
               content: "Public",
             })
-            yield* Effect.promise(() =>
+            yield* Effect.promise( async () =>
               Promise.all([
                 fs.writeFile(flat.location, "public"),
                 fs.writeFile(path.join(tmp.path, "secret.md"), "secret"),

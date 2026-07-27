@@ -287,6 +287,7 @@ export class RunFooter implements FooterApi {
     this.renderer.prependInputHandler(this.handleThemeNotification)
     process.on("SIGUSR2", this.handleThemeSignal)
 
+    // oxlint-disable-next-line typescript-eslint/no-this-alias
     const footer = this
     void render(
       () =>
@@ -620,7 +621,7 @@ export class RunFooter implements FooterApi {
     }
 
     this.closed = true
-    for (const fn of [...this.closes]) {
+    for (const fn of this.closes) {
       fn()
     }
   }
@@ -741,7 +742,7 @@ export class RunFooter implements FooterApi {
       return false
     }
 
-    for (const fn of [...this.prompts]) {
+    for (const fn of this.prompts) {
       fn(input)
     }
 
@@ -1084,7 +1085,7 @@ export class RunFooter implements FooterApi {
     this.queuedRemoves.clear()
     this.closes.clear()
     this.scrollback.destroy()
-    for (const theme of [...this.themes]) this.destroyTheme(theme)
+    for (const theme of this.themes) this.destroyTheme(theme)
   }
 
   // Drains the commit queue to scrollback. The surface manager owns grouping,

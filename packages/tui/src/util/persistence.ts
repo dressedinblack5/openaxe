@@ -1,11 +1,11 @@
-import path from "path"
-import { appendFile, mkdir, rename, rm } from "fs/promises"
+import path from "node:path"
+import { appendFile, mkdir, rename, rm } from "node:fs/promises"
 
-export function readText(filePath: string) {
+export async function readText(filePath: string) {
   return Bun.file(filePath).text()
 }
 
-export function readJson<T>(filePath: string) {
+export async function readJson<T>(filePath: string) {
   return Bun.file(filePath).json() as Promise<T>
 }
 

@@ -1,6 +1,6 @@
 export * as LocationMutation from "./location-mutation"
 
-import path from "path"
+import path from "node:path"
 import { Context, Effect, Layer, Schema } from "effect"
 import { FSUtil } from "./fs-util"
 import { Location } from "./location"

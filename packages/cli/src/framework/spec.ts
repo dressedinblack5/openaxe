@@ -25,11 +25,12 @@ export function make<
   const Config extends Command.Config = {},
   const Commands extends ReadonlyArray<Any> = [],
 >(name: Name, options: Options<Config, Commands> = {}) {
-  const command = makeCommand(name, options.params ?? ({} as Config))
+  const command = makeCommand(name, options.params ?? ({} as Command.Config))
   const spec = options.description ? command.pipe(withDescription(options.description)) : command
   return {
     name,
     spec,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     commands: Object.fromEntries(
       (options.commands ?? []).map((command) => [command.name, command]),
     ) as ChildrenOf<Commands>,

@@ -1,5 +1,5 @@
 import type { Context } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 import DESCRIPTION from "./task.txt"
 import { ToolJsonSchema } from "./json-schema"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
@@ -92,10 +92,7 @@ export const TaskTool = define(
     const flags = yield* RuntimeFlags.Service
     const database = yield* Database.Service
 
-    const run = Effect.fn("TaskTool.execute")(function* (
-      params: Schema.Schema.Type<typeof Parameters>,
-      ctx: Context,
-    ) {
+    const run = Effect.fn("TaskTool.execute")(function* (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) {
       const cfg = yield* config.get()
       const runInBackground = params.background === true
       if (runInBackground && !flags.experimentalBackgroundSubagents) {
@@ -343,8 +340,7 @@ export const TaskTool = define(
         : DESCRIPTION,
       parameters: Parameters,
       jsonSchema: flags.experimentalBackgroundSubagents ? undefined : ToolJsonSchema.fromSchema(BaseParameters),
-      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) =>
-        run(params, ctx).pipe(Effect.orDie),
+      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) => run(params, ctx).pipe(Effect.orDie),
     }
   }),
 )

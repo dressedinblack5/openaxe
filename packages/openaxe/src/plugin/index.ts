@@ -4,6 +4,7 @@ import type {
   PluginInput,
   Plugin as PluginInstance,
   PluginModule,
+  ToolDefinition,
   WorkspaceAdapter as PluginWorkspaceAdapter,
 } from "@opencode-ai/plugin"
 import { Config } from "@/config/config"
@@ -26,7 +27,7 @@ import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { errorMessage } from "@/util/error"
 import { PluginLoader } from "./loader"
-import { parsePluginSpecifier, readPluginId, readV1Plugin, resolvePluginId } from "./shared"
+import { parsePluginSpecifier, readPluginId, readV1Plugin, resolvePluginId, resolveToolsEntrypoint } from "./shared"
 import { registerAdapter } from "@/control-plane/adapters"
 import type { WorkspaceAdapter } from "@/control-plane/types"
 import { RuntimeFlags } from "@/effect/runtime-flags"
@@ -35,6 +36,7 @@ import { InstallationChannel } from "@opencode-ai/core/installation/version"
 
 type State = {
   hooks: Hooks[]
+  hookMap: Map<string, Function[]>
   deferredExternal: Effect.Effect<void>
 }
 
@@ -44,13 +46,9 @@ type TriggerName = {
 }[keyof Hooks]
 
 export interface Interface {
-  readonly trigger: <
-    Name extends TriggerName,
-    Input = Parameters<Required<Hooks>[Name]>[0],
-    Output = Parameters<Required<Hooks>[Name]>[1],
-  >(
+  readonly trigger: <Name extends TriggerName, Output = Parameters<Required<Hooks>[Name]>[1]>(
     name: Name,
-    input: Input,
+    input: unknown,
     output: Output,
   ) => Effect.Effect<Output>
   readonly list: () => Effect.Effect<Hooks[]>
@@ -95,14 +93,13 @@ function getServerPlugin(value: unknown) {
 }
 
 function getLegacyPlugins(mod: Record<string, unknown>) {
-  const seen = new Set<unknown>()
+  const seen = new Set<PluginInstance>()
   const result: PluginInstance[] = []
 
   for (const entry of Object.values(mod)) {
-    if (seen.has(entry)) continue
-    seen.add(entry)
     const plugin = getServerPlugin(entry)
-    if (!plugin) throw new TypeError("Plugin export is not a function")
+    if (!plugin || seen.has(plugin)) continue
+    seen.add(plugin)
     result.push(plugin)
   }
 
@@ -203,22 +200,32 @@ export const layer = Layer.effect(
         // plugin initialization run on first list() or trigger() call.
         const deferredExternal = yield* Effect.cached(
           Effect.fn("Plugin.loadExternal")(function* () {
-            const plugins = flags.pure ? [] : (cfg.plugin_origins ?? []).filter(
-              (p) => !flags.disableDefaultPlugins || p.scope !== "global",
-            )
+            const plugins = flags.pure
+              ? []
+              : (cfg.plugin_origins ?? []).filter((p) => !flags.disableDefaultPlugins || p.scope !== "global")
             if (flags.pure && cfg.plugin_origins?.length) {
             }
             if (plugins.length) yield* config.waitForDependencies()
+
+            // Point vibeguard at openaxe's config dir if present
+            if (!process.env.OPENCODE_VIBEGUARD_CONFIG) {
+              const homeDir = process.env.HOME
+              if (homeDir) {
+                const vbPath = `${homeDir}/.config/openaxe/vibeguard.config.json`
+                const vbExists = yield* Effect.promise(() => Bun.file(vbPath).exists())
+                if (vbExists) process.env.OPENCODE_VIBEGUARD_CONFIG = vbPath
+              }
+            }
 
             const loaded = yield* Effect.promise(() =>
               PluginLoader.loadExternal({
                 items: plugins,
                 kind: "server",
                 report: {
-                  start(candidate) {},
-                  missing(candidate, _retry, message) {},
-                  error(candidate, _retry, stage, error, resolved) {
-                    const spec = candidate.plan.spec
+                  start(_candidate) {},
+                  missing(_candidate, _retry, _message) {},
+                  error(_candidate, _retry, stage, error, _resolved) {
+                    const spec = _candidate.plan.spec
                     const cause = error instanceof Error ? (error.cause ?? error) : error
                     const message = stage === "load" ? errorMessage(error) : errorMessage(cause)
 
@@ -256,16 +263,37 @@ export const layer = Layer.effect(
                 },
               }).pipe(
                 Effect.tapError((error) => Effect.logError("failed to load plugin", { path: load.spec, error })),
-                Effect.catch(() => {
-                  // TODO: make proper events for this
-                  // events.publish(Session.Event.Error, {
-                  //   error: new NamedError.Unknown({
-                  //     message: `Failed to load plugin ${load.spec}: ${message}`,
-                  //   }).toObject(),
-                  // })
+                Effect.catch((error) => {
+                  publishPluginError(`Failed to load plugin ${load.spec}: ${error}`)
                   return Effect.void
                 }),
               )
+
+              if (load.pkg) {
+                yield* Effect.tryPromise({
+                  try: async () => {
+                    const entry = await resolveToolsEntrypoint(load.spec, load.pkg!)
+                    if (!entry) return
+                    const toolsMod = await import(entry)
+                    const toolDefs: Record<string, ToolDefinition> = {}
+                    for (const [id, def] of Object.entries(toolsMod)) {
+                      if (def && typeof def === "object" && "args" in def && "description" in def && "execute" in def) {
+                        const toolId = id === "default"
+                          ? new URL(entry).pathname.split("/").pop()?.replace(/\.[^/.]+$/, "") ?? "unknown"
+                          : id
+                        toolDefs[toolId] = def as unknown as ToolDefinition
+                      }
+                    }
+                    if (Object.keys(toolDefs).length > 0) {
+                      hooks.push({ tool: toolDefs } as Hooks)
+                    }
+                  },
+                  catch: errorMessage,
+                }).pipe(
+                  Effect.tapError((error) => Effect.logError("failed to load plugin tools", { spec: load.spec, error })),
+                  Effect.ignore,
+                )
+              }
             }
 
             // Notify all plugins (internal + newly loaded external) of current config
@@ -278,9 +306,22 @@ export const layer = Layer.effect(
                 Effect.ignore,
               )
             }
+
+            // Build hook dispatch map for O(1) trigger lookup
+            hookMap.clear()
+            for (const hook of hooks) {
+              for (const key in hook) {
+                const fn = (hook as any)[key]
+                if (typeof fn !== "function") continue
+                let list = hookMap.get(key)
+                if (!list) { list = []; hookMap.set(key, list) }
+                list.push(fn)
+              }
+            }
           })(),
         )
 
+        const hookMap = new Map<string, Function[]>()
         const unsubscribe = yield* events.listen((event) => {
           if (event.location?.directory !== ctx.directory) return Effect.void
           return Effect.sync(() => {
@@ -306,15 +347,14 @@ export const layer = Layer.effect(
           ),
         )
 
-        return { hooks, deferredExternal }
+        return { hooks, hookMap, deferredExternal }
       }),
     )
 
     const trigger = Effect.fn("Plugin.trigger")(function* <
       Name extends TriggerName,
-      Input = Parameters<Required<Hooks>[Name]>[0],
       Output = Parameters<Required<Hooks>[Name]>[1],
-    >(name: Name, input: Input, output: Output) {
+    >(name: Name, input: unknown, output: Output) {
       if (!name) return output
       // Don't trigger lazy init — same rationale as list(): plugin bootstrap
       // involves dynamic server imports and may be called from within other
@@ -323,10 +363,11 @@ export const layer = Layer.effect(
       if (!ready) return output
       const s = yield* InstanceState.get(state)
       yield* s.deferredExternal
-      for (const hook of s.hooks) {
-        const fn = hook[name] as any
-        if (!fn) continue
-        yield* Effect.promise(async () => fn(input, output))
+      const fns = s.hookMap.get(name)
+      if (fns) {
+        for (const fn of fns) {
+          yield* Effect.promise(async () => fn(input, output))
+        }
       }
       return output
     })

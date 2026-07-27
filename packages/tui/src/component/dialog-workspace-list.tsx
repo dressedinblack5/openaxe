@@ -96,7 +96,7 @@ export function DialogWorkspaceList() {
     <DialogSelect
       title="Workspaces"
       options={options()}
-      onMove={(option) => {
+      onMove={(_option) => {
         setDeleting(undefined)
       }}
       onSelect={(option) => showDetails(option.value.workspace)}

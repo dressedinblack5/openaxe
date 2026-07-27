@@ -710,13 +710,13 @@ export function RunQueuedPromptSelectBody(props: {
     const ctrl = event.ctrl && !event.meta && !event.shift && !event.super
     if (item && (event.name === "delete" || (ctrl && event.name === "d"))) {
       event.preventDefault()
-      props.onDelete(item.prompt)
+      void props.onDelete(item.prompt)
       return
     }
 
     if (item && ctrl && event.name === "e") {
       event.preventDefault()
-      props.onEdit(item.prompt)
+      void props.onEdit(item.prompt)
       return
     }
 
@@ -727,7 +727,7 @@ export function RunQueuedPromptSelectBody(props: {
       setQuery,
       select: () => {
         const item = selected()
-        if (item) props.onEdit(item.prompt)
+        if (item) void props.onEdit(item.prompt)
       },
       close: props.onClose,
     })

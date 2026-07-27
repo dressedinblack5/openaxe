@@ -183,10 +183,13 @@ export const make = (dependencies: Dependencies) => {
     const output = input.request.generation?.maxTokens ?? input.model.route.defaults.limits?.output ?? 0
     const selected = select(input.entries, config.tokens)
     const previousSummary = input.entries.find((entry) => entry.message.type === "compaction")?.message
-    if (!selected || (selected.head.length === 0 && previousSummary?.type !== "compaction")) return false
+    yield* Effect.log(`compactAfterOverflow: entries=${input.entries.length}, head.length=${selected?.head.length ?? "null"}, recent.length=${selected?.recent.length ?? "null"}, previousSummary=${previousSummary?.type ?? "none"}, totalEst=${input.entries.reduce((sum, e) => sum + Token.estimate(JSON.stringify(e.message)), 0)}`)
+    if (!selected) return false
+    const hasPreviousCompaction = previousSummary?.type === "compaction"
+    if (selected.head.length === 0 && !hasPreviousCompaction) return false
     const summaryPrompt = buildPrompt({
-      previousSummary: previousSummary?.type === "compaction" ? previousSummary.summary : undefined,
-      context: [previousSummary?.type === "compaction" ? previousSummary.recent : "", selected.head].filter(Boolean),
+      previousSummary: hasPreviousCompaction ? previousSummary.summary : undefined,
+      context: [hasPreviousCompaction ? previousSummary.recent : "", selected.head, hasPreviousCompaction ? selected.recent : ""].filter(Boolean),
     })
     const summaryOutput = Math.min(output || SUMMARY_OUTPUT_TOKENS, SUMMARY_OUTPUT_TOKENS)
     if (Token.estimate(summaryPrompt) > context - summaryOutput) return false

@@ -6,7 +6,7 @@
 import { isAbsolute, join, relative } from "path"
 import { Effect, Schema, Semaphore } from "effect"
 import type { Context } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 import { LSP } from "@/lsp/lsp"
 import { createTwoFilesPatch, diffLines } from "diff"
 import DESCRIPTION from "./edit.txt"
@@ -107,7 +107,7 @@ export const EditTool = define(
                     diff,
                   },
                 })
-yield* afs.writeWithDirs(filePath, bomJoin(contentNew, desiredBom))
+                yield* afs.writeWithDirs(filePath, bomJoin(contentNew, desiredBom))
                 if (yield* format.file(filePath)) {
                   contentNew = yield* syncFile(afs, filePath, desiredBom)
                 }
@@ -205,7 +205,7 @@ yield* afs.writeWithDirs(filePath, bomJoin(contentNew, desiredBom))
               diff,
               filediff,
             },
-            title: `${relative(instance.worktree, filePath)}`,
+            title: relative(instance.worktree, filePath),
             output,
           }
         }),

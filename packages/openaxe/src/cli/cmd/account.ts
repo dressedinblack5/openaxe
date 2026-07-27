@@ -1,10 +1,10 @@
 import { cmd } from "./cmd"
-import { Duration, Effect, Match, Option } from "effect"
+import { Duration, Effect, Match, Option, Schedule } from "effect"
 import { UI } from "../ui"
 import { Account } from "@/account/account"
-import { AccountID, OrgID, PollExpired, type PollResult, type AccountError } from "@/account/schema"
+import { AccountID, OrgID, PollExpired, PollPending, PollSlow } from "@/account/schema"
 import { effectCmd } from "../effect-cmd"
-import { intro, log, outro, select, spinner } from "../effect/prompt";
+import { intro, log, outro, select, spinner } from "../effect/prompt"
 import open from "open"
 
 const openBrowser = (url: string) => Effect.promise(() => open(url).catch(() => undefined))
@@ -51,16 +51,15 @@ const loginEffect = Effect.fn("login")(function* (url: string) {
   const s = spinner()
   yield* s.start("Waiting for authorization...")
 
-  const poll = (wait: Duration.Duration): Effect.Effect<PollResult, AccountError> =>
+  const result = yield* Effect.retry(
     Effect.gen(function* () {
-      yield* Effect.sleep(wait)
       const result = yield* service.poll(login)
-      if (result._tag === "PollPending") return yield* poll(wait)
-      if (result._tag === "PollSlow") return yield* poll(Duration.sum(wait, Duration.seconds(5)))
+      if (result._tag === "PollPending") yield* Effect.fail(new PollPending())
+      if (result._tag === "PollSlow") yield* Effect.fail(new PollSlow())
       return result
-    })
-
-  const result = yield* poll(login.interval).pipe(
+    }),
+    Schedule.exponential(Duration.toMillis(login.interval), 2),
+  ).pipe(
     Effect.timeout(login.expiry),
     Effect.catchTag("TimeoutError", () => Effect.succeed(new PollExpired())),
   )

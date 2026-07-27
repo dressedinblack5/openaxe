@@ -21,6 +21,11 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Generate changelog
+        run: bun run script/raw-changelog.ts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create draft release
         run: gh release create v${{ steps.version.outputs.version }} -d --target ${{ github.sha }} --title "v${{ steps.version.outputs.version }}" --generate-notes
         env:

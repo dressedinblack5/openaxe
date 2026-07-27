@@ -6,7 +6,7 @@ const GREY_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 120
 
 const greyRef = (step: number): V2ColorValue => `var(--v2-grey-${step})`
 
-function greyHex(primitives: Record<string, V2ColorValue>, step: number) {
+function greyHex(primitives: Record<string, V2ColorValue>, step: number): HexColor | undefined {
   const hex = primitives[`v2-grey-${step}`]
   if (typeof hex === "string" && hex.startsWith("#")) return hex as HexColor
 }

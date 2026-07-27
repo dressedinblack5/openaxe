@@ -24,7 +24,7 @@ const RING_SCALE = 1 / RINGS
 const TAIL_SCALE = 1 / TAIL
 const LOGO_REACH = Math.hypot(LOGO_WIDTH, LOGO_HEIGHT * 2) + 3
 
-const enum LogoCellKind {
+enum LogoCellKind {
   Background,
   Top,
   ShadowTop,

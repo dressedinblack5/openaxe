@@ -18,7 +18,6 @@ import { Parameters as Lsp } from "../../src/tool/lsp"
 import { Parameters as Plan } from "../../src/tool/plan"
 import { Parameters as Question } from "../../src/tool/question"
 import { Parameters as Read } from "../../src/tool/read"
-import { Parameters as Shell } from "../../src/tool/shell"
 import { Parameters as Skill } from "../../src/tool/skill"
 import { Parameters as Task } from "../../src/tool/task"
 import { Parameters as Todo } from "../../src/tool/todo"
@@ -37,7 +36,6 @@ const toJsonSchema = ToolJsonSchema.fromSchema
 describe("tool parameters", () => {
   describe("JSON Schema (wire shape)", () => {
     test("apply_patch", () => expect(toJsonSchema(ApplyPatch)).toMatchSnapshot())
-    test("bash", () => expect(toJsonSchema(Shell)).toMatchSnapshot())
     test("edit", () => expect(toJsonSchema(Edit)).toMatchSnapshot())
     test("glob", () => expect(toJsonSchema(Glob)).toMatchSnapshot())
     test("grep", () => expect(toJsonSchema(Grep)).toMatchSnapshot())
@@ -102,20 +100,6 @@ describe("tool parameters", () => {
     })
     test("rejects non-string patchText", () => {
       expect(accepts(ApplyPatch, { patchText: 123 })).toBe(false)
-    })
-  })
-
-  describe("shell", () => {
-    test("accepts command", () => {
-      expect(parse(Shell, { command: "ls" })).toEqual({ command: "ls" })
-    })
-    test("accepts optional timeout + workdir", () => {
-      const parsed = parse(Shell, { command: "ls", timeout: 5000, workdir: "/tmp" })
-      expect(parsed.timeout).toBe(5000)
-      expect(parsed.workdir).toBe("/tmp")
-    })
-    test("rejects missing command", () => {
-      expect(accepts(Shell, {})).toBe(false)
     })
   })
 

@@ -3,7 +3,16 @@ import { Auth } from "../../auth"
 import { cmd } from "./cmd"
 import { CliError, effectCmd, fail } from "../effect-cmd"
 import { UI } from "../ui"
-import { intro, outro, select, text as promptText, password, spinner as createSpinner, autocomplete, log } from "../effect/prompt"
+import {
+  intro,
+  outro,
+  select,
+  text as promptText,
+  password,
+  spinner as createSpinner,
+  autocomplete,
+  log,
+} from "../effect/prompt"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
 
 import path from "path"
@@ -63,7 +72,6 @@ const handlePluginAuth = Effect.fn("Cli.providers.pluginAuth")(function* (
   })
   const method = plugin.auth.methods[index]
 
-  yield* Effect.sleep("10 millis")
   const inputs: Record<string, string> = {}
   if (method.prompts) {
     for (const prompt of method.prompts) {
@@ -383,12 +391,16 @@ export const ProvidersLoginCommand = effectCmd({
       enabled,
       providerNames: Object.fromEntries(Object.entries(config.provider ?? {}).map(([id, p]) => [id, p.name])),
     })
-    const sortedProviders = Object.values(providers).slice().sort((a, b) => {
-      const pa = priority[a.id] ?? 99, pb = priority[b.id] ?? 99
-      if (pa !== pb) return pa - pb
-      const na = a.name ?? a.id, nb = b.name ?? b.id
-      return na < nb ? -1 : na > nb ? 1 : 0
-    })
+    const sortedProviders = Object.values(providers)
+      .slice()
+      .sort((a, b) => {
+        const pa = priority[a.id] ?? 99,
+          pb = priority[b.id] ?? 99
+        if (pa !== pb) return pa - pb
+        const na = a.name ?? a.id,
+          nb = b.name ?? b.id
+        return na < nb ? -1 : na > nb ? 1 : 0
+      })
     const options = [
       ...sortedProviders.map((x) => ({
         label: x.name,

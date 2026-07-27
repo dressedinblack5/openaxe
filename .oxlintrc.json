@@ -4,10 +4,17 @@
     "typeAware": true
   },
   "categories": {
-    "suspicious": "warn"
+    "suspicious": "error",
+    "correctness": "error"
   },
   "rules": {
-    "typescript/no-base-to-string": "warn",
+    "no-explicit-any": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-spread": "error",
+    "typescript/no-non-null-assertion": "error",
+    "no-undefined": "off",
     "require-yield": "off",
     "no-unassigned-vars": "off",
     "no-unused-expressions": "off",
@@ -20,9 +27,17 @@
     "unicorn/prefer-add-event-listener": "off",
     "unicorn/require-module-specifiers": "off",
     "unicorn/require-post-message-target-origin": "off",
-    "no-new": "off",
-    "typescript/no-floating-promises": "warn",
-    "typescript/no-misused-spread": "warn"
+    "no-new": "off"
   },
-  "ignorePatterns": ["**/node_modules", "**/dist", "**/.build", "**/.sst", "**/*.d.ts", "**/sdk.gen.ts"]
+  "ignorePatterns": ["**/node_modules", "**/dist", "**/.build", "**/.sst", "**/*.d.ts", "**/sdk.gen.ts", "**/v2/gen", "**/src/gen/**"],
+  "overrides": [
+    {
+      "files": ["**/test/**", "**/*.test.ts"],
+      "rules": {
+        "typescript/no-unsafe-type-assertion": "off",
+        "consistent-return": "off",
+        "typescript/unbound-method": "off"
+      }
+    }
+  ]
 }

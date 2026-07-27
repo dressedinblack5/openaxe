@@ -7,7 +7,7 @@ import { Icon, type IconProps } from "./icon"
 import { IconButton } from "./icon-button"
 import { TextField } from "./text-field"
 
-function findByKey(container: HTMLElement, key: string) {
+function findByKey(container: HTMLElement, key: string): HTMLElement | undefined {
   const nodes = container.querySelectorAll<HTMLElement>('[data-slot="list-item"][data-key]')
   for (const node of nodes) {
     if (node.getAttribute("data-key") === key) return node

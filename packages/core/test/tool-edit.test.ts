@@ -1,6 +1,6 @@
-import fs from "fs/promises"
-import path from "path"
-import { fileURLToPath } from "url"
+import fs from "node:fs/promises"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { describe, expect, test } from "bun:test"
 import { Effect, Layer } from "effect"
 import { FileMutation } from "@opencode-ai/core/file-mutation"
@@ -104,11 +104,11 @@ const it = testEffect(Layer.empty)
 describe("EditTool", () => {
   it.live("registers and replaces relative exact text through FileMutation once", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         const target = path.join(tmp.path, "hello.txt")
-        return Effect.promise(() => fs.writeFile(target, "before\nrest\n")).pipe(
+        return Effect.promise( async () => fs.writeFile(target, "before\nrest\n")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               Effect.gen(function* () {
@@ -126,30 +126,30 @@ describe("EditTool", () => {
                 })
                 expect(settled.output?.structured).toEqual({
                   operation: "write",
-                  target: yield* Effect.promise(() => fs.realpath(target)),
+                  target: yield* Effect.promise( async () => fs.realpath(target)),
                   resource: "hello.txt",
                   existed: true,
                   replacements: 1,
                 })
-                expect(yield* Effect.promise(() => fs.readFile(target, "utf8"))).toBe("after\nrest\n")
+                expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("after\nrest\n")
                 expect(assertions).toMatchObject([{ sessionID, action: "edit", resources: ["hello.txt"], save: ["*"] }])
-                expect(writes).toEqual([yield* Effect.promise(() => fs.realpath(target))])
+                expect(writes).toEqual([yield* Effect.promise( async () => fs.realpath(target))])
               }),
             ),
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("accepts an absolute file path inside the active Location", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         const target = path.join(tmp.path, "absolute.txt")
-        return Effect.promise(() => fs.writeFile(target, "before")).pipe(
+        return Effect.promise( async () => fs.writeFile(target, "before")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               executeTool(registry, call({ path: target, oldString: "before", newString: "after" })),
@@ -159,22 +159,22 @@ describe("EditTool", () => {
             Effect.gen(function* () {
               expect(result.type).toBe("text")
               expect(assertions.map((input) => input.action)).toEqual(["edit"])
-              expect(yield* Effect.promise(() => fs.readFile(target, "utf8"))).toBe("after")
+              expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("after")
             }),
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("approves an explicit external absolute path before edit", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => Promise.all([tmpdir(), tmpdir()])),
+      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
       ([active, outside]) => {
         reset()
         const target = path.join(outside.path, "external.txt")
-        return Effect.promise(() => fs.writeFile(target, "before")).pipe(
+        return Effect.promise( async () => fs.writeFile(target, "before")).pipe(
           Effect.andThen(
             withTool(active.path, (registry) =>
               executeTool(registry, call({ path: target, oldString: "before", newString: "after" })),
@@ -184,14 +184,14 @@ describe("EditTool", () => {
             Effect.gen(function* () {
               expect(result.type).toBe("text")
               expect(assertions.map((input) => input.action)).toEqual(["external_directory", "edit"])
-              expect(yield* Effect.promise(() => fs.readFile(target, "utf8"))).toBe("after")
+              expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("after")
               expect(writes).toHaveLength(1)
             }),
           ),
         )
       },
       ([active, outside]) =>
-        Effect.promise(() =>
+        Effect.promise( async () =>
           Promise.all([active[Symbol.asyncDispose](), outside[Symbol.asyncDispose]()]).then(() => undefined),
         ),
     ),
@@ -199,11 +199,11 @@ describe("EditTool", () => {
 
   it.live("does not write when external_directory or edit approval is denied", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => Promise.all([tmpdir(), tmpdir()])),
+      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
       ([active, outside]) =>
         Effect.gen(function* () {
           const external = path.join(outside.path, "denied.txt")
-          yield* Effect.promise(() => fs.writeFile(external, "before"))
+          yield* Effect.promise( async () => fs.writeFile(external, "before"))
           reset()
           denyAction = "external_directory"
           expect(
@@ -231,10 +231,10 @@ describe("EditTool", () => {
           expect(assertions.map((input) => input.action)).toEqual(["external_directory", "edit"])
           expect(reads).toBe(0)
           expect(writes).toEqual([])
-          expect(yield* Effect.promise(() => fs.readFile(external, "utf8"))).toBe("before")
+          expect(yield* Effect.promise( async () => fs.readFile(external, "utf8"))).toBe("before")
         }),
       ([active, outside]) =>
-        Effect.promise(() =>
+        Effect.promise( async () =>
           Promise.all([active[Symbol.asyncDispose](), outside[Symbol.asyncDispose]()]).then(() => undefined),
         ),
     ),
@@ -242,12 +242,12 @@ describe("EditTool", () => {
 
   it.live("denied edit reads no target content and does not disclose whether oldString matches", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         denyAction = "edit"
         const target = path.join(tmp.path, "secret.txt")
-        return Effect.promise(() => fs.writeFile(target, "secret content")).pipe(
+        return Effect.promise( async () => fs.writeFile(target, "secret content")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               Effect.gen(function* () {
@@ -270,17 +270,17 @@ describe("EditTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("rejects no-op, empty, missing, and ambiguous exact replacements", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         const target = path.join(tmp.path, "matches.txt")
-        return Effect.promise(() => fs.writeFile(target, "same same")).pipe(
+        return Effect.promise( async () => fs.writeFile(target, "same same")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               Effect.gen(function* () {
@@ -316,17 +316,17 @@ describe("EditTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("replaces every exact occurrence when replaceAll is true", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         const target = path.join(tmp.path, "all.txt")
-        return Effect.promise(() => fs.writeFile(target, "same same same")).pipe(
+        return Effect.promise( async () => fs.writeFile(target, "same same same")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               settleTool(registry, call({ path: "all.txt", oldString: "same", newString: "after", replaceAll: true })),
@@ -335,44 +335,44 @@ describe("EditTool", () => {
           Effect.andThen((settled) =>
             Effect.gen(function* () {
               expect(settled.output?.structured).toMatchObject({ replacements: 3 })
-              expect(yield* Effect.promise(() => fs.readFile(target, "utf8"))).toBe("after after after")
+              expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("after after after")
               expect(writes).toHaveLength(1)
             }),
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("preserves BOM and CRLF line endings", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         const target = path.join(tmp.path, "windows.txt")
-        return Effect.promise(() => fs.writeFile(target, "\uFEFFbefore\r\nrest\r\n")).pipe(
+        return Effect.promise( async () => fs.writeFile(target, "\uFEFFbefore\r\nrest\r\n")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               executeTool(registry, call({ path: "windows.txt", oldString: "before\nrest", newString: "after\nrest" })),
             ),
           ),
-          Effect.andThen(() => Effect.promise(() => fs.readFile(target, "utf8"))),
+          Effect.andThen(() => Effect.promise( async () => fs.readFile(target, "utf8"))),
           Effect.tap((content) => Effect.sync(() => expect(content).toBe("\uFEFFafter\r\nrest\r\n"))),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("rejects an in-place content change after matching but before conditional commit", () =>
     Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
+      Effect.promise( async () => tmpdir()),
       (tmp) => {
         reset()
         const target = path.join(tmp.path, "concurrent.txt")
-        afterRead = () => (reads === 1 ? Effect.promise(() => fs.writeFile(target, "newer\n")) : Effect.void)
-        return Effect.promise(() => fs.writeFile(target, "before\n")).pipe(
+        afterRead = () => (reads === 1 ? Effect.promise( async () => fs.writeFile(target, "newer\n")) : Effect.void)
+        return Effect.promise( async () => fs.writeFile(target, "before\n")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               executeTool(registry, call({ path: "concurrent.txt", oldString: "before", newString: "after" })),
@@ -384,13 +384,13 @@ describe("EditTool", () => {
                 type: "error",
                 value: "File changed after permission approval. Read it again before editing.",
               })
-              expect(yield* Effect.promise(() => fs.readFile(target, "utf8"))).toBe("newer\n")
+              expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("newer\n")
               expect(writes).toEqual([])
             }),
           ),
         )
       },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 })

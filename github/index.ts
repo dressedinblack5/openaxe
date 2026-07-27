@@ -354,7 +354,7 @@ function isPullRequest() {
 }
 
 function useContext() {
-  return isMock() ? (JSON.parse(useEnvMock().mockEvent!) as GitHubContext) : github.context
+  return isMock() ? (JSON.parse(useEnvMock().mockEvent) as GitHubContext) : github.context
 }
 
 function useIssueId() {
@@ -889,7 +889,7 @@ function buildPromptDataForIssue(issue: GitHubIssue) {
 
   const comments = (issue.comments?.nodes || [])
     .filter((c) => {
-      const id = parseInt(c.databaseId)
+      const id = Number.parseInt(c.databaseId)
       return id !== commentId && id !== payload.comment.id
     })
     .map((c) => `  - ${c.author.login} at ${c.createdAt}: ${c.body}`)
@@ -1016,7 +1016,7 @@ function buildPromptDataForPR(pr: GitHubPullRequest) {
 
   const comments = (pr.comments?.nodes || [])
     .filter((c) => {
-      const id = parseInt(c.databaseId)
+      const id = Number.parseInt(c.databaseId)
       return id !== commentId && id !== payload.comment.id
     })
     .map((c) => `- ${c.author.login} at ${c.createdAt}: ${c.body}`)

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
-import path from "path"
-import { mkdtemp, rm } from "fs/promises"
-import { tmpdir } from "os"
+import path from "node:path"
+import { mkdtemp, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import { appendText, readJson, readText, writeJsonAtomic, writeText } from "../../src/util/persistence"
 
 test("persistence creates parent directories and supports text, append, and JSON", async () => {

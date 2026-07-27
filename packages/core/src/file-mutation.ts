@@ -1,7 +1,7 @@
 export * as FileMutation from "./file-mutation"
 
-import { Context, Effect, FileSystem, Layer, Schema } from "effect"
-import { dirname } from "path"
+import { Context, Effect, Layer, Schema } from "effect"
+import { dirname } from "node:path"
 import { KeyedMutex } from "./effect/keyed-mutex"
 import { FSUtil } from "./fs-util"
 import { Revert } from "./revert"

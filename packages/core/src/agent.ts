@@ -75,6 +75,7 @@ export const layer = Layer.effect(
         const fallback = selectable(agent)
         if (fallback) return fallback
       }
+      return undefined
     }
 
     return Service.of({

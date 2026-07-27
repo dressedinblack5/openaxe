@@ -13,8 +13,8 @@ import {
   type TextPart,
   type ToolResultPart,
 } from "../schema"
-import { isRecord } from "../utils/record"
-export { isRecord }
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
 
 export const Json = Schema.fromJsonString(Schema.Unknown)
 export const decodeJson = Schema.decodeUnknownSync(Json)
@@ -132,87 +132,6 @@ export const parseJson = (route: string, input: string, message: string) =>
     try: () => decodeJson(input),
     catch: () => eventError(route, message, input),
   })
-
-/**
- * Streaming JSON parser using incremental parsing.
- * Avoids full JSON.parse on each chunk by accumulating and parsing incrementally.
- * Yields complete objects as they become available.
- */
-export const createStreamingJsonParser = <T extends object>() => {
-  let buffer = ""
-  let depth = 0
-  let inString = false
-  let escapeNext = false
-  
-  return {
-    feed(chunk: string): T[] {
-      buffer += chunk
-      const results: T[] = []
-      let start = 0
-      
-      for (let i = 0; i < buffer.length; i++) {
-        const char = buffer[i]
-        
-        if (escapeNext) {
-          escapeNext = false
-          continue
-        }
-        
-        if (char === "\\" && inString) {
-          escapeNext = true
-          continue
-        }
-        
-        if (char === '"' && !escapeNext) {
-          inString = !inString
-          continue
-        }
-        
-        if (inString) continue
-        
-        if (char === "{") {
-          if (depth === 0) start = i
-          depth++
-        } else if (char === "}") {
-          depth--
-          if (depth === 0) {
-            try {
-              const obj = JSON.parse(buffer.slice(start, i + 1))
-              results.push(obj as T)
-            } catch {
-              // Incomplete or invalid object, keep in buffer
-              depth = 0
-              start = i + 1
-            }
-          }
-        }
-      }
-      
-      // Keep incomplete data in buffer
-      if (depth > 0 || (inString && buffer.length > 0)) {
-        buffer = buffer.slice(start)
-      } else {
-        buffer = ""
-      }
-      
-      return results
-    },
-    
-    flush(): T[] {
-      const results: T[] = []
-      if (buffer.trim()) {
-        try {
-          const obj = JSON.parse(buffer)
-          results.push(obj as T)
-        } catch {
-          // Ignore invalid JSON on flush
-        }
-      }
-      buffer = ""
-      return results
-    },
-  }
-}
 
 /**
  * Join the `text` field of a list of parts with newlines. Used by routes

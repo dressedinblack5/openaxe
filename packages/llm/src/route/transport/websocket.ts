@@ -125,6 +125,7 @@ const webSocketUrl = (value: string) =>
 export const open = (input: WebSocketRequest) =>
   Effect.try({
     try: () =>
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — WebSocket constructor type doesn't include headers option
       new (globalThis.WebSocket as unknown as WebSocketConstructorWithHeaders)(input.url, { headers: input.headers }),
     catch: (error) =>
       transportError("open", error instanceof Error ? error.message : "Failed to construct WebSocket", {
@@ -144,9 +145,9 @@ export const fromWebSocket = (
     const messages = yield* Queue.bounded<string | Uint8Array, LLMError | Cause.Done>(128)
 
     const onMessage = (event: MessageEvent) => {
-      if (typeof event.data === "string") return Queue.offerUnsafe(messages, event.data)
+      if (typeof event.data === "string") { Queue.offerUnsafe(messages, event.data); return }
       const binary = binaryMessage(event.data)
-      if (binary) return Queue.offerUnsafe(messages, binary)
+      if (binary) { Queue.offerUnsafe(messages, binary); return }
       Queue.failCauseUnsafe(
         messages,
         Cause.fail(
@@ -163,7 +164,7 @@ export const fromWebSocket = (
       )
     }
     const onClose = (event: CloseEvent) => {
-      if (event.code === 1000 || event.code === 1005) return Queue.endUnsafe(messages)
+      if (event.code === 1000 || event.code === 1005) { Queue.endUnsafe(messages); return }
       Queue.failCauseUnsafe(
         messages,
         Cause.fail(
@@ -203,92 +204,6 @@ export const fromWebSocket = (
 }
   })
 
-export interface ReconnectionConfig {
-  readonly maxRetries: number
-  readonly baseDelay: number
-  readonly maxDelay: number
-  readonly jitterFactor: number
-  readonly retryableCodes: ReadonlySet<number>
-}
-
-export const defaultReconnectionConfig: ReconnectionConfig = {
-  maxRetries: 10,
-  baseDelay: 1000,
-  maxDelay: 30000,
-  jitterFactor: 0.3,
-  retryableCodes: new Set([1001, 1002, 1003, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015]),
-}
-
-const calculateDelay = (attempt: number, config: ReconnectionConfig): number => {
-  const exponentialDelay = config.baseDelay * Math.pow(2, attempt)
-  const jitter = exponentialDelay * config.jitterFactor * (Math.random() * 2 - 1)
-  const delay = exponentialDelay + jitter
-  return Math.min(Math.max(delay, 0), config.maxDelay)
-}
-
-const isRetryableCode = (code: number, config: ReconnectionConfig): boolean => {
-  return config.retryableCodes.has(code)
-}
-
-export const withReconnection = (
-  input: WebSocketRequest,
-  config: Partial<ReconnectionConfig> = {},
-): Effect.Effect<WebSocketConnection, LLMError> => {
-  const mergedConfig = { ...defaultReconnectionConfig, ...config }
-
-  const attemptConnection = (attempt: number): Effect.Effect<WebSocketConnection, LLMError> =>
-    Effect.gen(function* () {
-      const ws = yield* Effect.try({
-        try: () =>
-          new (globalThis.WebSocket as unknown as WebSocketConstructorWithHeaders)(input.url, {
-            headers: input.headers,
-          }),
-        catch: (error) =>
-          transportError("open", error instanceof Error ? error.message : "Failed to construct WebSocket", {
-            url: input.url,
-            kind: "websocket",
-          }),
-      })
-
-      const connection = yield* fromWebSocket(ws, input)
-
-      const messagesWithReconnect: Stream.Stream<string | Uint8Array, LLMError> = connection.messages.pipe(
-        Stream.catchCause((cause) =>
-          Stream.unwrap(
-            Effect.gen(function* () {
-              const failReason = cause.reasons.find(Cause.isFailReason)
-              let closeCode: number | undefined
-              if (failReason) {
-                const e = failReason.error
-                if (e instanceof LLMError && e.reason instanceof TransportReason && e.reason.kind === "close") {
-                  closeCode = Number(e.reason.url)
-                }
-              }
-
-              const shouldRetry = closeCode !== undefined && isRetryableCode(closeCode, mergedConfig)
-
-              if (!shouldRetry || attempt >= mergedConfig.maxRetries) {
-                return Stream.failCause(cause)
-              }
-
-              const delay = calculateDelay(attempt, mergedConfig)
-              yield* Effect.logDebug(`WebSocket disconnected (code: ${closeCode ?? "unknown"}), reconnecting in ${delay}ms (attempt ${attempt + 1}/${mergedConfig.maxRetries})`)
-              yield* Effect.sleep(delay)
-              const nextConnection = yield* attemptConnection(attempt + 1)
-              return nextConnection.messages
-            }),
-          ),
-        ),
-      )
-
-      return {
-        ...connection,
-        messages: messagesWithReconnect,
-      }
-    })
-
-  return attemptConnection(0)
-}
 
 export const messageText = (message: string | Uint8Array, decoder: TextDecoder) =>
   typeof message === "string" ? message : decoder.decode(message)
@@ -359,7 +274,6 @@ export const WebSocketExecutor = {
   open,
   fromWebSocket,
   messageText,
-  withReconnection,
 } as const
 
 export const WebSocketTransport = {

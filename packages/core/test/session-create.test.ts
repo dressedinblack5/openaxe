@@ -1,5 +1,5 @@
 import { describe, expect } from "bun:test"
-import path from "path"
+import path from "node:path"
 import { Effect, Layer, Stream } from "effect"
 import { AgentV2 } from "@opencode-ai/core/agent"
 import { asc, eq } from "drizzle-orm"
@@ -242,8 +242,8 @@ describe("SessionV2.create", () => {
       }))
 
       const tmp = yield* Effect.acquireRelease(
-        Effect.promise(() => tmpdir()),
-        (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+        Effect.promise( async () => tmpdir()),
+        (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
       )
       const targetDatabase = Database.layerFromPath(path.join(tmp.path, "target.sqlite"))
       const targetEvents = EventV2.layer.pipe(Layer.provide(targetDatabase))

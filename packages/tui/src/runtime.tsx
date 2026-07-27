@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 
 export function abbreviateHome(input: string, home: string) {
   if (!home) return input

@@ -86,7 +86,7 @@ const runTarget = (target: TargetInput) => {
               temperature: input.temperature,
             })
           }),
-        input.timeout,
+        { timeout: input.timeout },
       )
     })
   })

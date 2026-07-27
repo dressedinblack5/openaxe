@@ -8,6 +8,12 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/AxeSync") {}
 
+interface AxeEntry {
+  key: string
+  value: string
+  kind: string
+}
+
 function formatEntries(entries: Array<{ key: string; value: unknown; kind: string }>): string {
   const lines: string[] = [
     "# AXE - Project Memory",
@@ -44,34 +50,66 @@ function formatEntries(entries: Array<{ key: string; value: unknown; kind: strin
   return lines.join("\n")
 }
 
-function parseEntries(content: string): Array<{ key: string; value: string; kind: string }> {
-  const entries: Array<{ key: string; value: string; kind: string }> = []
-  let currentKind = "general"
+function parseEntries(content: string): AxeEntry[] {
+  const entries: AxeEntry[] = []
   const lines = content.split("\n")
+  let currentHeading: string | undefined
+  let currentContent: string[] = []
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
+  const listItemRe = /^- \*\*([^*]+)\*\*:\s*(.*)$/
+  const continuationRe = /^\s{2,}(.+)$/
 
-    const sectionMatch = line.match(/^##\s+(.+)$/)
-    if (sectionMatch) {
-      currentKind = sectionMatch[1].trim()
-      continue
-    }
+  function flush() {
+    if (!currentHeading) return
+    const nonEmpty = currentContent.filter((l) => l.trim() !== "")
+    const allListItems = nonEmpty.length > 0 && nonEmpty.every(
+      (l) => listItemRe.test(l.trim()) || continuationRe.test(l),
+    )
 
-    const entryMatch = line.match(/^-\s+\*\*(.+?)\*\*:\s*(.*)$/)
-    if (entryMatch) {
-      const key = entryMatch[1].trim()
-      let value = entryMatch[2]
-
-      while (i + 1 < lines.length && lines[i + 1].match(/^\s{2,}/)) {
-        i++
-        value += "\n" + lines[i].trim()
+    if (allListItems) {
+      let i = 0
+      while (i < nonEmpty.length) {
+        const line = nonEmpty[i].trim()
+        const m = line.match(listItemRe)
+        if (m) {
+          let value = m[2]
+          i++
+          while (i < nonEmpty.length) {
+            const nextLine = nonEmpty[i]
+            const cm = nextLine.match(continuationRe)
+            if (cm) {
+              value += "\n" + cm[1]
+              i++
+            } else {
+              break
+            }
+          }
+          entries.push({ key: m[1].trim(), value: value.trim(), kind: currentHeading })
+        } else {
+          i++
+        }
       }
-
-      entries.push({ key, value, kind: currentKind })
+    } else if (nonEmpty.length > 0) {
+      const key = currentHeading
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+      entries.push({ key: `axe-md:${key}`, value: nonEmpty.join("\n").trim(), kind: currentHeading })
     }
   }
 
+  for (const line of lines) {
+    const headingMatch = line.match(/^##\s+(.+)$/)
+    if (headingMatch) {
+      flush()
+      currentHeading = headingMatch[1].trim()
+      currentContent = []
+    } else if (currentHeading) {
+      currentContent.push(line)
+    }
+  }
+
+  flush()
   return entries
 }
 
@@ -95,7 +133,7 @@ export const layer = Layer.effect(
       const content = yield* fs.readFileString(filePath).pipe(Effect.orDie)
       const parsed = parseEntries(content)
       for (const entry of parsed) {
-        yield* memory.set(entry.key, entry.value)
+        yield* memory.set(entry.key, entry.value, entry.kind, "project", "axe-md")
       }
     })
 

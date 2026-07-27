@@ -1,6 +1,6 @@
 export * as NpmConfig from "./npm-config"
 
-import { fileURLToPath } from "url"
+import { fileURLToPath } from "node:url"
 // @ts-expect-error @npmcli/config ships no types; it's an npm internal with no public TS declarations.
 import Config from "@npmcli/config"
 // @ts-expect-error @npmcli/config/lib/definitions/*.js is a private subpath with no types.

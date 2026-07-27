@@ -1,7 +1,7 @@
 import type { NotFoundError } from "@/storage/storage"
 import type { Session } from "@/session/session"
 import { Effect } from "effect"
-import { SessionBusyError, notFound } from "../errors";
+import { SessionBusyError, notFound } from "../errors"
 export function mapStorageNotFound<A, R>(self: Effect.Effect<A, NotFoundError, R>) {
   return self.pipe(Effect.mapError((error) => notFound(error.message)))
 }

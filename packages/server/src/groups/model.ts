@@ -4,13 +4,14 @@ import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { ServiceUnavailableError } from "../errors"
 import { LocationQuery, locationQueryOpenApi, LocationMiddleware } from "./location"
+import { httpError } from "./util"
 
 export const ModelGroup = HttpApiGroup.make("server.model")
   .add(
     HttpApiEndpoint.get("model.list", "/api/model", {
       query: LocationQuery,
       success: Location.response(Schema.Array(ModelV2.Info)),
-      error: ServiceUnavailableError as any,
+      error: httpError(ServiceUnavailableError),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(

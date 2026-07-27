@@ -164,7 +164,7 @@ describe("OpencodePlugin", () => {
           expect(yield* catalog.model.get(ProviderV2.ID.make("remote"), ModelV2.ID.make("stale"))).toBeUndefined()
           expect(authorization).toContain("Bearer secret")
         }),
-      ({ server }) => Effect.promise(() => server.stop(true)),
+      ({ server }) => Effect.promise( async () => server.stop(true)),
     ),
   )
 

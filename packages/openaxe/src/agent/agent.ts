@@ -4,7 +4,7 @@ import { Config } from "@/config/config"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
 import { Provider } from "@/provider/provider"
 
-import { generateObject, streamObject, type ModelMessage } from "ai"
+import { generateObject, streamObject } from "ai"
 import { Truncate } from "@/tool/truncate"
 import { Auth } from "../auth"
 import { ProviderTransform } from "@/provider/transform"
@@ -21,8 +21,8 @@ import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
 import { Effect, Context, Layer, Schema } from "effect"
 import { InstanceState } from "@/effect/instance-state"
-import { getOrUndefined } from "effect/Option";
-import { OtelTracer } from "@effect/opentelemetry/Tracer";
+import { getOrUndefined } from "effect/Option"
+import { OtelTracer } from "@effect/opentelemetry/Tracer"
 import { AbsolutePath, type DeepMutable } from "@opencode-ai/core/schema"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
@@ -30,26 +30,14 @@ import { LocationServiceMap } from "@opencode-ai/core/location-layer"
 import { Reference } from "@opencode-ai/core/reference"
 import { Location } from "@opencode-ai/core/location"
 import { PluginV2 } from "@opencode-ai/core/plugin"
-
-function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = { ...target }
-  for (const key of Object.keys(source)) {
-    const sv = source[key]
-    const rv = result[key]
-    if (sv && typeof sv === "object" && !Array.isArray(sv) && rv && typeof rv === "object" && !Array.isArray(rv)) {
-      result[key] = mergeDeep(rv, sv)
-    } else if (sv !== undefined) {
-      result[key] = sv
-    }
-  }
-  return result
-}
+import { mergeDeep } from "@/util/merge-deep"
 
 function sortBy<T>(items: T[], ...fns: Array<[(item: T) => any, "asc" | "desc"]>): T[] {
   return items.slice().sort((a, b) => {
     for (const [accessor, dir] of fns) {
-      const ka = accessor(a), kb = accessor(b)
-      if (ka !== kb) return dir === "desc" ? (kb < ka ? -1 : 1) : (ka < kb ? -1 : 1)
+      const ka = accessor(a),
+        kb = accessor(b)
+      if (ka !== kb) return dir === "desc" ? (kb < ka ? -1 : 1) : ka < kb ? -1 : 1
     }
     return 0
   })
@@ -467,7 +455,10 @@ export const defaultLayer = layer.pipe(
   Layer.provide(LocationServiceMap.layer),
 )
 
-const locationServiceMapNode = LayerNode.make(LocationServiceMap.layer, [])
+const locationServiceMapNode = LayerNode.make(
+  LocationServiceMap.layer as unknown as Layer.Layer<any, any>,
+  [],
+)
 
 export const node = LayerNode.make(layer, [
   Config.node,

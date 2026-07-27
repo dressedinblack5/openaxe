@@ -15,8 +15,8 @@ const it = testEffect(
 
 function withTmpDir<A, E, R>(body: (dir: string) => Effect.Effect<A, E, R>) {
   return Effect.acquireRelease(
-    Effect.promise(() => tmpdir()),
-    (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+    Effect.promise( async () => tmpdir()),
+    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
   ).pipe(Effect.flatMap((tmp) => body(tmp.path)))
 }
 
@@ -84,6 +84,34 @@ describe("AxeSync", () => {
         const memory = yield* Memory.Service
         expect(yield* memory.get("project-name")).toBe("openaxe")
         expect(yield* memory.get("language")).toBe("TypeScript")
+      }),
+    ),
+  )
+
+  it.effect("load sets kind/scope/source metadata", () =>
+    withTmpDir((dir) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const content = [
+          "# AXE - Project Memory",
+          "",
+          "## config",
+          "",
+          "- **theme**: dark",
+          "- **font-size**: 14",
+          "",
+        ].join("\n")
+        yield* fs.writeFileString(`${dir}/AXE.md`, content)
+
+        const axeSync = yield* AxeSync.Service
+        yield* axeSync.load(dir)
+
+        const memory = yield* Memory.Service
+        const entries = yield* memory.list()
+        const theme = entries.find((e) => e.key === "theme")
+        expect(theme!.kind).toBe("config")
+        expect(theme!.scope).toBe("project")
+        expect(theme!.source).toBe("axe-md")
       }),
     ),
   )

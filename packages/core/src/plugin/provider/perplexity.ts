@@ -7,7 +7,7 @@ export const PerplexityPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/perplexity") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/perplexity"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/perplexity"))
         evt.sdk = mod.createPerplexity(evt.options)
       }),
     )

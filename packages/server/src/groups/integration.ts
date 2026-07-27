@@ -4,6 +4,7 @@ import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 import { InvalidRequestError } from "../errors"
 import { LocationMiddleware, LocationQuery, locationQueryOpenApi } from "./location"
+import { httpError } from "./util"
 
 const Inputs = Schema.Record(Schema.String, Schema.String)
 
@@ -46,7 +47,7 @@ export const IntegrationGroup = HttpApiGroup.make("server.integration")
         label: Schema.optional(Schema.String),
       }),
       success: HttpApiSchema.NoContent,
-      error: InvalidRequestError as any,
+      error: httpError(InvalidRequestError),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -67,7 +68,7 @@ export const IntegrationGroup = HttpApiGroup.make("server.integration")
         label: Schema.optional(Schema.String),
       }),
       success: Location.response(Integration.Attempt),
-      error: InvalidRequestError as any,
+      error: httpError(InvalidRequestError),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(
@@ -99,7 +100,7 @@ export const IntegrationGroup = HttpApiGroup.make("server.integration")
       query: LocationQuery,
       payload: Schema.Struct({ code: Schema.optional(Schema.String) }),
       success: HttpApiSchema.NoContent,
-      error: InvalidRequestError as any,
+      error: httpError(InvalidRequestError),
     })
       .annotateMerge(locationQueryOpenApi)
       .annotateMerge(

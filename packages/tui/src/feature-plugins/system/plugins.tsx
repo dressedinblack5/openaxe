@@ -1,7 +1,7 @@
 import type { TuiPlugin, TuiPluginApi, TuiPluginStatus } from "@opencode-ai/plugin/tui"
 import type { BuiltinTuiPlugin } from "../builtins"
 import { useTerminalDimensions } from "@opentui/solid"
-import { fileURLToPath } from "url"
+import { fileURLToPath } from "node:url"
 import { DialogSelect, type DialogSelectOption } from "../../ui/dialog-select"
 import { Show, createEffect, createMemo, createSignal } from "solid-js"
 import { useBindings } from "../../keymap"

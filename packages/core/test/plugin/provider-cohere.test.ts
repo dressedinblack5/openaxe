@@ -15,7 +15,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  const aisdk = yield* AISDK.Service
+  
   const host = yield* PluginHost.make(plugin)
   yield* CoherePlugin.effect(host)
 })
@@ -49,7 +49,7 @@ void mock.module("@ai-sdk/cohere", () => ({
 describe("CoherePlugin", () => {
   it.effect("creates a Cohere SDK only for @ai-sdk/cohere", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
 
@@ -77,7 +77,7 @@ describe("CoherePlugin", () => {
 
   it.effect("uses the model provider ID as the bundled SDK name", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -100,7 +100,7 @@ describe("CoherePlugin", () => {
 
   it.effect("leaves language selection to the default languageModel fallback", () =>
     Effect.gen(function* () {
-      const plugin = yield* PluginV2.Service
+      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       const sdk = fakeSelectorSdk(calls)

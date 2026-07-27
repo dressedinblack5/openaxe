@@ -37,7 +37,7 @@ describe("PTY websocket tickets", () => {
       const ptyID = PtyID.ascending()
       const issued = yield* tickets.issue({ ptyID })
 
-      yield* Effect.promise(() => new Promise((resolve) => setTimeout(resolve, 25)))
+      yield* Effect.promise( async () => new Promise((resolve) => setTimeout(resolve, 25)))
 
       expect(yield* tickets.consume({ ptyID, ticket: issued.ticket })).toBe(false)
     }),

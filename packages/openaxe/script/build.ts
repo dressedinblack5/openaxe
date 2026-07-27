@@ -169,7 +169,7 @@ function nativeCopyDir(item: (typeof allTargets)[number]) {
   return `dist/${name}/bin`
 }
 
-  const coreEntry = await import.meta.resolve("@opentui/core")
+  const coreEntry =  import.meta.resolve("@opentui/core")
   const coreDir = new URL(".", coreEntry).href
 for (const item of targets) {
   const name = [
@@ -210,18 +210,18 @@ for (const item of targets) {
       autoloadPackageJson: true,
       target: name.replace(pkg.name, "bun") as any,
       outfile: `dist/${name}/bin/openaxe`,
-      execArgv: [`--user-agent=opencode/${Script.version}`, "--use-system-ca", "--"],
+      execArgv: [`--user-agent=openaxe/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     files: embeddedFileMap ? { "opencode-web-ui.gen.ts": embeddedFileMap } : {},
     entrypoints: ["./src/index.ts", parserWorker, workerPath, ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : [])],
     define: {
       FFF_LIBC: JSON.stringify(item.abi === "musl" ? "musl" : "gnu"),
-      OPENCODE_VERSION: `'${Script.version}'`,
+      OPENAXE_VERSION: `'${Script.version}'`,
       OPENCODE_MODELS_DEV: generated.modelsData,
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
       OPENCODE_WORKER_PATH: workerPath,
-      OPENCODE_CHANNEL: `'${Script.channel}'`,
+      OPENAXE_CHANNEL: `'${Script.channel}'`,
       OPENCODE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
       ...(item.os === "linux" ? { "process.env.OPENTUI_LIBC": JSON.stringify(item.abi ?? "glibc") } : {}),
     },
@@ -242,7 +242,7 @@ for (const item of targets) {
 
   try {
     const platformPkg = `@opentui/core-${platformSuffix(item)}`
-    const pkgEntry = await import.meta.resolve(platformPkg, coreDir)
+    const pkgEntry =  import.meta.resolve(platformPkg, coreDir)
     const pkgRoot = new URL(".", pkgEntry).href
     const src = new URL(nativeLibName(item.os), pkgRoot)
     const dst = `${nativeCopyDir(item)}/${nativeLibName(item.os)}`

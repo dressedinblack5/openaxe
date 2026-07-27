@@ -162,7 +162,7 @@ async function fixKnownLockfileIssues() {
 
   const removed = txt
     .split("\n")
-    .map((line) => line.match(/^    "(opentui-spinner\/@opentui\/[^"]+)": /)?.[1])
+    .map((line) => line.match(/^ {4}"(opentui-spinner\/@opentui\/[^"]+)": /)?.[1])
     .filter((item): item is string => item !== undefined)
 
   if (removed.length === 0) return []
@@ -171,7 +171,7 @@ async function fixKnownLockfileIssues() {
     lockfile,
     txt
       .split("\n")
-      .filter((line) => !line.match(/^    "opentui-spinner\/@opentui\//))
+      .filter((line) => !line.match(/^ {4}"opentui-spinner\/@opentui\//))
       .join("\n"),
   )
   return removed
@@ -182,7 +182,7 @@ async function findStaleLockfileEntries() {
 }
 
 function findStaleLockfileEntriesInText(txt: string) {
-  return Array.from(txt.matchAll(/^    "([^"]+)": \["(@opentui\/(?:core(?:-[^@"]+)?|keymap|solid))@([^"]+)"/gm))
+  return Array.from(txt.matchAll(/^ {4}"([^"]+)": \["(@opentui\/(?:core(?:-[^@"]+)?|keymap|solid))@([^"]+)"/gm))
     .map((match) => ({
       entry: match[1]!,
       pkg: match[2]!,

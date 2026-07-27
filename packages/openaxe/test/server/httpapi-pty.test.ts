@@ -6,7 +6,7 @@ import { PtyPaths } from "../../src/server/routes/instance/httpapi/groups/pty"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, tmpdir, tmpdirScoped } from "../fixture/fixture"
 import { Config, Context, Effect, Layer, Queue, Schema } from "effect"
-import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
+import { HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
 import * as Socket from "effect/unstable/socket/Socket"
 
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
@@ -67,7 +67,7 @@ function serverUrl() {
   return HttpServer.HttpServer.use((server) => Effect.succeed(HttpServer.formatAddress(server.address)))
 }
 
-const directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
+const _directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
 
 afterEach(async () => {
   await disposeAllInstances()

@@ -26,6 +26,7 @@ import { SessionExecution } from "@opencode-ai/core/session/execution"
 import type { Provider } from "@/provider/provider"
 import * as SessionProcessorModule from "../../src/session/processor"
 import { Snapshot } from "../../src/snapshot"
+import { Skill } from "../../src/skill"
 import { ProviderTest } from "../fake/provider"
 import { testEffect } from "../lib/effect"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
@@ -235,6 +236,7 @@ const deps = Layer.mergeAll(
   RuntimeFlags.layer({ experimentalEventSystem: true }),
   Database.defaultLayer,
   EventV2Bridge.defaultLayer,
+  Skill.defaultLayer,
 )
 
 const env = Layer.mergeAll(
@@ -252,8 +254,9 @@ const compactionEnv = Layer.mergeAll(
   Database.defaultLayer,
   EventV2Bridge.defaultLayer,
   CrossSpawnSpawner.defaultLayer,
+  Skill.defaultLayer,
 )
-const itCompaction = testEffect(compactionEnv)
+const itCompaction = testEffect(compactionEnv as any)
 
 type CompactionProcessOptions = {
   result?: "continue" | "compact"
@@ -355,7 +358,7 @@ function reply(
 
 function plugin(ready: Deferred.Deferred<void>) {
   return Layer.mock(Plugin.Service)({
-    trigger: <Name extends string, Input, Output>(name: Name, _input: Input, output: Output) => {
+    trigger: <Output>(name: string, _input: unknown, output: Output) => {
       if (name !== "experimental.session.compacting") return Effect.succeed(output)
       return Effect.sync(() => Deferred.doneUnsafe(ready, Effect.void)).pipe(
         Effect.andThen(Effect.never),
@@ -369,7 +372,7 @@ function plugin(ready: Deferred.Deferred<void>) {
 
 function autocontinue(enabled: boolean) {
   return Layer.mock(Plugin.Service)({
-    trigger: <Name extends string, Input, Output>(name: Name, _input: Input, output: Output) => {
+    trigger: <Output>(name: string, _input: unknown, output: Output) => {
       if (name !== "experimental.compaction.autocontinue") return Effect.succeed(output)
       return Effect.sync(() => {
         ;(output as { enabled: boolean }).enabled = enabled

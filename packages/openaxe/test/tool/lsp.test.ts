@@ -6,7 +6,6 @@ import { Agent } from "../../src/agent/agent"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { LSP } from "@/lsp/lsp"
-import { Permission } from "../../src/permission"
 import { MessageID, SessionID } from "../../src/session/schema"
 import { Tool } from "@/tool/tool"
 import { Truncate } from "@/tool/truncate"
@@ -52,6 +51,14 @@ const lsp = Layer.succeed(
     prepareCallHierarchy: () => Effect.succeed([]),
     incomingCalls: () => Effect.succeed([]),
     outgoingCalls: () => Effect.succeed([]),
+    codeAction: () => Effect.succeed([]),
+    rename: () => Effect.succeed([]),
+    prepareRename: () => Effect.void,
+    typeDefinition: () => Effect.succeed([]),
+    signatureHelp: () => Effect.void,
+    completion: () => Effect.succeed([]),
+    formatting: () => Effect.succeed([]),
+    applyCodeAction: () => Effect.succeed([]),
     removeClients: () => Effect.void,
   }),
 )

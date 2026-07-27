@@ -65,6 +65,7 @@ const toolResult = (tool: SessionMessage.AssistantTool, providerMetadata: Provid
       providerMetadata,
     })
   }
+  return undefined
 }
 
 const assistant = (message: SessionMessage.Assistant, model: Model) => {
@@ -91,7 +92,7 @@ const assistant = (message: SessionMessage.Assistant, model: Model) => {
     .filter((item): item is SessionMessage.AssistantTool => item.type === "tool" && item.provider?.executed !== true)
     .map((item) => toolResult(item, sameModel ? (item.provider?.resultMetadata ?? item.provider?.metadata) : undefined))
     .filter((message) => message !== undefined)
-    .map(Message.tool)
+    .map((m) => Message.tool(m))
   if (meaningful.length === 0) return results
   return [
     Message.make({ id: message.id, role: "assistant", content: meaningful, metadata: message.metadata }),
@@ -150,6 +151,8 @@ ${message.recent}
           metadata: message.metadata,
         }),
       ]
+    default:
+      return []
   }
 }
 

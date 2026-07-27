@@ -241,7 +241,7 @@ export const ExperimentalApi = HttpApi.make("experimental")
               "Get a list of all OpenCode sessions across projects, sorted by most recently updated. Archived sessions are excluded by default.",
           }),
         ),
-HttpApiEndpoint.post("sessionBackground", ExperimentalPaths.sessionBackground, {
+        HttpApiEndpoint.post("sessionBackground", ExperimentalPaths.sessionBackground, {
           params: { sessionID: SessionID },
           query: WorkspaceRoutingQuery,
           success: described(Schema.Boolean, "Backgrounded subagents"),

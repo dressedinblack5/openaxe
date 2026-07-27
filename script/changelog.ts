@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
-import { rm } from "fs/promises"
-import path from "path"
-import { parseArgs } from "util"
+import { rm } from "node:fs/promises"
+import path from "node:path"
+import { parseArgs } from "node:util"
 
 const root = path.resolve(import.meta.dir, "..")
 const file = path.join(root, "UPCOMING_CHANGELOG.md")
@@ -48,7 +48,8 @@ Examples:
 await rm(file, { force: true })
 
 const quiet = values.quiet
-const cmd = ["openaxe", "run"]
+const openaxeDir = path.resolve(root, "packages/openaxe")
+const cmd = ["bun", "run", "--cwd", openaxeDir, "--conditions=browser", "src/index.ts", "run"]
 cmd.push("--variant", values.variant)
 cmd.push("--command", "changelog", "--", ...args)
 

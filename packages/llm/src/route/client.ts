@@ -10,7 +10,7 @@ import { WebSocketExecutor } from "./transport"
 import type { Protocol } from "./protocol"
 import { applyCachePolicy } from "../cache-policy"
 import { encodeJson, eventError, validateWith } from "../protocols/shared";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type {
   GenerationOptionsInput,
   HttpOptionsInput,
@@ -269,7 +269,7 @@ function makeFromTransport<Body, Prepared, Frame, Event, State>(
           provider: provider ?? routeInput.provider,
           auth: auth ?? routeInput.auth,
           endpoint: endpoint ? Endpoint.merge(routeInput.endpoint, endpoint) : routeInput.endpoint,
-          transport: (transport as Transport<Body, Prepared, Frame> | undefined) ?? routeInput.transport,
+          transport: (transport != null ? transport : routeInput.transport) as Transport<Body, Prepared, Frame>,
           defaults: mergeRouteDefaults(route.defaults, defaults),
         })
       },
@@ -345,31 +345,7 @@ export function make<Body, Prepared, Frame, Event, State>(
   })
 }
 
-// `compile` is the important boundary: it turns a common `LLMRequest` into a
-// validated provider body plus transport-private prepared data, but does not
-// execute transport.
-const compileCache = new Map<string, { result: Effect.Effect<{ request: LLMRequest; route: AnyRoute; body: unknown; prepared: unknown }, LLMError>; timestamp: number }>()
-const COMPILE_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
-
-function hashRequest(request: LLMRequest): string {
-  const { model, generation, providerOptions, http, messages, tools, system, metadata, id, ...rest } = request
-  return `${model.id}:${model.route.id}:${model.route.instanceId}:${JSON.stringify({
-    generation,
-    providerOptions,
-    http,
-    messages: messages?.map(m => ({ role: m.role, content: m.content })),
-    tools: tools?.map(t => t.name),
-    system,
-  })}`
-}
-
 const compile = Effect.fn("LLM.compile")(function* (request: LLMRequest) {
-  const cacheKey = hashRequest(request)
-  const cached = compileCache.get(cacheKey)
-  if (cached && Date.now() - cached.timestamp < COMPILE_CACHE_TTL) {
-    return yield* cached.result
-  }
-  
   const resolved = applyCachePolicy(resolveRequestOptions(request))
   const route = resolved.model.route
 
@@ -378,16 +354,7 @@ const compile = Effect.fn("LLM.compile")(function* (request: LLMRequest) {
     .pipe(Effect.flatMap(validateWith(Schema.decodeUnknownEffect(route.body.schema))))
   const prepared = yield* route.prepareTransport(body, resolved)
 
-  const result = {
-    request: resolved,
-    route,
-    body,
-    prepared,
-  }
-  
-  compileCache.set(cacheKey, { result: Effect.succeed(result), timestamp: Date.now() })
-  
-  return result
+  return { request: resolved, route, body, prepared }
 })
 
 const prepareWith = Effect.fn("LLMClient.prepare")(function* (request: LLMRequest) {
@@ -427,7 +394,8 @@ const generateWith = (stream: Interface["stream"]) =>
     )
   })
 
-export const prepare = <Body = unknown>(request: LLMRequest) =>
+export const prepare = <Body = unknown>(request: LLMRequest): Effect.Effect<PreparedRequestOf<Body>, LLMError> =>
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — prepareWith returns Effect<PreparedRequest, LLMError>, narrowing to PreparedRequestOf<Body>
   prepareWith(request) as Effect.Effect<PreparedRequestOf<Body>, LLMError>
 
 export function stream(request: LLMRequest): Stream.Stream<LLMEvent, LLMError> {
@@ -458,7 +426,8 @@ export const layer: Layer.Layer<Service, never, RequestExecutor.Service> = Layer
       http: yield* RequestExecutor.Service,
       webSocket: getOrUndefined(yield* Effect.serviceOption(WebSocketExecutor.Service)),
     })
-    return Service.of({ prepare: prepareWith as Interface["prepare"], stream, generate: generateWith(stream) })
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — prepareWith has narrower generic signature than Interface["prepare"]
+    return Service.of({ prepare: prepareWith as unknown as Interface["prepare"], stream, generate: generateWith(stream) })
   }),
 )
 

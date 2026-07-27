@@ -162,10 +162,11 @@ export const makeWebSocketExecutor = <E>(
             messages: Stream.fromIterable(server).pipe(Stream.map(decodeEvent)),
             close: Effect.gen(function* () {
               const used = yield* SynchronizedRef.get(position)
-              if (used !== client.length)
-                return yield* Effect.die(
+              if (used !== client.length) {
+                yield* Effect.die(
                   new Error(`WebSocket client frame count: expected ${client.length}, received ${used}`),
                 )
+              }
             }),
           }
         }),

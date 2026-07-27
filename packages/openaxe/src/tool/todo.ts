@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect"
 import type { Context, DefWithoutID } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 import DESCRIPTION_WRITE from "./todowrite.txt"
 import { Todo } from "../session/todo"
 

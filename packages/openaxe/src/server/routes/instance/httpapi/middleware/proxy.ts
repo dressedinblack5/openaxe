@@ -1,7 +1,7 @@
 import { ProxyUtil } from "@/server/proxy-util"
 import { Effect, Stream } from "effect"
 import { HttpBody, HttpClient, HttpClientRequest, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
-import { CloseEvent, Socket, WebSocketConstructor, makeWebSocket } from "effect/unstable/socket/Socket";
+import { CloseEvent, Socket, WebSocketConstructor, makeWebSocket } from "effect/unstable/socket/Socket"
 import { WebSocketTracker } from "../websocket-tracker"
 
 function requestBody(request: HttpServerRequest.HttpServerRequest) {
@@ -57,9 +57,7 @@ export function websocket(
           Effect.catchReason("SocketError", "SocketCloseError", (reason) =>
             writeInbound(new CloseEvent(reason.code, reason.closeReason)).pipe(Effect.catch(() => Effect.void)),
           ),
-          Effect.catch(() =>
-            writeInbound(new CloseEvent(1011, "proxy error")).pipe(Effect.catch(() => Effect.void)),
-          ),
+          Effect.catch(() => writeInbound(new CloseEvent(1011, "proxy error")).pipe(Effect.catch(() => Effect.void))),
           Effect.forkScoped,
         )
 

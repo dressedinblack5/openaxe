@@ -144,7 +144,7 @@ function createKnightRiderTrail(options: AdvancedGradientOptions): ColorGenerato
   // Use the provided defaultColor if it's an RGBA instance, otherwise convert/default
   // We use RGBA.fromHex for the fallback to ensure we have an RGBA object.
   // Note: If defaultColor is a string, we convert it once here.
-  const defaultRgba = defaultColor instanceof RGBA ? defaultColor : RGBA.fromHex((defaultColor as string) || "#000000")
+  const defaultRgba = defaultColor instanceof RGBA ? defaultColor : RGBA.fromHex((defaultColor!) || "#000000")
 
   // Store the base alpha from the inactive factor
   const baseInactiveAlpha = defaultRgba.a

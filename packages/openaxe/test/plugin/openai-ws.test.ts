@@ -31,7 +31,7 @@ describe("plugin.openai.ws", () => {
   test("enforces websocket connect timeout", async () => {
     await using server = await createHangingTcpServer()
 
-    await expect(
+     expect(
       OpenAIWebSocket.connectResponsesWebSocket({
         url: server.wsUrl,
         headers: {},
@@ -43,7 +43,7 @@ describe("plugin.openai.ws", () => {
   test("surfaces websocket upgrade rejection messages", async () => {
     await using server = await createRejectingWebSocketServer(() => {})
 
-    await expect(
+     expect(
       OpenAIWebSocket.connectResponsesWebSocket({
         url: server.wsUrl,
         headers: {},

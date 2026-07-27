@@ -8,7 +8,7 @@ import { ClipboardProvider, useClipboard } from "./context/clipboard"
 import { ExitProvider, useExit } from "./context/exit"
 import { EpilogueProvider } from "./context/epilogue"
 import { copy, handleSelectionKey } from "./util/selection";
-import { createCliRenderer, MouseButton, type CliRenderer } from "@opentui/core"
+import { createCliRenderer, MouseButton } from "@opentui/core"
 import { RouteProvider, useRoute } from "./context/route"
 import {
   Switch,
@@ -44,6 +44,7 @@ import { DialogStatus } from "./component/dialog-status"
 import { DialogThemeList } from "./component/dialog-theme-list"
 import { DialogHelp } from "./ui/dialog-help"
 import { DialogAgent } from "./component/dialog-agent"
+import { DialogConfigureAgent } from "./component/dialog-configure-agent"
 import { DialogSessionList } from "./component/dialog-session-list"
 import { DialogWorkspaceList } from "./component/dialog-workspace-list"
 import { DialogConsoleOrg } from "./component/dialog-console-org"
@@ -55,7 +56,7 @@ import { FrecencyProvider } from "./component/prompt/frecency"
 import { PromptStashProvider } from "./component/prompt/stash"
 import { DialogAlert } from "./ui/dialog-alert"
 import { DialogConfirm } from "./ui/dialog-confirm"
-import { ToastProvider, useToast } from "./ui/toast"
+import { Toast, ToastProvider, useToast } from "./ui/toast"
 import { isDefaultTitle } from "./util/session"
 import { KVProvider, useKV } from "./context/kv"
 import * as Model from "./util/model"
@@ -102,6 +103,7 @@ const appGlobalBindingCommands = [
 
 const appBindingCommands = [
   "command.palette.show",
+  "agent.configure",
   "model.list",
   "model.cycle_recent",
   "model.cycle_recent_reverse",
@@ -186,7 +188,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
   const result = yield* Effect.scoped(
     Effect.gen(function* () {
       const renderer = yield* Effect.acquireRelease(
-        Effect.tryPromise(() =>
+        Effect.tryPromise( async () =>
           createCliRenderer({
             externalOutputMode: "passthrough",
             targetFps: 60,
@@ -473,7 +475,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
     }, 100)
   })
 
-  onCleanup(() => window.clearTimeout(titleDebounce.current))
+  onCleanup(() => clearTimeout(titleDebounce.current))
 
   const args = useArgs()
   onMount(() => {
@@ -638,6 +640,15 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
           local.session.quickSwitch(i + 1)
         },
       })),
+      {
+        name: "agent.configure",
+        title: "Configure agent model",
+        category: "Agent",
+        slashName: "agent-model",
+        run: () => {
+          dialog.replace(() => <DialogConfigureAgent />)
+        },
+      },
       {
         name: "model.list",
         title: "Switch model",
@@ -1098,11 +1109,20 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
 
     const result = await sdk.client.global.upgrade({ target: version })
 
-    if (result.error || !result.data?.success) {
+    if (result.error) {
       toast.show({
         variant: "error",
         title: "Update Failed",
-        message: "Update failed",
+        message: "Network error",
+        duration: 10000,
+      })
+      return
+    }
+    if (!result.data.success) {
+      toast.show({
+        variant: "error",
+        title: "Update Failed",
+        message: result.data.error,
         duration: 10000,
       })
       return
@@ -1145,6 +1165,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
           : undefined
       }
     >
+      <Toast />
       <Show when={Flag.OPENCODE_SHOW_TTFD}>
         <TimeToFirstDraw />
       </Show>

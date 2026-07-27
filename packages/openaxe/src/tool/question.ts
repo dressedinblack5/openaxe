@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect"
 import type { Context } from "./tool"
-import { define } from "./tool";
+import { define } from "./tool"
 import { Question } from "../question"
 import DESCRIPTION from "./question.txt"
 

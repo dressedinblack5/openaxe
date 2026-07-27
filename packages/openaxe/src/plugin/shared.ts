@@ -149,6 +149,7 @@ function resolvePackageEntrypoint(spec: string, kind: PluginKind, pkg: PluginPac
     if (raw) return resolvePackagePath(spec, raw, kind, pkg)
   }
 
+  // Fall back to main for server plugins only, not tui
   if (kind !== "server") return
   const main = packageMain(pkg)
   if (main) return resolvePackagePath(spec, main, kind, pkg)
@@ -342,6 +343,15 @@ export function readPluginId(id: unknown, spec: string) {
   const value = id.trim()
   if (!value) throw new TypeError(`Plugin ${spec} has an empty id`)
   return value
+}
+
+export async function resolveToolsEntrypoint(spec: string, pkg: PluginPackage): Promise<string | undefined> {
+  const exports = pkg.json.exports
+  if (!isRecord(exports)) return undefined
+  const raw = extractExportValue(exports["./tools"])
+  if (!raw) return undefined
+  const file = resolvePackageFile(spec, raw, "tools", pkg)
+  return pathToFileURL(file).href
 }
 
 export function readV1Plugin(

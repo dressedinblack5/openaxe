@@ -1,6 +1,6 @@
 import { Layer, ManagedRuntime } from "effect"
 import { NodeFileSystem } from "@effect/platform-node"
-import { layer } from "@opencode-ai/core/observability";
+import { layer } from "@opencode-ai/core/observability"
 import { Artifact } from "@opencode-ai/core/artifact"
 
 import { FSUtil } from "@opencode-ai/core/fs-util"
@@ -101,8 +101,8 @@ export const AppLayer = Layer.mergeAll(
   Installation.defaultLayer,
   ShareNext.defaultLayer,
   SessionShare.defaultLayer,
-    Memory.defaultLayer,
-    Artifact.defaultLayer,
+  Memory.defaultLayer,
+  Artifact.defaultLayer,
 ).pipe(
   Layer.provideMerge(Ripgrep.defaultLayer),
   Layer.provideMerge(InstanceLayer.layer),
@@ -112,5 +112,5 @@ export const AppLayer = Layer.mergeAll(
 
 // ponytail: module-scoped ManagedRuntime.make would eagerly evaluate layers
 // on import. Use a function reference for type inference only.
-const _getRT = () => ManagedRuntime.make(AppLayer, { memoMap })
+const _getRT = () => ManagedRuntime.make(AppLayer as unknown as Layer.Layer<any, any>, { memoMap })
 export type AppServices = ManagedRuntime.ManagedRuntime.Services<ReturnType<typeof _getRT>>

@@ -7,7 +7,7 @@ export const DeepInfraPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/deepinfra") return
-        const mod = yield* Effect.promise(() => import("@ai-sdk/deepinfra"))
+        const mod = yield* Effect.promise( async () => import("@ai-sdk/deepinfra"))
         evt.sdk = mod.createDeepInfra(evt.options)
       }),
     )

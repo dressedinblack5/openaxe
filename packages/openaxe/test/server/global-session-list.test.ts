@@ -1,5 +1,5 @@
 import { describe, expect } from "bun:test"
-import { Deferred, Effect, Layer } from "effect"
+import { Effect, Layer } from "effect"
 import { Project } from "@/project/project"
 import { Session as SessionNs } from "@/session/session"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
@@ -75,14 +75,7 @@ describe("session.listGlobal", () => {
         const test = yield* TestInstance
 
         const first = yield* withSession({ title: "page-one" })
-        const ready = yield* Deferred.make<void>()
-        yield* Deferred.succeed(ready, undefined).pipe(Effect.delay("5 millis"), Effect.forkScoped)
-        yield* Deferred.await(ready).pipe(
-          Effect.timeoutOrElse({
-            duration: "1 second",
-            orElse: () => Effect.fail(new Error("timed out waiting between session creates")),
-          }),
-        )
+        yield* Effect.sleep("5 millis")
         const second = yield* withSession({ title: "page-two" })
 
         const page = yield* SessionNs.Service.use((session) =>

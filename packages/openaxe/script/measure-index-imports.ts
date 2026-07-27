@@ -40,4 +40,4 @@ async function measure() {
   await time(`@/cli/heap`, () => import("@/cli/heap"))
 }
 
-measure()
+void measure()

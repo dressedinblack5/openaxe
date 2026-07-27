@@ -1,4 +1,4 @@
-import { context } from "@/effect/instance-state";
+import { context } from "@/effect/instance-state"
 import { FileSystem } from "@opencode-ai/core/filesystem"
 import { LocationServiceMap } from "@opencode-ai/core/location-layer"
 import { Ripgrep } from "@opencode-ai/core/ripgrep"
@@ -18,9 +18,7 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
 
     const filesystem = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
       return yield* effect.pipe(
-        Effect.provide(
-          locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* context).directory) })),
-        ),
+        Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* context).directory) }))),
       )
     })
 
@@ -64,7 +62,6 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
     })
 
     const list = Effect.fn("FileHttpApi.list")(function* (ctx: { query: { path: string } }) {
-      const directory = (yield* context).directory
       return yield* filesystem(
         Effect.gen(function* () {
           const fs = yield* FileSystem.Service

@@ -1,6 +1,6 @@
 export * as SkillDiscovery from "./discovery"
 
-import path from "path"
+import path from "node:path"
 import { Context, Effect, Layer, Schedule, Schema } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { FSUtil } from "../fs-util"

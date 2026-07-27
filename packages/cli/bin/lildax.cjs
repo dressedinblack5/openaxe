@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-const childProcess = require("child_process")
-const fs = require("fs")
-const path = require("path")
-const os = require("os")
+const childProcess = require("node:child_process")
+const fs = require("node:fs")
+const path = require("node:path")
+const os = require("node:os")
 
 const forwardedSignals = ["SIGINT", "SIGTERM", "SIGHUP"]
 

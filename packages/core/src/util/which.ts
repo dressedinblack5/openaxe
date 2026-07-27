@@ -1,4 +1,4 @@
-import path from "path"
+import path from "node:path"
 import { Global } from "../global"
 
 export function which(cmd: string, env?: NodeJS.ProcessEnv) {

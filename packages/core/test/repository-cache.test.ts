@@ -1,7 +1,7 @@
 import { describe, expect } from "bun:test"
-import fs from "fs/promises"
-import path from "path"
-import { pathToFileURL } from "url"
+import fs from "node:fs/promises"
+import path from "node:path"
+import { pathToFileURL } from "node:url"
 import { Effect, Layer } from "effect"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Git } from "@opencode-ai/core/git"
@@ -108,16 +108,16 @@ function withRemote<A, E, R>(body: (fixture: Awaited<ReturnType<typeof gitRemote
       return { root, fixture: await gitRemote(root.path) }
     }),
     (input) => body(input.fixture),
-    (input) => Effect.promise(() => input.root[Symbol.asyncDispose]()),
+    (input) => Effect.promise( async () => input.root[Symbol.asyncDispose]()),
   )
 }
 
 function read(file: string) {
-  return Effect.promise(() => fs.readFile(file, "utf8")).pipe(Effect.map((content) => content.replace(/\r\n/g, "\n")))
+  return Effect.promise( async () => fs.readFile(file, "utf8")).pipe(Effect.map((content) => content.replace(/\r\n/g, "\n")))
 }
 
 function exists(file: string) {
-  return Effect.promise(() =>
+  return Effect.promise( async () =>
     fs.stat(file).then(
       () => true,
       () => false,

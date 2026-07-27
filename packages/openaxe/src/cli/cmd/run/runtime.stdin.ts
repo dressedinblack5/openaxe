@@ -1,5 +1,5 @@
 import fs from "fs"
-import { ReadStream } from "node:tty";
+import { ReadStream } from "node:tty"
 export const INTERACTIVE_INPUT_ERROR = "--mini requires a controlling terminal for input"
 
 type InteractiveStdin = {

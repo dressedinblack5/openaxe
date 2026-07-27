@@ -1,4 +1,4 @@
-import { duration, titlecase } from "@/util/locale";
+import { duration, titlecase } from "@/util/locale"
 import type { SessionMessages } from "./session.shared"
 import type { RunProvider, StreamCommit } from "./types"
 

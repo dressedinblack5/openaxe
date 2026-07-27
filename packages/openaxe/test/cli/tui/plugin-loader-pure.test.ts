@@ -53,7 +53,7 @@ test("skips external tui plugins in pure mode", async () => {
 
   try {
     await TuiPluginRuntime.init({ api: createTuiPluginApi(), config })
-    await expect(fs.readFile(tmp.extra.marker, "utf8")).rejects.toThrow()
+     expect(fs.readFile(tmp.extra.marker, "utf8")).rejects.toThrow()
   } finally {
     await TuiPluginRuntime.dispose()
     cwd.mockRestore()
