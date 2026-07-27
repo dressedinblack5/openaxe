@@ -16,18 +16,12 @@ function basic(username: string, password: string) {
   return ServerAuth.header({ username, password }) ?? ""
 }
 
-const cancelBody = (response: Response) => {
-  const body = response.body
-  if (body === null || body === undefined) return Effect.void
-  return Effect.sync(() => body.cancel()).pipe(Effect.catch(() => Effect.void))
-}
-
 const ProbeApi = HttpApi.make("pty-connect-auth-probe").add(
   HttpApiGroup.make("probe")
     .add(
       HttpApiEndpoint.get("connect", PtyPaths.connect, {
         success: Schema.Boolean,
-        error: HttpApiError.Forbidden,
+        error: HttpApiError.Forbidden as any,
       }),
     )
     .middleware(PtyConnectAuthorization),
@@ -53,10 +47,9 @@ describe("HttpApi instance route authorization", () => {
       const route = PtyPaths.connect.replace(":ptyID", PtyID.ascending())
       const headers = { "x-opencode-directory": "/nonexistent" }
 
-       const missing = yield* HttpClient.execute(
-         HttpClientRequest.get(route).pipe(HttpClientRequest.setHeaders(headers)),
-       )
-       yield* cancelBody(missing)
+      const missing = yield* HttpClient.execute(
+        HttpClientRequest.get(route).pipe(HttpClientRequest.setHeaders(headers)),
+      )
       expect(missing.status).toBe(401)
 
       const authed = yield* HttpClient.execute(
@@ -66,7 +59,6 @@ describe("HttpApi instance route authorization", () => {
             HttpClientRequest.setHeader("authorization", basic("opencode", "secret")),
           ),
       )
-      yield* cancelBody(authed)
       expect(authed.status).toBe(200)
     }),
   )
