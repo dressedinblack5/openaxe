@@ -35,6 +35,7 @@ import { InstallationChannel } from "@opencode-ai/core/installation/version"
 
 type State = {
   hooks: Hooks[]
+  hookMap: Map<string, Function[]>
   deferredExternal: Effect.Effect<void>
 }
 
@@ -91,14 +92,13 @@ function getServerPlugin(value: unknown) {
 }
 
 function getLegacyPlugins(mod: Record<string, unknown>) {
-  const seen = new Set<unknown>()
+  const seen = new Set<PluginInstance>()
   const result: PluginInstance[] = []
 
   for (const entry of Object.values(mod)) {
-    if (seen.has(entry)) continue
-    seen.add(entry)
     const plugin = getServerPlugin(entry)
-    if (!plugin) continue
+    if (!plugin || seen.has(plugin)) continue
+    seen.add(plugin)
     result.push(plugin)
   }
 
@@ -206,6 +206,16 @@ export const layer = Layer.effect(
             }
             if (plugins.length) yield* config.waitForDependencies()
 
+            // Point vibeguard at openaxe's config dir if present
+            if (!process.env.OPENCODE_VIBEGUARD_CONFIG) {
+              const homeDir = process.env.HOME
+              if (homeDir) {
+                const vbPath = `${homeDir}/.config/openaxe/vibeguard.config.json`
+                const vbExists = yield* Effect.promise(() => Bun.file(vbPath).exists())
+                if (vbExists) process.env.OPENCODE_VIBEGUARD_CONFIG = vbPath
+              }
+            }
+
             const loaded = yield* Effect.promise(() =>
               PluginLoader.loadExternal({
                 items: plugins,
@@ -269,9 +279,22 @@ export const layer = Layer.effect(
                 Effect.ignore,
               )
             }
+
+            // Build hook dispatch map for O(1) trigger lookup
+            hookMap.clear()
+            for (const hook of hooks) {
+              for (const key in hook) {
+                const fn = (hook as any)[key]
+                if (typeof fn !== "function") continue
+                let list = hookMap.get(key)
+                if (!list) { list = []; hookMap.set(key, list) }
+                list.push(fn)
+              }
+            }
           })(),
         )
 
+        const hookMap = new Map<string, Function[]>()
         const unsubscribe = yield* events.listen((event) => {
           if (event.location?.directory !== ctx.directory) return Effect.void
           return Effect.sync(() => {
@@ -297,7 +320,7 @@ export const layer = Layer.effect(
           ),
         )
 
-        return { hooks, deferredExternal }
+        return { hooks, hookMap, deferredExternal }
       }),
     )
 
@@ -313,10 +336,11 @@ export const layer = Layer.effect(
       if (!ready) return output
       const s = yield* InstanceState.get(state)
       yield* s.deferredExternal
-      for (const hook of s.hooks) {
-        const fn = hook[name] as any
-        if (!fn) continue
-        yield* Effect.promise(async () => fn(input, output))
+      const fns = s.hookMap.get(name)
+      if (fns) {
+        for (const fn of fns) {
+          yield* Effect.promise(async () => fn(input, output))
+        }
       }
       return output
     })
