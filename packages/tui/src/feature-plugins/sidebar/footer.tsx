@@ -71,7 +71,7 @@ function View(props: { api: TuiPluginApi; sessionID: string }) {
       <text fg={theme().textMuted}>
         <span style={{ fg: theme().success }}>•</span> <b>Open</b>
         <span style={{ fg: theme().text }}>
-          <b>Code</b>
+          <b>Axe</b>
         </span>{" "}
         <span>{props.api.app.version}</span>
       </text>
