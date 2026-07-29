@@ -1,8 +1,9 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect } from "bun:test"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import path from "path"
 import { Effect, FileSystem, Layer } from "effect"
 import { FetchHttpClient } from "effect/unstable/http"
+import { Config } from "../../src/config/config"
 import { NodeFileSystem } from "@effect/platform-node"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { FSUtil } from "@opencode-ai/core/fs-util"
@@ -21,9 +22,13 @@ const it = testEffect(Layer.mergeAll(CrossSpawnSpawner.defaultLayer, NodeFileSys
 
 const configLayer = TestConfig.layer()
 
-const instructionLayer = (global: Partial<Global.Interface>, flags: Partial<RuntimeFlags.Info> = {}) =>
+const instructionLayer = (
+  global: Partial<Global.Interface>,
+  flags: Partial<RuntimeFlags.Info> = {},
+  configOverride?: Layer.Layer<Config.Service>,
+) =>
   Instruction.layer.pipe(
-    Layer.provide(configLayer),
+    Layer.provide(configOverride ?? configLayer),
     Layer.provide(FSUtil.defaultLayer),
     Layer.provide(FetchHttpClient.layer),
     Layer.provide(Global.layerWith(global)),
@@ -31,9 +36,9 @@ const instructionLayer = (global: Partial<Global.Interface>, flags: Partial<Runt
   )
 
 const provideInstruction =
-  (global: Partial<Global.Interface>, flags?: Partial<RuntimeFlags.Info>) =>
+  (global: Partial<Global.Interface>, flags?: Partial<RuntimeFlags.Info>, configOverride?: Layer.Layer<Config.Service>) =>
   <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    self.pipe(Effect.provide(instructionLayer(global, flags)))
+    self.pipe(Effect.provide(instructionLayer(global, flags, configOverride)))
 
 const write = (filepath: string, content: string) =>
   Effect.gen(function* () {
@@ -196,8 +201,6 @@ describe("Instruction.resolve", () => {
       }),
     ),
   )
-
-  test.todo("fetches remote instructions from config URLs via HttpClient", () => {})
 })
 
 describe("Instruction.system", () => {
@@ -234,6 +237,45 @@ describe("Instruction.system", () => {
       }).pipe(
         provideInstance(projectTmp),
         provideInstruction({ home: globalTmp, config: globalTmp }, { disableClaudeCodePrompt: true }),
+      )
+    }),
+  )
+
+  it.live("fetches remote instructions from config URLs via HttpClient", () =>
+    Effect.gen(function* () {
+      const globalTmp = yield* tmpWithFiles({})
+      const projectTmp = yield* tmpdirScoped()
+
+      const server = yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          Bun.serve({
+            port: 0,
+            fetch(req) {
+              const url = new URL(req.url)
+              if (url.pathname === "/instructions.md") {
+                return new Response("# Remote Instructions Content")
+              }
+              return new Response("Not Found", { status: 404 })
+            },
+          }),
+        ),
+        (server) => Effect.promise(() => server.stop(true)),
+      )
+
+      const url = `http://127.0.0.1:${server.port}/instructions.md`
+      const customConfig = TestConfig.layer({
+        get: () => Effect.succeed({ instructions: [url] }),
+      })
+
+      yield* Effect.gen(function* () {
+        const svc = yield* Instruction.Service
+        const results = yield* svc.system()
+
+        expect(results).toHaveLength(1)
+        expect(results[0]).toBe(`Instructions from: ${url}\n# Remote Instructions Content`)
+      }).pipe(
+        provideInstance(projectTmp),
+        provideInstruction({ home: globalTmp, config: globalTmp }, undefined, customConfig),
       )
     }),
   )
