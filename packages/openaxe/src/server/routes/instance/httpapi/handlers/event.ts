@@ -10,9 +10,6 @@ import {
   encodeText,
   ensuring,
   filter,
-  flatMap,
-  fromEffect,
-  fromQueue,
   make,
   map,
   merge,
@@ -42,24 +39,18 @@ function eventResponse(events: EventV2.Interface) {
   return Effect.gen(function* () {
     const instance = yield* InstanceState.context
     const workspaceID = yield* InstanceState.workspaceID
-    const queue = yield* Queue.unbounded<EventV2.Payload>()
-    // Listener is acquired lazily (first pull), but server.connected is emitted
-    // AFTER the listener is registered, so no events are lost at startup.
-    const eventStream = fromEffect(events.listen((event) => Effect.sync(() => Queue.offerUnsafe(queue, event)))).pipe(
-      flatMap((unsubscribe: EventV2.Unsubscribe) =>
-        make({ id: eventID(), type: "server.connected", properties: {} }).pipe(
-          concat(
-            fromQueue(queue).pipe(
-              ensuring(unsubscribe),
-              filter(
-                (event) =>
-                  event.location?.directory === instance.directory &&
-                  (event.location.workspaceID === undefined || event.location.workspaceID === workspaceID),
-              ),
-              map((event) => ({ id: event.id, type: event.type, properties: event.data })),
-            ),
-          ),
+    // all() returns a live stream (backed by PubSub) — first pull registers the
+    // subscriber, so prepending server.connected guarantees it arrives before any
+    // real events.
+    const eventStream = concat(
+      make({ id: eventID(), type: "server.connected", properties: {} }),
+      events.all().pipe(
+        filter(
+          (event) =>
+            event.location?.directory === instance.directory &&
+            (event.location.workspaceID === undefined || event.location.workspaceID === workspaceID),
         ),
+        map((event) => ({ id: event.id, type: event.type, properties: event.data })),
       ),
     )
     const disposed = callback<{ id: string; type: string; properties: unknown }>((queue) => {
