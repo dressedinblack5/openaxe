@@ -673,6 +673,7 @@ export const layer = Layer.effect(
         !input.variant && ag.variant && same
           ? yield* provider
               .getModel(model.providerID, model.modelID)
+              // eslint-disable-next-line @typescript-eslint/unbound-method
               .pipe(Effect.catchIf(Provider.ModelNotFoundError.isInstance, () => Effect.void))
           : undefined
       const variant = input.variant ?? (ag.variant && full?.variants?.[ag.variant] ? ag.variant : undefined)

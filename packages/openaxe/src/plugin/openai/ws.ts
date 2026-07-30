@@ -184,7 +184,7 @@ export function streamResponsesWebSocket(options: StreamResponsesWebSocketOption
       return
     }
 
-    const text = typeof data === "string" ? data : Buffer.isBuffer(data) ? data.toString() : String(data)
+    const text = typeof data === "string" ? data : Buffer.isBuffer(data) ? data.toString() : data instanceof ArrayBuffer ? Buffer.from(data).toString() : data instanceof Array ? Buffer.concat(data).toString() : String(data)
     const event = (() => {
       try {
         const parsed = JSON.parse(text)

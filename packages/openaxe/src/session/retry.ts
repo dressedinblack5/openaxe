@@ -32,8 +32,16 @@ function cap(ms: number) {
 
 function getErrorMessage(err: Err): string | undefined {
   if (!err) return undefined
-  if ("data" in err && isRecord(err.data)) return String(err.data.message ?? "")
-  return (err as Record<string, unknown>).message as string | undefined
+  if ("data" in err && isRecord(err.data)) {
+    const msg = err.data.message
+    if (typeof msg === "string") return msg
+    if (msg === undefined || msg === null) return ""
+    return JSON.stringify(msg)
+  }
+  const msg = (err as Record<string, unknown>).message
+  if (typeof msg === "string") return msg
+  if (msg === undefined || msg === null) return undefined
+  return JSON.stringify(msg)
 }
 
 type ErrorWithHeaders = { responseHeaders?: Record<string, string> }
@@ -92,8 +100,9 @@ function asAPIErrorData(error: Err): APIErrorData | undefined {
   if (!error) return undefined
   if ("data" in error && isRecord(error.data)) {
     const d = error.data as Record<string, unknown>
+    const msg = d.message
     return {
-      message: String(d.message ?? ""),
+      message: typeof msg === "string" ? msg : msg === undefined || msg === null ? "" : JSON.stringify(msg),
       statusCode: d.statusCode as number | undefined,
       isRetryable: d.isRetryable === true,
       responseBody: d.responseBody as string | undefined,
@@ -213,7 +222,8 @@ export function retryable(error: Err, provider: string) {
 
 function str(value: unknown) {
   if (value === undefined || value === null) return ""
-  return String(value)
+  if (typeof value === "string") return value
+  return JSON.stringify(value)
 }
 
 function num(value: unknown) {

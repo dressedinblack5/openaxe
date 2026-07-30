@@ -1019,7 +1019,8 @@ function extractErrorDetail(error: unknown): string | undefined {
   const data = (error as Record<string, unknown>).data
   if (typeof data === "object" && data !== null && typeof (data as Record<string, unknown>).message === "string") {
     const msg = (data as Record<string, unknown>).message as string
-    const ref = "ref" in data ? ` (${(data as Record<string, unknown>).ref})` : ""
+    const refVal = (data as Record<string, unknown>).ref
+    const ref = typeof refVal === "string" ? ` (${refVal})` : ""
     return msg + ref
   }
   if (typeof (error as Record<string, unknown>).message === "string") {

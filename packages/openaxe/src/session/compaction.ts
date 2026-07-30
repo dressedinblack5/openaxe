@@ -253,6 +253,7 @@ export const layer = Layer.effect(
 
       const msgs = yield* session
         .messages({ sessionID: input.sessionID })
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         .pipe(Effect.catchIf(NotFoundError.isInstance, () => Effect.void))
       if (!msgs) return
 

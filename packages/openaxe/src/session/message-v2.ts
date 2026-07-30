@@ -476,7 +476,9 @@ export function stream(sessionID: SessionID) {
     const result = [] as WithParts[]
     let before: string | undefined
     while (true) {
-      const next = yield* page({ sessionID, limit: size, before }).pipe(
+      const pageEffect = page({ sessionID, limit: size, before })
+      const next = yield* pageEffect.pipe(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         Effect.catchIf(NotFoundError.isInstance, () =>
           Effect.succeed({ items: [] as WithParts[], more: false, cursor: undefined }),
         ),

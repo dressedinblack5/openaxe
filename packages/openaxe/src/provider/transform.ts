@@ -341,6 +341,11 @@ function applyCaching(msgs: ModelMessage[], model: ProviderModel): ModelMessage[
   return msgs
 }
 
+function getImageString(part: { image: unknown }): string {
+  if (typeof part.image === "string") return part.image
+  return JSON.stringify(part.image)
+}
+
 function unsupportedParts(msgs: ModelMessage[], model: ProviderModel): ModelMessage[] {
   return msgs.map((msg) => {
     if (msg.role !== "user" || !Array.isArray(msg.content)) return msg
@@ -350,7 +355,7 @@ function unsupportedParts(msgs: ModelMessage[], model: ProviderModel): ModelMess
 
       // Check for empty base64 image data
       if (part.type === "image") {
-        const imageStr = String(part.image)
+        const imageStr = getImageString(part)
         if (imageStr.startsWith("data:")) {
           const match = imageStr.match(/^data:([^;]+);base64,(.*)$/)
           if (match && (!match[2] || match[2].length === 0)) {
@@ -362,7 +367,7 @@ function unsupportedParts(msgs: ModelMessage[], model: ProviderModel): ModelMess
         }
       }
 
-      const mime = part.type === "image" ? String(part.image).split(";")[0].replace("data:", "") : part.mediaType
+      const mime = part.type === "image" ? getImageString(part).split(";")[0].replace("data:", "") : part.mediaType
       const filename = part.type === "file" ? part.filename : undefined
       const modality = mimeToModality(mime)
       if (!modality) return part

@@ -209,7 +209,7 @@ export const layer = Layer.effect(
               ...info,
               name,
               extensions: info.extensions ?? [],
-              enabled: builtIn && !info.command ? builtIn.enabled : async (_context) => info.command ?? false,
+              enabled: builtIn && !info.command ? (ctx) => builtIn.enabled(ctx) : async (_context) => info.command ?? false,
             }
           }
         }

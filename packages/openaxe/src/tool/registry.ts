@@ -300,8 +300,8 @@ export const layer = Layer.effect(
               .join("\n"),
             parameters: output.parameters,
             jsonSchema,
-            execute: tool.execute,
-            formatValidationError: tool.formatValidationError,
+            execute: (args: unknown, toolCtx: unknown) => tool.execute(args as never, toolCtx as never),
+            formatValidationError: (params: unknown) => tool.formatValidationError?.(params) ?? String(params),
           }
         }),
         { concurrency: "unbounded" },

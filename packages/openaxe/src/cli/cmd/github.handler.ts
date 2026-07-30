@@ -1176,8 +1176,8 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
         permission = response.data.permission
         console.log(`  permission: ${permission}`)
       } catch (error) {
-        console.error(`Failed to check permissions: ${error}`)
-        throw new Error(`Failed to check permissions for user ${actor}: ${error}`, { cause: error })
+        console.error(`Failed to check permissions: ${String(error)}`)
+        throw new Error(`Failed to check permissions for user ${actor}: ${String(error)}`, { cause: error })
       }
 
       if (!["admin", "write"].includes(permission)) throw new Error(`User ${actor} does not have write permissions`)
@@ -1302,7 +1302,7 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
         }
       } catch (e) {
         // If the check fails, proceed to create - we'll get a clear error if a PR already exists
-        console.log(`Failed to check for existing PR: ${e}`)
+        console.log(`Failed to check for existing PR: ${String(e)}`)
       }
 
       // Verify there are commits between base and head before creating the PR.

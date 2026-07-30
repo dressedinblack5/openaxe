@@ -166,6 +166,7 @@ const aggregateSessionStats = Effect.fn("Cli.stats.aggregate")(function* (
       Effect.gen(function* () {
         const messages = yield* svc
           .messages({ sessionID: session.id })
+          // eslint-disable-next-line @typescript-eslint/unbound-method
           .pipe(Effect.catchIf(NotFoundError.isInstance, () => Effect.succeed([])))
 
         const sessionCost = session.cost ?? 0

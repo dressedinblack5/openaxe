@@ -184,6 +184,7 @@ const handlePluginAuth = Effect.fn("Cli.providers.pluginAuth")(function* (
     const apiKey = yield* promptValue(key)
 
     const metadata = Object.keys(inputs).length ? { metadata: inputs } : {}
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const authorizeApi = method.authorize
     if (!authorizeApi) {
       yield* put(provider, {
