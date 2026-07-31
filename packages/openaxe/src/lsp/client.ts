@@ -28,6 +28,7 @@ export type Diagnostic = VSCodeDiagnostic
 
 export class InitializeError extends Schema.TaggedErrorClass<InitializeError>()("LSPInitializeError", {
   serverID: Schema.String,
+  stderr: Schema.optional(Schema.String),
   cause: Schema.optional(Schema.Defect()),
 }) {}
 
@@ -128,10 +129,19 @@ export async function create(input: {
   instance: InstanceContext
 }) {
   const connection = createMessageConnection(
-    new StreamMessageReader(input.server.process.stdout as any),
-    new StreamMessageWriter(input.server.process.stdin as any),
+    new StreamMessageReader(input.server.process.stdout!),
+    new StreamMessageWriter(input.server.process.stdin!),
   )
-  input.server.process.stderr?.resume()
+  // Attaching a data listener switches stderr into flowing mode (implicit resume)
+  // while retaining a bounded rolling buffer for InitializeError diagnostics.
+  const STDERR_BUFFER_LIMIT = 50
+  const stderrBuffer: string[] = []
+  input.server.process.stderr?.on("data", (chunk: Buffer | string) => {
+    for (const line of chunk.toString().split(/\r?\n/)) {
+      if (line) stderrBuffer.push(line)
+    }
+    if (stderrBuffer.length > STDERR_BUFFER_LIMIT) stderrBuffer.splice(0, stderrBuffer.length - STDERR_BUFFER_LIMIT)
+  })
   // --- Connection state ---
 
   const pushDiagnostics = new Map<string, Diagnostic[]>()
@@ -249,7 +259,11 @@ export async function create(input: {
     }),
     INITIALIZE_TIMEOUT_MS,
   ).catch((err) => {
-    throw new InitializeError({ serverID: input.serverID, cause: err })
+    throw new InitializeError({
+      serverID: input.serverID,
+      cause: err,
+      ...(stderrBuffer.length > 0 ? { stderr: stderrBuffer.join("\n") } : {}),
+    })
   })
 
   const syncKind = getSyncKind(initialized.capabilities)
@@ -263,7 +277,17 @@ export async function create(input: {
     })
   }
 
-  const files: Record<string, { version: number; text: string }> = {}
+  const FILES_MAX_SIZE = 100
+  const files = new Map<string, { version: number; text: string }>()
+  const setFile = (filePath: string, entry: { version: number; text: string }) => {
+    files.delete(filePath)
+    files.set(filePath, entry)
+    while (files.size > FILES_MAX_SIZE) {
+      const oldest = files.keys().next().value
+      if (oldest === undefined) break
+      files.delete(oldest)
+    }
+  }
 
   // --- Diagnostic helpers ---
 
@@ -441,7 +465,7 @@ export async function create(input: {
     )
   }
 
-  function waitForRegistrationChange(timeout: number) {
+  function waitForRegistrationChange(timeout: number, signal?: AbortSignal) {
     if (timeout <= 0) return Promise.resolve(false)
     return new Promise<boolean>((resolve) => {
       let finished = false
@@ -451,15 +475,18 @@ export async function create(input: {
         finished = true
         if (timer) clearTimeout(timer)
         registrationListeners.delete(listener)
+        signal?.removeEventListener("abort", onAbort)
         resolve(result)
       }
+      const onAbort = () => finish(false)
       const listener = () => finish(true)
       registrationListeners.add(listener)
+      signal?.addEventListener("abort", onAbort, { once: true })
       timer = setTimeout(() => finish(false), timeout)
     })
   }
 
-  function waitForFreshPush(request: { path: string; version: number; after: number; timeout: number }) {
+  function waitForFreshPush(request: { path: string; version: number; after: number; timeout: number }, signal?: AbortSignal) {
     if (request.timeout <= 0) return Promise.resolve(false)
     return new Promise<boolean>((resolve) => {
       let finished = false
@@ -472,8 +499,10 @@ export async function create(input: {
         if (debounceTimer) clearTimeout(debounceTimer)
         if (timeoutTimer) clearTimeout(timeoutTimer)
         unsub?.()
+        signal?.removeEventListener("abort", onAbort)
         resolve(result)
       }
+      const onAbort = () => finish(false)
       const schedule = () => {
         const hit = published.get(request.path)
         if (!hit) return
@@ -490,51 +519,72 @@ export async function create(input: {
       }
       diagnosticListeners.add(listener)
       unsub = () => diagnosticListeners.delete(listener)
+      signal?.addEventListener("abort", onAbort, { once: true })
       schedule()
     })
   }
 
   async function waitForDocumentDiagnostics(request: { path: string; version: number; after?: number }) {
     const startedAt = request.after ?? Date.now()
-    const pushWait = waitForFreshPush({
-      path: request.path,
-      version: request.version,
-      after: startedAt,
-      timeout: DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS,
-    })
+    const controller = new AbortController()
+    const pushWait = waitForFreshPush(
+      {
+        path: request.path,
+        version: request.version,
+        after: startedAt,
+        timeout: DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS,
+      },
+      controller.signal,
+    )
 
-    while (Date.now() - startedAt < DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS) {
-      const result = await requestDocumentDiagnostics(request.path)
-      if (result.matched) return
-      const remaining = DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS - (Date.now() - startedAt)
-      if (remaining <= 0) return
-      const next = await Promise.race([
-        pushWait.then((ready) => (ready ? "push" : ("timeout" as const))),
-        waitForRegistrationChange(remaining).then((changed) => (changed ? "registration" : ("timeout" as const))),
-      ])
-      if (next !== "registration") return
+    try {
+      while (Date.now() - startedAt < DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS) {
+        const result = await requestDocumentDiagnostics(request.path)
+        if (result.matched) return
+        const remaining = DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS - (Date.now() - startedAt)
+        if (remaining <= 0) return
+        const next = await Promise.race([
+          pushWait.then((ready) => (ready ? "push" : ("timeout" as const))),
+          waitForRegistrationChange(remaining, controller.signal).then((changed) =>
+            changed ? "registration" : ("timeout" as const),
+          ),
+        ])
+        if (next !== "registration") return
+      }
+    } finally {
+      controller.abort()
     }
   }
 
   async function waitForFullDiagnostics(request: { path: string; version: number; after?: number }) {
     const startedAt = request.after ?? Date.now()
-    const pushWait = waitForFreshPush({
-      path: request.path,
-      version: request.version,
-      after: startedAt,
-      timeout: DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS,
-    })
+    const controller = new AbortController()
+    const pushWait = waitForFreshPush(
+      {
+        path: request.path,
+        version: request.version,
+        after: startedAt,
+        timeout: DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS,
+      },
+      controller.signal,
+    )
 
-    while (Date.now() - startedAt < DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS) {
-      const result = await requestFullDiagnostics(request.path)
-      if (result.handled || result.matched) return
-      const remaining = DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS - (Date.now() - startedAt)
-      if (remaining <= 0) return
-      const next = await Promise.race([
-        pushWait.then((ready) => (ready ? "push" : ("timeout" as const))),
-        waitForRegistrationChange(remaining).then((changed) => (changed ? "registration" : ("timeout" as const))),
-      ])
-      if (next !== "registration") return
+    try {
+      while (Date.now() - startedAt < DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS) {
+        const result = await requestFullDiagnostics(request.path)
+        if (result.handled || result.matched) return
+        const remaining = DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS - (Date.now() - startedAt)
+        if (remaining <= 0) return
+        const next = await Promise.race([
+          pushWait.then((ready) => (ready ? "push" : ("timeout" as const))),
+          waitForRegistrationChange(remaining, controller.signal).then((changed) =>
+            changed ? "registration" : ("timeout" as const),
+          ),
+        ])
+        if (next !== "registration") return
+      }
+    } finally {
+      controller.abort()
     }
   }
 
@@ -557,7 +607,7 @@ export async function create(input: {
         const extension = path.extname(request.path)
         const languageId = LANGUAGE_EXTENSIONS[extension] ?? "plaintext"
 
-        const document = files[request.path]
+        const document = files.get(request.path)
         if (document !== undefined) {
           // Do not wipe diagnostics on didChange. Some servers (e.g. clangd) only
           // re-emit diagnostics when the content actually changes, so clearing
@@ -573,7 +623,7 @@ export async function create(input: {
           })
 
           const next = document.version + 1
-          files[request.path] = { version: next, text }
+          setFile(request.path, { version: next, text })
           await connection.sendNotification("textDocument/didChange", {
             textDocument: {
               uri: pathToFileURL(request.path).href,
@@ -614,7 +664,7 @@ export async function create(input: {
             text,
           },
         })
-        files[request.path] = { version: 0, text }
+        setFile(request.path, { version: 0, text })
         return 0
       },
     },

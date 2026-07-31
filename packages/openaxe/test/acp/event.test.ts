@@ -354,7 +354,7 @@ describe("acp event routing", () => {
   it("does not create extra subscriptions on repeated loadSession", async () => {
     const harness = createHarness()
     let subscription: ACPEvent.Subscription | undefined
-    const service = ACPService.make({
+    const service = await ACPService.make({
       sdk: harness.sdk,
       connection: harness.connection,
       directory: {
@@ -445,7 +445,7 @@ describe("acp event routing", () => {
       },
     } satisfies Pick<AgentSideConnection, "sessionUpdate">
     let subscription: ACPEvent.Subscription | undefined
-    const service = ACPService.make({
+    const service = await ACPService.make({
       sdk: {
         global: {
           event: (options?: { signal?: AbortSignal }) => Promise.resolve({ stream: events.stream(options?.signal) }),

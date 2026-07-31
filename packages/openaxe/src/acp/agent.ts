@@ -30,58 +30,62 @@ export function init({ sdk: _sdk }: { sdk: OpencodeClient }) {
 }
 
 export class Agent implements ACPAgent {
-  constructor(private readonly service: Interface) {}
+  constructor(private readonly service: Promise<Interface>) {}
 
   initialize(params: InitializeRequest) {
-    return run(this.service.initialize(params))
+    return this.withService((service) => service.initialize(params))
   }
 
   authenticate(params: AuthenticateRequest) {
-    return run(this.service.authenticate(params))
+    return this.withService((service) => service.authenticate(params))
   }
 
   newSession(params: NewSessionRequest) {
-    return run(this.service.newSession(params))
+    return this.withService((service) => service.newSession(params))
   }
 
   loadSession(params: LoadSessionRequest) {
-    return run(this.service.loadSession(params))
+    return this.withService((service) => service.loadSession(params))
   }
 
   listSessions(params: ListSessionsRequest) {
-    return run(this.service.listSessions(params))
+    return this.withService((service) => service.listSessions(params))
   }
 
   resumeSession(params: ResumeSessionRequest) {
-    return run(this.service.resumeSession(params))
+    return this.withService((service) => service.resumeSession(params))
   }
 
   closeSession(params: CloseSessionRequest) {
-    return run(this.service.closeSession(params))
+    return this.withService((service) => service.closeSession(params))
   }
 
   unstable_forkSession(params: ForkSessionRequest) {
-    return run(this.service.forkSession(params))
+    return this.withService((service) => service.forkSession(params))
   }
 
   setSessionConfigOption(params: SetSessionConfigOptionRequest) {
-    return run(this.service.setSessionConfigOption(params))
+    return this.withService((service) => service.setSessionConfigOption(params))
   }
 
   setSessionMode(params: SetSessionModeRequest) {
-    return run(this.service.setSessionMode(params))
+    return this.withService((service) => service.setSessionMode(params))
   }
 
   unstable_setSessionModel(params: SetSessionModelRequest) {
-    return run(this.service.setSessionModel(params))
+    return this.withService((service) => service.setSessionModel(params))
   }
 
   prompt(params: PromptRequest) {
-    return run(this.service.prompt(params))
+    return this.withService((service) => service.prompt(params))
   }
 
   cancel(params: CancelNotification) {
-    return run(this.service.cancel(params))
+    return this.withService((service) => service.cancel(params))
+  }
+
+  private withService<A>(fn: (service: Interface) => Effect.Effect<A, Error>) {
+    return this.service.then((service) => run(fn(service)))
   }
 }
 

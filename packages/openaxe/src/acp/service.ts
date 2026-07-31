@@ -80,16 +80,16 @@ export type Interface = {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/ACP/Service") {}
 
-export function make(input: {
+export async function make(input: {
   sdk: OpencodeClient
   connection?: ServiceConnection
   directory?: Directory.Interface
   session?: ACPSession.Interface
   usage?: UsageService.Interface
   eventSubscription?: (subscription: ACPEvent.Subscription) => void
-}): Interface {
-  const session = input.session ?? makeSessionService()
-  const directoryService = input.directory ?? makeDirectoryService(input.sdk)
+}): Promise<Interface> {
+  const session = input.session ?? (await makeSessionService())
+  const directoryService = input.directory ?? (await makeDirectoryService(input.sdk))
   const registeredMcp = new Map<string, Set<string>>()
   const sessionSnapshots = new Map<string, Directory.Snapshot>()
   const events = input.connection
@@ -579,7 +579,7 @@ export function make(input: {
 }
 
 function makeSessionService() {
-  return ManagedRuntime.make(ACPSession.defaultLayer).runSync(
+  return ManagedRuntime.make(ACPSession.defaultLayer).runPromise(
     ACPSession.Service.use((service) => Effect.succeed(service)),
   )
 }
@@ -596,7 +596,7 @@ function makeDirectoryService(sdk: OpencodeClient) {
         ),
       ),
     ),
-  ).runSync(Directory.Service.use((service) => Effect.succeed(service)))
+  ).runPromise(Directory.Service.use((service) => Effect.succeed(service)))
 }
 
 function makeUsageService(sdk: OpencodeClient) {
@@ -891,20 +891,23 @@ function sendAvailableCommands(
   snapshot: Directory.Snapshot,
 ) {
   if (!connection) return Effect.void
-  return Effect.sync(() => {
-    setTimeout(() => {
-      void connection.sessionUpdate({
-        sessionId,
-        update: {
-          sessionUpdate: "available_commands_update",
-          availableCommands: snapshot.availableCommands.map((command) => ({
-            name: command.name,
-            description: command.description ?? "",
-          })),
-        },
-      })
-    }, 0)
-  })
+  return Effect.promise(() =>
+    new Promise<void>((resolve) => {
+      setTimeout(() => {
+        void connection.sessionUpdate({
+          sessionId,
+          update: {
+            sessionUpdate: "available_commands_update",
+            availableCommands: snapshot.availableCommands.map((command) => ({
+              name: command.name,
+              description: command.description ?? "",
+            })),
+          },
+        })
+        resolve()
+      }, 0)
+    }),
+  )
 }
 
 function registerMcpServers(
@@ -945,7 +948,7 @@ function registerMcpServers(
           Effect.ignore,
         ),
       ),
-    { concurrency: "unbounded" },
+    { concurrency: 5 },
   ).pipe(
     Effect.tap(() =>
       Effect.sync(() =>
