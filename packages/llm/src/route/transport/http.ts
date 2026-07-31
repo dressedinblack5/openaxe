@@ -30,7 +30,13 @@ const applyQuery = (url: string, query: Record<string, string> | undefined) => {
 
 const bodyWithOverlay = <Body>(body: Body, request: LLMRequest, encodeBody: (body: Body) => string) =>
   Effect.gen(function* () {
-    if (request.http?.body === undefined) return { jsonBody: body, bodyText: encodeBody(body) }
+    if (request.http?.body === undefined) {
+      const bodyText = yield* Effect.try({
+        try: () => encodeBody(body),
+        catch: (error) => invalidRequest(`Failed to encode request body: ${errorText(error)}`),
+      })
+      return { jsonBody: body, bodyText }
+    }
     if (isRecord(body)) {
       const overlaid = mergeJsonRecords(body, request.http.body) ?? {}
       return { jsonBody: overlaid, bodyText: encodeJson(overlaid) }

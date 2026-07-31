@@ -25,6 +25,7 @@ import type {
 import {
   GenerationOptions,
   HttpOptions,
+  InvalidRequestReason,
   LLMRequest,
   LLMResponse,
   Model,
@@ -104,9 +105,22 @@ type RouteMappedModelInput = RouteModelInput | RouteRoutedModelInput
 
 const makeRouteModel = (route: AnyRoute, mapped: RouteMappedModelInput) => {
   const provider = route.provider ?? ("provider" in mapped ? mapped.provider : undefined)
-  if (!provider) throw new Error(`Route.model(${route.id}) requires a provider`)
+  if (!provider)
+    throw new LLMErrorClass({
+      module: "Route",
+      method: "model",
+      reason: new InvalidRequestReason({
+        message: `Route.model(${route.id}) requires a provider`,
+      }),
+    })
   if (!endpointBaseURL(route.endpoint))
-    throw new Error(`Route.model(${route.id}) requires an endpoint baseURL — configure it on the route first`)
+    throw new LLMErrorClass({
+      module: "Route",
+      method: "model",
+      reason: new InvalidRequestReason({
+        message: `Route.model(${route.id}) requires an endpoint baseURL — configure it on the route first`,
+      }),
+    })
   return Model.make({
     ...mapped,
     provider,
