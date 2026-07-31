@@ -267,7 +267,7 @@ const available = provider.enabled !== false && model.enabled
 
 ## Current Session Runner Adaptation
 
-The first local V2 Session runner waits for Location plugin boot, then resolves an explicit Session model without silently falling back. Without an explicit model it uses a supported Location catalog default, then falls back to the first available model with a supported route, and otherwise fails with `SessionRunnerModel.ModelNotSelectedError`. Its native adaptation surface is deliberately narrow:
+The first local V2 Session runner waits for Location plugin boot, then resolves an explicit Session model without silently falling back. Without an explicit model it uses a supported Location catalog default, then falls back to the first available model with a supported route, and otherwise fails with `SessionRunnerModel.NoModelAvailableError`. Its native adaptation surface is deliberately narrow:
 
 ```text
 openai/responses over HTTP
