@@ -5,6 +5,7 @@ import type { ContextSnapshotDecodeError, MessageDecodeError } from "../error"
 import { SessionRunnerModel } from "./model"
 import type { SystemContext } from "../../system-context/index"
 import type { ToolOutputStore } from "../../tool-output-store"
+import type { SessionNotFoundError } from "./llm"
 
 export type RunError =
   | LLMError
@@ -13,6 +14,7 @@ export type RunError =
   | ContextSnapshotDecodeError
   | SystemContext.InitializationBlocked
   | ToolOutputStore.Error
+  | SessionNotFoundError
 
 /** Runs one local continuation from already-recorded Session history. */
 export interface Interface {

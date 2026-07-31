@@ -8,7 +8,7 @@ import {
   isContextOverflowFailure,
   type ProviderErrorEvent,
 } from "@opencode-ai/llm"
-import { Cause, DateTime, Effect, FiberSet, Layer, Option, Semaphore, Stream } from "effect"
+import { Cause, DateTime, Effect, FiberSet, Layer, Option, Schema, Semaphore, Stream } from "effect"
 import { AgentV2 } from "../../agent"
 import { Config } from "../../config"
 import { Database } from "../../database/database"
@@ -36,6 +36,17 @@ import { SessionRunnerModel } from "./model"
 import { createLLMEventPublisher } from "./publish-llm-event"
 import { toLLMMessage } from "./to-llm-message"
 import { MAX_STEPS_PROMPT } from "./max-steps"
+
+export class SessionNotFoundError extends Schema.TaggedErrorClass<SessionNotFoundError>()(
+  "SessionRunner.SessionNotFoundError",
+  {
+    sessionID: SessionSchema.ID,
+  },
+) {
+  override get message() {
+    return `Session not found: ${this.sessionID}`
+  }
+}
 
 /**
  * Runs one durable coding-agent Session until it settles.
@@ -105,7 +116,7 @@ export const layer = Layer.effect(
     const compaction = SessionCompaction.make({ events, llm, config: yield* config.entries() })
     const getSession = Effect.fn("SessionRunner.getSession")(function* (sessionID: SessionSchema.ID) {
       const session = yield* store.get(sessionID)
-      if (!session) return yield* Effect.die(`Session not found: ${sessionID}`)
+      if (!session) return yield* new SessionNotFoundError({ sessionID })
       return session
     })
 
@@ -172,6 +183,7 @@ export const layer = Layer.effect(
       const agent = yield* agents.select(session.agent)
       const initialized = yield* SessionContextEpoch.initialize(db, loadSystemContext(agent), session.id)
       const toolFibers = yield* FiberSet.make<void, ToolOutputStore.Error>()
+      const publicationSemaphore = yield* Semaphore.make(1)
       let needsContinuation = false
       let currentStep = step
       if (promotion) {
@@ -240,7 +252,7 @@ export const layer = Layer.effect(
           ...(session.model?.variant === undefined ? {} : { variant: session.model.variant }),
         },
       })
-      const withPublication = (effect: Effect.Effect<void>) => Semaphore.makeUnsafe(1).withPermit(effect)
+      const withPublication = (effect: Effect.Effect<void>) => publicationSemaphore.withPermit(effect)
       const publish = (event: LLMEvent, outputPaths: ReadonlyArray<string> = []) =>
         withPublication(publisher.publish(event, outputPaths))
       let overflowFailure: ProviderErrorEvent | undefined
@@ -301,7 +313,7 @@ export const layer = Layer.effect(
             (yield* restore(recoverOverflow({ sessionID: session.id, entries, model, request })))
           )
             return yield* Effect.die(continueAfterOverflowCompaction(currentStep))
-          entries.length = 0 // ponytail: free decoded V2 messages; LLM copies now in request.messages
+          entries = [] // ponytail: free decoded V2 messages; LLM copies now in request.messages
           if (overflowFailure) yield* publish(overflowFailure)
           const llmFailure = failure instanceof LLMError ? failure : undefined
           if (llmFailure && !publisher.hasProviderError()) {

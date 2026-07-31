@@ -14,8 +14,8 @@ import { ModelV2 } from "../../model"
 import { ProviderV2 } from "../../provider"
 import { SessionSchema } from "../schema"
 
-export class ModelNotSelectedError extends Schema.TaggedErrorClass<ModelNotSelectedError>()(
-  "SessionRunnerModel.ModelNotSelectedError",
+export class NoModelAvailableError extends Schema.TaggedErrorClass<NoModelAvailableError>()(
+  "SessionRunnerModel.NoModelAvailableError",
   {
     sessionID: SessionSchema.ID,
   },
@@ -64,7 +64,7 @@ export class UnsupportedApiError extends Schema.TaggedErrorClass<UnsupportedApiE
 }
 
 export type Error =
-  | ModelNotSelectedError
+  | NoModelAvailableError
   | ModelUnavailableError
   | VariantUnavailableError
   | UnsupportedApiError
@@ -86,11 +86,14 @@ const apiKey = (model: ModelV2.Info, credential?: Credential.Value) => {
   if (typeof value === "string") return Auth.value(value)
 }
 
-const withDefaults = (model: ModelV2.Info, route: AnyRoute) => {
+const withDefaults = (model: ModelV2.Info, route: AnyRoute, key: Auth.Credential | undefined) => {
   const body = model.request.body
-  const httpBody = Object.hasOwn(body, "apiKey")
-    ? Object.fromEntries(Object.entries(body).filter(([key]) => key !== "apiKey"))
-    : body
+  // Only strip apiKey from the body when it was actually consumed as an auth
+  // credential; a non-string apiKey that apiKey() left unconsumed must stay put.
+  const httpBody =
+    key !== undefined && Object.hasOwn(body, "apiKey")
+      ? Object.fromEntries(Object.entries(body).filter(([entry]) => entry !== "apiKey"))
+      : body
   return route.with({
     provider: model.providerID,
     endpoint: model.api.url === undefined ? undefined : { baseURL: model.api.url },
@@ -105,13 +108,13 @@ const withVariant = (
   variantID: ModelV2.VariantID | undefined,
 ): Effect.Effect<ModelV2.Info, VariantUnavailableError> => {
   const id = variantID === "default" || variantID === undefined ? model.request.variant : variantID
-  const variant = model.variants.find((item) => item.id === id)
-  if (!variant && variantID !== undefined && variantID !== "default")
+  const variant = id === undefined ? undefined : model.variants.find((item) => item.id === id)
+  if (!variant && id !== undefined)
     return Effect.fail(
       new VariantUnavailableError({
         providerID: model.providerID,
         modelID: model.id,
-        variant: variantID,
+        variant: ModelV2.VariantID.make(id),
       }),
     )
   return Effect.succeed(
@@ -140,21 +143,21 @@ export const fromCatalogModel = (
   const key = apiKey(resolved, credential)
   if (resolved.api.type === "aisdk" && resolved.api.package === "@ai-sdk/openai") {
     return Effect.succeed(
-      withDefaults(resolved, openaiResponsesRoute)
+      withDefaults(resolved, openaiResponsesRoute, key)
         .with({ auth: key === undefined ? Auth.none : Auth.bearer(key) })
         .model({ id: resolved.api.id }),
     )
   }
   if (resolved.api.type === "aisdk" && resolved.api.package === "@ai-sdk/anthropic") {
     return Effect.succeed(
-      withDefaults(resolved, anthropicMessagesRoute)
+      withDefaults(resolved, anthropicMessagesRoute, key)
         .with({ auth: key === undefined ? Auth.none : Auth.header("x-api-key", key) })
         .model({ id: resolved.api.id }),
     )
   }
   if (resolved.api.type === "aisdk" && resolved.api.package === "@ai-sdk/openai-compatible" && resolved.api.url) {
     return Effect.succeed(
-      withDefaults(resolved, openaiCompatibleChatRoute)
+      withDefaults(resolved, openaiCompatibleChatRoute, key)
         .with({ auth: key === undefined ? Auth.none : Auth.bearer(key) })
         .model({ id: resolved.api.id }),
     )
@@ -199,7 +202,7 @@ export const locationLayer = Layer.effect(
             providerID: session.model.providerID,
             modelID: session.model.id,
           })
-        if (!selected) return yield* new ModelNotSelectedError({ sessionID: session.id })
+        if (!selected) return yield* new NoModelAvailableError({ sessionID: session.id })
         const provider = yield* catalog.provider.get(selected.providerID)
         const connection = yield* integrations.connection.active(
           provider?.integrationID ?? Integration.ID.make(selected.providerID),
