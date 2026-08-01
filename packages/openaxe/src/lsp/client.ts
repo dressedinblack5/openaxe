@@ -90,17 +90,11 @@ function endPosition(text: string) {
 }
 
 function dedupeDiagnostics(items: Diagnostic[]) {
-  const seen = new Set<string>()
+  const seen = new Map<string, boolean>()
   return items.filter((item) => {
-    const key = JSON.stringify({
-      code: item.code,
-      severity: item.severity,
-      message: item.message,
-      source: item.source,
-      range: item.range,
-    })
+    const key = `${item.code ?? ""}|${item.severity ?? ""}|${item.message ?? ""}|${item.source ?? ""}|${item.range?.start.line ?? ""}:${item.range?.start.character ?? ""}:${item.range?.end.line ?? ""}:${item.range?.end.character ?? ""}`
     if (seen.has(key)) return false
-    seen.add(key)
+    seen.set(key, true)
     return true
   })
 }
@@ -548,6 +542,7 @@ export async function create(input: {
           waitForRegistrationChange(remaining, controller.signal).then((changed) =>
             changed ? "registration" : ("timeout" as const),
           ),
+          new Promise<"delay">((resolve) => setTimeout(() => resolve("delay"), Math.min(50, remaining))),
         ])
         if (next !== "registration") return
       }
@@ -580,6 +575,7 @@ export async function create(input: {
           waitForRegistrationChange(remaining, controller.signal).then((changed) =>
             changed ? "registration" : ("timeout" as const),
           ),
+          new Promise<"delay">((resolve) => setTimeout(() => resolve("delay"), Math.min(50, remaining))),
         ])
         if (next !== "registration") return
       }

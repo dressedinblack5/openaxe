@@ -50,8 +50,9 @@ const registryLayer = Layer.effect(
     const local = new Map<string, Array<{ readonly token: object; readonly registration: Registration }>>()
 
     const settleWith = Effect.fn("ToolRegistry.settle")(function* (input: ExecuteInput, advertised?: object) {
-      const registration =
-        local.get(input.call.name)?.at(-1)?.registration ?? applications.entries().get(input.call.name)
+      const localReg = local.get(input.call.name)?.at(-1)?.registration
+      const appEntry = applications.entries().get(input.call.name)
+      const registration = localReg ?? appEntry
       if (!registration)
         return {
           result: {
@@ -130,8 +131,9 @@ const registryLayer = Layer.effect(
         yield* Effect.uninterruptible(
           Effect.gen(function* () {
             const token = {}
+            const identity = { scope: "local", token }
             for (const [name, tool] of entries)
-              local.set(name, [...(local.get(name) ?? []), { token, registration: { identity: {}, tool } }])
+              local.set(name, [...(local.get(name) ?? []), { token, registration: { identity, tool } }])
             yield* Effect.addFinalizer(() =>
               Effect.sync(() => {
                 for (const [name] of entries) {
@@ -144,8 +146,12 @@ const registryLayer = Layer.effect(
           }),
         )
       }),
-      materialize: Effect.fn("ToolRegistry.materialize")(function* (permissions = []) {
-        const registrations = new Map(applications.entries())
+materialize: Effect.fn("ToolRegistry.materialize")(function* (permissions = []) {
+        // Direct Map lookup - O(1) per tool instead of iterating all entries
+        const registrations = new Map<string, Registration>()
+        for (const [name, entry] of applications.entries()) {
+          registrations.set(name, { identity: entry.identity, tool: entry.tool })
+        }
         for (const [name, entries] of local) {
           const registration = entries.at(-1)?.registration
           if (registration) registrations.set(name, registration)

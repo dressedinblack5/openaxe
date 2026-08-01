@@ -9,6 +9,7 @@ import { SessionContextEpochTable, SessionMessageTable } from "./sql"
 type DatabaseService = Database.Interface["db"]
 
 const decode = Schema.decodeUnknownEffect(SessionMessage.Message)
+const decodeBatch = Schema.decodeUnknownEffect(Schema.Array(SessionMessage.Message))
 
 const latestCompaction = Effect.fnUntraced(function* (db: DatabaseService, sessionID: SessionSchema.ID) {
   return yield* db
@@ -93,11 +94,20 @@ const decodeMessageRow = (row: typeof SessionMessageTable.$inferSelect) =>
     ),
   )
 
+const decodeMessageRowsBatch = (rows: typeof SessionMessageTable.$inferSelect[]) =>
+  decodeBatch(rows.map((row) => ({ ...row.data, id: row.id, type: row.type }))).pipe(
+    Effect.mapError(
+      () =>
+        new MessageDecodeError({
+          sessionID: SessionSchema.ID.make(rows[0]?.session_id ?? ""),
+          messageID: SessionMessage.ID.make("unknown"),
+        }),
+    ),
+  )
+
 export const load = Effect.fn("SessionHistory.load")(function* (db: DatabaseService, sessionID: SessionSchema.ID) {
   const rows = yield* messageRowsOptimized(db, sessionID).pipe(Effect.orDie)
-  const messages = yield* Effect.forEach(rows, decodeMessageRow, {
-    concurrency: "unbounded",
-  }).pipe(Effect.mapError(() => new MessageDecodeError({ sessionID, messageID: SessionMessage.ID.make("unknown") })))
+  const messages = yield* decodeMessageRowsBatch(rows)
   return messages
 })
 

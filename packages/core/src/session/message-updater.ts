@@ -5,6 +5,10 @@ import { SessionMessage } from "./message"
 
 export type MemoryState = {
   messages: SessionMessage.Message[]
+  // Reverse indexes for O(1) lookups
+  assistantIndex: Map<SessionMessage.ID, number>
+  shellIndex: Map<string, number>
+  latestAssistantIndex: number
 }
 
 export interface Adapter {
@@ -16,18 +20,64 @@ export interface Adapter {
   readonly appendMessage: (message: SessionMessage.Message) => Effect.Effect<void>
 }
 
+function rebuildIndexes(state: MemoryState) {
+  state.assistantIndex.clear()
+  state.shellIndex.clear()
+  state.latestAssistantIndex = -1
+  
+  for (let i = 0; i < state.messages.length; i++) {
+    const message = state.messages[i]
+    if (message.type === "assistant") {
+      state.assistantIndex.set(message.id, i)
+      if (!message.time.completed) {
+        state.latestAssistantIndex = i
+      }
+    } else if (message.type === "shell") {
+      state.shellIndex.set(message.callID, i)
+    }
+  }
+  
+  // If we have a completed assistant after the latest incomplete, 
+  // we should not return the incomplete one - find the actual latest
+  if (state.latestAssistantIndex >= 0) {
+    const latestIncomplete = state.messages[state.latestAssistantIndex]
+    // Check if there's any assistant message after this one
+    for (let i = state.latestAssistantIndex + 1; i < state.messages.length; i++) {
+      const msg = state.messages[i]
+      if (msg.type === "assistant") {
+        // There's a later assistant (completed or not), so don't use the incomplete one
+        state.latestAssistantIndex = -1
+        break
+      }
+    }
+  }
+}
+
 export function memory(state: MemoryState): Adapter {
-  const assistantIndex = (messageID: SessionMessage.ID) =>
-    state.messages.findLastIndex((message) => message.id === messageID)
-  // A newer turn supersedes stale incomplete rows; never resume an older assistant projection.
-  const latestAssistantIndex = () => state.messages.findLastIndex((message) => message.type === "assistant")
-  const activeShellIndex = (callID: string) =>
-    state.messages.findLastIndex((message) => message.type === "shell" && message.callID === callID)
+  // Initialize indexes if not present
+  if (!state.assistantIndex) {
+    state.assistantIndex = new Map()
+    state.shellIndex = new Map()
+    state.latestAssistantIndex = -1
+    rebuildIndexes(state)
+  }
+
+  const getAssistantIndex = (messageID: SessionMessage.ID): number | undefined => {
+    return state.assistantIndex.get(messageID)
+  }
+
+  const getLatestAssistantIndex = (): number => {
+    return state.latestAssistantIndex
+  }
+
+  const getShellIndex = (callID: string): number | undefined => {
+    return state.shellIndex.get(callID)
+  }
 
   return {
     getCurrentAssistant() {
       return Effect.sync(() => {
-        const index = latestAssistantIndex()
+        const index = getLatestAssistantIndex()
         if (index < 0) return
         const assistant = state.messages[index]
         return assistant?.type === "assistant" && !assistant.time.completed ? assistant : undefined
@@ -35,33 +85,44 @@ export function memory(state: MemoryState): Adapter {
     },
     getAssistant(messageID) {
       return Effect.sync(() => {
-        const index = assistantIndex(messageID)
-        if (index < 0) return
+        const index = getAssistantIndex(messageID)
+        if (index === undefined) return
         const assistant = state.messages[index]
         return assistant?.type === "assistant" ? assistant : undefined
       })
     },
     getCurrentShell(callID) {
       return Effect.sync(() => {
-        const index = activeShellIndex(callID)
-        if (index < 0) return
+        const index = getShellIndex(callID)
+        if (index === undefined) return
         const shell = state.messages[index]
         return shell?.type === "shell" ? shell : undefined
       })
     },
     updateAssistant(assistant) {
       return Effect.sync(() => {
-        const index = assistantIndex(assistant.id)
-        if (index < 0) return
+        const index = getAssistantIndex(assistant.id)
+        if (index === undefined) return
         const current = state.messages[index]
         if (current?.type !== "assistant") return
         state.messages[index] = assistant
+        // Update indexes if completion status changed
+        if (assistant.time.completed && state.latestAssistantIndex === index) {
+          state.latestAssistantIndex = -1
+          for (let i = state.messages.length - 1; i >= 0; i--) {
+            const msg = state.messages[i]
+            if (msg.type === "assistant" && !msg.time.completed) {
+              state.latestAssistantIndex = i
+              break
+            }
+          }
+        }
       })
     },
     updateShell(shell) {
       return Effect.sync(() => {
-        const index = activeShellIndex(shell.callID)
-        if (index < 0) return
+        const index = getShellIndex(shell.callID)
+        if (index === undefined) return
         const current = state.messages[index]
         if (current?.type !== "shell") return
         state.messages[index] = shell
@@ -69,7 +130,17 @@ export function memory(state: MemoryState): Adapter {
     },
     appendMessage(message) {
       return Effect.sync(() => {
+        const index = state.messages.length
         state.messages.push(message)
+        // Update indexes
+        if (message.type === "assistant") {
+          state.assistantIndex.set(message.id, index)
+          if (!message.time.completed) {
+            state.latestAssistantIndex = index
+          }
+        } else if (message.type === "shell") {
+          state.shellIndex.set(message.callID, index)
+        }
       })
     },
   }

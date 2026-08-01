@@ -278,22 +278,19 @@ export const layer = Layer.effect(
             continue
           }
 
-          const inflight = s.spawning.get(root + server.id)
-          if (inflight) {
-            const client = await inflight
-            if (!client) continue
-            result.push(client)
-            continue
+          // Race-condition-free spawn deduplication using atomic check-and-set
+          const spawnKey = root + server.id
+          let task = s.spawning.get(spawnKey)
+          if (!task) {
+            task = schedule(server, root, spawnKey)
+            s.spawning.set(spawnKey, task)
+            // Clean up after completion
+            task.finally(() => {
+              if (s.spawning.get(spawnKey) === task) {
+                s.spawning.delete(spawnKey)
+              }
+            })
           }
-
-          const task = schedule(server, root, root + server.id)
-          s.spawning.set(root + server.id, task)
-
-          void task.finally(() => {
-            if (s.spawning.get(root + server.id) === task) {
-              s.spawning.delete(root + server.id)
-            }
-          })
 
           const client = await task
           if (!client) continue

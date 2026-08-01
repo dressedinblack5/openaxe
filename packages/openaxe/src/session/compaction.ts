@@ -209,7 +209,7 @@ export const layer = Layer.effect(
             messages: input.messages.slice(turn.start, turn.end),
             model: input.model,
           }),
-        { concurrency: 1 },
+        { concurrency: "unbounded" },
       )
 
       let total = 0

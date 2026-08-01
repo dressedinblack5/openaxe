@@ -54,8 +54,6 @@ const make = (options: Config) =>
     const run = (query: string, params: ReadonlyArray<unknown> = []) =>
       Effect.withFiber<Array<Record<string, unknown>>, SqlError>((fiber) => {
         const statement = native.query(query)
-        // @ts-expect-error bun:sqlite Statement type is missing safeIntegers. PR https://github.com/oven-sh/bun/pull/26627 adds it; remove if Bun ≥1.4 ships it.
-        statement.safeIntegers(get(fiber.context, SafeIntegers))
         try {
           return Effect.succeed((statement.all(...(params as never[])) ?? []) as Array<Record<string, unknown>>)
         } catch (cause) {
@@ -70,8 +68,6 @@ const make = (options: Config) =>
     const runValues = (query: string, params: ReadonlyArray<unknown> = []) =>
       Effect.withFiber<Array<unknown[]>, SqlError>((fiber) => {
         const statement = native.query(query)
-        // @ts-expect-error bun:sqlite Statement type is missing safeIntegers. PR https://github.com/oven-sh/bun/pull/26627 adds it; remove if Bun ≥1.4 ships it.
-        statement.safeIntegers(get(fiber.context, SafeIntegers))
         try {
           return Effect.succeed((statement.values(...(params as never[])) ?? []) as Array<unknown[]>)
         } catch (cause) {
