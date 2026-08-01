@@ -191,14 +191,14 @@ Plugins are npm packages that declare entrypoints in `package.json` under `expor
 
 Auto-configured on first run. They auto-install the first time you run `openaxe`:
 
-| Plugin | Description |
-|---|---|
-| **oh-my-openagent** | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents |
-| **opencode-plugin-selector** | Interactive plugin manager |
-| **opencode-vibeguard** | Safety guardrails for agent actions |
-| **@tarquinen/opencode-dcp** | Context compression for long sessions |
-| **ecc-universal** | Everything Claude Code — agents, skills, hooks, MCP, and rules |
-| **ponytail** | Lazy senior dev mode — cuts boilerplate (local file; manual install) |
+| Plugin | Description | Kind |
+|---|---|---|
+| **oh-my-openagent** | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents | server + tui |
+| **opencode-plugin-selector** | Interactive plugin manager | server + tui |
+| **opencode-vibeguard** | Safety guardrails for agent actions | server + tui |
+| **@tarquinen/opencode-dcp** | Context compression for long sessions | server + tui |
+| **ecc-universal** | Everything Claude Code — agents, skills, hooks, MCP, and rules | server only |
+| **ponytail** | Lazy senior dev mode — cuts boilerplate (local file; manual install) | server + tui |
 
 Write your own using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK.
 

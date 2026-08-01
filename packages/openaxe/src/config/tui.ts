@@ -225,7 +225,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
                   name: "@opencode-ai/plugin",
                   version: InstallationLocal ? undefined : InstallationVersion,
                 },
-                ...BUNDLED_PLUGINS.map((name) => ({ name })),
+                ...BUNDLED_PLUGINS.filter((p): p is (typeof BUNDLED_PLUGINS)[number] & { kinds: readonly ("server" | "tui")[] } => p.kinds.includes("tui")).map((p) => ({ name: p.spec })),
               ],
             })
             .pipe(Effect.forkScoped),
@@ -253,10 +253,11 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
 
   // Ensure bundled plugins are always present, even if the config file was
   // written before a newer openaxe release added them as defaults.
+  const tuiBundledSpecs = BUNDLED_PLUGINS.filter((p): p is (typeof BUNDLED_PLUGINS)[number] & { kinds: readonly ("server" | "tui")[] } => p.kinds.includes("tui")).map((p) => p.spec)
   const seen = new Set(
     (acc.result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg),
   )
-  const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
+  const add = [...tuiBundledSpecs].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
   if (add.length) {
     acc.result = {
       ...acc.result,

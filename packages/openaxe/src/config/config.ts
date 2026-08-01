@@ -38,13 +38,26 @@ import { parsePluginSpecifier } from "@/plugin/shared"
 
 // Default plugins that ship with every openaxe install. They are injected into the
 // loaded config so existing users' stale global configs still pick up new defaults.
-export const BUNDLED_PLUGINS = [
-  "oh-my-openagent",
-  "opencode-plugin-selector",
-  "opencode-vibeguard",
-  "@tarquinen/opencode-dcp",
-  "ecc-universal",
+// Each entry specifies which plugin kind(s) it supports: "server", "tui", or both.
+type PluginKind = "server" | "tui"
+
+interface BundledPlugin {
+  spec: string
+  kinds: readonly PluginKind[]
+}
+
+const BUNDLED_PLUGINS_RAW = [
+  { spec: "oh-my-openagent", kinds: ["server", "tui"] as const },
+  { spec: "opencode-plugin-selector", kinds: ["server", "tui"] as const },
+  { spec: "opencode-vibeguard", kinds: ["server", "tui"] as const },
+  { spec: "@tarquinen/opencode-dcp", kinds: ["server", "tui"] as const },
+  { spec: "ecc-universal", kinds: ["server"] as const },
 ] as const
+
+export const BUNDLED_PLUGINS = BUNDLED_PLUGINS_RAW.map((p) => ({
+  spec: p.spec,
+  kinds: p.kinds as readonly PluginKind[],
+})) as readonly BundledPlugin[]
 
 import { mergeDeep } from "@/util/merge-deep"
 
@@ -301,7 +314,8 @@ export const layer = Layer.effect(
         const seen = new Set(
           (result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg),
         )
-        const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
+        const allBundledSpecs = BUNDLED_PLUGINS.map((p) => p.spec)
+        const add = allBundledSpecs.filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
         if (add.length) {
           result.plugin = [...(result.plugin ?? []), ...add]
         }
