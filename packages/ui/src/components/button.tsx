@@ -1,5 +1,5 @@
 import { Button as Kobalte } from "@kobalte/core/button"
-import { type ComponentProps, Show, splitProps } from "solid-js"
+import { type ComponentProps, splitProps } from "solid-js"
 import { Icon, IconProps } from "./icon"
 
 export interface ButtonProps
@@ -24,9 +24,7 @@ export function Button(props: ButtonProps) {
         [split.class ?? ""]: !!split.class,
       }}
     >
-      <Show when={split.icon}>
-        <Icon name={split.icon!} size="small" />
-      </Show>
+      {split.icon && <Icon name={split.icon} size="small" />}
       {props.children}
     </Kobalte>
   )

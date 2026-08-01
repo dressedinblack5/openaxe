@@ -147,8 +147,8 @@ try {
   session = await client.session.create<true>().then((r) => r.data)
   await subscribeSessionEvents()
   shareId = await (async () => {
-    if (useEnvShare() === false) return
-    if (!useEnvShare() && repoData.data.private) return
+    if (useEnvShare() === false) return undefined
+    if (!useEnvShare() && repoData.data.private) return undefined
     await client.session.share<true>({ path: session })
     return session.id.slice(-8)
   })()
@@ -208,15 +208,10 @@ try {
       await updateComment(`${response}${footer({ image: true })}`)
     }
   }
-} catch (e: any) {
+} catch (e) {
   exitCode = 1
   console.error(e)
-  let msg = e
-  if (e instanceof $.ShellError) {
-    msg = e.stderr.toString()
-  } else if (e instanceof Error) {
-    msg = e.message
-  }
+  const msg = e instanceof Error ? e.message : String(e)
   await updateComment(`${msg}${footer()}`)
   core.setFailed(msg)
   // Also output the clean error message for the action to capture
@@ -392,11 +387,11 @@ async function getAccessToken() {
   }
 
   if (!response.ok) {
-    const responseJson = (await response.json()) as { error?: string }
+    const responseJson: { error?: string } = await response.json()
     throw new Error(`App token exchange failed: ${response.status} ${response.statusText} - ${responseJson.error}`)
   }
 
-  const responseJson = (await response.json()) as { token: string }
+  const responseJson: { token: string } = await response.json()
   return responseJson.token
 }
 
@@ -785,15 +780,15 @@ async function assertPermissions() {
     permission = response.data.permission
     console.log(`  permission: ${permission}`)
   } catch (error) {
-    console.error(`Failed to check permissions: ${error}`)
-    throw new Error(`Failed to check permissions for user ${actor}: ${error}`, { cause: error })
+    console.error(`Failed to check permissions: ${String(error)}`)
+    throw new Error(`Failed to check permissions for user ${actor}: ${String(error)}`, { cause: error })
   }
 
   if (!["admin", "write"].includes(permission)) throw new Error(`User ${actor} does not have write permissions`)
 }
 
 async function updateComment(body: string) {
-  if (!commentId) return
+  if (!commentId) return undefined
 
   console.log("Updating comment...")
 

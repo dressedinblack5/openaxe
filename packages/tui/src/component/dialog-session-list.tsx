@@ -46,7 +46,9 @@ export function DialogSessionList() {
   const sessions = createMemo(() => searchResults() ?? sync.data.session)
 
   function recover(session: NonNullable<ReturnType<typeof sessions>[number]>) {
-    const workspace = project.workspace.get(session.workspaceID!)
+    if (!session.workspaceID) return
+    const workspaceID = session.workspaceID
+    const workspace = project.workspace.get(workspaceID)
     const list = () => dialog.replace(() => <DialogSessionList />)
     const warp = async (selection: WorkspaceSelection) => {
       const workspaceID = await (async () => {
@@ -61,7 +63,7 @@ export function DialogSessionList() {
             message: errorMessage(err),
             variant: "error",
           })
-          return
+          return undefined
         }
         const workspace = result?.data
         if (!workspace) {
@@ -70,7 +72,7 @@ export function DialogSessionList() {
             message: errorMessage(result?.error ?? "no response"),
             variant: "error",
           })
-          return
+          return undefined
         }
         await project.workspace.sync()
         return workspace.id
@@ -92,12 +94,12 @@ export function DialogSessionList() {
     dialog.replace(() => (
       <DialogSessionDeleteFailed
         session={session.title}
-        workspace={workspace?.name ?? session.workspaceID!}
+        workspace={workspace?.name ?? workspaceID}
         onDone={list}
         onDelete={async () => {
           const current = currentSessionID()
           const info = current ? sync.data.session.find((item) => item.id === current) : undefined
-          const result = await sdk.client.experimental.workspace.remove({ id: session.workspaceID! })
+          const result = await sdk.client.experimental.workspace.remove({ id: workspaceID })
           if (result.error) {
             toast.show({
               variant: "error",
@@ -109,7 +111,7 @@ export function DialogSessionList() {
           await project.workspace.sync()
           await sync.session.refresh()
           if (search()) await refetch()
-          if (info?.workspaceID === session.workspaceID) {
+          if (info?.workspaceID === workspaceID) {
             route.navigate({ type: "home" })
           }
           return true

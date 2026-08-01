@@ -47,6 +47,7 @@ export function createTuiApi(input: Omit<TuiPluginApi, "lifecycle">): TuiPluginA
     )
     return {
       ...input,
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- placeholder renderer satisfies the CliRenderer contract shape; safe wrapper handles null renderers
       renderer: {
         requestRender: () => {
           console.warn(
@@ -67,6 +68,7 @@ export function createTuiApi(input: Omit<TuiPluginApi, "lifecycle">): TuiPluginA
     )
     return {
       ...input,
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- placeholder renderer satisfies the CliRenderer contract shape; safe wrapper handles invalid renderers
       renderer: {
         requestRender: () => {
           console.warn(

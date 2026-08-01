@@ -245,6 +245,7 @@ export const layer: Layer.Layer<Service, never, Global.Service | FSUtil.Service>
         if (parsed.token !== handle.token) return yield* Effect.die(new ReleaseError({ detail: "token mismatch" }))
 
         yield* forceRemove(handle.lockDir)
+        return undefined
       })
 
     // -- build service --

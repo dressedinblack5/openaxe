@@ -96,6 +96,7 @@ function createModel(fetchFn: ReturnType<typeof mock>) {
     provider: "copilot.chat",
     url: () => "https://api.test.com/chat/completions",
     headers: () => ({ Authorization: "Bearer test-token" }),
+    // oxlint-disable-next-line typescript-eslint/no-explicit-any -- test fetch shim matches the provider fetch contract at runtime.
     fetch: fetchFn as any,
   })
 }

@@ -108,7 +108,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     const themes = props.source ?? themeSource
     const pick = (value: unknown) => {
       if (value === "dark" || value === "light") return value
-      return
+      return undefined
     }
 
     setStore(

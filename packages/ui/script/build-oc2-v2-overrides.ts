@@ -4,6 +4,7 @@ import { V2_PRIMITIVES_DEFAULT } from "../src/theme/v2/default-primitives"
 import type { DesktopTheme } from "../src/theme/types"
 
 const themePath = import.meta.dir + "/../src/theme/themes/oc-2.json"
+// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Bun.json() returns unknown; the oc-2.json file matches the DesktopTheme shape.
 const theme = (await Bun.file(themePath).json()) as DesktopTheme
 const css = await Bun.file(import.meta.dir + "/../src/v2/styles/theme.css").text()
 

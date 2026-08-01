@@ -389,9 +389,10 @@ export const {
             event.properties.messageID,
             produce((draft) => {
               const part = draft[result.index]
-              const field = event.properties.field as keyof typeof part
-              const existing = part[field] as string | undefined
-              ;(part[field] as unknown as string) = (existing ?? "") + event.properties.delta
+              const record = part as Record<string, unknown>
+              const field = event.properties.field
+              const existing = record[field]
+              record[field] = (typeof existing === "string" ? existing : "") + event.properties.delta
             }),
           )
           break
@@ -590,8 +591,10 @@ export const {
             setStore(
               produce((draft) => {
                 const match = search(draft.session, sessionID, (s) => s.id)
-                if (match.found) draft.session[match.index] = session.data!
-                if (!match.found) draft.session.splice(match.index, 0, session.data)
+                const sessionData = session.data
+                if (!sessionData) throw new Error("Session not found")
+                if (match.found) draft.session[match.index] = sessionData
+                if (!match.found) draft.session.splice(match.index, 0, sessionData)
                 draft.todo[sessionID] = todo.data ?? []
                 const currentMessages = draft.message[sessionID] ?? []
                 const infos = (messages.data ?? []).flatMap((message) => {

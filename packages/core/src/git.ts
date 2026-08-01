@@ -261,7 +261,7 @@ export const layer = Layer.effect(
               new PatchError({ operation: "apply", directory: input.directory, message: cause.message, cause }),
           ),
         )
-      if (result.exitCode === 0) return
+      if (result.exitCode === 0) return undefined
       return yield* new PatchError({
         operation: "apply",
         directory: input.directory,
@@ -290,7 +290,7 @@ export const layer = Layer.effect(
       )(["clean", "-fd"]).pipe(
         Effect.mapError((cause) => new PatchError({ operation: "reset", directory, message: cause.message, cause })),
       )
-      if (clean.exitCode === 0) return
+      if (clean.exitCode === 0) return undefined
       return yield* new PatchError({
         operation: "reset",
         directory,
@@ -318,7 +318,7 @@ export const layer = Layer.effect(
       )(["clean", "-fd", "--", "."]).pipe(
         Effect.mapError((cause) => new PatchError({ operation: "reset", directory, message: cause.message, cause })),
       )
-      if (clean.exitCode === 0) return
+      if (clean.exitCode === 0) return undefined
       return yield* new PatchError({
         operation: "reset",
         directory,

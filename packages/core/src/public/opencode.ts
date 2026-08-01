@@ -68,6 +68,7 @@ export const layer = Layer.effect(
           }),
         message: (input) => sessions.message({ sessionID: input.sessionID, messageID: input.messageID }),
         context: (sessionID: SessionV2.ID) =>
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- the public API bridges the persisted session-message shape.
           sessions.context(sessionID).pipe(Effect.map((msgs) => msgs as SessionMessage.Message[])),
         events: (input) => sessions.events({ sessionID: input.sessionID, after: input.after }),
       },

@@ -1,6 +1,9 @@
-import { createContext, createMemo, Show, useContext, type ParentProps, type Accessor } from "solid-js"
+import { createContext, createMemo, Show, useContext, type ParentProps } from "solid-js"
 
-export function createSimpleContext<T, Props extends Record<string, any>>(
+const hasReady = (value: unknown): value is { ready: unknown } =>
+  typeof value === "object" && value !== null && "ready" in value
+
+export function createSimpleContext<T, Props extends Record<string, unknown>>(
   input: {
     name: string
     init: ((input: Props) => T) | (() => T)
@@ -18,9 +21,10 @@ export function createSimpleContext<T, Props extends Record<string, any>>(
       }
 
       const isReady = createMemo(() => {
-        // @ts-expect-error
-        const ready = init.ready as Accessor<boolean> | boolean | undefined
-        return ready === undefined || (typeof ready === "function" ? ready() : ready)
+        const ready = hasReady(init) ? init.ready : undefined
+        if (ready === undefined) return true
+        if (typeof ready === "function") return Boolean(ready())
+        return Boolean(ready)
       })
       return (
         <Show when={isReady()}>
@@ -28,7 +32,7 @@ export function createSimpleContext<T, Props extends Record<string, any>>(
         </Show>
       )
     },
-    use() {
+    use: () => {
       const value = useContext(ctx)
       if (!value) throw new Error(`${input.name} context must be used within a context provider`)
       return value

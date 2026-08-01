@@ -91,7 +91,9 @@ describe("plugin.snowflake-cortex", () => {
 
       if (url.includes("/oauth/token-request")) {
         refreshCalls += 1
-        const body = new URLSearchParams(String(init?.body ?? ""))
+        const body = new URLSearchParams(
+          typeof init?.body === "string" ? init.body : init?.body instanceof URLSearchParams ? init.body.toString() : "",
+        )
         expect(body.get("grant_type")).toBe("refresh_token")
         expect(body.get("refresh_token")).toBe("refresh-old")
         expect(new Headers(init?.headers).get("authorization")).toMatch(/^Basic /)

@@ -175,7 +175,9 @@ export function DialogModel(props: { providerID?: string; onModelSelect?: (provi
           title: "Favorite",
           hidden: !connected(),
           onTrigger: (option) => {
-            local.model.toggleFavorite(option.value as { providerID: string; modelID: string })
+            const value = option.value
+            if (typeof value === "string") return
+            local.model.toggleFavorite(value)
           },
         },
       ]}

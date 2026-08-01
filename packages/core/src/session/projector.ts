@@ -33,12 +33,20 @@ type Usage = {
   }
 }
 
-function usage(part: (typeof SessionV1.Event.PartUpdated.Type)["data"]["part"] | unknown): Usage | undefined {
+function usage(part: unknown): Usage | undefined {
   if (typeof part !== "object" || part === null) return undefined
-  const value = part as Record<string, unknown>
-  if (value.type !== "step-finish") return undefined
-  if (!("cost" in value) || !("tokens" in value)) return undefined
-  return { cost: value.cost as Usage["cost"], tokens: value.tokens as Usage["tokens"] }
+  if (!("type" in part) || part.type !== "step-finish") return undefined
+  if (!("cost" in part) || !("tokens" in part)) return undefined
+  const { cost, tokens } = part
+  if (typeof cost !== "number") return undefined
+  if (typeof tokens !== "object" || tokens === null) return undefined
+  if (!("input" in tokens) || !("output" in tokens) || !("reasoning" in tokens) || !("cache" in tokens)) return undefined
+  const { input, output, reasoning, cache } = tokens
+  if (typeof input !== "number" || typeof output !== "number" || typeof reasoning !== "number") return undefined
+  if (typeof cache !== "object" || cache === null || !("read" in cache) || !("write" in cache)) return undefined
+  const { read, write } = cache
+  if (typeof read !== "number" || typeof write !== "number") return undefined
+  return { cost, tokens: { input, output, reasoning, cache: { read, write } } }
 }
 
 function sessionRow(info: SessionV1.SessionInfo): typeof SessionTable.$inferInsert {
@@ -79,11 +87,13 @@ function messageData(
   info: (typeof SessionV1.Event.MessageUpdated.Type)["data"]["info"],
 ): typeof MessageTable.$inferInsert.data {
   const { id: _, sessionID: __, ...rest } = info
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Drizzle insert values require mutable data; DeepMutable is a compile-time shape transform of schema-derived message info.
   return rest as DeepMutable<typeof rest>
 }
 
 function partData(part: (typeof SessionV1.Event.PartUpdated.Type)["data"]["part"]): typeof PartTable.$inferInsert.data {
   const { id: _, messageID: __, sessionID: ___, ...rest } = part
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Drizzle insert values require mutable data; DeepMutable is a compile-time shape transform of schema-derived part data.
   return rest as DeepMutable<typeof rest>
 }
 
@@ -148,7 +158,7 @@ function run(db: DatabaseService, event: SessionEvent.Event) {
             .pipe(Effect.orDie)
           if (!row) {
             _assistantCache = { sessionID: event.data.sessionID, message: undefined }
-            return
+            return undefined
           }
           const message = decodeRow(row)
           const result = message.type === "assistant" && !message.time.completed ? message : undefined
@@ -170,7 +180,7 @@ function run(db: DatabaseService, event: SessionEvent.Event) {
             )
             .get()
             .pipe(Effect.orDie)
-          if (!row) return
+          if (!row) return undefined
           const message = decodeRow(row)
           return message.type === "assistant" ? message : undefined
         })
@@ -191,7 +201,7 @@ function run(db: DatabaseService, event: SessionEvent.Event) {
             .limit(1)
             .get()
             .pipe(Effect.orDie)
-          if (!row) return
+          if (!row) return undefined
           const message = decodeRow(row)
           return message.type === "shell" ? message : undefined
         })
@@ -244,6 +254,7 @@ export const layer = Layer.effectDiscard(
             .run()
             .pipe(Effect.orDie)
         }
+        return undefined
       }),
     )
     yield* events.project(SessionV1.Event.Updated, (event) =>
@@ -373,6 +384,7 @@ export const layer = Layer.effectDiscard(
           promotedSeq: event.durable.seq,
         })
         yield* run(db, event)
+        return undefined
       }),
     )
     yield* events.project(SessionEvent.PromptAdmitted, (event) =>
@@ -386,6 +398,7 @@ export const layer = Layer.effectDiscard(
           delivery: event.data.delivery,
           timeCreated: event.data.timestamp,
         })
+        return undefined
       }),
     )
     yield* events.project(SessionEvent.ContextUpdated, (event) => run(db, event))

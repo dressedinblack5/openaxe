@@ -85,8 +85,8 @@ describe("guardrail settlement verification", () => {
               settleTool(registry, call({ path: "broken.ts", oldString: "ok: 1", newString: "ok: 1, bad: {" })),
             ).pipe(
               Effect.map((settled: Settlement) => {
-                expect(settled.output?.content.some((c: any) =>
-                  c.type === "text" && c.text.includes("Auto-verification warnings") && c.text.includes("unclosed brace"),
+                expect(settled.output?.content.some((c: { type?: string; text?: string }) =>
+                  c.type === "text" && typeof c.text === "string" && c.text.includes("Auto-verification warnings") && c.text.includes("unclosed brace"),
                 )).toBe(true)
               }),
             ),
@@ -106,8 +106,8 @@ describe("guardrail settlement verification", () => {
               settleTool(registry, call({ path: "bad.ts", oldString: "1", newString: "{ bad" })),
             ).pipe(
               Effect.map((settled: Settlement) => {
-                const hasGuardrailText = settled.output?.content.some((c: any) =>
-                  c.type === "text" && c.text.includes("Auto-verification warnings"),
+                const hasGuardrailText = settled.output?.content.some((c: { type?: string; text?: string }) =>
+                  c.type === "text" && typeof c.text === "string" && c.text.includes("Auto-verification warnings"),
                 )
                 expect(hasGuardrailText).toBe(false)
               }),
@@ -128,8 +128,8 @@ describe("guardrail settlement verification", () => {
               settleTool(registry, call({ path: "clean.ts", oldString: "1", newString: "2" })),
             ).pipe(
               Effect.map((settled: Settlement) => {
-                const hasGuardrailText = settled.output?.content.some((c: any) =>
-                  c.type === "text" && c.text.includes("Auto-verification warnings"),
+                const hasGuardrailText = settled.output?.content.some((c: { type?: string; text?: string }) =>
+                  c.type === "text" && typeof c.text === "string" && c.text.includes("Auto-verification warnings"),
                 )
                 expect(hasGuardrailText).toBe(false)
               }),

@@ -43,7 +43,7 @@ SystemContext.make({
           const memory = yield* Memory.Service
           const entries = yield* memory.list(undefined, "project", "axe-md")
           if (entries.length === 0) return "No project memory configured."
-          return entries.map((e) => `${e.key}:\n${e.value}`).join("\n\n")
+          return entries.map((e) => `${e.key}:\n${String(e.value)}`).join("\n\n")
         }).pipe(Effect.provide(Memory.defaultLayer)),
         baseline: (text) => ["<memory>", text, "</memory>"].join("\n"),
         update: (_prev, text) => ["<memory>", text, "</memory>"].join("\n"),

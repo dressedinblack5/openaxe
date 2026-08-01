@@ -202,7 +202,7 @@ export const layer = Layer.effect(
               rules: relevant(input, result.rules),
             })
           }
-          if (result.effect === "allow") return
+          if (result.effect === "allow") return undefined
           const item = yield* create(request(input), input.agent)
           return yield* restore(Deferred.await(item.deferred)).pipe(
             EffectRuntime.ensuring(
@@ -242,7 +242,7 @@ export const layer = Layer.effect(
               yield* Deferred.fail(item.deferred, new RejectedError())
               pending.delete(id)
             }
-            return
+            return undefined
           }
 
           if (input.reply === "always" && existing.request.save?.length) {
@@ -254,7 +254,7 @@ export const layer = Layer.effect(
           }
           yield* Deferred.succeed(existing.deferred, undefined)
           pending.delete(input.requestID)
-          if (input.reply !== "always" || !existing.request.save?.length) return
+          if (input.reply !== "always" || !existing.request.save?.length) return undefined
 
           const rememberedRules = yield* savedRules()
           for (const [id, item] of pending) {
@@ -279,6 +279,7 @@ export const layer = Layer.effect(
             yield* Deferred.succeed(item.deferred, undefined)
             pending.delete(id)
           }
+          return undefined
         }),
       ),
     )

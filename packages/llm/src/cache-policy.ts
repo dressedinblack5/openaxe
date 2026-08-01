@@ -48,6 +48,7 @@ const markLastTool = (tools: ReadonlyArray<ToolDefinition>, hint: CacheHint): Re
   if (tools.length === 0) return tools
   const last = tools.length - 1
   if (tools[last].cache) return tools
+  // oxlint-disable-next-line typescript-eslint/no-misused-spread -- intentional field-copy of the ToolDefinition instance into a fresh definition with a new cache hint.
   return tools.map((tool, i) => (i === last ? new ToolDefinition({ ...tool, cache: hint }) : tool))
 }
 

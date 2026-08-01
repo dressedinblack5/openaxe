@@ -194,7 +194,7 @@ function parseTscDiagnostics(output: string): Diagnostic[] {
       line: Number(m[2]),
       column: Number(m[3]),
       message: `${m[5]}: ${m[6]}`,
-      severity: m[4] as "error" | "warning",
+      severity: m[4] === "warning" ? "warning" : "error",
     })
   }
   return result
@@ -229,6 +229,7 @@ function parseRuffDiagnostics(output: string): Diagnostic[] {
     if (!Array.isArray(items)) return []
     return items
       .map(
+        // oxlint-disable-next-line typescript-eslint/no-explicit-any -- JSON boundary: rule output items are arbitrary shapes.
         (item: Record<string, any>) =>
           ({
             file: item.filename ?? item.file ?? "",

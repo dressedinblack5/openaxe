@@ -81,7 +81,7 @@ export function providerOptions(list: { id: string; name: string }[]): ProviderO
 
 export function normalizeCustomProviderID(value: string) {
   const providerID = value.trim().replace(/^@ai-sdk\//, "")
-  if (!CUSTOM_PROVIDER_ID.test(providerID)) return
+  if (!CUSTOM_PROVIDER_ID.test(providerID)) return undefined
   return providerID
 }
 
@@ -102,7 +102,7 @@ export function createDialogProviderOptions() {
         </text>
       ),
     })
-    if (value === null) return
+    if (value === null) return undefined
 
     const providerID = normalizeCustomProviderID(value)
     if (providerID) return providerID

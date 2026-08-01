@@ -15,8 +15,8 @@ if (process.platform !== "win32") {
   const result = await Promise.all(
     files.map(async (file) => {
       const stat = await fs.stat(file).catch(() => undefined)
-      if (!stat) return
-      if ((stat.mode & 0o111) === 0o111) return
+      if (!stat) return undefined
+      if ((stat.mode & 0o111) === 0o111) return undefined
       await fs.chmod(file, stat.mode | 0o755)
       return file
     }),

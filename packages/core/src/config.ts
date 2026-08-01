@@ -145,18 +145,18 @@ export const layer = Layer.effect(
 
     const loadFile = Effect.fnUntraced(function* (filepath: string) {
       const text = yield* fs.readFileStringSafe(filepath)
-      if (!text) return
+      if (!text) return undefined
 
       const errors: ParseError[] = []
       const input: unknown = parse(text, errors, { allowTrailingComma: true })
-      if (errors.length) return
+      if (errors.length) return undefined
 
       const info = Option.getOrUndefined(
         ConfigMigrateV1.isV1(input)
           ? decodeV1Info(input).pipe(Option.map(ConfigMigrateV1.migrate), Option.flatMap(decodeInfo))
           : decodeInfo(input),
       )
-      if (!info) return
+      if (!info) return undefined
       return new Document({ type: "document", path: filepath, info })
     })
 

@@ -49,6 +49,21 @@ const targets = singleFlag
     })
   : allTargets
 
+function compileTarget(item: (typeof allTargets)[number]): Bun.Build.CompileTarget {
+  const arch = item.arch
+  if (item.os === "win32") {
+    if (arch === "arm64") return "bun-windows-arm64"
+    return item.avx2 === false ? "bun-windows-x64-baseline" : "bun-windows-x64"
+  }
+  if (item.os === "darwin") {
+    return item.avx2 === false ? `bun-darwin-${arch}-baseline` : `bun-darwin-${arch}`
+  }
+  if (item.abi === "musl") {
+    return item.avx2 === false ? `bun-linux-${arch}-baseline-musl` : `bun-linux-${arch}-musl`
+  }
+  return item.avx2 === false ? `bun-linux-${arch}-baseline` : `bun-linux-${arch}`
+}
+
 if (!skipInstall) await $`bun install --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
 
 const localParserWorker = path.resolve(dir, "node_modules/@opentui/core/parser.worker.js")
@@ -81,7 +96,7 @@ for (const item of targets) {
       autoloadDotenv: false,
       autoloadTsconfig: true,
       autoloadPackageJson: true,
-      target: target.replace(binary, "bun") as Bun.Build.CompileTarget,
+      target: compileTarget(item),
       outfile: `./dist/${name}/bin/${binary}`,
       execArgv: [`--user-agent=${binary}/${Script.version}`, "--use-system-ca", "--"],
       windows: { icon: path.resolve(dir, "resources/icon.ico") },

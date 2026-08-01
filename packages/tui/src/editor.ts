@@ -25,7 +25,7 @@ export function normalizePromptContent(content: string) {
 
 export async function openEditor(input: { value: string; renderer: CliRenderer; cwd?: string; stdin?: EditorStdio }) {
   const editor = process.env.VISUAL || process.env.EDITOR
-  if (!editor) return
+  if (!editor) return undefined
   const file = path.join(os.tmpdir(), `${Date.now()}.md`)
   await writeFile(file, input.value)
   input.renderer.suspend()
@@ -68,6 +68,7 @@ export function discoverEditorConnection(directory: string) {
         const port = Number.parseInt(path.basename(file, ".lock"), 10)
         if (!Number.isInteger(port) || port <= 0 || port > 65535) return []
         try {
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- zed lock JSON is trusted; field access is guarded below
           const value = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>
           if (value.transport !== undefined && value.transport !== "ws") return []
           const folders = Array.isArray(value.workspaceFolders)

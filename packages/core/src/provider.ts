@@ -13,6 +13,7 @@ export const Native = Provider.Native
 export const Api = Provider.Api
 export type Api = Provider.Api
 export type MutableApi<T extends Api = Api> = T extends Api
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- provider settings are dynamic AI-SDK values, not statically typed.
   ? Omit<Types.DeepMutable<T>, "settings"> & (undefined extends T["settings"] ? { settings?: any } : { settings: any })
   : never
 

@@ -20,7 +20,7 @@ export default Runtime.handler(
         if (input.register) yield* daemon.register(address)
         console.log(`server listening on ${HttpServer.formatAddress(address)}`)
         return yield* Effect.never
-      }) as unknown as Effect.Effect<void, any, Daemon.Service>,
+      }),
     )
   }),
 )

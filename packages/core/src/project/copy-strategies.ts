@@ -21,6 +21,7 @@ export function makeGitWorktreeStrategy(input: {
       const found = yield* input.git.find(options.directory)
       if (!found) return yield* new DirectoryUnavailableError({ directory: options.directory })
       yield* input.git.worktreeRemove({ repo: found, directory: options.directory, force: options.force })
+      return undefined
     }),
     list: Effect.fn("ProjectCopy.GitWorktree.list")(function* (directory) {
       const found = yield* input.git.find(directory)

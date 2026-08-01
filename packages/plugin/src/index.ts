@@ -20,6 +20,7 @@ export * from "./tool.js"
 export type ProviderContext = {
   source: "env" | "config" | "custom" | "api"
   info: Provider
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- provider option blobs are indexed by plugin consumers (e.g. ctx.options.description); arbitrary JSON keys.
   options: Record<string, any>
 }
 
@@ -87,7 +88,11 @@ type Rule = {
 
 export type AuthHook = {
   provider: string
-  loader?: (auth: () => Promise<Auth>, provider: Provider) => Promise<Record<string, any>>
+  loader?: (
+    auth: () => Promise<Auth>,
+    provider: Provider,
+    // oxlint-disable-next-line typescript-eslint/no-explicit-any -- loaded provider objects expose arbitrary AI-SDK keys (apiKey/baseURL/fetch/...); consumers index them dynamically.
+  ) => Promise<Record<string, any>>
   methods: (
     | {
         type: "oauth"
@@ -248,7 +253,7 @@ export interface Hooks {
       topP: number
       topK: number
       maxOutputTokens: number | undefined
-      options: Record<string, any>
+      options: Record<string, unknown>
     },
   ) => Promise<void>
   "chat.headers"?: (
@@ -262,18 +267,18 @@ export interface Hooks {
   ) => Promise<void>
   "tool.execute.before"?: (
     input: { tool: string; sessionID: string; callID: string },
-    output: { args: any },
+    output: { args: unknown },
   ) => Promise<void>
   "shell.env"?: (
     input: { cwd: string; sessionID?: string; callID?: string },
     output: { env: Record<string, string> },
   ) => Promise<void>
   "tool.execute.after"?: (
-    input: { tool: string; sessionID: string; callID: string; args: any },
+    input: { tool: string; sessionID: string; callID: string; args: unknown },
     output: {
       title: string
       output: string
-      metadata: any
+      metadata: unknown
     },
   ) => Promise<void>
   "experimental.chat.messages.transform"?: (
@@ -328,5 +333,5 @@ export interface Hooks {
   /**
    * Modify tool definitions (description and parameters) sent to LLM
    */
-  "tool.definition"?: (input: { toolID: string }, output: { description: string; parameters: any }) => Promise<void>
+  "tool.definition"?: (input: { toolID: string }, output: { description: string; parameters: unknown }) => Promise<void>
 }

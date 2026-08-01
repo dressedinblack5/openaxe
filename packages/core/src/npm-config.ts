@@ -26,6 +26,7 @@ export const load = (dir: string) =>
         warn: false,
       })
       await config.load()
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- npm's flat config is a dynamic Record keyed by package-name conventions.
       return config.flat as Record<string, unknown>
     },
     catch: (cause) => cause,

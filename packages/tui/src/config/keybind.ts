@@ -249,6 +249,7 @@ export const KeybindOverrides = Schema.Struct(
     ]),
   ),
 ).annotate({ description: "TUI keybinding overrides" })
+// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Definitions keyed by KeybindName; cast restores the precise map type
 export const Descriptions = Object.fromEntries(
   Object.entries(Definitions).map(([name, item]) => [name, item.description]),
 ) as Record<KeybindName, string>
@@ -418,6 +419,7 @@ export const CommandMap = {
 } satisfies BindingCommandMap
 const CommandDescriptions = Object.fromEntries(
   Object.entries(Definitions).map(([name, item]) => [
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- dynamic command name lookup into CommandMap; ?? fallback keeps unknown names
     CommandMap[name as keyof typeof CommandMap] ?? name,
     item.description,
   ]),
@@ -447,9 +449,11 @@ export function defaultValue(name: KeybindName) {
 export function parse(keybinds: KeybindOverrides): Keybinds {
   const invalid = unknownKeys(keybinds)
   if (invalid.length) throw new Error(`Unrecognized keybind${invalid.length === 1 ? "" : "s"}: ${invalid.join(", ")}`)
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- assembled Keybinds map; entries validated above
   return Object.fromEntries(
     Object.entries(Definitions).map(([name, item]) => [
       name,
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- keybind names are validated by unknownKeys() before this map
       decodeBindingValue(keybinds[name as KeybindName] ?? item.default),
     ]),
   ) as Keybinds
@@ -463,7 +467,7 @@ export function unknownKeys(input: object) {
 
 export function bindingDefaults(): BindingDefaults<Renderable, KeyEvent> {
   return ({ command, binding }) => {
-    if (binding.desc !== undefined) return
+    if (binding.desc !== undefined) return undefined
     return { desc: CommandDescriptions[command] }
   }
 }

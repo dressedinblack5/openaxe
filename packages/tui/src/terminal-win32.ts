@@ -14,13 +14,13 @@ const kernel = () =>
 
 let k32: ReturnType<typeof kernel> | undefined
 
-function load() {
-  if (process.platform !== "win32") return false
+function load(): ReturnType<typeof kernel> | undefined {
+  if (process.platform !== "win32") return undefined
   try {
     k32 ??= kernel()
-    return true
+    return k32
   } catch {
-    return false
+    return undefined
   }
 }
 
@@ -30,15 +30,16 @@ function load() {
 export function win32DisableProcessedInput() {
   if (process.platform !== "win32") return
   if (!process.stdin.isTTY) return
-  if (!load()) return
+  const api = load()
+  if (!api) return
 
-  const handle = k32!.symbols.GetStdHandle(STD_INPUT_HANDLE)
+  const handle = api.symbols.GetStdHandle(STD_INPUT_HANDLE)
   const buf = new Uint32Array(1)
-  if (k32!.symbols.GetConsoleMode(handle, ptr(buf)) === 0) return
+  if (api.symbols.GetConsoleMode(handle, ptr(buf)) === 0) return
 
   const mode = buf[0]
   if ((mode & ENABLE_PROCESSED_INPUT) === 0) return
-  k32!.symbols.SetConsoleMode(handle, mode & ~ENABLE_PROCESSED_INPUT)
+  api.symbols.SetConsoleMode(handle, mode & ~ENABLE_PROCESSED_INPUT)
 }
 
 /**
@@ -47,10 +48,11 @@ export function win32DisableProcessedInput() {
 export function win32FlushInputBuffer() {
   if (process.platform !== "win32") return
   if (!process.stdin.isTTY) return
-  if (!load()) return
+  const api = load()
+  if (!api) return
 
-  const handle = k32!.symbols.GetStdHandle(STD_INPUT_HANDLE)
-  k32!.symbols.FlushConsoleInputBuffer(handle)
+  const handle = api.symbols.GetStdHandle(STD_INPUT_HANDLE)
+  api.symbols.FlushConsoleInputBuffer(handle)
 }
 
 let unhook: (() => void) | undefined
@@ -67,25 +69,27 @@ let unhook: (() => void) | undefined
  * - A low-frequency poll as a backstop for native/external mode changes.
  */
 export function win32InstallCtrlCGuard() {
-  if (process.platform !== "win32") return
-  if (!process.stdin.isTTY) return
-  if (!load()) return
+  if (process.platform !== "win32") return undefined
+  if (!process.stdin.isTTY) return undefined
+  const api = load()
+  if (!api) return undefined
   if (unhook) return unhook
 
   const stdin = process.stdin as ReadStream
+  // oxlint-disable-next-line typescript-eslint/unbound-method -- raw method ref captured only to restore the original hook after the guard is removed
   const original = stdin.setRawMode
 
-  const handle = k32!.symbols.GetStdHandle(STD_INPUT_HANDLE)
+  const handle = api.symbols.GetStdHandle(STD_INPUT_HANDLE)
   const buf = new Uint32Array(1)
 
-  if (k32!.symbols.GetConsoleMode(handle, ptr(buf)) === 0) return
+  if (api.symbols.GetConsoleMode(handle, ptr(buf)) === 0) return undefined
   const initial = buf[0]
 
   const enforce = () => {
-    if (k32!.symbols.GetConsoleMode(handle, ptr(buf)) === 0) return
+    if (api.symbols.GetConsoleMode(handle, ptr(buf)) === 0) return
     const mode = buf[0]
     if ((mode & ENABLE_PROCESSED_INPUT) === 0) return
-    k32!.symbols.SetConsoleMode(handle, mode & ~ENABLE_PROCESSED_INPUT)
+    api.symbols.SetConsoleMode(handle, mode & ~ENABLE_PROCESSED_INPUT)
   }
 
   // Some runtimes can re-apply console modes on the next tick; enforce twice.
@@ -122,7 +126,7 @@ export function win32InstallCtrlCGuard() {
       stdin.setRawMode = original
     }
 
-    k32!.symbols.SetConsoleMode(handle, initial)
+    api.symbols.SetConsoleMode(handle, initial)
     unhook = undefined
   }
 

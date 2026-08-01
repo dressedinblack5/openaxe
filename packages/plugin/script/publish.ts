@@ -12,6 +12,7 @@ async function published(name: string, version: string) {
 
 await $`bun tsc`
 const originalText = await Bun.file("package.json").text()
+// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- JSON.parse returns any; package.json shape is pinned by this assertion.
 const pkg = JSON.parse(originalText) as {
   name: string
   version: string

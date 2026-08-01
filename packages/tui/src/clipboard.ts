@@ -74,6 +74,7 @@ export async function read() {
   const { default: clipboardy } = await import("clipboardy")
   const text = await clipboardy.read().catch(() => undefined)
   if (text) return { data: text, mime: "text/plain" }
+  return undefined
 }
 
 export function copyCommand(
@@ -94,6 +95,7 @@ export function copyCommand(
       "[Console]::InputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value ([Console]::In.ReadToEnd())",
     ]
   }
+  return undefined
 }
 
 let copyMethod: Promise<(text: string) => Promise<void>> | undefined

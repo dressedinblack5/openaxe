@@ -191,7 +191,7 @@ export const layer = Layer.effect(
       model: {
         get: Effect.fn("CatalogV2.model.get")(function* (providerID, modelID) {
           const record = state.get().providers.get(providerID)
-          if (!record) return
+          if (!record) return undefined
           const model = record.models.get(modelID)
           return model && projectModel(model, record.provider)
         }),
@@ -232,7 +232,7 @@ export const layer = Layer.effect(
 
         small: Effect.fn("CatalogV2.model.small")(function* (providerID) {
           const record = state.get().providers.get(providerID)
-          if (!record) return
+          if (!record) return undefined
           const provider = record.provider
 
           if (providerID === ProviderV2.ID.opencode) {

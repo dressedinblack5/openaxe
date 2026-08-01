@@ -2,11 +2,12 @@ import { Effect } from "effect"
 import { define } from "../internal"
 import { ProviderV2 } from "../../provider"
 
-function resolveProject(options: Record<string, any>) {
+function resolveProject(options: Record<string, unknown>) {
   // models.dev advertises GOOGLE_VERTEX_PROJECT for Vertex, while Google SDKs
   // and ADC examples commonly use the broader Google Cloud project aliases.
+  const project = options.project
+  if (typeof project === "string") return project
   return (
-    options.project ??
     process.env.GOOGLE_VERTEX_PROJECT ??
     process.env.GOOGLE_CLOUD_PROJECT ??
     process.env.GCP_PROJECT ??
@@ -14,9 +15,10 @@ function resolveProject(options: Record<string, any>) {
   )
 }
 
-function resolveLocation(options: Record<string, any>) {
+function resolveLocation(options: Record<string, unknown>) {
+  const location = options.location
+  if (typeof location === "string") return location
   return (
-    options.location ??
     process.env.GOOGLE_VERTEX_LOCATION ??
     process.env.GOOGLE_CLOUD_LOCATION ??
     process.env.VERTEX_LOCATION ??
@@ -70,7 +72,7 @@ export const GoogleVertexPlugin = define({
           )
             continue
           const project = resolveProject(item.provider.request.body)
-          const location = String(resolveLocation(item.provider.request.body))
+          const location = resolveLocation(item.provider.request.body)
           evt.provider.update(item.provider.id, (provider) => {
             if (project) provider.request.body.project = project
             provider.request.body.location = location

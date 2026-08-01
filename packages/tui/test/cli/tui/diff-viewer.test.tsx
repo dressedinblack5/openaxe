@@ -25,7 +25,7 @@ test("closing the diff viewer returns to the route it opened from", async () => 
     expect(viewer.vcsDiffInput()).toEqual({ directory: "/repo/session", mode: "git", context: 12 })
 
     expect(viewer.commands.has("diff.close")).toBe(true)
-    void viewer.commands.get("diff.close")!.run?.({} as never)
+    void viewer.commands.get("diff.close")?.run?.({} as never)
     expect(viewer.current()).toEqual(startRoute)
   } finally {
     viewer.app.renderer.destroy()
@@ -65,32 +65,33 @@ test("brackets navigate diff hunks", async () => {
     await viewer.app.waitForFrame((frame) => frame.includes("const first"))
     await viewer.app.waitFor(() => Boolean(findScrollBox(viewer.app.renderer.root)))
     await viewer.app.flush()
-    const scroll = findScrollBox(viewer.app.renderer.root)!
+    const scroll = findScrollBox(viewer.app.renderer.root)
+    if (!scroll) throw new Error("scrollbox not found")
     const initial = scroll.scrollTop
 
     expect(TuiKeybind.defaultValue("diff_next_hunk")).toBe("]")
     expect(TuiKeybind.defaultValue("diff_previous_hunk")).toBe("[")
 
-    void viewer.commands.get("diff.next_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.next_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     const first = scroll.scrollTop
     expect(first).toBeGreaterThan(initial)
 
-    void viewer.commands.get("diff.next_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.next_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     const second = scroll.scrollTop
     expect(second).toBeGreaterThan(first)
 
-    void viewer.commands.get("diff.previous_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.previous_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     expect(scroll.scrollTop).toBe(first)
 
-    void viewer.commands.get("diff.next_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.next_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     expect(scroll.scrollTop).toBe(second)
 
     scroll.scrollTo(initial)
-    void viewer.commands.get("diff.next_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.next_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     expect(scroll.scrollTop).toBe(first)
   } finally {

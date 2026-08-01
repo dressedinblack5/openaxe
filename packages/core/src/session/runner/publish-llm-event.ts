@@ -26,8 +26,10 @@ const tokens = (usage: Usage | undefined) => {
   }
 }
 
-const record = (value: unknown): Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : { value }
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const record = (value: unknown): Record<string, unknown> => (isRecord(value) ? value : { value })
 
 const message = (value: unknown) => {
   if (typeof value === "string") return value
@@ -307,7 +309,8 @@ export const createLLMEventPublisher = (events: EventV2.Interface, input: Input)
         return
       case "tool-call": {
         if (!tools.has(event.id)) yield* startToolInput(event)
-        const tool = tools.get(event.id)!
+        const tool = tools.get(event.id)
+        if (!tool) { yield* Effect.die(`Tool call before start: ${event.id}`); return }
         if (!tool.inputEnded) yield* endToolInput(event)
         if (tool.name !== event.name) { yield* Effect.die(`Tool call name changed for ${event.id}: ${tool.name} -> ${event.name}`); return }
         if (tool.called) { yield* Effect.die(`Duplicate tool call: ${event.id}`); return }

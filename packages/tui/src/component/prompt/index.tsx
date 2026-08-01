@@ -117,7 +117,7 @@ function hasEditorRangeSelection(selection: EditorSelection["ranges"][number]) {
 }
 
 function getEditorRangeLabel(selection: EditorSelection["ranges"][number]) {
-  if (!hasEditorRangeSelection(selection)) return
+  if (!hasEditorRangeSelection(selection)) return undefined
   if (selection.selection.start.line === selection.selection.end.line) return `#${selection.selection.start.line}`
   return `#${selection.selection.start.line}-${selection.selection.end.line}`
 }
@@ -174,22 +174,22 @@ export function Prompt(props: PromptProps) {
   const [dismissedEditorSelectionKey, setDismissedEditorSelectionKey] = createSignal<string>()
   const editorContext = createMemo(() => {
     const selection = fileContextEnabled() ? editor.selection() : undefined
-    if (!selection) return
+    if (!selection) return undefined
     return editorSelectionKey(selection) === dismissedEditorSelectionKey() ? undefined : selection
   })
   const editorPath = createMemo(() => editorContext()?.filePath)
   const editorSelectionLabel = createMemo(() => {
     const ranges = editorContext()?.ranges
-    if (!ranges) return
+    if (!ranges) return undefined
     const first = ranges.find(hasEditorRangeSelection) ?? ranges[0]
-    if (!first) return
+    if (!first) return undefined
     return [getEditorRangeLabel(first), ranges.length > 1 ? `+${ranges.length - 1}` : undefined]
       .filter(Boolean)
       .join(" ")
   })
   const editorFileLabel = createMemo(() => {
     const value = editorPath()
-    if (!value) return
+    if (!value) return undefined
     const filename = path.basename(value)
     const file = /^index\.[^./]+$/.test(filename)
       ? [path.basename(path.dirname(value)), filename].filter(Boolean).join("/")
@@ -198,13 +198,13 @@ export function Prompt(props: PromptProps) {
   })
   const editorFileLabelDisplay = createMemo(() => {
     const file = editorFileLabel()
-    if (!file) return
+    if (!file) return undefined
     return Locale.truncateMiddle(file, Math.max(12, Math.min(48, Math.floor(dimensions().width / 3))))
   })
   const editorContextLabelState = createMemo(() => editor.labelState())
   const [auto, setAuto] = createSignal<AutocompleteRef>()
   const workspace = usePromptWorkspace(props.sessionID)
-  const move = usePromptMove({ projectID: project.project, sessionID: () => props.sessionID })
+  const move = usePromptMove({ projectID: () => project.project(), sessionID: () => props.sessionID })
   const [cursorVersion, setCursorVersion] = createSignal(0)
   const currentProviderLabel = createMemo(() => local.model.parsed().provider)
   const hasRightContent = createMemo(() => Boolean(props.right))
@@ -224,9 +224,9 @@ export function Prompt(props: PromptProps) {
     setDismissedEditorSelectionKey(editorSelectionKey(editorContext()))
     editor.clearSelection()
   }
-  const fileStyleId = syntax().getStyleId("extmark.file")!
-  const agentStyleId = syntax().getStyleId("extmark.agent")!
-  const pasteStyleId = syntax().getStyleId("extmark.paste")!
+  const fileStyleId = syntax().getStyleId("extmark.file") ?? undefined
+  const agentStyleId = syntax().getStyleId("extmark.agent") ?? undefined
+  const pasteStyleId = syntax().getStyleId("extmark.paste") ?? undefined
   let promptPartTypeId = 0
   const event = useEvent()
 
@@ -257,15 +257,15 @@ export function Prompt(props: PromptProps) {
   })
 
   const usage = createMemo(() => {
-    if (!props.sessionID) return
+    if (!props.sessionID) return undefined
     const session = sync.session.get(props.sessionID)
     const msg = sync.data.message[props.sessionID] ?? []
     const last = msg.findLast((item): item is AssistantMessage => item.role === "assistant" && item.tokens.output > 0)
-    if (!last) return
+    if (!last) return undefined
 
     const tokens =
       last.tokens.input + last.tokens.output + last.tokens.reasoning + last.tokens.cache.read + last.tokens.cache.write
-    if (tokens <= 0) return
+    if (tokens <= 0) return undefined
 
     const model = sync.data.provider.find((item) => item.id === last.providerID)?.models[last.modelID]
     const pct = model?.limit.context ? `${Math.round((tokens / model.limit.context) * 100)}%` : undefined
@@ -878,6 +878,7 @@ export function Prompt(props: PromptProps) {
             setStore("mode", item.mode ?? "normal")
             restoreExtmarksFromParts(item.parts)
             input.cursorOffset = 0
+            return false
           },
         },
       ],
@@ -914,6 +915,7 @@ export function Prompt(props: PromptProps) {
             setStore("mode", item.mode ?? "normal")
             restoreExtmarksFromParts(item.parts)
             input.cursorOffset = input.plainText.length
+            return false
           },
         },
       ],
@@ -1518,12 +1520,12 @@ export function Prompt(props: PromptProps) {
                     {(() => {
                       const retry = createMemo(() => {
                         const s = status()
-                        if (s.type !== "retry") return
+                        if (s.type !== "retry") return undefined
                         return s
                       })
                       const message = createMemo(() => {
                         const r = retry()
-                        if (!r) return
+                        if (!r) return undefined
                         if (r.message.includes("exceeded your current quota") && r.message.includes("gemini"))
                           return "gemini is way too hot right now"
                         if (r.message.length > 80) return r.message.slice(0, 80) + "..."

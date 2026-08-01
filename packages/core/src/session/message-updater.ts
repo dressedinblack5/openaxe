@@ -40,7 +40,6 @@ function rebuildIndexes(state: MemoryState) {
   // If we have a completed assistant after the latest incomplete, 
   // we should not return the incomplete one - find the actual latest
   if (state.latestAssistantIndex >= 0) {
-    const latestIncomplete = state.messages[state.latestAssistantIndex]
     // Check if there's any assistant message after this one
     for (let i = state.latestAssistantIndex + 1; i < state.messages.length; i++) {
       const msg = state.messages[i]
@@ -78,7 +77,7 @@ export function memory(state: MemoryState): Adapter {
     getCurrentAssistant() {
       return Effect.sync(() => {
         const index = getLatestAssistantIndex()
-        if (index < 0) return
+        if (index < 0) return undefined
         const assistant = state.messages[index]
         return assistant?.type === "assistant" && !assistant.time.completed ? assistant : undefined
       })
@@ -86,7 +85,7 @@ export function memory(state: MemoryState): Adapter {
     getAssistant(messageID) {
       return Effect.sync(() => {
         const index = getAssistantIndex(messageID)
-        if (index === undefined) return
+        if (index === undefined) return undefined
         const assistant = state.messages[index]
         return assistant?.type === "assistant" ? assistant : undefined
       })
@@ -94,7 +93,7 @@ export function memory(state: MemoryState): Adapter {
     getCurrentShell(callID) {
       return Effect.sync(() => {
         const index = getShellIndex(callID)
-        if (index === undefined) return
+        if (index === undefined) return undefined
         const shell = state.messages[index]
         return shell?.type === "shell" ? shell : undefined
       })

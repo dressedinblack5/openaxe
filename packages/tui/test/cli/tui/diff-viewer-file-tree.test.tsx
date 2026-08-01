@@ -86,7 +86,8 @@ describe("DiffViewerFileTree", () => {
 
   test("does not render text markers for highlighted rows", async () => {
     const files = [{ file: "src/config/tui.ts" }, { file: "README.md" }]
-    const src = buildFileTree(files).nodes.find((node) => node.kind === "directory" && node.name === "src")!
+    const src = buildFileTree(files).nodes.find((node) => node.kind === "directory" && node.name === "src")
+    if (!src) throw new Error("src directory not found")
 
     const focused = visibleLines(
       await renderFrame(() => (
@@ -116,7 +117,8 @@ describe("DiffViewerFileTree", () => {
   test("renders collapsed and expanded directory rows", async () => {
     const files = [{ file: "src/config/tui.ts" }, { file: "README.md" }]
     const tree = buildFileTree(files)
-    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")!
+    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")
+    if (!src) throw new Error("src directory not found")
     const collapsed = allExpandedFileTreeDirectories(tree)
     collapsed.delete(src.id)
 

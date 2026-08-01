@@ -53,7 +53,7 @@ export const layer = Layer.effect(
     const { db } = yield* Database.Service
     const decode = Schema.decodeUnknownSync(Value)
     const stored = (row: typeof CredentialTable.$inferSelect) => {
-      if (!row.integration_id) return
+      if (!row.integration_id) return undefined
       return new Info({
         id: row.id,
         integrationID: row.integration_id,

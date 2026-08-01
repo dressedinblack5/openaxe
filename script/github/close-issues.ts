@@ -55,7 +55,8 @@ async function main() {
     )
     if (!res.ok) throw new Error(res.statusText)
 
-    const all = (await res.json()) as Issue[]
+    const all: Issue[] = await res.json()
+    if (!Array.isArray(all)) throw new Error("Unexpected response from GitHub API")
     if (all.length === 0) break
     console.log(`Fetched page ${page} ${all.length} issues`)
 

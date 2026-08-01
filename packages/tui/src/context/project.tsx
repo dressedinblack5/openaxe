@@ -58,7 +58,7 @@ export const { use: useProject, provider: ProjectProvider } = createSimpleContex
       const status = await sdk.client.experimental.workspace.status().catch(() => undefined)
       const next = Object.fromEntries((status?.data ?? []).map((item) => [item.workspaceID, item.status]))
 
-      batch(() => {
+batch(() => {
         setStore("workspace", "list", reconcile(listed.data))
         setStore("workspace", "status", reconcile(next))
         if (!listed.data.some((item) => item.id === store.workspace.current)) {

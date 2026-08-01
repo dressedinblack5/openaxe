@@ -143,7 +143,8 @@ describe("diff viewer file tree utilities", () => {
       { file: "packages/opencode/src/cli/app.ts" },
       { file: "packages/opencode/src/server/server.ts" },
     ])
-    const packages = tree.nodes.find((node) => node.kind === "directory" && node.name === "packages")!
+    const packages = tree.nodes.find((node) => node.kind === "directory" && node.name === "packages")
+    if (!packages) throw new Error("packages not found")
 
     expect(flattenFileTree(tree, new Set()).map((row) => row.name)).toEqual(["packages/opencode/src"])
     expect(flattenFileTree(tree, new Set([packages.id])).map((row) => row.name)).toEqual([
@@ -155,8 +156,10 @@ describe("diff viewer file tree utilities", () => {
 
   test("flattens only expanded directory descendants when expansion is provided", () => {
     const tree = buildFileTree([{ file: "src/config/tui.ts" }, { file: "src/session/index.ts" }, { file: "README.md" }])
-    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")!
-    const config = tree.nodes.find((node) => node.kind === "directory" && node.name === "config")!
+    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")
+    if (!src) throw new Error("src not found")
+    const config = tree.nodes.find((node) => node.kind === "directory" && node.name === "config")
+    if (!config) throw new Error("config not found")
 
     expect(flattenFileTree(tree, new Set()).map((row) => row.name)).toEqual(["src", "README.md"])
     expect(flattenFileTree(tree, new Set([src.id])).map((row) => row.name)).toEqual([
@@ -186,9 +189,12 @@ describe("diff viewer file tree utilities", () => {
 
   test("moves directory selection to first visible child", () => {
     const rows = flattenFileTree(buildFileTree([{ file: "src/config/tui.ts" }, { file: "src/session/index.ts" }]))
-    const src = rows.find((row) => row.kind === "directory" && row.name === "src")!
-    const config = rows.find((row) => row.kind === "directory" && row.name === "config")!
-    const tui = rows.find((row) => row.name === "tui.ts")!
+    const src = rows.find((row) => row.kind === "directory" && row.name === "src")
+    if (!src) throw new Error("src not found")
+    const config = rows.find((row) => row.kind === "directory" && row.name === "config")
+    if (!config) throw new Error("config not found")
+    const tui = rows.find((row) => row.name === "tui.ts")
+    if (!tui) throw new Error("tui not found")
 
     expect(moveFileTreeSelectionToFirstChild(rows, src.id)).toBe(config.id)
     expect(moveFileTreeSelectionToFirstChild(rows, tui.id)).toBe(tui.id)
@@ -199,8 +205,10 @@ describe("diff viewer file tree utilities", () => {
     const rows = flattenFileTree(
       buildFileTree([{ file: "packages/opencode/src/cli/app.ts" }, { file: "packages/opencode/src/server/server.ts" }]),
     )
-    const packages = rows.find((row) => row.kind === "directory" && row.name === "packages/opencode/src")!
-    const cli = rows.find((row) => row.kind === "directory" && row.name === "cli")!
+    const packages = rows.find((row) => row.kind === "directory" && row.name === "packages/opencode/src")
+    if (!packages) throw new Error("packages not found")
+    const cli = rows.find((row) => row.kind === "directory" && row.name === "cli")
+    if (!cli) throw new Error("cli not found")
 
     expect(moveFileTreeSelectionToFirstChild(rows, packages.id)).toBe(cli.id)
   })
@@ -209,9 +217,12 @@ describe("diff viewer file tree utilities", () => {
     const rows = flattenFileTree(
       buildFileTree([{ file: "packages/opencode/src/cli/app.ts" }, { file: "packages/opencode/src/server/server.ts" }]),
     )
-    const root = rows.find((row) => row.kind === "directory" && row.name === "packages/opencode/src")!
-    const cli = rows.find((row) => row.kind === "directory" && row.name === "cli")!
-    const app = rows.find((row) => row.name === "app.ts")!
+    const root = rows.find((row) => row.kind === "directory" && row.name === "packages/opencode/src")
+    if (!root) throw new Error("root not found")
+    const cli = rows.find((row) => row.kind === "directory" && row.name === "cli")
+    if (!cli) throw new Error("cli not found")
+    const app = rows.find((row) => row.name === "app.ts")
+    if (!app) throw new Error("app not found")
 
     expect(moveFileTreeSelectionToParent(rows, app.id)).toBe(cli.id)
     expect(moveFileTreeSelectionToParent(rows, cli.id)).toBe(root.id)
@@ -223,11 +234,16 @@ describe("diff viewer file tree utilities", () => {
     const rows = flattenFileTree(
       buildFileTree([{ file: "src/config/tui.ts" }, { file: "src/session/index.ts" }, { file: "README.md" }]),
     )
-    const config = rows.find((row) => row.kind === "directory" && row.name === "config")!
-    const session = rows.find((row) => row.kind === "directory" && row.name === "session")!
-    const tui = rows.find((row) => row.name === "tui.ts")!
-    const index = rows.find((row) => row.name === "index.ts")!
-    const readme = rows.find((row) => row.name === "README.md")!
+    const config = rows.find((row) => row.kind === "directory" && row.name === "config")
+    if (!config) throw new Error("config not found")
+    const session = rows.find((row) => row.kind === "directory" && row.name === "session")
+    if (!session) throw new Error("session not found")
+    const tui = rows.find((row) => row.name === "tui.ts")
+    if (!tui) throw new Error("tui not found")
+    const index = rows.find((row) => row.name === "index.ts")
+    if (!index) throw new Error("index not found")
+    const readme = rows.find((row) => row.name === "README.md")
+    if (!readme) throw new Error("readme not found")
 
     expect(moveFileTreeSelectionToFile(rows, undefined, 1)).toBe(tui.id)
     expect(moveFileTreeSelectionToFile(rows, undefined, -1)).toBe(readme.id)
@@ -245,7 +261,8 @@ describe("diff viewer file tree utilities", () => {
     expect(selection?.highlightedNode).toBe(
       tree.nodes.find((node) => node.kind === "file" && node.name === "index.ts")?.id,
     )
-    expect([...selection!.expandedNodes].map((id) => tree.nodes[id].name)).toEqual(["session", "src"])
+    if (!selection) throw new Error("selection not found")
+    expect([...selection.expandedNodes].map((id) => tree.nodes[id].name)).toEqual(["session", "src"])
     expect(fileTreeFileSelection(tree, 99)).toBeUndefined()
   })
 
@@ -290,8 +307,10 @@ describe("diff viewer file tree utilities", () => {
 
   test("toggles only selected directory expansion", () => {
     const tree = buildFileTree([{ file: "src/config/tui.ts" }, { file: "README.md" }])
-    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")!
-    const readme = tree.nodes.find((node) => node.kind === "file" && node.name === "README.md")!
+    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")
+    if (!src) throw new Error("src not found")
+    const readme = tree.nodes.find((node) => node.kind === "file" && node.name === "README.md")
+    if (!readme) throw new Error("readme not found")
     const expanded = allExpandedFileTreeDirectories(tree)
 
     const collapsed = toggleFileTreeDirectory(tree, expanded, src.id)
@@ -307,8 +326,10 @@ describe("diff viewer file tree utilities", () => {
 
   test("sets only selected directory expansion", () => {
     const tree = buildFileTree([{ file: "src/config/tui.ts" }, { file: "README.md" }])
-    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")!
-    const readme = tree.nodes.find((node) => node.kind === "file" && node.name === "README.md")!
+    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")
+    if (!src) throw new Error("src not found")
+    const readme = tree.nodes.find((node) => node.kind === "file" && node.name === "README.md")
+    if (!readme) throw new Error("readme not found")
     const expanded = allExpandedFileTreeDirectories(tree)
 
     const collapsed = setFileTreeDirectoryExpanded(tree, expanded, src.id, false)

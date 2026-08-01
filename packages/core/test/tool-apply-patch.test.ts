@@ -393,8 +393,10 @@ describe("ApplyPatchTool", () => {
                 registry,
                 call("*** Begin Patch\n*** Delete File: first.txt\n*** Delete File: second.txt\n*** End Patch"),
               ).pipe(Effect.forkChild)
+              // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- the tool-execution closure assigns removeStarted before executeTool resolves.
               yield* Deferred.await(removeStarted!)
               const interrupt = yield* Fiber.interrupt(run).pipe(Effect.forkChild)
+              // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- the tool-execution closure assigns releaseRemove before executeTool resolves.
               yield* Deferred.succeed(releaseRemove!, undefined)
               yield* Fiber.join(interrupt)
               expect(yield* exists(first)).toBe(false)

@@ -331,7 +331,8 @@ describe("Guardrail", () => {
           expect(results).toHaveLength(1)
           const importErr = results[0].errors.find((e) => e.message.includes("./missing"))
           expect(importErr).toBeDefined()
-          expect(importErr!.line).toBe(2)
+          if (!importErr) throw new Error("importErr not found")
+          expect(importErr.line).toBe(2)
         }),
       ),
     )

@@ -14,7 +14,6 @@ import {
   untrack,
   useContext,
 } from "solid-js"
-import { Dynamic } from "solid-js/web"
 import path from "node:path"
 import { mkdir, writeFile } from "node:fs/promises"
 import { useRoute, useRouteData } from "../../context/route"
@@ -97,8 +96,8 @@ export const alwaysSeparate = new WeakSet<BoxRenderable>()
 type RetryAction = Extract<SessionStatus, { type: "retry" }>["action"]
 
 function goUpsellKeys(action: RetryAction) {
-  if (!action) return
-  if (!GO_UPSELL_PROVIDERS.has(action.provider)) return
+  if (!action) return undefined
+  if (!GO_UPSELL_PROVIDERS.has(action.provider)) return undefined
   if (action.reason === "free_tier_limit") {
     return {
       lastSeenAt: GO_UPSELL_FREE_TIER_LAST_SEEN_AT,
@@ -111,6 +110,7 @@ function goUpsellKeys(action: RetryAction) {
       dontShow: GO_UPSELL_ACCOUNT_RATE_LIMIT_DONT_SHOW,
     }
   }
+  return undefined
 }
 
 const sessionBindingCommands = [
@@ -184,7 +184,7 @@ export function Session() {
   }
   const pluginRuntime = usePluginRuntime()
   const route = useRouteData("session")
-  const { navigate } = useRoute()
+  const routeContext = useRoute()
   const sync = useSync()
   const event = useEvent()
   const project = useProject()
@@ -287,7 +287,7 @@ export function Session() {
           variant: "error",
           duration: 5000,
         })
-        navigate({ type: "home" })
+        routeContext.navigate({ type: "home" })
         return
       }
 
@@ -312,7 +312,7 @@ export function Session() {
         variant: "error",
         duration: 5000,
       })
-      navigate({ type: "home" })
+      routeContext.navigate({ type: "home" })
     })
   })
 
@@ -423,7 +423,7 @@ export function Session() {
   const local = useLocal()
 
   function enterChild(sessionID: string) {
-    navigate({
+    routeContext.navigate({
       type: "session",
       sessionID,
     })
@@ -486,7 +486,11 @@ export function Session() {
           .share({
             sessionID: route.sessionID,
           })
-          .then((res) => copy(res.data!.share!.url))
+          .then((res) => {
+            const url = res.data?.share?.url
+            if (url) return copy(url)
+            return undefined
+          })
           .catch((error) => {
             toast.show({
               message: error instanceof Error ? error.message : "Failed to share session",
@@ -1048,7 +1052,7 @@ export function Session() {
       run: childSessionHandler(() => {
         const parentID = session()?.parentID
         if (parentID) {
-          navigate({
+          routeContext.navigate({
             type: "session",
             sessionID: parentID,
           })
@@ -1129,8 +1133,8 @@ export function Session() {
 
   const revert = createMemo(() => {
     const info = revertInfo()
-    if (!info) return
-    if (!info.messageID) return
+    if (!info) return undefined
+    if (!info.messageID) return undefined
     return {
       messageID: info.messageID,
       reverted: revertRevertedMessages(),
@@ -1185,13 +1189,17 @@ export function Session() {
               >
                 <box height={1} />
                 <For each={messages()}>
-                  {(message, index) => (
+                  {(message, index) => {
+                    const rvID = revert()?.messageID
+                    return (
                     <Switch>
-                      <Match when={message.id === revert()?.messageID}>
+                      <Match when={message.id === rvID}>
                         {(function () {
                           const redoShortcut = useCommandShortcut("session.redo")
                           const [hover, setHover] = createSignal(false)
                           const dialog = useDialog()
+                          const rv = revert()
+                          if (!rv) return <></>
 
                           const handleUnrevert = async () => {
                             const confirmed = await DialogConfirm.show(
@@ -1221,13 +1229,13 @@ export function Session() {
                                 paddingLeft={2}
                                 backgroundColor={hover() ? theme.backgroundElement : theme.backgroundPanel}
                               >
-                                <text fg={theme.textMuted}>{revert()!.reverted.length} message reverted</text>
+                                <text fg={theme.textMuted}>{rv.reverted.length} message reverted</text>
                                 <text fg={theme.textMuted}>
                                   <span style={{ fg: theme.text }}>{redoShortcut()}</span> or /redo to restore
                                 </text>
-                                <Show when={revert()!.diffFiles?.length}>
+                                <Show when={rv.diffFiles?.length}>
                                   <box marginTop={1}>
-                                    <For each={revert()!.diffFiles}>
+                                    <For each={rv.diffFiles}>
                                       {(file) => (
                                         <text fg={theme.text}>
                                           {file.filename}
@@ -1247,36 +1255,41 @@ export function Session() {
                           )
                         })()}
                       </Match>
-                      <Match when={revert()?.messageID && message.id >= revert()!.messageID}>
+                      <Match when={rvID !== undefined && message.id >= rvID}>
                         <></>
                       </Match>
-                      <Match when={message.role === "user"}>
-                        <UserMessage
-                          index={index()}
-                          onMouseUp={() => {
-                            if (renderer.getSelection()?.getSelectedText()) return
-                            dialog.replace(() => (
-                              <DialogMessage
-                                messageID={message.id}
-                                sessionID={route.sessionID}
-                                setPrompt={(promptInfo) => prompt?.set(promptInfo)}
-                              />
-                            ))
-                          }}
-                          message={message as UserMessage}
-                          parts={sync.data.part[message.id] ?? []}
-                          pending={pending()}
-                        />
+                      <Match when={message.role === "user" && message}>
+                        {(m) => (
+                          <UserMessage
+                            index={index()}
+                            onMouseUp={() => {
+                              if (renderer.getSelection()?.getSelectedText()) return
+                              dialog.replace(() => (
+                                <DialogMessage
+                                  messageID={message.id}
+                                  sessionID={route.sessionID}
+                                  setPrompt={(promptInfo) => prompt?.set(promptInfo)}
+                                />
+                              ))
+                            }}
+                            message={m()}
+                            parts={sync.data.part[message.id] ?? []}
+                            pending={pending()}
+                          />
+                        )}
                       </Match>
-                      <Match when={message.role === "assistant"}>
-                        <AssistantMessage
-                          last={lastAssistant()?.id === message.id}
-                          message={message as AssistantMessage}
-                          parts={sync.data.part[message.id] ?? []}
-                        />
+                      <Match when={message.role === "assistant" && message}>
+                        {(m) => (
+                          <AssistantMessage
+                            last={lastAssistant()?.id === message.id}
+                            message={m()}
+                            parts={sync.data.part[message.id] ?? []}
+                          />
+                        )}
                       </Match>
                     </Switch>
-                  )}
+                    )
+                  }}
                 </For>
               </scrollbox>
               <box flexShrink={0}>
@@ -1477,19 +1490,25 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
   return (
     <>
       <For each={props.parts}>
-        {(part, index) => {
-          const component = createMemo(() => PART_MAPPING[part.type as keyof typeof PART_MAPPING])
-          return (
-            <Show when={component()}>
-              <Dynamic
-                last={index() === props.parts.length - 1}
-                component={component()}
-                part={part as any}
-                message={props.message}
-              />
-            </Show>
-          )
-        }}
+        {(part, index) => (
+          <Switch>
+            <Match when={part.type === "text" && part}>
+              {(p) => (
+                <TextPart last={index() === props.parts.length - 1} part={p()} message={props.message} />
+              )}
+            </Match>
+            <Match when={part.type === "tool" && part}>
+              {(p) => (
+                <ToolPart last={index() === props.parts.length - 1} part={p()} message={props.message} />
+              )}
+            </Match>
+            <Match when={part.type === "reasoning" && part}>
+              {(p) => (
+                <ReasoningPart last={index() === props.parts.length - 1} part={p()} message={props.message} />
+              )}
+            </Match>
+          </Switch>
+        )}
       </For>
       <Show when={props.parts.some((x) => x.type === "tool" && x.tool === "task")}>
         <box paddingTop={1} paddingLeft={3}>
@@ -1558,12 +1577,6 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
       </Switch>
     </>
   )
-}
-
-const PART_MAPPING = {
-  text: TextPart,
-  tool: ToolPart,
-  reasoning: ReasoningPart,
 }
 
 const INLINE_TOOL_ICON_WIDTH = 2
@@ -2057,7 +2070,7 @@ function Shell(props: ToolProps) {
 
   const title = createMemo(() => {
     const wd = workdirDisplay()
-    if (!wd) return
+    if (!wd) return undefined
     return `# Running in ${wd}`
   })
 
@@ -2208,7 +2221,7 @@ function WebSearch(props: ToolProps) {
 
 function Task(props: ToolProps) {
   const { theme } = useTheme()
-  const { navigate } = useRoute()
+  const routeContext = useRoute()
   const sync = useSync()
   const dialog = useDialog()
 
@@ -2242,7 +2255,7 @@ function Task(props: ToolProps) {
   })
   const retry = createMemo(() => {
     const value = status()
-    if (value?.type !== "retry") return
+    if (value?.type !== "retry") return undefined
     return value
   })
 
@@ -2268,10 +2281,11 @@ function Task(props: ToolProps) {
     if (isRunning() && retrying) {
       content.push(`↳ ${formatSubagentRetry(retrying.attempt, Locale.truncate(retrying.message, 80))}`)
     } else if (isRunning() && tools().length > 0) {
-      if (current()) {
-        const state = current()!.state
+      const c = current()
+      if (c) {
+        const state = c.state
         const title = state.status === "running" || state.status === "completed" ? state.title : undefined
-        content.push(`↳ ${Locale.titlecase(current()!.tool)} ${title}`)
+        content.push(`↳ ${Locale.titlecase(c.tool)} ${title}`)
       } else content.push(`↳ ${formatSubagentToolcalls(tools().length)}`)
     }
 
@@ -2292,9 +2306,8 @@ function Task(props: ToolProps) {
       pending="Delegating..."
       part={props.part}
       onClick={() => {
-        if (sessionID()) {
-          navigate({ type: "session", sessionID: sessionID()! })
-        }
+        const id = sessionID()
+        if (id) routeContext.navigate({ type: "session", sessionID: id })
         const status = retry()
         if (status) void DialogAlert.show(dialog, "Retry Error", status.message)
       }}
@@ -2552,7 +2565,7 @@ function input(input: Record<string, unknown>, omit?: string[]): string {
     return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
   })
   if (primitives.length === 0) return ""
-  return `[${primitives.map(([key, value]) => `${key}=${value}`).join(", ")}]`
+  return `[${primitives.map(([key, value]) => `${key}=${String(value)}`).join(", ")}]`
 }
 
 function stringValue(value: unknown) {
@@ -2584,8 +2597,8 @@ export function toolDisplay(tool: string) {
 }
 
 function recordValue(value: unknown): Record<string, unknown> | undefined {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return
-  return value as Record<string, unknown>
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined
+  return Object.fromEntries(Object.entries(value))
 }
 
 export function parseApplyPatchFiles(value: unknown) {
@@ -2622,7 +2635,7 @@ export function parseQuestions(value: unknown) {
 }
 
 export function parseQuestionAnswers(value: unknown) {
-  if (!Array.isArray(value)) return
+  if (!Array.isArray(value)) return undefined
   return value.map((answer) =>
     Array.isArray(answer) ? answer.filter((item): item is string => typeof item === "string") : [],
   )

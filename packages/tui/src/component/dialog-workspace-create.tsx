@@ -171,7 +171,7 @@ export async function confirmWorkspaceFileChanges(input: {
   const fileChangeChoice = status?.data?.length
     ? await DialogWorkspaceFileChanges.show(input.dialog, status.data)
     : "no"
-  if (!fileChangeChoice) return
+  if (!fileChangeChoice) return undefined
   return fileChangeChoice === "yes"
 }
 
@@ -203,7 +203,7 @@ export function DialogWorkspaceSelect(props: {
     if (!list) return []
     const { recent, hasMore } = recentConnectedWorkspaces({
       workspaces: project.workspace.list(),
-      status: project.workspace.status,
+      status: (id) => project.workspace.status(id),
       omitWorkspaceID: omittedWorkspaceID(),
     })
     return [

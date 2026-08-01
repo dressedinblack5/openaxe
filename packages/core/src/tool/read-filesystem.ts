@@ -332,10 +332,10 @@ export const list = Effect.fn("ReadTool.list")(function* (fs: FSUtil.Interface, 
       Effect.gen(function* () {
         const absolute = path.join(real, item.name)
         const target = yield* fs.realPath(absolute).pipe(Effect.catch(() => Effect.void))
-        if (!target || !FSUtil.contains(real, target)) return
+        if (!target || !FSUtil.contains(real, target)) return undefined
         const info = yield* fs.stat(target).pipe(Effect.catch(() => Effect.void))
         const type = info?.type === "Directory" ? "directory" : info?.type === "File" ? "file" : undefined
-        if (!type) return
+        if (!type) return undefined
         return FileSystem.Entry.make({
           path: RelativePath.make(item.name + (type === "directory" ? path.sep : "")),
           type,

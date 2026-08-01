@@ -41,6 +41,7 @@ describe("Tool.define", () => {
   it.effect("object-defined tool does not mutate the original init object", () =>
     Effect.gen(function* () {
       const original = makeTool("test")
+      // oxlint-disable-next-line typescript-eslint/unbound-method -- identity comparison needs the raw method reference.
       const originalExecute = original.execute
 
       const info = yield* Tool.define("test-tool", Effect.succeed(original))
@@ -49,6 +50,7 @@ describe("Tool.define", () => {
       yield* info.init()
       yield* info.init()
 
+      // oxlint-disable-next-line typescript-eslint/unbound-method -- comparing the raw method reference after Tool.define.
       expect(original.execute).toBe(originalExecute)
     }),
   )

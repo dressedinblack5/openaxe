@@ -216,6 +216,7 @@ const rowFor = (models: JsonRecord, file: string, cassette: unknown): Row | unde
 const money = (value: number) => (value === 0 ? "$0.000000" : `$${value.toFixed(6)}`)
 const tokens = (value: number) => value.toLocaleString("en-US")
 
+// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- fetch().json() is Promise<any>; the endpoint contract is a JsonRecord.
 const models = (await (await fetch(MODELS_DEV_URL)).json()) as JsonRecord
 const rows = (
   await Promise.all(

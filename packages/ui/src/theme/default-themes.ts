@@ -1,4 +1,9 @@
 import type { DesktopTheme } from "./types"
+
+function asDesktopTheme(v: unknown): DesktopTheme {
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- JSON theme files are structurally DesktopTheme; the literal import type widens colors to string, so the unknown-to-interface assertion is required.
+  return v as DesktopTheme
+}
 import oc2ThemeJson from "./themes/oc-2.json"
 import amoledThemeJson from "./themes/amoled.json"
 import auraThemeJson from "./themes/aura.json"
@@ -36,10 +41,6 @@ import tokyonightThemeJson from "./themes/tokyonight.json"
 import vercelThemeJson from "./themes/vercel.json"
 import vesperThemeJson from "./themes/vesper.json"
 import zenburnThemeJson from "./themes/zenburn.json"
-
-function asDesktopTheme(v: unknown): DesktopTheme {
-  return v as DesktopTheme
-}
 
 export const oc2Theme = asDesktopTheme(oc2ThemeJson)
 export const amoledTheme = asDesktopTheme(amoledThemeJson)

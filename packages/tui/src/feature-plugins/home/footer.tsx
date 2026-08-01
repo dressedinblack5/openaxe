@@ -13,7 +13,7 @@ function Directory(props: { api: TuiPluginApi }) {
   const paths = useTuiPaths()
   const dir = createMemo(() => {
     const selected = destination?.destination()
-    if (!selected || selected.type === "new") return
+    if (!selected || selected.type === "new") return undefined
     const out = abbreviateHome(selected.directory, paths.home)
     const branch =
       selected.directory === (props.api.state.path.directory || paths.cwd) ? props.api.state.vcs?.branch : undefined

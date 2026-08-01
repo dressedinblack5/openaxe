@@ -8,7 +8,7 @@ import { ClipboardProvider, useClipboard } from "./context/clipboard"
 import { ExitProvider, useExit } from "./context/exit"
 import { EpilogueProvider } from "./context/epilogue"
 import { copy, handleSelectionKey } from "./util/selection";
-import { createCliRenderer, MouseButton } from "@opentui/core"
+import { createCliRenderer } from "@opentui/core"
 import { RouteProvider, useRoute } from "./context/route"
 import {
   Switch,
@@ -565,9 +565,9 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
   const connected = useConnected()
   const currentWorktreeWorkspace = createMemo(() => {
     const workspaceID = project.workspace.current()
-    if (!workspaceID) return
+    if (!workspaceID) return undefined
     const workspace = project.workspace.get(workspaceID)
-    if (workspace?.type !== "worktree" || !workspace.directory) return
+    if (workspace?.type !== "worktree" || !workspace.directory) return undefined
     return workspace
   })
   const appCommands = createMemo(() =>
@@ -1084,7 +1084,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
     console.log("installation.update-available", evt)
     const version = evt.properties.version
 
-    const skipped = kv.get("skipped_version")
+    const skipped = kv.get<string>("skipped_version")
     if (skipped && !isVersionGreater(version, skipped)) return
 
     const choice = await DialogConfirm.show(
@@ -1138,8 +1138,8 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
   })
 
   const plugin = createMemo(() => {
-    if (!ready()) return
-    if (route.data.type !== "plugin") return
+    if (!ready()) return undefined
+    if (route.data.type !== "plugin") return undefined
     const render = pluginRuntime.routes.get(route.data.id)
     if (!render) return <PluginRouteMissing id={route.data.id} onHome={() => route.navigate({ type: "home" })} />
     return render({ params: route.data.data })
@@ -1153,7 +1153,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       backgroundColor={theme.background}
       onMouseDown={(evt) => {
         if (!Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
-        if (evt.button !== MouseButton.RIGHT) return
+        if (evt.button !== 2) return
 
         if (!copy(renderer, toast, clipboard)) return
         evt.preventDefault()

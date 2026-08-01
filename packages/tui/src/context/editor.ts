@@ -109,7 +109,7 @@ export type EditorIntegration = Readonly<{
   selection?(directory: string): Promise<unknown>
 }>
 
-export const { use: useEditorContext, provider: EditorContextProvider } = createSimpleContext({
+const EditorContext = createSimpleContext({
   name: "EditorContext",
   init: (props: { integration?: EditorIntegration; WebSocketImpl?: typeof WebSocket }) => {
     const paths = useTuiPaths()
@@ -358,6 +358,8 @@ export const { use: useEditorContext, provider: EditorContextProvider } = create
     }
   },
 })
+export const useEditorContext = EditorContext.use
+export const EditorContextProvider = EditorContext.provider
 
 function resolveEditorConnection(
   directory: string,
@@ -388,22 +390,29 @@ export function editorSelectionKey(selection: EditorSelection | undefined) {
   ].join("\0")
 }
 
-function openEditorSocket(connection: EditorConnection, WebSocketImpl: typeof WebSocket) {
+function openEditorSocket(connection: EditorConnection, WebSocketImpl: typeof WebSocket): WebSocket {
   if (!connection.authToken) return new WebSocketImpl(connection.url)
 
-  return new WebSocketImpl(connection.url, {
-    headers: {
-      "x-claude-code-ide-authorization": connection.authToken,
+  // The DOM lib types the WebSocket constructor's second argument as
+  // `string | string[]` (protocols), which cannot express the auth headers
+  // Bun's WebSocket accepts at runtime. Construct via Reflect so the options
+  // object flows through without an unsafe type assertion.
+  return Reflect.construct(WebSocketImpl, [
+    connection.url,
+    {
+      headers: {
+        "x-claude-code-ide-authorization": connection.authToken,
+      },
     },
-  } as any)
+  ])
 }
 
 function parseMessage(value: unknown) {
-  if (typeof value !== "string") return
+  if (typeof value !== "string") return undefined
 
   try {
     return Option.getOrUndefined(decodeJsonRpcMessage(JSON.parse(value)))
   } catch {
-    return
+    return undefined
   }
 }

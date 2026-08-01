@@ -33,7 +33,7 @@ export function usePromptWorkspace(sessionID?: string) {
       setSelection(undefined)
       setCreating(false)
       toast.show({ title: "Creating workspace failed", message: errorMessage(err), variant: "error" })
-      return
+      return undefined
     }
     if (result.error || !result.data) {
       setSelection(undefined)
@@ -43,7 +43,7 @@ export function usePromptWorkspace(sessionID?: string) {
         message: errorMessage(result.error ?? "no response"),
         variant: "error",
       })
-      return
+      return undefined
     }
 
     await project.workspace.sync()
@@ -121,9 +121,9 @@ export function usePromptWorkspace(sessionID?: string) {
     | undefined
   >(() => {
     const selected = selection()
-    if (!selected) return
-    if (selected.type === "none") return
-    if (sessionID && !creating()) return
+    if (!selected) return undefined
+    if (selected.type === "none") return undefined
+    if (sessionID && !creating()) return undefined
     if (selected.type === "new") return { type: "new", workspaceType: selected.workspaceType }
     return {
       type: "existing",

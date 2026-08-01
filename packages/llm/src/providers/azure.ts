@@ -76,6 +76,7 @@ const configuredRoute = <Body, Prepared>(route: Route<Body, Prepared>, input: Co
     auth: auth(input),
     endpoint: {
       // AtLeastOne guarantees at least one is set; baseURL wins if both are.
+      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- AtLeastOne guarantees resourceName when baseURL is absent.
       baseURL: input.baseURL ?? resourceBaseURL(input.resourceName!),
       query: {
         ...(input.apiVersion ? { "api-version": input.apiVersion } : {}),

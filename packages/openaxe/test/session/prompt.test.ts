@@ -1194,6 +1194,7 @@ noLLMServer.instance(
       const aborted = yield* Deferred.make<void>()
       const registry = yield* ToolRegistry.Service
       const { task } = yield* registry.named()
+      // oxlint-disable-next-line typescript-eslint/unbound-method -- the raw reference is restored via task.execute = original in the finalizer.
       const original = task.execute
       task.execute = (_args, ctx) =>
         Effect.callback<never>((_resume) => {

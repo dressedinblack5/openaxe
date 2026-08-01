@@ -71,7 +71,15 @@ describe("plugin.openai.ws", () => {
     let requestBody: unknown
     await using server = await createWebSocketServer((socket) => {
       socket.once("message", (data) => {
-        requestBody = JSON.parse(data.toString())
+        requestBody = JSON.parse(
+          typeof data === "string"
+            ? data
+            : Buffer.isBuffer(data)
+              ? data.toString()
+              : data instanceof ArrayBuffer
+                ? new TextDecoder().decode(data)
+                : Buffer.concat(data).toString(),
+        )
         socket.send(JSON.stringify({ type: "response.output_text.delta", delta: "hello" }))
         socket.send(JSON.stringify({ type: "response.done", response: { id: "resp_123" } }))
         socket.close(1000, "done")

@@ -194,6 +194,7 @@ export const layer = Layer.effectDiscard(
 
 function validateTSContent(path: string, content: string): string[] {
   const sourceFile = createSourceFile(path, content, ScriptTarget.Latest, true)
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- the sourceFile diagnostics field is not part of the public TS AST API.
   const diagnostics: readonly Diagnostic[] = (sourceFile as unknown as { diagnostics?: readonly Diagnostic[] }).diagnostics ?? []
   return diagnostics
     .filter((d) => d.category === DiagnosticCategory.Error)

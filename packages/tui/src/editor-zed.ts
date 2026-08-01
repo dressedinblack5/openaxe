@@ -281,6 +281,6 @@ function parseJson(value: string) {
   try {
     return JSON.parse(value) as unknown
   } catch {
-    return
+    return undefined
   }
 }

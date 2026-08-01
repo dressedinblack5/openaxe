@@ -51,7 +51,7 @@ export class OutputLengthError extends Schema.TaggedErrorClass<OutputLengthError
       (typeof input === "object" &&
         input !== null &&
         "name" in input &&
-        (input as { name: string }).name === "MessageOutputLengthError")
+        input.name === "MessageOutputLengthError")
     )
   }
   toObject(): { name: string; data: Record<string, unknown> } {
@@ -69,7 +69,7 @@ export class AuthError extends Schema.TaggedErrorClass<AuthError>()("ProviderAut
       (typeof input === "object" &&
         input !== null &&
         "name" in input &&
-        (input as { name: string }).name === "ProviderAuthError")
+        input.name === "ProviderAuthError")
     )
   }
   toObject(): { name: string; data: { providerID: string; message: string } } {
@@ -86,7 +86,7 @@ export class AbortedError extends Schema.TaggedErrorClass<AbortedError>()("Messa
       (typeof input === "object" &&
         input !== null &&
         "name" in input &&
-        (input as { name: string }).name === "MessageAbortedError")
+        input.name === "MessageAbortedError")
     )
   }
   toObject(): { name: string; data: { message: string } } {
@@ -104,7 +104,7 @@ export class StructuredOutputError extends Schema.TaggedErrorClass<StructuredOut
       (typeof input === "object" &&
         input !== null &&
         "name" in input &&
-        (input as { name: string }).name === "StructuredOutputError")
+        input.name === "StructuredOutputError")
     )
   }
   toObject(): { name: string; data: { message: string; retries: number } } {
@@ -126,7 +126,7 @@ export class APIError extends Schema.TaggedErrorClass<APIError>()("APIError", {
       (typeof input === "object" &&
         input !== null &&
         "name" in input &&
-        (input as { name: string }).name === "APIError")
+        input.name === "APIError")
     )
   }
   toObject(): { name: string; data: Record<string, unknown> } {
@@ -149,7 +149,7 @@ export class ContextOverflowError extends Schema.TaggedErrorClass<ContextOverflo
       (typeof input === "object" &&
         input !== null &&
         "name" in input &&
-        (input as { name: string }).name === "ContextOverflowError")
+        input.name === "ContextOverflowError")
     )
   }
   toObject(): { name: string; data: Record<string, unknown> } {
@@ -168,7 +168,7 @@ export class ContentFilterError extends Schema.TaggedErrorClass<ContentFilterErr
       (typeof input === "object" &&
         input !== null &&
         "name" in input &&
-        (input as { name: string }).name === "ContentFilterError")
+        input.name === "ContentFilterError")
     )
   }
   toObject(): { name: string; data: { message: string } } {

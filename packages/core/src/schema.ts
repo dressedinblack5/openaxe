@@ -72,12 +72,14 @@ export function Newtype<Self>() {
       declare readonly _newtype: Tag
 
       static make(value: Schema.Schema.Type<S>): Self {
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Effect Opaque newtype: the make cast is the documented newtype boundary.
         return value as unknown as Self
       }
     }
 
     Object.setPrototypeOf(Base, schema)
 
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Effect Opaque newtype: Base is constructed to the combined Opaque+ctor shape by runtime Object.setPrototypeOf.
     return Base as unknown as (abstract new (_: never) => { readonly _newtype: Tag }) & {
       readonly make: (value: Schema.Schema.Type<S>) => Self
     } & Omit<Schema.Opaque<Self, S, {}>, "make" | "~type.make"> & {

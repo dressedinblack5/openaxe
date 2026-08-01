@@ -616,7 +616,9 @@ function Prompt<const T extends Record<string, string>>(props: {
               key: "escape",
               desc: "Reject permission",
               group: "Permission",
-              cmd: () => props.onSelect(props.escapeKey!),
+              cmd: () => {
+                if (props.escapeKey) props.onSelect(props.escapeKey)
+              },
             },
           ]
         : []),

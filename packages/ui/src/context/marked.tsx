@@ -6,6 +6,9 @@ import { bundledLanguages, type BundledLanguage } from "shiki"
 import { createSimpleContext } from "./helper"
 import { getSharedHighlighter, registerCustomTheme, ThemeRegistrationResolved } from "@pierre/diffs"
 
+const isBundledLanguage = (value: string): value is BundledLanguage => value in bundledLanguages
+
+// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- the OpenCode var() token map is structurally compatible with the @pierre/diffs theme shape.
 export const OpenCodeTheme = {
   name: "OpenCode",
   bg: "var(--color-background-stronger)",
@@ -448,11 +451,11 @@ async function highlightCodeBlocks(html: string): Promise<string> {
       .replace(/&#39;/g, "'")
 
     let language = lang || "text"
-    if (!(language in bundledLanguages)) {
+    if (!isBundledLanguage(language)) {
       language = "text"
     }
     if (!highlighter.getLoadedLanguages().includes(language)) {
-      await highlighter.loadLanguage(language as BundledLanguage)
+      await highlighter.loadLanguage(language)
     }
 
     const highlighted = highlighter.codeToHtml(code, {
@@ -491,11 +494,11 @@ export const { use: useMarked, provider: MarkedProvider } = createSimpleContext(
             langs: [],
             preferredHighlighter: "shiki-wasm",
           })
-          if (!(lang in bundledLanguages)) {
+          if (!isBundledLanguage(lang)) {
             lang = "text"
           }
           if (!highlighter.getLoadedLanguages().includes(lang)) {
-            await highlighter.loadLanguage(lang as BundledLanguage)
+            await highlighter.loadLanguage(lang)
           }
           return highlighter.codeToHtml(code, {
             lang: lang || "text",

@@ -79,8 +79,8 @@ export function Autocomplete(props: {
   anchor: () => BoxRenderable
   input: () => TextareaRenderable
   ref: (ref: AutocompleteRef) => void
-  fileStyleId: number
-  agentStyleId: number
+  fileStyleId: number | undefined
+  agentStyleId: number | undefined
   promptPartTypeId: () => number
 }) {
   const editor = useEditorContext()
@@ -143,7 +143,7 @@ export function Autocomplete(props: {
   })
 
   const filter = createMemo(() => {
-    if (!store.visible) return
+    if (!store.visible) return undefined
     // Track props.value to make memo reactive to text changes
     props.value // <- there surely is a better way to do this, like making .input() reactive
 
@@ -279,7 +279,7 @@ export function Autocomplete(props: {
   const references = createMemo(() => data.location.reference.list() ?? [])
 
   const referenceMatch = createMemo(() => {
-    if (!store.visible || store.visible === "/") return
+    if (!store.visible || store.visible === "/") return undefined
     const { baseQuery } = extractLineRange(search())
     const slash = baseQuery.indexOf("/")
     const alias = slash === -1 ? baseQuery : baseQuery.slice(0, slash)

@@ -64,7 +64,7 @@ function generateV2NeutralScale(neutral: HexColor, ink: HexColor, isDark: boolea
 function assignHueRamp(prefix: string, scale: HexColor[]): Record<string, V2ColorValue> {
   const tokens: Record<string, V2ColorValue> = {}
   for (let i = 0; i < V2_STEPS.length; i++) {
-    tokens[`v2-${prefix}-${V2_STEPS[i]}`] = scale[i]!
+    tokens[`v2-${prefix}-${V2_STEPS[i]}`] = scale[i]
   }
   return tokens
 }

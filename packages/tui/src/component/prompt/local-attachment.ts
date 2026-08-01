@@ -35,14 +35,14 @@ const mimeTypes: Record<string, string> = {
 
 export async function readLocalAttachmentWith(files: LocalFiles, path: string): Promise<LocalAttachment | undefined> {
   const mime = await files.mime(path).catch(() => undefined)
-  if (!mime) return
+  if (!mime) return undefined
   if (mime === "image/svg+xml") {
     const content = await files.readText(path).catch(() => undefined)
-    if (!content) return
+    if (!content) return undefined
     return { type: "text", mime, content }
   }
-  if (!mime.startsWith("image/") && mime !== "application/pdf") return
+  if (!mime.startsWith("image/") && mime !== "application/pdf") return undefined
   const content = await files.readBytes(path).catch(() => undefined)
-  if (!content) return
+  if (!content) return undefined
   return { type: "binary", mime, content }
 }

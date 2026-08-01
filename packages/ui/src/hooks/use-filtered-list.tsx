@@ -32,15 +32,20 @@ export function useFilteredList<T>(props: FilteredListProps<T>) {
       const query = filter ?? ""
       const needle = query.toLowerCase()
       const all = (await Promise.resolve(items)) || []
+      const isStringArray = (value: readonly unknown[]): value is string[] => value.every((e) => typeof e === "string")
+
       const step1 = (() => {
         if (!needle) return all
         const skipFilter = props.skipFilter
         const filterable = skipFilter ? all.filter((item) => !skipFilter(item)) : all
         const skipped = skipFilter ? all.filter(skipFilter) : []
-        const fuzzied =
-          !props.filterKeys && Array.isArray(filterable) && filterable.every((e) => typeof e === "string")
-            ? (fuzzysort.go(needle, filterable).map((x) => x.target) as unknown as T[])
-            : fuzzysort.go(needle, filterable, { keys: props.filterKeys! }).map((x) => x.obj)
+        const keys = props.filterKeys
+        const fuzzied = keys
+          ? fuzzysort.go(needle, filterable, { keys }).map((x) => x.obj)
+          : isStringArray(filterable)
+            // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- every() checked all items are strings, which are the T values here.
+            ? (fuzzysort.go(needle, filterable).map((x) => x.target) as T[])
+            : fuzzysort.go(needle, filterable, { keys: props.filterKeys ?? [] }).map((x) => x.obj)
         return skipped.length ? [...fuzzied, ...skipped] : fuzzied
       })()
       const grouped = step1.reduce((acc, item) => {

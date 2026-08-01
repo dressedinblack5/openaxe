@@ -9,7 +9,7 @@ type Options<Config extends Command.Config, Commands extends ReadonlyArray<Any>>
 
 export interface Node<
   Name extends string,
-  Spec extends Command<Name, any, any, any, any>,
+  Spec extends Command.Any,
   Commands extends Children,
 > {
   readonly name: Name
@@ -17,7 +17,7 @@ export interface Node<
   readonly commands: Commands
 }
 
-export type Any = Node<string, Command<any, any, any, any, any>, Children>
+export type Any = Node<string, Command.Any, Children>
 export type Children = Readonly<Record<string, Any>>
 
 export function make<
@@ -25,7 +25,7 @@ export function make<
   const Config extends Command.Config = {},
   const Commands extends ReadonlyArray<Any> = [],
 >(name: Name, options: Options<Config, Commands> = {}) {
-  const command = makeCommand(name, options.params ?? ({} as Command.Config))
+  const command = makeCommand(name, Object.assign({}, options.params))
   const spec = options.description ? command.pipe(withDescription(options.description)) : command
   return {
     name,

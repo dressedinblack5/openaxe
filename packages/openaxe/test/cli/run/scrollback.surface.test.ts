@@ -260,7 +260,7 @@ test("finalizes markdown tables for streamed and coalesced input", async () => {
   const text =
     "| Column 1 | Column 2 | Column 3 |\n|---|---|---|\n| Row 1 | Value 1 | Value 2 |\n| Row 2 | Value 3 | Value 4 |"
 
-  for (const chunks of [[text], [...text]]) {
+  for (const chunks of [[text], Array.from(text)]) {
     const out = await setup()
 
     try {

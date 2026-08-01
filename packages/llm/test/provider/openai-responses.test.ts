@@ -36,7 +36,8 @@ const expectToolOutput = (body: OpenAIResponses.OpenAIResponsesBody): OpenAITool
     (item): item is OpenAIToolOutput => "type" in item && item.type === "function_call_output",
   )
   expect(output).toBeDefined()
-  return output!
+  if (!output) throw new Error("expected a function_call_output block in input")
+  return output
 }
 
 describe("OpenAI Responses route", () => {

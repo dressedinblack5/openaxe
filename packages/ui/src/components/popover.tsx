@@ -141,7 +141,7 @@ export function Popover<T extends ValidComponent = "div">(props: PopoverProps<T>
         ref={(el: HTMLElement) => setState("triggerRef", el)}
         as={local.triggerAs ?? "div"}
         data-slot="popover-trigger"
-        {...(local.triggerProps as any)}
+        {...local.triggerProps}
       >
         {local.trigger}
       </Kobalte.Trigger>

@@ -292,7 +292,8 @@ export const locationLayer = Layer.effect(
             if (implementation.method.type === "oauth") {
               current.implementations.set(
                 implementation.method.id,
-                implementation as Types.DeepMutable<OAuthImplementation>,
+                // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- DeepMutable is a compile-time transform of the frozen implementation type.
+        implementation as Types.DeepMutable<OAuthImplementation>,
               )
             }
           },
@@ -441,6 +442,7 @@ export const locationLayer = Layer.effect(
           })
           yield* events.publish(Event.ConnectionUpdated, { integrationID: input.integrationID })
           yield* events.publish(Event.Updated, {})
+          return undefined
         }),
         oauth: Effect.fn("Integration.connection.oauth")(function* (input) {
           const method = state.get().integrations.get(input.integrationID)?.implementations.get(input.methodID)
@@ -516,7 +518,7 @@ export const locationLayer = Layer.effect(
             return [match, new Map(current).set(input.attemptID, { ...match, completing: true })]
           })
           if (!attempt) return yield* Effect.die(`OAuth attempt not found: ${input.attemptID}`)
-          if (attempt.status !== "pending") return
+          if (attempt.status !== "pending") return undefined
           if (attempt.authorization.mode === "code" && input.code === undefined) {
             return yield* new CodeRequiredError({ attemptID: input.attemptID })
           }
@@ -524,10 +526,12 @@ export const locationLayer = Layer.effect(
           const callback =
             attempt.authorization.mode === "auto"
               ? attempt.authorization.callback
+              // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- manual (non-auto) mode completion guarantees the code is present by protocol.
               : attempt.authorization.callback(input.code!)
           const exit = yield* authorize(callback).pipe(Effect.exit)
           yield* settle(input.attemptID, exit)
           if (Exit.isFailure(exit)) return yield* exit
+          return undefined
         }),
         cancel: Effect.fn("Integration.attempt.cancel")(function* (attemptID) {
           const attempt = yield* SynchronizedRef.modify(attempts, (current) => {

@@ -37,7 +37,7 @@ export const Plugin = define({
     const location = yield* Location.Service
     const npm = yield* Npm.Service
     yield* Effect.gen(function* () {
-      const configured: { package: string; options?: Record<string, any> }[] = []
+      const configured: { package: string; options?: Record<string, unknown> }[] = []
 
       for (const entry of yield* config.entries()) {
         if (entry.type === "document") {

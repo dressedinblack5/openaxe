@@ -38,7 +38,8 @@ const expectToolResult = (body: AnthropicMessages.AnthropicMessagesBody): Anthro
     .flatMap((message) => (message.role === "user" ? message.content : []))
     .find((block): block is AnthropicToolResult => block.type === "tool_result")
   expect(result).toBeDefined()
-  return result!
+  if (!result) throw new Error("expected a tool_result block in user content")
+  return result
 }
 
 describe("Anthropic Messages route", () => {

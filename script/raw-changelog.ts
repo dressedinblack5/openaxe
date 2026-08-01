@@ -50,8 +50,8 @@ function ref(input: string) {
 }
 
 async function latest() {
-  const data = await $`gh api "/repos/${repo}/releases?per_page=100"`.json()
-  const release = (data as Release[]).find((item) => !item.draft)
+  const data: Release[] = await $`gh api "/repos/${repo}/releases?per_page=100"`.json()
+  const release = data.find((item) => !item.draft)
   if (!release) throw new Error("No releases found")
   return release.tag_name.replace(/^v/, "")
 }
@@ -64,7 +64,10 @@ async function diff(base: string, head: string) {
     const batch = text
       .split("\n")
       .filter(Boolean)
-      .map((line) => JSON.parse(line) as Diff)
+      .map((line) => {
+        const parsed: Diff = JSON.parse(line)
+        return parsed
+      })
     if (batch.length === 0) break
     list.push(...batch)
     if (batch.length < 100) break
@@ -73,9 +76,9 @@ async function diff(base: string, head: string) {
 }
 
 function section(areas: Set<string>) {
-  const priority = ["core", "tui", "cli", "sdk", "plugin", "extensions/vscode", "github"]
+  const priority = ["core", "tui", "cli", "sdk", "plugin", "extensions/vscode", "github"] as const
   for (const area of priority) {
-    if (areas.has(area)) return sections[area as keyof typeof sections]
+    if (areas.has(area)) return sections[area]
   }
   return "Core"
 }
@@ -91,7 +94,8 @@ function reverted(commits: Commit[]) {
   for (const commit of commits) {
     const match = commit.message.match(/^Revert "(.+)"$/)
     if (match) {
-      const msg = match[1]!
+      const msg = match[1]
+      if (msg === undefined) continue
       if (seen.has(msg)) seen.delete(msg)
       else seen.set(commit.message, commit)
       continue
@@ -160,21 +164,25 @@ async function contributors(from: string, to: string) {
     const title = item.message.split("\n")[0] ?? ""
     if (!item.login || team.includes(item.login)) continue
     if (title.match(/^(ignore:|test:|chore:|ci:|release:)/i)) continue
-    if (!users.has(item.login)) users.set(item.login, new Set())
-    users.get(item.login)!.add(title)
+    let titles = users.get(item.login)
+    if (titles === undefined) {
+      titles = new Set()
+      users.set(item.login, titles)
+    }
+    titles.add(title)
   }
 
   return users
 }
 
 async function published(to: string) {
-  if (to === "HEAD") return
+  if (to === "HEAD") return undefined
   const body = await $`gh release view ${ref(to)} --repo ${repo} --json body --jq .body`.text().catch(() => "")
-  if (!body) return
+  if (!body) return undefined
 
   const lines = body.split(/\r?\n/)
   const start = lines.findIndex((line) => line.startsWith("**Thank you to "))
-  if (start < 0) return
+  if (start < 0) return undefined
   return lines.slice(start).join("\n").trim()
 }
 
@@ -207,7 +215,12 @@ function format(from: string, to: string, list: Commit[], thanks: string[]) {
 
   for (const commit of list) {
     const attr = commit.author && !team.includes(commit.author) ? ` (@${commit.author})` : ""
-    grouped.get(section(commit.areas))!.get(type(commit.message))!.push(`- \`${commit.hash}\` ${commit.message}${attr}`)
+    const sectionTitle = section(commit.areas)
+    const group = grouped.get(sectionTitle)
+    if (group === undefined) continue
+    const entries = group.get(type(commit.message))
+    if (entries === undefined) continue
+    entries.push(`- \`${commit.hash}\` ${commit.message}${attr}`)
   }
 
   const lines = [`Last release: ${ref(from)}`, `Target ref: ${to}`, ""]
@@ -220,8 +233,8 @@ function format(from: string, to: string, list: Commit[], thanks: string[]) {
     const groups = grouped.get(title)
     if (!groups || [...groups.values()].every((entries) => entries.length === 0)) continue
     lines.push(`## ${title}`)
-    const improvements = groups.get("Improvements")!
-    const bugfixes = groups.get("Bugfixes")!
+    const improvements = groups.get("Improvements") ?? []
+    const bugfixes = groups.get("Bugfixes") ?? []
     if (bugfixes.length === 0) {
       lines.push(...improvements)
       lines.push("")

@@ -8,7 +8,7 @@ import { wrapClientError } from "../error-interceptor.js"
 export { type Config as OpencodeClientConfig, OpencodeClient }
 
 function pick(value: string | null, fallback?: string, encode?: (value: string) => string) {
-  if (!value) return
+  if (!value) return undefined
   if (!fallback) return value
   if (value === fallback) return fallback
   if (encode && value === encode(fallback)) return fallback
@@ -49,29 +49,28 @@ function rewrite(request: Request, values: { directory?: string; workspace?: str
 
 export function createOpencodeClient(config?: Config & { directory?: string; experimental_workspaceID?: string }) {
   if (!config?.fetch) {
-    const customFetch: any =  async (req: any) => {
-      // @ts-ignore
-      req.timeout = false
-      return fetch(req)
-    }
+    const customFetch = Object.assign(
+      async (req: string | URL | Request, init?: RequestInit) => {
+        Object.assign(req, { timeout: false })
+        return fetch(req, init)
+      },
+      { preconnect: fetch.preconnect },
+    )
     config = {
       ...config,
       fetch: customFetch,
     }
   }
 
-  if (config?.directory) {
-    config.headers = {
-      ...config.headers,
-      "x-opencode-directory": encodeURIComponent(config.directory),
+  if (config?.directory || config?.experimental_workspaceID) {
+    const headers = new Headers()
+    for (const [key, value] of Object.entries(config.headers ?? {})) {
+      if (value === null || value === undefined) continue
+      headers.set(key, Array.isArray(value) ? value.join(", ") : String(value))
     }
-  }
-
-  if (config?.experimental_workspaceID) {
-    config.headers = {
-      ...config.headers,
-      "x-opencode-workspace": config.experimental_workspaceID,
-    }
+    if (config.directory) headers.set("x-opencode-directory", encodeURIComponent(config.directory))
+    if (config.experimental_workspaceID) headers.set("x-opencode-workspace", config.experimental_workspaceID)
+    config.headers = headers
   }
 
   const client = createClient(config)

@@ -8,8 +8,8 @@ import { Provider } from "@opencode-ai/schema/provider"
 import { testEffect } from "../lib/effect"
 
 const it = testEffect(Layer.empty)
-// ponytail: toTaggedUnion+as any cast — DecodingServices param mismatch is a Schema quirk, runtime works fine
 const decodeEvent = (input: unknown): SessionEvent.Event =>
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- toTaggedUnion+as any cast: DecodingServices param mismatch is a Schema quirk, runtime works fine
   Schema.decodeUnknownSync(SessionEvent.All as any)(input)
 
 describe("SessionMessageUpdater", () => {

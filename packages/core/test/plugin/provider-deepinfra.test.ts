@@ -27,7 +27,8 @@ void mock.module("@ai-sdk/deepinfra", () => ({
     return {
       languageModel: (modelID: string) => {
         deepinfraLanguageModels.push(modelID)
-        return { modelID, provider: `${captured.name ?? "deepinfra"}.chat`, specificationVersion: "v3" }
+        const providerName = typeof captured.name === "string" ? captured.name : "deepinfra"
+        return { modelID, provider: `${providerName}.chat`, specificationVersion: "v3" }
       },
     }
   },

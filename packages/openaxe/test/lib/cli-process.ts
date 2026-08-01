@@ -247,7 +247,7 @@ export function withCliFixture<A, E>(
             command: err.command,
             exitCode: err.exitCode ?? -1,
             stdout: Buffer.alloc(0),
-            stderr: Buffer.from((err.stderr ?? String(err.cause ?? err.message)) + "\n"),
+            stderr: Buffer.from((err.stderr ?? String(err.cause instanceof Error ? err.cause.message : typeof err.cause === "string" ? err.cause : err.message)) + "\n"),
             stdoutTruncated: false,
             stderrTruncated: false,
           } satisfies AppProcess.RunResult),

@@ -542,7 +542,9 @@ const ICON_MAPS: IconMaps = {
 
 const toOpenVariant = (icon: IconName): IconName => {
   if (!icon.startsWith("Folder")) return icon
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- the guarded _light suffix keeps the result within the IconName literal union.
   if (icon.endsWith("_light")) return icon.replace("_light", "Open_light") as IconName
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- string concatenation widens to string; the guarded suffix keeps the result within the IconName literal union.
   if (!icon.endsWith("Open")) return (icon + "Open") as IconName
   return icon
 }

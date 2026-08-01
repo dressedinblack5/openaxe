@@ -16,7 +16,7 @@ import {
   type ContentPart,
   ToolResultPart,
 } from "./schema"
-import { make, toDefinitions, type ToolSchema } from "./tool"
+import { make, toDefinitions, type AnyToolSchema, type ToolSchema } from "./tool"
 import type {
   MessageInput as MessageInputT,
   ToolChoiceInput as ToolChoiceInputT,
@@ -106,7 +106,7 @@ export class GenerateObjectResponse<T> {
   }
 }
 
-export interface GenerateObjectOptions<S extends ToolSchema<any>> extends GenerateObjectBase {
+export interface GenerateObjectOptions<S extends AnyToolSchema> extends GenerateObjectBase {
   readonly schema: S
 }
 
@@ -163,13 +163,13 @@ const runGenerateObject = Effect.fn("LLM.generateObject")(function* (
  * 2. `jsonSchema: JsonSchema.JsonSchema` — `.object` is `unknown`. Use when
  *    the schema is only available at runtime (MCP, plugin manifests). Caller validates.
  */
-export function generateObject<S extends ToolSchema<any>>(
+export function generateObject<S extends AnyToolSchema>(
   options: GenerateObjectOptions<S>,
 ): Effect.Effect<GenerateObjectResponse<Schema.Schema.Type<S>>, LLMError>
 export function generateObject(
   options: GenerateObjectDynamicOptions,
 ): Effect.Effect<GenerateObjectResponse<unknown>, LLMError>
-export function generateObject(options: GenerateObjectOptions<ToolSchema<any>> | GenerateObjectDynamicOptions) {
+export function generateObject(options: GenerateObjectOptions<AnyToolSchema> | GenerateObjectDynamicOptions) {
   if ("schema" in options) {
     const { schema, ...rest } = options
     return runGenerateObject(

@@ -7,7 +7,7 @@ import { wrapClientError } from "./error-interceptor.js"
 export { type Config as OpencodeClientConfig, OpencodeClient }
 
 function pick(value: string | null, fallback?: string) {
-  if (!value) return
+  if (!value) return undefined
   if (!fallback) return value
   if (value === fallback) return fallback
   if (value === encodeURIComponent(fallback)) return fallback
@@ -32,9 +32,8 @@ function rewrite(request: Request, directory?: string) {
 
 export function createOpencodeClient(config?: Config & { directory?: string }) {
   if (!config?.fetch) {
-    const customFetch: any =  async (req: any) => {
-      // @ts-ignore
-      req.timeout = false
+    const customFetch = async (req: Request) => {
+      Object.assign(req, { timeout: false })
       return fetch(req)
     }
     config = {
@@ -44,10 +43,13 @@ export function createOpencodeClient(config?: Config & { directory?: string }) {
   }
 
   if (config?.directory) {
-    config.headers = {
-      ...config.headers,
-      "x-opencode-directory": encodeURIComponent(config.directory),
+    const headers = new Headers()
+    for (const [key, value] of Object.entries(config.headers ?? {})) {
+      if (value === null || value === undefined) continue
+      headers.set(key, Array.isArray(value) ? value.join(", ") : String(value))
     }
+    headers.set("x-opencode-directory", encodeURIComponent(config.directory))
+    config.headers = headers
   }
 
   const client = createClient(config)

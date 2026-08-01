@@ -141,7 +141,7 @@ const select = (
     .filter((entry) => entry.message.type !== "compaction")
     .map((entry) => serialize(entry.message))
     .filter(Boolean)
-  if (conversation.length === 0) return
+  if (conversation.length === 0) return undefined
   let total = 0
   let split = conversation.length
   let splitPrefix = ""

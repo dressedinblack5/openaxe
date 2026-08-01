@@ -250,6 +250,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
         throw new Error(`Circular color reference: ${[...chain, c].join(" -> ")}`)
       }
 
+// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- dynamic theme color key lookup; keys originate from Object.entries over ThemeColor
       const next = defs[c] ?? theme.theme[c as ThemeColor]
       if (next === undefined) {
         throw new Error(`Color reference "${c}" not found in defs or theme`)
@@ -266,6 +267,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
     Object.entries(theme.theme)
       .filter(([key]) => key !== "selectedListItemText" && key !== "backgroundMenu" && key !== "thinkingOpacity")
       .map(([key, value]) => {
+// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- values come from theme.theme and are resolved by their key
         return [key, resolveColor(value as ColorValue)]
       }),
   ) as Partial<Record<ThemeColor, RGBA>>
@@ -273,6 +275,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
   // Handle selectedListItemText separately since it's optional
   const hasSelectedListItemText = theme.theme.selectedListItemText !== undefined
   if (hasSelectedListItemText) {
+// oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- guarded by hasSelectedListItemText above
     resolved.selectedListItemText = resolveColor(theme.theme.selectedListItemText!)
   } else {
     // Backward compatibility: if selectedListItemText is not defined, use background color
@@ -290,6 +293,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
   // Handle thinkingOpacity - optional with default of 0.6
   const thinkingOpacity = theme.theme.thinkingOpacity ?? 0.6
 
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- assembled Theme carries optional resolved fields; cast keeps the contract type
   return {
     ...resolved,
     _hasSelectedListItemText: hasSelectedListItemText,
@@ -351,13 +355,15 @@ export function tint(base: RGBA, overlay: RGBA, alpha: number): RGBA {
 
 export function terminalMode(colors: TerminalColors): "dark" | "light" | undefined {
   const bg = colors.defaultBackground
-  if (!bg) return
+  if (!bg) return undefined
   const { r, g, b } = RGBA.fromHex(bg)
   return 0.299 * r + 0.587 * g + 0.114 * b > 0.5 ? "light" : "dark"
 }
 
 export function generateSystem(colors: TerminalColors, mode: "dark" | "light"): ThemeJson {
+  // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- generateSystem palette always carries the 16 ANSI entries
   const bg = RGBA.fromHex(colors.defaultBackground ?? colors.palette[0]!)
+  // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- generateSystem palette always carries the 16 ANSI entries
   const fg = RGBA.fromHex(colors.defaultForeground ?? colors.palette[7]!)
   const transparent = RGBA.fromValues(bg.r, bg.g, bg.b, 0)
   const isDark = mode == "dark"

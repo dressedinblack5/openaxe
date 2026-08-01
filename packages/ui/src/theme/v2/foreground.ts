@@ -8,7 +8,11 @@ const greyRef = (step: number): V2ColorValue => `var(--v2-grey-${step})`
 
 function greyHex(primitives: Record<string, V2ColorValue>, step: number): HexColor | undefined {
   const hex = primitives[`v2-grey-${step}`]
-  if (typeof hex === "string" && hex.startsWith("#")) return hex as HexColor
+  if (typeof hex === "string" && hex.startsWith("#")) {
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- startsWith("#") guarantees a hex literal; TS cannot narrow string via startsWith.
+    return hex as HexColor
+  }
+  return undefined
 }
 
 function resolveGreyRef(value: V2ColorValue, primitives: Record<string, V2ColorValue>) {

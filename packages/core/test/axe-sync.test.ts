@@ -109,9 +109,10 @@ describe("AxeSync", () => {
         const memory = yield* Memory.Service
         const entries = yield* memory.list()
         const theme = entries.find((e) => e.key === "theme")
-        expect(theme!.kind).toBe("config")
-        expect(theme!.scope).toBe("project")
-        expect(theme!.source).toBe("axe-md")
+        if (!theme) throw new Error("theme not found")
+        expect(theme.kind).toBe("config")
+        expect(theme.scope).toBe("project")
+        expect(theme.source).toBe("axe-md")
       }),
     ),
   )

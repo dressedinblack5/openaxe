@@ -10,6 +10,10 @@ import { useSDK } from "./sdk"
 import { RGBA } from "@opentui/core"
 import { readJson, writeJsonAtomic } from "../util/persistence"
 import { useTheme } from "./theme"
+
+function isThemeKey<T extends object>(name: string, theme: T): name is Extract<keyof T, string> {
+  return name in theme
+}
 import { useToast } from "../ui/toast"
 import { useRoute } from "./route"
 
@@ -47,7 +51,11 @@ export function recentModels(
     .map((item) => ({ providerID: item.providerID, modelID: item.modelID }))
 }
 
-export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+const Local = createSimpleContext({
   name: "Local",
   init: () => {
     const sync = useSync()
@@ -68,6 +76,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         if (!model) continue
         if (isModelValid(model)) return model
       }
+      return undefined
     }
 
     function createAgent() {
@@ -121,7 +130,10 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
             const color = agent.color
             if (color.startsWith("#")) return RGBA.fromHex(color)
             // already validated by config, just satisfying TS here
-            return theme[color as keyof typeof theme] as RGBA
+            if (isThemeKey(color, theme)) {
+              const themeColor = theme[color]
+              if (themeColor instanceof RGBA) return themeColor
+            }
           }
           return colors()[index % colors().length]
         },
@@ -177,12 +189,18 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
 
       readJson<unknown>(filePath)
         .then((x) => {
-          if (!x || typeof x !== "object") return
-          const value = x as Record<string, unknown>
-          if (Array.isArray(value.recent)) setModelStore("recent", value.recent)
-          if (Array.isArray(value.favorite)) setModelStore("favorite", value.favorite)
-          if (typeof value.variant === "object" && value.variant !== null)
-            setModelStore("variant", value.variant as Record<string, string | undefined>)
+          if (!isRecord(x)) return
+          if (Array.isArray(x.recent)) setModelStore("recent", x.recent)
+          if (Array.isArray(x.favorite)) setModelStore("favorite", x.favorite)
+          if (isRecord(x.variant)) {
+            const variant = Object.fromEntries(
+              Object.entries(x.variant).filter(
+                (entry): entry is [string, string | undefined] =>
+                  typeof entry[1] === "string" || entry[1] === undefined,
+              ),
+            )
+            setModelStore("variant", variant)
+          }
         })
         .catch(() => {})
         .finally(() => {
@@ -432,8 +450,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
 
       readJson<unknown>(filePath)
         .then((x) => {
-          if (!x || typeof x !== "object") return
-          const pinned = (x as Record<string, unknown>).pinned
+          if (!isRecord(x)) return
+          const pinned = x.pinned
           if (Array.isArray(pinned))
             setSessionStore(
               "pinned",
@@ -538,3 +556,5 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     return result
   },
 })
+export const useLocal = Local.use
+export const LocalProvider = Local.provider

@@ -15,7 +15,7 @@ export class FileSystemError extends Schema.TaggedErrorClass<FileSystemError>()(
   cause: Schema.optional(Schema.Defect()),
 }) {
   override get message() {
-    const detail = this.cause instanceof Error ? this.cause.message : this.cause ? `${this.cause}` : undefined
+    const detail = this.cause instanceof Error ? this.cause.message : this.cause ? JSON.stringify(this.cause) : undefined
     return `Filesystem operation failed: ${this.method}${detail !== undefined ? `: ${detail}` : ""}`
   }
 }
@@ -230,8 +230,8 @@ export function resolve(p: string): string {
   const resolved = pathResolve(windowsPath(p))
   try {
     return normalizePath(realpathSync(resolved))
-  } catch (e: any) {
-    if (e?.code === "ENOENT") return normalizePath(resolved)
+  } catch (e) {
+    if (e instanceof Error && "code" in e && e.code === "ENOENT") return normalizePath(resolved)
     throw e
   }
 }

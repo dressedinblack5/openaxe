@@ -133,10 +133,12 @@ describe("Format", () => {
 
         const one = {
           extensions: Formatter.gofmt.extensions,
+          // oxlint-disable-next-line typescript-eslint/unbound-method -- the raw method ref is restored via Formatter.gofmt.enabled = one.enabled.
           enabled: Formatter.gofmt.enabled,
         }
         const two = {
           extensions: Formatter.mix.extensions,
+          // oxlint-disable-next-line typescript-eslint/unbound-method -- the raw method ref is restored via Formatter.mix.enabled = two.enabled.
           enabled: Formatter.mix.enabled,
         }
 

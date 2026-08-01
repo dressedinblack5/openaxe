@@ -44,6 +44,7 @@ interface SqliteConnection extends Connection {
 
 const make = (options: Config) =>
   Effect.gen(function* () {
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Sqlite.Native is shared unknown across backends; the native layer guarantees a node DatabaseSync.
     const native = (yield* Sqlite.Native) as DatabaseSync
 
     const compiler = makeCompilerSqlite(options.transformQueryNames)
@@ -56,6 +57,7 @@ const make = (options: Config) =>
         const statement = native.prepare(query)
         statement.setReadBigInts(get(fiber.context, SafeIntegers))
         try {
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- node:sqlite bindings are driver-typed; Effect passes ReadonlyArray<unknown>.
           return Effect.succeed(statement.all(...(params as SQLInputValue[])) as Array<Record<string, unknown>>)
         } catch (cause) {
           return Effect.fail(
@@ -73,6 +75,7 @@ const make = (options: Config) =>
         statement.setReturnArrays(true)
         try {
           return Effect.succeed(
+            // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- node:sqlite bindings are driver-typed; Effect passes ReadonlyArray<unknown>.
             statement.all(...(params as SQLInputValue[])) as unknown as ReadonlyArray<ReadonlyArray<unknown>>,
           )
         } catch (cause) {
@@ -113,7 +116,8 @@ const make = (options: Config) =>
     const semaphore = yield* Semaphore.make(1)
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
-      const fiber = getCurrent()!
+      const fiber = getCurrent()
+      if (!fiber) return Effect.die("Missing current fiber in transaction acquirer")
       const scope = getUnsafe(fiber.context, Scope.Scope)
       return Effect.as(
         Effect.tap(restore(semaphore.take(1)), () => Scope.addFinalizer(scope, semaphore.release(1))),
@@ -122,6 +126,7 @@ const make = (options: Config) =>
     })
 
     const client = Object.assign(
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- SqlClient.make returns the base SqlClient; Object.assign below augments it with the SqliteClient-specific members.
       (yield* makeClient({
         acquirer,
         compiler,
@@ -164,6 +169,7 @@ const sqliteLayer = (config: Config) => effect(SqlClient, make(config))
 const drizzleLayer = effect(
   Sqlite.Drizzle,
   Effect.gen(function* () {
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Sqlite.Native is shared unknown across backends; the native layer guarantees a node DatabaseSync.
     return drizzle({ client: (yield* Sqlite.Native) as DatabaseSync }) as unknown as Sqlite.DrizzleClient
   }),
 )

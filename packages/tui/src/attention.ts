@@ -82,8 +82,8 @@ function clampVolume(volume: number) {
 }
 
 function soundVolume(input: TuiAttentionNotifyInput, config: Pick<TuiConfig.Resolved, "attention">) {
-  if (!config.attention.sound) return
-  if (input.sound === false) return
+  if (!config.attention.sound) return undefined
+  if (input.sound === false) return undefined
   if (input.sound === undefined) return clampVolume(config.attention.volume)
   if (input.sound === true) return clampVolume(config.attention.volume)
   return clampVolume(input.sound.volume ?? config.attention.volume)
@@ -91,7 +91,7 @@ function soundVolume(input: TuiAttentionNotifyInput, config: Pick<TuiConfig.Reso
 
 function normalizePack(pack: TuiAttentionSoundPack): RegisteredSoundPack | undefined {
   const id = pack.id.trim()
-  if (!id) return
+  if (!id) return undefined
   return {
     id,
     name: pack.name?.trim() || undefined,
@@ -106,10 +106,11 @@ function normalizePack(pack: TuiAttentionSoundPack): RegisteredSoundPack | undef
 }
 
 function focusSkip(when: TuiAttentionWhen, focus: FocusState) {
-  if (when === "always") return
+  if (when === "always") return undefined
   if (focus === "unknown") return "focus_unknown"
   if (when === "blurred" && focus === "focused") return "focused"
   if (when === "focused" && focus === "blurred") return "blurred"
+  return undefined
 }
 
 export function createTuiAttention(input: {

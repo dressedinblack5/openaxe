@@ -248,7 +248,7 @@ async function graphql(input: { query: string; variables: Record<string, string 
     method: "POST",
     body: JSON.stringify(input),
   })
-  const body = (await response.json()) as GraphqlResponse
+  const body: GraphqlResponse = await response.json()
   if (body.errors?.length)
     throw new Error(`GitHub GraphQL error: ${body.errors.map((error) => error.message).join(", ")}`)
   if (!body.data) throw new Error("GitHub GraphQL response did not include data")
@@ -293,12 +293,13 @@ async function ensureCleanupLabel() {
 }
 
 async function githubRequest(path: string, init: RequestInit, attempt = 0): Promise<Response> {
+  const merged = new Headers(headers)
+  for (const [key, value] of new Headers(init.headers)) {
+    merged.set(key, value)
+  }
   const response = await fetch(path.startsWith("https://") ? path : `https://api.github.com${path}`, {
     ...init,
-    headers: {
-      ...headers,
-      ...init.headers,
-    },
+    headers: merged,
   })
 
   if (response.ok) return response

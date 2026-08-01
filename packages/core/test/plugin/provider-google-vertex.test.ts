@@ -11,7 +11,9 @@ import type { LanguageModelV3 } from "@ai-sdk/provider"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- mock captures AI-SDK options, which are dynamic provider blobs.
 const vertexOptions: Record<string, any>[] = []
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- mock captures AI-SDK options, which are dynamic provider blobs.
 const googleAuthOptions: Record<string, any>[] = []
 const it = testEffect(PluginTestLayer)
 
@@ -62,6 +64,7 @@ function fakeSelectorSdk(calls: string[]) {
 }
 
 void mock.module("@ai-sdk/google-vertex", () => ({
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- mock captures AI-SDK options, which are dynamic provider blobs.
   createVertex: (options: Record<string, any>) => {
     vertexOptions.push(options)
     return {
@@ -72,6 +75,7 @@ void mock.module("@ai-sdk/google-vertex", () => ({
 
 void mock.module("google-auth-library", () => ({
   GoogleAuth: class {
+    // oxlint-disable-next-line typescript-eslint/no-explicit-any -- mock captures AI-SDK options, which are dynamic provider blobs.
     constructor(options: Record<string, any>) {
       googleAuthOptions.push(options)
     }

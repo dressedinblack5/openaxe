@@ -21,6 +21,7 @@ import { formatKeyBindings, useBindings, useKeymapSelector } from "../keymap"
 function groupBy<T, K extends string>(arr: T[], fn: (item: T) => K): Record<K, T[]> {
   return arr.reduce((acc, item) => {
     (acc[fn(item)] ??= []).push(item); return acc
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- empty accumulator typed via the reduce generic
   }, {} as Record<K, T[]>)
 }
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -59,6 +60,7 @@ export interface DialogSelectProps<T> {
   current?: T
 }
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- generic option value; rendered via user-provided view
 export interface DialogSelectOption<T = any> {
   title: string
   titleView?: JSX.Element

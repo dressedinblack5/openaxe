@@ -285,7 +285,7 @@ export const layer = Layer.effect(
             task = schedule(server, root, spawnKey)
             s.spawning.set(spawnKey, task)
             // Clean up after completion
-            task.finally(() => {
+            void task.finally(() => {
               if (s.spawning.get(spawnKey) === task) {
                 s.spawning.delete(spawnKey)
               }

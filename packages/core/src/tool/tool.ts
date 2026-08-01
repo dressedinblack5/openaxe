@@ -15,10 +15,12 @@ export interface Context {
   readonly abortSignal?: AbortSignal
 }
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- tool codecs convert between arbitrary encoded representations and their schema type; the encoded form is unconstrained so typed tools stay assignable to AnyTool.
 export type SchemaType<A> = Schema.Codec<A, any>
 
 declare const TypeId: unique symbol
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal any-schema constraint marker; no narrower bound exists.
 export interface Definition<Input extends SchemaType<any>, Output extends SchemaType<any>> {
   readonly [TypeId]: {
     readonly _Input: Input
@@ -26,6 +28,7 @@ export interface Definition<Input extends SchemaType<any>, Output extends Schema
   }
 }
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal "any tool" marker: only `any` type args (bivariant) make every typed tool assignable; no narrower bound exists.
 export type AnyTool = Definition<any, any>
 export const Failure = ToolFailure
 export type Failure = ToolFailure
@@ -65,6 +68,7 @@ export function extractFilePaths(call: ToolCall, output: unknown): readonly stri
   return Array.from(paths)
 }
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal any-schema constraint marker; no narrower bound exists.
 type Config<Input extends SchemaType<any>, Output extends SchemaType<any>> = {
   readonly description: string
   readonly input: Input
@@ -87,6 +91,7 @@ type Runtime = {
 
 const runtimes = new WeakMap<AnyTool, Runtime>()
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal any-schema constraint marker; no narrower bound exists.
 export function make<Input extends SchemaType<any>, Output extends SchemaType<any>>(
   config: Config<Input, Output>,
 ): Definition<Input, Output> {
@@ -168,6 +173,7 @@ export const validateName = (name: string) =>
     ? Effect.void
     : Effect.fail(new RegistrationError({ name, message: `Invalid tool name: ${name}` }))
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal any-schema constraint marker; no narrower bound exists.
 export const withPermission = <Input extends SchemaType<any>, Output extends SchemaType<any>>(
   tool: Definition<Input, Output>,
   permission: string,

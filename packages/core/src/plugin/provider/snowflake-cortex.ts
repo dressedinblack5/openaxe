@@ -1,12 +1,19 @@
 import { Effect } from "effect"
 import { define } from "../internal"
 import { ProviderV2 } from "../../provider"
-import type { OpenAICompatibleProviderSettings } from "@ai-sdk/openai-compatible"
 
-type FetchLike = (url: string | URL | Request, init?: RequestInit) => Promise<Response>
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function stringField(value: unknown, key: string): string | undefined {
+  if (!isRecord(value)) return undefined
+  const field = value[key]
+  return typeof field === "string" ? field : undefined
+}
 
 // Exported for testing: intercepts Cortex-specific request/response quirks.
-export function cortexFetch(upstream: FetchLike = fetch) {
+export function cortexFetch(upstream?: unknown) {
   return async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
     if (init?.body && typeof init.body === "string") {
       try {
@@ -19,17 +26,14 @@ export function cortexFetch(upstream: FetchLike = fetch) {
       } catch {}
     }
 
-    const response = await upstream(url, init)
+    const response = await (typeof upstream === "function" ? upstream : fetch)(url, init)
 
     // Cortex returns 400 "conversation complete" as a normal stop condition
     if (!response.ok && response.status === 400) {
       try {
-        const errorData = (await response.clone().json()) as Record<string, unknown>
-        if (
-          String(errorData.message || errorData.error || "")
-            .toLowerCase()
-            .includes("conversation complete")
-        ) {
+        const body: unknown = await response.clone().json()
+        const message = stringField(body, "message") || stringField(body, "error") || ""
+        if (message.toLowerCase().includes("conversation complete")) {
           return new Response(
             JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "", role: "assistant" } }] }),
             { status: 200, headers: new Headers({ "content-type": "application/json" }) },
@@ -76,14 +80,16 @@ export const SnowflakeCortexPlugin = define({
           process.env.SNOWFLAKE_CORTEX_PAT ??
           (typeof evt.options.token === "string" ? evt.options.token : undefined) ??
           (typeof evt.options.apiKey === "string" ? evt.options.apiKey : undefined)
-        const upstream = typeof evt.options.fetch === "function" ? (evt.options.fetch as FetchLike) : undefined
         if (evt.options.includeUsage !== false) evt.options.includeUsage = true
         const mod = yield* Effect.promise( async () => import("@ai-sdk/openai-compatible"))
         evt.sdk = mod.createOpenAICompatible({
           ...evt.options,
           ...(token ? { apiKey: token } : {}),
-          fetch: cortexFetch(upstream) as typeof fetch,
-        } as OpenAICompatibleProviderSettings)
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- FetchFunction is typeof globalThis.fetch; the wrapped implementation is a structural fetch whose static members are irrelevant to callers.
+          fetch: cortexFetch(evt.options.fetch) as typeof fetch,
+          name: evt.model.providerID,
+          baseURL: typeof evt.options.baseURL === "string" ? evt.options.baseURL : "",
+        })
       }),
     )
   }),

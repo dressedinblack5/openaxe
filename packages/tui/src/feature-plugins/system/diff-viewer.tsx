@@ -80,6 +80,7 @@ function filetype(input?: string) {
 
 function storedView(value: unknown): DiffView | undefined {
   if (value === "split" || value === "unified") return value
+  return undefined
 }
 
 function diffSourceLabel(mode: DiffMode) {
@@ -262,6 +263,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
       .filter((entry): entry is { fileIndex: number; node: BoxRenderable } => Boolean(entry.node))
       .map((entry) => ({
         ...entry,
+        // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- scroll ref set before pointer state computation
         contentY: scroll!.scrollTop + entry.node.y - scroll!.viewport.y,
       }))
       .sort((left, right) => left.contentY - right.contentY)
@@ -371,6 +373,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
         return
       }
       const contentHeight = Math.max(
+        // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- scroll ref set before filler height is computed
         ...entries.map((node) => scroll!.scrollTop + node.y - scroll!.viewport.y + node.height),
       )
       setPatchFillerHeight(Math.max(0, scroll.viewport.height - contentHeight))

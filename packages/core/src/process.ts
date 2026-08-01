@@ -13,7 +13,8 @@ export class AppProcessError extends Schema.TaggedErrorClass<AppProcessError>()(
 }) {
   override get message() {
     const detail =
-      this.stderr?.trim() || (this.cause instanceof Error ? this.cause.message : this.cause && String(this.cause))
+      this.stderr?.trim() ||
+      (this.cause instanceof Error ? this.cause.message : this.cause == null ? undefined : JSON.stringify(this.cause))
     const status = this.exitCode === undefined ? "" : ` (exit ${this.exitCode})`
     return `Command failed${status}: ${this.command}${detail ? `: ${detail}` : ""}`
   }
@@ -99,7 +100,7 @@ export const waitForAbort = (signal: AbortSignal) =>
   Effect.callback<never, Error>((resume) => {
     if (signal.aborted) {
       resume(Effect.fail(abortError(signal)))
-      return
+      return undefined
     }
     const onabort = () => resume(Effect.fail(abortError(signal)))
     signal.addEventListener("abort", onabort, { once: true })

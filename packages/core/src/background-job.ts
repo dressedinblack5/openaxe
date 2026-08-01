@@ -194,7 +194,7 @@ export const make = Effect.gen(function* () {
 
   const get: Interface["get"] = Effect.fn("BackgroundJob.get")(function* (id) {
     const job = (yield* SynchronizedRef.get(state.jobs)).get(id)
-    if (!job) return
+    if (!job) return undefined
     return snapshot(job)
   })
 

@@ -38,8 +38,9 @@ describe("Artifact", () => {
 
         const retrieved = yield* store.get("test-key")
         expect(retrieved).not.toBeNull()
-        expect(retrieved!.content).toBe("hello world")
-        expect(retrieved!.version).toBe(1)
+        if (!retrieved) throw new Error("retrieved not found")
+        expect(retrieved.content).toBe("hello world")
+        expect(retrieved.version).toBe(1)
       }),
     ),
   )
@@ -70,9 +71,10 @@ describe("Artifact", () => {
         expect(entry.overflowPath).toBeDefined()
 
         const retrieved = yield* store.get("big")
-        expect(retrieved!.content).toBe(big)
-        expect(retrieved!.truncated).toBe(true)
-        expect(retrieved!.size).toBe(big.length)
+        if (!retrieved) throw new Error("retrieved not found")
+        expect(retrieved.content).toBe(big)
+        expect(retrieved.truncated).toBe(true)
+        expect(retrieved.size).toBe(big.length)
       }),
     ),
   )
@@ -86,7 +88,8 @@ describe("Artifact", () => {
         expect(entry.content).toBe(small)
 
         const retrieved = yield* store.get("small")
-        expect(retrieved!.content).toBe(small)
+        if (!retrieved) throw new Error("retrieved not found")
+        expect(retrieved.content).toBe(small)
       }),
     ),
   )
@@ -144,7 +147,8 @@ describe("Artifact", () => {
 
         const retrieved = yield* store.get("overflow-test")
         expect(retrieved).not.toBeNull()
-        expect(retrieved!.content).toBe(big)
+        if (!retrieved) throw new Error("retrieved not found")
+        expect(retrieved.content).toBe(big)
       }),
     ),
   )
@@ -165,7 +169,8 @@ describe("Artifact", () => {
           expect(entry.content).toBe("hello")
 
           const retrieved = yield* store.get("tiny")
-          expect(retrieved!.content).toBe("hello world")
+          if (!retrieved) throw new Error("retrieved not found")
+          expect(retrieved.content).toBe("hello world")
         }).pipe(Effect.provide(artifactLayer))
       },
       (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),

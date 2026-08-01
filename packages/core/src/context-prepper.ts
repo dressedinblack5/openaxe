@@ -19,12 +19,10 @@ function render(changes: ReadonlyArray<Change>): string {
   return changes.map((c) => `  ${c.path} (${statusLabel(c.status)})`).join("\n")
 }
 
+const STATUS_LABELS: Record<"A" | "M" | "D", string> = { A: "added", M: "modified", D: "deleted" }
+
 function statusLabel(s: "A" | "M" | "D"): string {
-  switch (s) {
-    case "A": return "added"
-    case "M": return "modified"
-    case "D": return "deleted"
-  }
+  return STATUS_LABELS[s]
 }
 
 function parseLine(line: string): Change | null {

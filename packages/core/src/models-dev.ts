@@ -170,6 +170,7 @@ export const layer = Layer.effect(
         }
         return Effect.void
       }),
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- models.json read from disk: arbitrary JSON, narrowed to the provider map.
       Effect.map((v) => v as Record<string, Provider> | undefined),
     )
 
@@ -205,6 +206,7 @@ export const layer = Layer.effect(
           return yield* fetchAndWrite()
         }),
       )
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- models.json text: arbitrary JSON, narrowed to the provider map.
       return JSON.parse(text) as Record<string, Provider>
     }).pipe(Effect.withSpan("ModelsDev.populate"), Effect.orDie)
 

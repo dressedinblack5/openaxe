@@ -11,6 +11,12 @@ import type { DesktopTheme } from "./types"
 
 export type ColorScheme = "light" | "dark" | "system"
 
+const isColorScheme = (value: unknown): value is ColorScheme =>
+  typeof value === "string" && (value === "light" || value === "dark" || value === "system")
+
+const isMode = (value: unknown): value is "light" | "dark" =>
+  typeof value === "string" && (value === "light" || value === "dark")
+
 const STORAGE_KEYS = {
   THEME_ID: "opencode-theme-id",
   COLOR_SCHEME: "opencode-color-scheme",
@@ -176,7 +182,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
   name: "Theme",
   init: (props: { defaultTheme?: string; onThemeApplied?: (theme: DesktopTheme, mode: "light" | "dark") => void }) => {
     const themeId = normalize(read(STORAGE_KEYS.THEME_ID) ?? props.defaultTheme) ?? "oc-2"
-    const colorScheme = (read(STORAGE_KEYS.COLOR_SCHEME) as ColorScheme | null) ?? "system"
+    const rawScheme = read(STORAGE_KEYS.COLOR_SCHEME)
+    const colorScheme: ColorScheme = isColorScheme(rawScheme) ? rawScheme : "system"
     const mode = colorScheme === "system" ? getSystemMode() : colorScheme
     const [store, setStore] = createStore({
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- needed for index signature in store
@@ -244,8 +251,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         })
       }
       if (e.key === STORAGE_KEYS.COLOR_SCHEME && e.newValue) {
-        setStore("colorScheme", e.newValue as ColorScheme)
-        setStore("mode", e.newValue === "system" ? getSystemMode() : (e.newValue as "light" | "dark"))
+        setStore("colorScheme", isColorScheme(e.newValue) ? e.newValue : "system")
+        setStore("mode", e.newValue === "system" ? getSystemMode() : isMode(e.newValue) ? e.newValue : getSystemMode())
       }
     }
 
@@ -261,7 +268,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
 
       const rawTheme = read(STORAGE_KEYS.THEME_ID)
       const savedTheme = normalize(rawTheme ?? props.defaultTheme) ?? "oc-2"
-      const savedScheme = (read(STORAGE_KEYS.COLOR_SCHEME) as ColorScheme | null) ?? "system"
+      const rawSavedScheme = read(STORAGE_KEYS.COLOR_SCHEME)
+      const savedScheme: ColorScheme = isColorScheme(rawSavedScheme) ? rawSavedScheme : "system"
       if (rawTheme && rawTheme !== savedTheme) {
         write(STORAGE_KEYS.THEME_ID, savedTheme)
         clear()

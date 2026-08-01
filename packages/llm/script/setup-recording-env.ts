@@ -309,7 +309,7 @@ const printStatus = (providers: ReadonlyArray<Provider>, fileEnv: Env) => {
 const exitIfCancel = <A>(value: A | symbol): A => {
   if (!prompts.isCancel(value)) return value
   prompts.cancel("Cancelled")
-  process.exit(130)
+  return process.exit(130)
 }
 
 const upsertEnv = (contents: string, values: Env) => {

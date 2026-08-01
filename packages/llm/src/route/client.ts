@@ -283,6 +283,7 @@ function makeFromTransport<Body, Prepared, Frame, Event, State>(
           provider: provider ?? routeInput.provider,
           auth: auth ?? routeInput.auth,
           endpoint: endpoint ? Endpoint.merge(routeInput.endpoint, endpoint) : routeInput.endpoint,
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- merge of patch transport over routeInput.transport; both are Transport<Body, Prepared, Frame>-compatible.
           transport: (transport != null ? transport : routeInput.transport) as Transport<Body, Prepared, Frame>,
           defaults: mergeRouteDefaults(route.defaults, defaults),
         })
@@ -413,6 +414,7 @@ export const prepare = <Body = unknown>(request: LLMRequest): Effect.Effect<Prep
   prepareWith(request) as Effect.Effect<PreparedRequestOf<Body>, LLMError>
 
 export function stream(request: LLMRequest): Stream.Stream<LLMEvent, LLMError> {
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Service.stream yields Stream<LLMEvent, LLMError>; Stream.unwrap lifts the Effect back out.
   return Stream.unwrap(
     Effect.gen(function* () {
       return (yield* Service).stream(request)
@@ -421,6 +423,7 @@ export function stream(request: LLMRequest): Stream.Stream<LLMEvent, LLMError> {
 }
 
 export function generate(request: LLMRequest): Effect.Effect<LLMResponse, LLMError> {
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Service.generate returns Effect<LLMResponse, LLMError>.
   return Effect.gen(function* () {
     return yield* (yield* Service).generate(request)
   }) as Effect.Effect<LLMResponse, LLMError>

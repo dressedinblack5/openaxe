@@ -6,11 +6,13 @@ import { ModelV2 } from "./model"
 import { ProviderV2 } from "./provider"
 import { State } from "./state"
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- dynamic provider SDK instance; arbitrary AI-SDK methods are invoked on it.
 type SDK = any
 
 export interface SDKEvent {
   readonly model: ModelV2.Info
   readonly package: string
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- dynamic provider options forwarded to the AI SDK.
   readonly options: Record<string, any>
   sdk?: SDK
 }
@@ -18,6 +20,7 @@ export interface SDKEvent {
 export interface LanguageEvent {
   readonly model: ModelV2.Info
   readonly sdk: SDK
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- dynamic provider options forwarded to the AI SDK.
   readonly options: Record<string, any>
   language?: LanguageModelV3
 }
@@ -71,6 +74,7 @@ function wrapSSE(res: Response, ms: number, ctl: AbortController) {
 }
 
 function prepareOptions(model: ModelV2.Info, pkg: string) {
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- dynamic provider options forwarded to the AI SDK.
   const options: Record<string, any> = {
     name: model.providerID,
     ...(model.api.type === "aisdk" ? (model.api.settings ?? {}) : {}),
@@ -100,6 +104,7 @@ function prepareOptions(model: ModelV2.Info, pkg: string) {
       opts.body &&
       opts.method === "POST"
     ) {
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- the pkg + opts.body + method guards guarantee a JSON string body.
       const body = JSON.parse(opts.body as string)
       if (body.store !== true && Array.isArray(body.input)) {
         for (const item of body.input) {

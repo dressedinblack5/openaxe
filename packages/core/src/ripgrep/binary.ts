@@ -112,7 +112,8 @@ export const layer = Layer.effect(
           const target = path.join(Global.Path.bin, `rg${process.platform === "win32" ? ".exe" : ""}`)
           if (yield* fs.isFile(target).pipe(Effect.orDie)) return target
 
-          const platformKey = `${process.arch}-${process.platform}` as keyof typeof PLATFORM
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- the runtime guard below validates the arch-platform tuple against PLATFORM.
+      const platformKey = `${process.arch}-${process.platform}` as keyof typeof PLATFORM
           const config = PLATFORM[platformKey]
           if (!config) throw new Error(`unsupported platform for ripgrep: ${platformKey}`)
 

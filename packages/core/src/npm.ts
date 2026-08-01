@@ -136,6 +136,7 @@ export const layer = Layer.effect(
           savePrefix: "",
           ignoreScripts: true,
         })
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- arborist.reify resolves the full dependency tree; pin its shape for the caller.
         return yield* Effect.tryPromise({
           try:  async () =>
             arborist.reify({
@@ -184,6 +185,7 @@ export const layer = Layer.effect(
         const pkgPath = path.join(pkgDir, "package.json")
         const json = yield* afs.readJson(pkgPath).pipe(Effect.option)
         if (Option.isNone(json)) return
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- package.json read from disk: arbitrary JSON, narrow to the dependency map.
         const devDeps = (json.value as Record<string, unknown>)?.devDependencies as Record<string, string> | undefined
         if (!devDeps) return
         const missing = yield* Effect.filter(
@@ -199,6 +201,7 @@ export const layer = Layer.effect(
         const pkgPath = path.join(pkgDir, "package.json")
         const json = yield* afs.readJson(pkgPath).pipe(Effect.option)
         if (Option.isNone(json)) return
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- package.json read from disk: arbitrary JSON, narrow to the dependency map.
         const peerDeps = (json.value as Record<string, unknown>)?.peerDependencies as Record<string, string> | undefined
         if (!peerDeps) return
         const missing = yield* Effect.filter(
@@ -284,7 +287,9 @@ export const layer = Layer.effect(
           packages?: Record<string, { dependencies?: Record<string, string>; devDependencies?: Record<string, string>; peerDependencies?: Record<string, string>; optionalDependencies?: Record<string, string> }>
         }
 
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- package.json/lockfile read from disk: arbitrary JSON, narrowed to the known schemas.
         const pkgTyped = pkg as PackageJson
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- lockfile read from disk: arbitrary JSON, narrowed to the known schema.
         const lockTyped = lock as LockFile
         const declared = new Set([
           ...Object.keys(pkgTyped.dependencies || {}),
@@ -330,6 +335,7 @@ export const layer = Layer.effect(
         const pkgJson = yield* afs.readJson(path.join(dir, "node_modules", pkg, "package.json")).pipe(Effect.option)
 
         if (Option.isSome(pkgJson)) {
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- package.json read from disk: arbitrary JSON, narrow to the bin field.
           const parsed = pkgJson.value as { bin?: string | Record<string, string> }
           if (parsed?.bin) {
             const unscoped = pkg.startsWith("@") ? pkg.split("/")[1] : pkg
