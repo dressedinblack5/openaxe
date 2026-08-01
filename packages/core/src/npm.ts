@@ -168,29 +168,82 @@ export const layer = Layer.effect(
         }
       })()
 
-      if (yield* afs.existsSafe(path.join(dir, "node_modules", name))) {
-        return resolveEntryPoint(name, path.join(dir, "node_modules", name))
-      }
+      const pkgDir = path.join(dir, "node_modules", name)
+      const isCached = yield* afs.existsSafe(pkgDir)
 
-      const tree = yield* reify({ dir, add: [pkg] })
+      if (!isCached) {
+        yield* reify({ dir, add: [pkg] })
+      }
 
       // Plugin packages often list @opencode-ai/* packages as devDependencies
       // but import them at runtime. npm skips devDeps of transitive deps, so
-      // install those explicitly if the package needs them.
+      // install those explicitly if the package needs them — but only when
+      // they're actually missing, to avoid re-resolving the tree (registry
+      // round-trips) on every cached load.
       yield* Effect.gen(function* () {
-        const pkgPath = path.join(dir, "node_modules", name, "package.json")
+        const pkgPath = path.join(pkgDir, "package.json")
         const json = yield* afs.readJson(pkgPath).pipe(Effect.option)
         if (Option.isNone(json)) return
         const devDeps = (json.value as Record<string, unknown>)?.devDependencies as Record<string, string> | undefined
         if (!devDeps) return
-        const devAdd = Object.keys(devDeps).filter((d) => d.startsWith("@opencode-ai/"))
-        if (!devAdd.length) return
-        yield* reify({ dir, add: devAdd })
+        const missing = yield* Effect.filter(
+          Object.keys(devDeps).filter((d) => d.startsWith("@opencode-ai/")),
+          (d) => afs.existsSafe(path.join(dir, "node_modules", d)).pipe(Effect.map((e) => !e)),
+        )
+        if (!missing.length) return
+        yield* reify({ dir, add: missing })
       }).pipe(Effect.withSpan("Npm.installDevRuntimeDeps"), Effect.ignore)
+
+      // Also install @opencode-ai/* peerDependencies that plugins need at runtime
+      yield* Effect.gen(function* () {
+        const pkgPath = path.join(pkgDir, "package.json")
+        const json = yield* afs.readJson(pkgPath).pipe(Effect.option)
+        if (Option.isNone(json)) return
+        const peerDeps = (json.value as Record<string, unknown>)?.peerDependencies as Record<string, string> | undefined
+        if (!peerDeps) return
+        const missing = yield* Effect.filter(
+          Object.keys(peerDeps).filter((d) => d.startsWith("@opencode-ai/")),
+          (d) => afs.existsSafe(path.join(dir, "node_modules", d)).pipe(Effect.map((e) => !e)),
+        )
+        if (!missing.length) return
+        yield* reify({ dir, add: missing })
+      }).pipe(Effect.withSpan("Npm.installPeerRuntimeDeps"), Effect.ignore)
+
+      if (isCached) {
+        return resolveEntryPoint(name, pkgDir)
+      }
+
+      const tree = yield* Effect.gen(function* () {
+        const { Arborist } = yield* Effect.promise(async () => import("@npmcli/arborist"))
+        const npmOptions = yield* NpmConfig.load(dir)
+        const arborist = new Arborist({
+          ...npmOptions,
+          path: dir,
+          binLinks: true,
+          progress: false,
+          savePrefix: "",
+          ignoreScripts: true,
+        })
+        return yield* Effect.tryPromise({
+          try: async () =>
+            arborist.reify({
+              ...npmOptions,
+              add: [],
+              save: true,
+              saveType: "prod",
+            }),
+          catch: (cause) =>
+            new InstallFailedError({
+              cause,
+              add: [],
+              dir,
+            }),
+        })
+      }).pipe(Effect.withSpan("Npm.reifyTree"))
 
       const first = tree.edgesOut.values().next().value?.to
       if (!first) {
-        const result = resolveEntryPoint(name, path.join(dir, "node_modules", name))
+        const result = resolveEntryPoint(name, pkgDir)
         if (result.entrypoint) return result
         return yield* new InstallFailedError({ add: [pkg], dir })
       }
