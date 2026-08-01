@@ -231,7 +231,7 @@ export const TuiCommand = cmd({
       const cwd = Filesystem.resolve(process.cwd())
 
       const worker = new Worker(file)
-      const client = Rpc.client<typeof rpc>(worker)
+      const client = Rpc.client<typeof rpc>(worker, { requestTimeout: 120_000 })
       mark("worker-created")
       const reload = () => {
         client.call("reload", undefined).catch(() => {})
