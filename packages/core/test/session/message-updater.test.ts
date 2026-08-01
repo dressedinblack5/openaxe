@@ -15,7 +15,7 @@ const decodeEvent = (input: unknown): SessionEvent.Event =>
 describe("SessionMessageUpdater", () => {
   it.effect("memory() adapter: appendMessage then getCurrentAssistant returns undefined", () =>
     Effect.gen(function* () {
-      const state: { messages: SessionMessage.Message[] } = { messages: [] }
+      const state: SessionMessageUpdater.MemoryState = { messages: [], assistantIndex: new Map(), shellIndex: new Map(), latestAssistantIndex: -1 }
       const adapter = SessionMessageUpdater.memory(state)
 
       yield* adapter.appendMessage(
@@ -36,7 +36,7 @@ describe("SessionMessageUpdater", () => {
 
   it.effect("session.next.step.started creates an assistant message", () =>
     Effect.gen(function* () {
-      const state: { messages: SessionMessage.Message[] } = { messages: [] }
+      const state: SessionMessageUpdater.MemoryState = { messages: [], assistantIndex: new Map(), shellIndex: new Map(), latestAssistantIndex: -1 }
       const adapter = SessionMessageUpdater.memory(state)
 
       yield* SessionMessageUpdater.update(
@@ -68,7 +68,7 @@ describe("SessionMessageUpdater", () => {
 
   it.effect("session.next.text.delta accumulates text on an existing text block", () =>
     Effect.gen(function* () {
-      const state: { messages: SessionMessage.Message[] } = { messages: [] }
+      const state: SessionMessageUpdater.MemoryState = { messages: [], assistantIndex: new Map(), shellIndex: new Map(), latestAssistantIndex: -1 }
       const adapter = SessionMessageUpdater.memory(state)
 
       yield* SessionMessageUpdater.update(
@@ -143,7 +143,7 @@ describe("SessionMessageUpdater", () => {
 
   it.effect("session.next.tool.input.started → called → success transitions tool state", () =>
     Effect.gen(function* () {
-      const state: { messages: SessionMessage.Message[] } = { messages: [] }
+      const state: SessionMessageUpdater.MemoryState = { messages: [], assistantIndex: new Map(), shellIndex: new Map(), latestAssistantIndex: -1 }
       const adapter = SessionMessageUpdater.memory(state)
 
       yield* SessionMessageUpdater.update(
@@ -229,7 +229,7 @@ describe("SessionMessageUpdater", () => {
 
   it.effect("session.next.shell.started → ended updates shell output", () =>
     Effect.gen(function* () {
-      const state: { messages: SessionMessage.Message[] } = { messages: [] }
+      const state: SessionMessageUpdater.MemoryState = { messages: [], assistantIndex: new Map(), shellIndex: new Map(), latestAssistantIndex: -1 }
       const adapter = SessionMessageUpdater.memory(state)
 
       yield* SessionMessageUpdater.update(
@@ -276,7 +276,7 @@ describe("SessionMessageUpdater", () => {
 
   it.effect("session.next.compaction.ended appends a compaction message", () =>
     Effect.gen(function* () {
-      const state: { messages: SessionMessage.Message[] } = { messages: [] }
+      const state: SessionMessageUpdater.MemoryState = { messages: [], assistantIndex: new Map(), shellIndex: new Map(), latestAssistantIndex: -1 }
       const adapter = SessionMessageUpdater.memory(state)
 
       yield* SessionMessageUpdater.update(
@@ -307,7 +307,7 @@ describe("SessionMessageUpdater", () => {
 
   it.effect("multiple session.next.step.started completes the first assistant", () =>
     Effect.gen(function* () {
-      const state: { messages: SessionMessage.Message[] } = { messages: [] }
+      const state: SessionMessageUpdater.MemoryState = { messages: [], assistantIndex: new Map(), shellIndex: new Map(), latestAssistantIndex: -1 }
       const adapter = SessionMessageUpdater.memory(state)
 
       yield* SessionMessageUpdater.update(
@@ -366,7 +366,7 @@ describe("SessionMessageUpdater", () => {
 
   it.effect("session.next.tool.failed transitions tool state to error", () =>
     Effect.gen(function* () {
-      const state: { messages: SessionMessage.Message[] } = { messages: [] }
+      const state: SessionMessageUpdater.MemoryState = { messages: [], assistantIndex: new Map(), shellIndex: new Map(), latestAssistantIndex: -1 }
       const adapter = SessionMessageUpdater.memory(state)
 
       yield* SessionMessageUpdater.update(
@@ -449,7 +449,7 @@ describe("SessionMessageUpdater", () => {
 
   it.effect("session.next.reasoning.delta accumulates reasoning text", () =>
     Effect.gen(function* () {
-      const state: { messages: SessionMessage.Message[] } = { messages: [] }
+      const state: SessionMessageUpdater.MemoryState = { messages: [], assistantIndex: new Map(), shellIndex: new Map(), latestAssistantIndex: -1 }
       const adapter = SessionMessageUpdater.memory(state)
 
       yield* SessionMessageUpdater.update(
