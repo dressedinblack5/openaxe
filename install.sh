@@ -25,12 +25,6 @@ case "$ARCH" in
   *) echo "unsupported arch: $ARCH"; exit 1 ;;
 esac
 
-echo "Fetching latest release..."
-TAG=$(curl -sL "https://api.github.com/repos/$REPO/releases/latest" \
-  | grep '"tag_name"' | cut -d'"' -f4)
-[ -n "$TAG" ] || { echo "could not find latest release"; exit 1; }
-VERSION="${TAG#v}"
-
 ARCHIVE="openaxe-${PLATFORM}-${ARCH}"
 # macOS ships .zip; Linux ships .tar.gz (musl variants excluded by default)
 if [ "$PLATFORM" = "linux" ]; then
@@ -40,8 +34,9 @@ else
 fi
 ARCHIVE="${ARCHIVE}.${EXT}"
 
-DOWNLOAD_URL="https://github.com/$REPO/releases/download/$TAG/$ARCHIVE"
-echo "Downloading openaxe $VERSION ($ARCHIVE)..."
+# releases/latest/download redirects to the newest release asset — no API call, no rate limits
+DOWNLOAD_URL="https://github.com/$REPO/releases/latest/download/$ARCHIVE"
+echo "Downloading openaxe latest ($ARCHIVE)..."
 
 mkdir -p "$BIN_DIR"
 
@@ -75,5 +70,5 @@ if [ "$PLATFORM" = "windows" ]; then
   fi
 fi
 
-echo "Installed openaxe $VERSION to $BIN_DIR/openaxe"
+echo "Installed openaxe latest to $BIN_DIR/openaxe"
 echo "Make sure $BIN_DIR is in your PATH"
