@@ -8,7 +8,7 @@ set -euo pipefail
 # truncation when pressing Enter in Kitty and other terminals.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/patches/install-korean-ime-fix.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/patches/install-korean-ime-fix.sh | bash
 #   # or from a cloned repo:
 #   ./patches/install-korean-ime-fix.sh
 
@@ -114,7 +114,7 @@ echo ""
 ok "Done! Korean IME fix is now active."
 echo ""
 info "To uninstall and revert to the official release:"
-echo "  curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install | bash"
+echo "  curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash"
 echo ""
 info "To update (re-pull and rebuild):"
 echo "  $0"

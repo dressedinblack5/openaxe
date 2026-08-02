@@ -51,7 +51,7 @@ mkdir -p "$BIN_DIR"
 
 cat > "$WRAPPER" <<SCRIPT
 #!/usr/bin/env bash
-exec bun "$INSTALL_DIR/packages/openaxe/bin/openaxe" "\$@"
+exec bun --conditions=browser "$INSTALL_DIR/packages/openaxe/src/index.ts" "\$@"
 SCRIPT
 chmod +x "$WRAPPER"
 

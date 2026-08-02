@@ -47,6 +47,27 @@ rem --- Desktop shortcut ---
 echo Creating desktop shortcut...
 powershell -NoProfile -Command "$ws=New-Object -ComObject WScript.Shell;$sc=$ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\openaxe.lnk');$sc.TargetPath='%BIN_DIR%\openaxe.exe';$sc.Description='openaxe - AI-powered terminal coding assistant';$sc.Save()" 2>nul
 
+rem --- Visual C++ Redistributable check (required by opentui.dll) ---
+set "NEED_VC=0"
+if not exist "%SystemRoot%\System32\vcruntime140.dll" set "NEED_VC=1"
+if not exist "%SystemRoot%\System32\msvcp140.dll" set "NEED_VC=1"
+if "%NEED_VC%"=="1" (
+    echo.
+    echo Visual C++ Redistributable not detected. Installing...
+    set "VCREDIST=vc_redist.x64.exe"
+    if "%ARCH%"=="arm64" set "VCREDIST=vc_redist.arm64.exe"
+    curl -fsSL "https://aka.ms/vs/17/release/%VCREDIST%" -o "%TEMP%\%VCREDIST%"
+    if errorlevel 1 (
+        echo Failed to download %VCREDIST%.
+        echo openaxe needs the Visual C++ Redistributable. Install it manually from:
+        echo   https://aka.ms/vs/17/release/%VCREDIST%
+    ) else (
+        start /wait "%TEMP%\%VCREDIST%" /install /quiet /norestart
+        del "%TEMP%\%VCREDIST%" 2>nul
+        echo VC++ Redistributable installed.
+    )
+)
+
 echo.
 echo Installed openaxe to %BIN_DIR%\openaxe.exe
 echo Run openaxe in any project directory to start.

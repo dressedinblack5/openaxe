@@ -328,6 +328,17 @@ export const TuiCommand = cmd({
           } catch {
             UI.error(errorMessage(cause) || String(cause))
           }
+          if (process.platform === "win32") {
+            const msg = errorMessage(cause) || String(cause)
+            if (msg.includes("error code 126") || msg.includes("Failed to open library")) {
+              UI.error(
+                "On Windows, this usually means the Visual C++ Redistributable is missing or openaxe is running from a network share.",
+              )
+              UI.error(
+                "Install it from https://aka.ms/vs/17/release/vc_redist.x64.exe (or vc_redist.arm64.exe for ARM64) and run openaxe from a local drive.",
+              )
+            }
+          }
           process.exitCode = 1
           return
         }
