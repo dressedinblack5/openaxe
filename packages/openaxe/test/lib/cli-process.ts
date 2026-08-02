@@ -135,6 +135,7 @@ export type ServeHandle = {
 export type AcpOpts = SpawnOpts & {
   readonly cwd?: string
   readonly extraArgs?: string[]
+  readonly readyTimeoutMs?: number
 }
 
 export type AcpHandle = {
@@ -451,13 +452,14 @@ export function withCliFixture<A, E>(
           Effect.ignore({ log: true }),
         ),
       )
+      const readyTimeoutMs = opts?.readyTimeoutMs ?? 15_000
       yield* Deferred.await(acpReadyDeferred).pipe(
         Effect.timeoutOrElse({
-          duration: Duration.seconds(15),
+          duration: Duration.millis(readyTimeoutMs),
           orElse: () =>
             Effect.fail(
               new Error(
-                `opencode acp did not become ready within 15s\n` +
+                `opencode acp did not become ready within ${readyTimeoutMs}ms\n` +
                   `stderr (last 2000):\n${stderrChunks.join("").slice(-2000)}`,
               ),
             ),
