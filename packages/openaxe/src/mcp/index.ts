@@ -513,14 +513,17 @@ export const layer = Layer.effect(
         // contributes its own entry but marks it disabled when its probe fails (no
         // node on PATH / bundle not resolvable in a compiled binary). openaxe
         // resolves the self-contained runtime itself (downloaded on first connect),
-        // so override a probe-failed entry; user config wins (merged last).
+        // so override a probe-failed entry. When no codegraph entry exists at all,
+        // only inject when the user hasn't declared their own mcp servers — user
+        // config wins (merged last).
+        const mcpConfigured = cfg.mcp != null
         const existingCodegraph = servers.codegraph
         const probeFailed =
           isMcpConfigured(existingCodegraph) &&
           existingCodegraph.type === "local" &&
           existingCodegraph.enabled === false &&
           existingCodegraph.command[0] === "codegraph"
-        if (!isMcpConfigured(existingCodegraph) || probeFailed) {
+        if ((!isMcpConfigured(existingCodegraph) && !mcpConfigured) || probeFailed) {
           servers.codegraph = {
             type: "local",
             command: Codegraph.resolveCodegraphCommandSync() ?? ["codegraph", "serve", "--mcp"],
