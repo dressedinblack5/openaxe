@@ -24,6 +24,31 @@ const sourcemapsFlag = process.argv.includes("--sourcemaps")
 const plugin = createSolidTransformPlugin()
 const skipEmbedWebUi = process.argv.includes("--skip-embed-web-ui")
 
+// Patch tiktoken's CJS wasm loader: inside compiled binaries __dirname is a
+// forward-slash bunfs path (B:/~BUN/root/... on win32) while path.sep is "\\",
+// so its separator-based candidate walk collapses → "Missing tiktoken_bg.wasm".
+// The wasm is copied next to every binary below; check there via process.execPath.
+const patchTiktokenLoader: Bun.BunPlugin = {
+  name: "patch-tiktoken-loader",
+  setup(build) {
+    build.onLoad({ filter: /tiktoken[\\/]lite[\\/]tiktoken\.cjs$/ }, async (args) => {
+      const source = await Bun.file(args.path).text()
+      const needle = 'candidates.unshift(path.join(__dirname, "./tiktoken_bg.wasm"));'
+      if (!source.includes(needle)) {
+        console.warn(`  warning: tiktoken loader changed shape, patch skipped: ${args.path}`)
+        return { contents: source, loader: "js" }
+      }
+      const patch = [
+        'if (typeof process !== "undefined" && process.execPath) {',
+        '  candidates.unshift(path.join(path.dirname(process.execPath), "tiktoken_bg.wasm"));',
+        "}",
+        needle,
+      ].join("\n")
+      return { contents: source.replace(needle, patch), loader: "js" }
+    })
+  },
+}
+
 const createEmbeddedWebUIBundle = async () => {
   const appDir = path.join(import.meta.dirname, "../../app")
   if (!fs.existsSync(appDir)) {
@@ -50,6 +75,13 @@ const createEmbeddedWebUIBundle = async () => {
     ...entries,
     `}`,
   ].join("\n")
+}
+
+// Copy tiktoken_bg.wasm for @anthropic-ai/tokenizer (used by token.ts)
+const tiktokenWasmPath = path.resolve(dir, "../../node_modules/.bun/tiktoken@1.0.22/node_modules/tiktoken/lite/tiktoken_bg.wasm")
+const tiktokenWasmDest = path.resolve(dir, "src/tiktoken_bg.wasm")
+if (fs.existsSync(tiktokenWasmPath)) {
+  fs.copyFileSync(tiktokenWasmPath, tiktokenWasmDest)
 }
 
 const embeddedFileMap = skipEmbedWebUi ? null : await createEmbeddedWebUIBundle()
@@ -98,22 +130,17 @@ const allTargets: {
     arch: "x64",
   },
   {
-    os: "darwin",
+    os: "win32",
+    arch: "x64",
+  },
+  {
+    os: "win32",
     arch: "x64",
     avx2: false,
   },
   {
     os: "win32",
     arch: "arm64",
-  },
-  {
-    os: "win32",
-    arch: "x64",
-  },
-  {
-    os: "win32",
-    arch: "x64",
-    avx2: false,
   },
 ]
 
@@ -197,7 +224,7 @@ for (const item of targets) {
   await Bun.build({
     conditions: ["bun", "node"],
     tsconfig: "./tsconfig.json",
-    plugins: [plugin],
+    plugins: [plugin, patchTiktokenLoader],
     external: ["node-gyp"],
     format: "esm",
     minify: true,
@@ -254,6 +281,20 @@ for (const item of targets) {
     }
   } catch {
     console.warn(`  warning: could not copy native lib for ${name}`)
+  }
+
+  // Copy tiktoken_bg.wasm next to binary for @anthropic-ai/tokenizer
+  try {
+    const wasmSrc = path.resolve(dir, "src/tiktoken_bg.wasm")
+    const wasmDst = `${nativeCopyDir(item)}/tiktoken_bg.wasm`
+    if (fs.existsSync(wasmSrc)) {
+      await $`cp ${wasmSrc} ${wasmDst}`
+      if (item.os === process.platform && item.arch === process.arch && !item.abi) {
+        await $`cp ${wasmSrc} ${dir}/bin/tiktoken_bg.wasm`
+      }
+    }
+  } catch {
+    console.warn(`  warning: could not copy tiktoken_bg.wasm for ${name}`)
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`

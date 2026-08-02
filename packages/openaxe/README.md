@@ -79,6 +79,19 @@ openaxe
 openaxe run "explain this codebase"
 ```
 
+## Advantages Over Official OpenCode
+
+| | openaxe | official opencode |
+|---|---|---|
+| **Monorepo size** | 13 packages | 27 |
+| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
+| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
+| **Effects** | Effect v4 throughout | Mixed patterns |
+| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
+| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
+| **Startup** | Lazy-loaded CLI commands | Eager imports |
+| **Identity** | Renamed project-wide (`openaxe`) | N/A |
+
 ## Features
 
 - **Multi-provider LLM** — 15+ providers: Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, GitLab, and more
@@ -372,19 +385,6 @@ The monorepo ships 13 packages:
 - **No network by default** — server binds to `127.0.0.1:0` (random port). No daemon unless started.
 - **`--pure` mode** — run without plugins to eliminate third-party code.
 - **Supply chain** — native deps use `node-gyp rebuild` during install. For defense-in-depth: `bun install --ignore-scripts` + `bun audit`.
-
-## Advantages Over Official OpenCode
-
-| | openaxe | official opencode |
-|---|---|---|
-| **Monorepo size** | 13 packages | 27 |
-| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
-| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
-| **Effects** | Effect v4 throughout | Mixed patterns |
-| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
-| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
-| **Startup** | Lazy-loaded CLI commands | Eager imports |
-| **Identity** | Renamed project-wide (`openaxe`) | N/A |
 
 Contributions welcome — see `AGENTS.md` for development guidelines.
 

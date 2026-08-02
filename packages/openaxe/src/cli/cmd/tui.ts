@@ -14,6 +14,7 @@ import { writeHeapSnapshot } from "v8"
 import { validateSession } from "../tui/validate-session"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
 import { mark, report } from "@/cli/startup-timing"
+import { Cause } from "effect"
 
 declare global {
   const OPENCODE_WORKER_PATH: string
@@ -295,29 +296,41 @@ export const TuiCommand = cmd({
         await nativeLibPromise
         mark("native-lib")
         mark("run-start")
-        await Effect.runPromise(
-          run({
-            url: transport.url,
-            async onSnapshot() {
-              const tui = writeHeapSnapshot("tui.heapsnapshot")
-              const server = await client.call("snapshot", undefined)
-              return [tui, server]
-            },
-            config,
-            pluginHost: createLegacyTuiPluginHost(),
-            directory: cwd,
-            fetch: transport.fetch,
-            events: transport.events,
-            args: {
-              continue: args.continue,
-              sessionID: args.session,
-              agent: args.agent,
-              model: args.model,
-              prompt,
-              fork: args.fork,
-            },
-          }),
-        )
+        try {
+          await Effect.runPromise(
+            run({
+              url: transport.url,
+              async onSnapshot() {
+                const tui = writeHeapSnapshot("tui.heapsnapshot")
+                const server = await client.call("snapshot", undefined)
+                return [tui, server]
+              },
+              config,
+              pluginHost: createLegacyTuiPluginHost(),
+              directory: cwd,
+              fetch: transport.fetch,
+              events: transport.events,
+              args: {
+                continue: args.continue,
+                sessionID: args.session,
+                agent: args.agent,
+                model: args.model,
+                prompt,
+                fork: args.fork,
+              },
+            }),
+          )
+        } catch (e) {
+          let cause = e
+          while (cause instanceof Error && cause.cause) cause = cause.cause
+          try {
+            UI.error(Cause.pretty(Cause.die(cause)))
+          } catch {
+            UI.error(errorMessage(cause) || String(cause))
+          }
+          process.exitCode = 1
+          return
+        }
         mark("run-complete")
         report()
       } finally {
