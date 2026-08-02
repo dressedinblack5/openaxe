@@ -80,7 +80,7 @@ jobs:
       - name: Run openaxe tests
         working-directory: packages/openaxe
         timeout-minutes: ${{ matrix.settings.name == 'windows' && 60 || 45 }}
-        run: GITHUB_ACTIONS=false bun test --shard=${{ matrix.shard }}/5 --timeout 300000 --path-ignore-patterns='**/provider/**' '**/lsp/**'
+        run: GITHUB_ACTIONS=false bun test --shard=${{ matrix.shard }}/5 --timeout 300000 --path-ignore-patterns='**/provider/**' --path-ignore-patterns='**/lsp.test.ts' --path-ignore-patterns='**/test/fixture/lsp/**'
         env:
           OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
 
