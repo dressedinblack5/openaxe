@@ -278,7 +278,7 @@ export const layer = Layer.effect(
             $schema: "https://opencode.ai/config.json",
           }
           if (!disableDefaultPlugins) {
-            defaultConfig.plugin = [...BUNDLED_PLUGINS]
+            defaultConfig.plugin = BUNDLED_PLUGINS.map((p) => p.spec)
           }
           yield* fs.writeWithDirs(file, JSON.stringify(defaultConfig, null, 2)).pipe(Effect.catch(() => Effect.void))
         }
