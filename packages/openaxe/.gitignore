@@ -11,3 +11,6 @@ bin/tiktoken_bg.wasm
 src/tiktoken_bg.wasm
 .openaxe/artifacts/
 AXE.md
+
+# release artifacts
+*.zip
