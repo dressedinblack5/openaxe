@@ -25,6 +25,14 @@ case "$ARCH" in
   *) echo "unsupported arch: $ARCH"; exit 1 ;;
 esac
 
+# Windows x64 CPUs without AVX2 (pre-Haswell, some VMs) need the baseline build
+if [ "$PLATFORM" = "windows" ] && [ "$ARCH" = "x64" ]; then
+  if ! powershell.exe -NoProfile -Command "Add-Type -TypeDefinition 'using System.Runtime.InteropServices;public class Cpu{[DllImport(\"kernel32.dll\")]public static extern bool IsProcessorFeaturePresent(int f);}';if([Cpu]::IsProcessorFeaturePresent(40)){exit 0}else{exit 1}" >/dev/null 2>&1; then
+    echo "CPU lacks AVX2, using baseline build..."
+    ARCH="x64-baseline"
+  fi
+fi
+
 ARCHIVE="openaxe-${PLATFORM}-${ARCH}"
 # macOS ships .zip; Linux ships .tar.gz (musl variants excluded by default)
 if [ "$PLATFORM" = "linux" ]; then
@@ -77,6 +85,12 @@ if [ "$PLATFORM" = "windows" ]; then
       echo "Failed to download $VCREDIST. Install manually from https://aka.ms/vs/17/release/$VCREDIST"
     fi
     rm -rf "$tmp"
+  fi
+  if ! "$BIN_DIR/openaxe.exe" --version >/dev/null 2>&1; then
+    echo "Error: downloaded openaxe.exe failed to run."
+    echo "If the Visual C++ Redistributable is missing, install it from:"
+    echo "  https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    exit 1
   fi
 fi
 

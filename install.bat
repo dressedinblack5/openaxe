@@ -13,6 +13,11 @@ echo Detecting architecture...
 set "ARCH=x64"
 if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "ARCH=arm64"
 if /i "%PROCESSOR_ARCHITECTURE%"=="ARM" set "ARCH=arm64"
+rem x64 CPUs without AVX2 (pre-Haswell, some VMs) need the baseline build
+if "%ARCH%"=="x64" (
+    powershell -NoProfile -Command "Add-Type -TypeDefinition 'using System.Runtime.InteropServices;public class Cpu{[DllImport(\"kernel32.dll\")]public static extern bool IsProcessorFeaturePresent(int f);}';if([Cpu]::IsProcessorFeaturePresent(40)){exit 0}else{exit 1}" >nul 2>nul
+    if errorlevel 1 set "ARCH=x64-baseline"
+)
 
 set "BINARY=openaxe-windows-%ARCH%"
 echo Downloading %BINARY%...
@@ -80,6 +85,16 @@ if "%NEED_VC%"=="1" (
         del "%TEMP%\%VCREDIST%" 2>nul
         echo VC++ Redistributable installed.
     )
+)
+
+rem --- Smoke test: binary must start and report a version ---
+"%BIN_DIR%\openaxe.exe" --version >nul 2>nul
+if errorlevel 1 (
+    echo Error: downloaded openaxe.exe failed to run.
+    echo If the Visual C++ Redistributable is missing, install it from:
+    echo   https://aka.ms/vs/17/release/vc_redist.x64.exe
+    pause
+    exit /b 1
 )
 
 echo.
