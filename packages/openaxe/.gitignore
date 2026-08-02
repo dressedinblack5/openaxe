@@ -7,5 +7,7 @@ script/build-*.ts
 temporary-*.md
 .artifacts
 bin/libopentui.so
+bin/tiktoken_bg.wasm
+src/tiktoken_bg.wasm
 .openaxe/artifacts/
 AXE.md
