@@ -1,5 +1,4 @@
 import path from "node:path"
-import { createRequire } from "node:module"
 import { pathToFileURL } from "node:url"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { type Tool } from "ai"
@@ -35,6 +34,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { McpCatalog } from "./catalog"
 import { McpEvent } from "@opencode-ai/schema/mcp-event"
+import { Codegraph } from "./codegraph"
 
 const DEFAULT_TIMEOUT = 30_000
 const CLIENT_OPTIONS = {
@@ -344,7 +344,17 @@ export const layer = Layer.effect(
       key: string,
       mcp: ConfigMCPV1.Info & { type: "local" },
     ) {
-      const [cmd, ...args] = mcp.command
+      let command = mcp.command
+      if (key === "codegraph") {
+        const runtime = yield* Codegraph.ensureCodegraphRuntime().pipe(
+          Effect.catch((error) => {
+            Effect.logWarning("codegraph runtime unavailable", { error: String(error) }).pipe(Effect.runFork)
+            return Effect.succeed(undefined)
+          }),
+        )
+        if (runtime) command = [...runtime, "serve", "--mcp"]
+      }
+      const [cmd, ...args] = command
       const baseDir = yield* InstanceState.directory
       const cwd = mcp.cwd ? path.resolve(baseDir, mcp.cwd) : baseDir
       const transport = new StdioClientTransport({
@@ -499,23 +509,23 @@ export const layer = Layer.effect(
 
         const servers = getMcpServers(cfg.mcp)
 
-        // ponytail: inject CodeGraph as built-in MCP when installed; user config overrides
-        // Only auto-inject when user hasn't set any mpc config at all (undefined).
-        // Explicit mcp: {} or mcp: { ... } means "user configured MCP", don't inject defaults.
-        const mcpConfigured = cfg.mcp != null
-        if (!servers.codegraph && !mcpConfigured) {
-          const tryResolve = Option.liftThrowable(() =>
-            createRequire(import.meta.url).resolve(
-              `@colbymchenry/codegraph-${process.platform}-${process.arch}/bin/codegraph`,
-            ),
-          )
-          const codegraphBin = tryResolve()
-          if (Option.isSome(codegraphBin)) {
-            servers.codegraph = {
-              type: "local",
-              command: [codegraphBin.value, "serve", "--mcp"],
-            } satisfies ConfigMCPV1.Info
-          }
+        // ponytail: inject CodeGraph as built-in MCP. The oh-my-openagent plugin
+        // contributes its own entry but marks it disabled when its probe fails (no
+        // node on PATH / bundle not resolvable in a compiled binary). openaxe
+        // resolves the self-contained runtime itself (downloaded on first connect),
+        // so override a probe-failed entry; user config wins (merged last).
+        const existingCodegraph = servers.codegraph
+        const probeFailed =
+          isMcpConfigured(existingCodegraph) &&
+          existingCodegraph.type === "local" &&
+          existingCodegraph.enabled === false &&
+          existingCodegraph.command[0] === "codegraph"
+        if (!isMcpConfigured(existingCodegraph) || probeFailed) {
+          servers.codegraph = {
+            type: "local",
+            command: Codegraph.resolveCodegraphCommandSync() ?? ["codegraph", "serve", "--mcp"],
+            enabled: true,
+          } satisfies ConfigMCPV1.Info
         }
 
         const s: State = {

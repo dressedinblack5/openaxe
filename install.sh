@@ -49,10 +49,20 @@ else
   curl -sL "$DOWNLOAD_URL" | tar xz -C "$BIN_DIR"
 fi
 
-chmod +x "$BIN_DIR/openaxe"
+chmod +x "$BIN_DIR/openaxe" 2>/dev/null || chmod +x "$BIN_DIR/openaxe.exe" || true
 
 # Windows: ensure Visual C++ Redistributable is installed (required by opentui.dll)
 if [ "$PLATFORM" = "windows" ]; then
+  if [ ! -f "$BIN_DIR/opentui.dll" ]; then
+    echo "Error: opentui.dll not found after extraction."
+    echo "This release is incomplete. Check https://github.com/$REPO/releases"
+    exit 1
+  fi
+  if [ ! -f "$BIN_DIR/tiktoken_bg.wasm" ]; then
+    echo "Error: tiktoken_bg.wasm not found after extraction."
+    echo "This release is incomplete. Check https://github.com/$REPO/releases"
+    exit 1
+  fi
   SYSROOT="$(cmd //c "echo %SystemRoot%" 2>/dev/null | tr -d '\r')"
   if [ -z "$SYSROOT" ]; then SYSROOT="C:/Windows"; fi
   if [ ! -f "$SYSROOT/System32/vcruntime140.dll" ] || [ ! -f "$SYSROOT/System32/msvcp140.dll" ]; then
@@ -70,5 +80,9 @@ if [ "$PLATFORM" = "windows" ]; then
   fi
 fi
 
-echo "Installed openaxe latest to $BIN_DIR/openaxe"
+if [ "$PLATFORM" = "windows" ]; then
+  echo "Installed openaxe latest to $BIN_DIR/openaxe.exe"
+else
+  echo "Installed openaxe latest to $BIN_DIR/openaxe"
+fi
 echo "Make sure $BIN_DIR is in your PATH"

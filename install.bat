@@ -33,6 +33,20 @@ if not exist "%BIN_DIR%\openaxe.exe" (
     pause
     exit /b 1
 )
+rem openaxe.exe requires opentui.dll (render library) and tiktoken_bg.wasm
+rem (tokenizer) next to it. Verify all three to catch stale releases.
+if not exist "%BIN_DIR%\opentui.dll" (
+    echo Extraction failed: opentui.dll not found
+    echo This release is incomplete. Check https://github.com/dressedinblack5/openaxe/releases
+    pause
+    exit /b 1
+)
+if not exist "%BIN_DIR%\tiktoken_bg.wasm" (
+    echo Extraction failed: tiktoken_bg.wasm not found
+    echo This release is incomplete. Check https://github.com/dressedinblack5/openaxe/releases
+    pause
+    exit /b 1
+)
 
 del "%TEMP%\%BINARY%.zip" 2>nul
 
