@@ -35,15 +35,17 @@ Set your provider API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) and you'
 
 ---
 
-## Reading Guide
+## Advantages Over Official OpenCode
 
-| Goal | Start with |
-|-----|---|
-| Understand the project | [Features](#features) → [Architecture](packages/openaxe/README.md#architecture) → [Security](#security) |
-| Browse available commands | [User Guide](packages/openaxe/README.md#user-guide) |
-| Set up providers | [Preinstalled Plugins](#preinstalled-plugins) |
-| Extend openaxe | [External Plugins](#external-plugins) |
-| See how it differs from upstream | [Advantages](#advantages-over-official-opencode) |
+| | openaxe | official opencode |
+|---|---|---|
+| **Monorepo size** | 13 packages | 27 |
+| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
+| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
+| **Effects** | Effect v4 throughout | Mixed patterns |
+| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
+| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
+| **Startup** | Lazy-loaded CLI commands | Eager imports |
 
 ---
 
@@ -52,7 +54,7 @@ Set your provider API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) and you'
 - **Multi-provider LLM support** — 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, and more)
 - **Rich TUI** — SolidJS terminal UI with session management, conversation history, keyboard-driven workflow
 - **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
-- **LSP native tooling arsenal** — Effect-based native LSP client (not an MCP wrapper), runs 17 code intelligence operations across 30+ builtin language servers. Every file mutation triggers automatic diagnostics. See [LSP details](#-lsp-native-tooling-arsenal) below.
+- **LSP native tooling arsenal** — Effect-based native LSP client (not an MCP wrapper), runs 17 code intelligence operations across 30+ builtin language servers. Every file mutation triggers automatic diagnostics. See [LSP details](#-native-lsp) below.
 - **Plugin system** — Extend behavior with plugins from npm, local paths, or git URLs
 - **Session management** — Persistent sessions with SQLite + Drizzle ORM, export/import, fork/continue
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
@@ -240,16 +242,16 @@ Write your own using the [@opencode-ai/plugin](https://www.npmjs.com/package/@op
 
 Configure via `.openaxe/openaxe.jsonc` in your project root. See the [full guide](packages/openaxe/README.md#configuration) for details.
 
-## Advantages Over Official OpenCode
+---
 
-| | openaxe | official opencode |
-|---|---|---|
-| **Monorepo size** | 13 packages | 27 |
-| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
-| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
-| **Effects** | Effect v4 throughout | Mixed patterns |
-| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
-| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
-| **Startup** | Lazy-loaded CLI commands | Eager imports |
+## Reading Guide
+
+| Goal | Start with |
+|-----|---|
+| Understand the project | [Features](#-features) → [Architecture](packages/openaxe/README.md#architecture) → [Security](#-security) |
+| Browse available commands | [User Guide](packages/openaxe/README.md#user-guide) |
+| Set up providers | [Preinstalled Plugins](#preinstalled-plugins) |
+| Extend openaxe | [External Plugins](#external-plugins) |
+| See how it differs from upstream | [Advantages Over Official OpenCode](#advantages-over-official-opencode) |
 
 <p align="center"><a href="https://github.com/dressedinblack5/openaxe">dressedinblack5/openaxe</a></p>
