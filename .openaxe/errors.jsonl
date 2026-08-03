@@ -1,0 +1,45 @@
+{"time":"2026-08-03T19:28:27.048Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill missing"}
+{"time":"2026-08-03T19:28:27.049Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill effect"}
+{"time":"2026-08-03T19:28:27.085Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-17sArG/denied.txt"}
+{"time":"2026-08-03T19:28:27.087Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit /tmp/opencode-core-test-17sArG/denied.txt"}
+{"time":"2026-08-03T19:28:27.091Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-08-03T19:28:27.091Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Unable to edit secret.txt"}
+{"time":"2026-08-03T19:28:27.095Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"No changes to apply: oldString and newString are identical."}
+{"time":"2026-08-03T19:28:27.095Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"oldString must not be empty. Use write to create or overwrite a file."}
+{"time":"2026-08-03T19:28:27.096Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Could not find oldString in the file. It must match exactly, including whitespace and indentation."}
+{"time":"2026-08-03T19:28:27.097Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"Found multiple exact matches for oldString. Provide more surrounding context or set replaceAll to true."}
+{"time":"2026-08-03T19:28:27.107Z","sessionID":"ses_edit_tool_test","toolName":"edit","error":"File changed after permission approval. Read it again before editing."}
+{"time":"2026-08-03T19:28:27.136Z","sessionID":"ses_skill_write_test","toolName":"skill_write","error":"Invalid skill name '../evil'. Use 1-64 letters, digits, or hyphens starting with a letter or digit."}
+{"time":"2026-08-03T19:28:27.137Z","sessionID":"ses_skill_write_test","toolName":"skill_write","error":"Invalid skill name 'bad/name'. Use 1-64 letters, digits, or hyphens starting with a letter or digit."}
+{"time":"2026-08-03T19:28:27.137Z","sessionID":"ses_skill_write_test","toolName":"skill_write","error":"Invalid skill name '.'. Use 1-64 letters, digits, or hyphens starting with a letter or digit."}
+{"time":"2026-08-03T19:28:27.138Z","sessionID":"ses_skill_write_test","toolName":"skill_write","error":"Invalid skill name '..'. Use 1-64 letters, digits, or hyphens starting with a letter or digit."}
+{"time":"2026-08-03T19:28:27.138Z","sessionID":"ses_skill_write_test","toolName":"skill_write","error":"Invalid skill name 'has space'. Use 1-64 letters, digits, or hyphens starting with a letter or digit."}
+{"time":"2026-08-03T19:28:27.139Z","sessionID":"ses_skill_write_test","toolName":"skill_write","error":"Invalid skill name '-lead'. Use 1-64 letters, digits, or hyphens starting with a letter or digit."}
+{"time":"2026-08-03T19:28:27.139Z","sessionID":"ses_skill_write_test","toolName":"skill_write","error":"Invalid skill name 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'. Use 1-64 letters, digits, or hyphens starting with a letter or digit."}
+{"time":"2026-08-03T19:28:27.141Z","sessionID":"ses_skill_write_test","toolName":"skill_write","error":"Skill 'my-skill' already exists and overwrite is false."}
+{"time":"2026-08-03T19:28:27.143Z","sessionID":"ses_skill_write_test","toolName":"skill_write","error":"Skill content exceeds the 100KB limit."}
+{"time":"2026-08-03T19:30:40.272Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-08-03T19:30:40.280Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-08-03T19:30:40.281Z","sessionID":"ses_bash_tool_test","toolName":"bash","error":"Unable to execute command: pwd"}
+{"time":"2026-08-03T19:30:41.748Z","sessionID":"ses_question_tool_test","toolName":"question","error":"Permission denied: question"}
+{"time":"2026-08-03T19:30:42.024Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch file:///etc/passwd"}
+{"time":"2026-08-03T19:30:43.533Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/deep-html"}
+{"time":"2026-08-03T19:30:43.536Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/declared"}
+{"time":"2026-08-03T19:30:43.567Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/streamed"}
+{"time":"2026-08-03T19:30:43.569Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/image"}
+{"time":"2026-08-03T19:30:43.570Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/file"}
+{"time":"2026-08-03T19:30:43.574Z","sessionID":"ses_webfetch_test","toolName":"webfetch","error":"Unable to fetch https://1.1.1.1/slow"}
+{"time":"2026-08-03T19:30:45.156Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Image could not be decoded: truncated.png"}
+{"time":"2026-08-03T19:30:45.159Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Image wide.png is 16x1 with base64 size 164, exceeding configured limits 4x2000/5242880 bytes"}
+{"time":"2026-08-03T19:30:45.163Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Image pixel.png is 1x1 with base64 size 92, exceeding configured limits 2000x2000/1 bytes"}
+{"time":"2026-08-03T19:30:45.166Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: archive.dat"}
+{"time":"2026-08-03T19:30:45.169Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read README.md"}
+{"time":"2026-08-03T19:30:45.171Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read __missing_read_target__.txt"}
+{"time":"2026-08-03T19:30:45.174Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Unable to read src"}
+{"time":"2026-08-03T19:30:45.178Z","sessionID":"ses_read_tool_test","toolName":"read","error":"Cannot read binary file: late-binary"}
+{"time":"2026-08-03T19:30:45.322Z","sessionID":"ses_websearch_test","toolName":"websearch","error":"Unable to search the web for too much"}
+{"time":"2026-08-03T19:30:45.339Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill missing"}
+{"time":"2026-08-03T19:30:45.339Z","sessionID":"ses_skill_tool_test","toolName":"skill","error":"Unable to load skill effect"}
+{"time":"2026-08-03T19:30:48.551Z","sessionID":"ses_registry","toolName":"failed","error":"Denied"}
+{"time":"2026-08-03T19:30:48.557Z","sessionID":"ses_registry","toolName":"transformed","error":"Invalid tool input: Expected boolean, got \"yes\"\n  at [\"value\"]"}
+{"time":"2026-08-03T19:30:48.558Z","sessionID":"ses_registry","toolName":"invalid_output","error":"Tool returned an invalid value for its output schema: invalid output\n  at [\"value\"]"}
