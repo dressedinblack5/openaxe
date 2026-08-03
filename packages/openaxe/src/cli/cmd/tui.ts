@@ -15,6 +15,7 @@ import { validateSession } from "../tui/validate-session"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
 import { mark, report } from "@/cli/startup-timing"
 import { Cause } from "effect"
+import { TuiConfig } from "@/config/tui"
 
 declare global {
   const OPENCODE_WORKER_PATH: string
@@ -220,7 +221,8 @@ export const TuiCommand = cmd({
       // Kick off config loading before chdir (pass directory explicitly to
       // avoid CurrentWorkingDirectory CWD race). ~1s of file I/O overlaps with
       // Worker compilation, saving wall-clock time.
-      const configPromise = TuiConfig.get(next)
+      // Also fetch plugin_origins in the same run to avoid duplicate layer init.
+      const configPromise = TuiConfig.getWithPluginOrigins(next)
 
       const file = await target()
       try {
@@ -249,7 +251,7 @@ export const TuiCommand = cmd({
       }
 
       const prompt = await input(args.prompt)
-      const config = await configPromise
+      const { config, pluginOrigins } = await configPromise
 
       const network = resolveNetworkOptionsNoConfig(args)
       const external =
@@ -305,7 +307,7 @@ export const TuiCommand = cmd({
                 const server = await client.call("snapshot", undefined)
                 return [tui, server]
               },
-              config,
+              config: { ...config, plugin_origins: pluginOrigins } as TuiConfig.Resolved & TuiConfig.HostMetadata,
               pluginHost: createLegacyTuiPluginHost(),
               directory: cwd,
               fetch: transport.fetch,
