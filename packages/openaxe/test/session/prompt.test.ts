@@ -3,6 +3,8 @@ import { Memory } from "@opencode-ai/core/memory"
 import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Database } from "@opencode-ai/core/database/database"
+import { FTSIndex } from "@opencode-ai/core/database/fts"
+import { Kanban } from "@opencode-ai/core/kanban/kanban"
 import { eq } from "drizzle-orm"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { FetchHttpClient } from "effect/unstable/http"
@@ -209,6 +211,8 @@ function makePrompt(input?: { mcpInstructions?: MCP.ServerInstructions[]; proces
     Layer.provide(Git.defaultLayer),
     Layer.provide(Ripgrep.defaultLayer),
     Layer.provide(Format.defaultLayer),
+    Layer.provide(Kanban.defaultLayer),
+    Layer.provide(FTSIndex.defaultLayer),
     Layer.provide(RuntimeFlags.layer({ experimentalEventSystem: true })),
     Layer.provideMerge(todo),
     Layer.provideMerge(question),
