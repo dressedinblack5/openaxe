@@ -402,12 +402,25 @@ describe("HttpApi Server.listen", () => {
 
       // Regression for #25698: minting without a directory uses the server cwd
       // and cannot find a PTY registered in a project directory.
-      const ambiguous = await fetch(new URL(PtyPaths.connectToken.replace(":ptyID", info.id), listener.url), {
-        signal: sigh(),
-        method: "POST",
-        headers: { authorization: authorization(), "x-opencode-ticket": "1" },
-      })
-      expect(ambiguous.status).toBe(404)
+      //
+      // The server cwd is this repo during tests, and its openaxe.jsonc would
+      // trigger npm plugin installs while booting the cwd instance. Disable
+      // project config for this request so the cwd instance boots quickly; the
+      // request still routes to the server cwd and 404s because the PTY is
+      // registered under tmp.path, not the cwd.
+      const previousProjectConfig = process.env.OPENCODE_DISABLE_PROJECT_CONFIG
+      process.env.OPENCODE_DISABLE_PROJECT_CONFIG = "true"
+      try {
+        const ambiguous = await fetch(new URL(PtyPaths.connectToken.replace(":ptyID", info.id), listener.url), {
+          signal: sigh(),
+          method: "POST",
+          headers: { authorization: authorization(), "x-opencode-ticket": "1" },
+        })
+        expect(ambiguous.status).toBe(404)
+      } finally {
+        if (previousProjectConfig === undefined) delete process.env.OPENCODE_DISABLE_PROJECT_CONFIG
+        else process.env.OPENCODE_DISABLE_PROJECT_CONFIG = previousProjectConfig
+      }
 
       const directoryScoped = await fetch(
         new URL(
