@@ -265,7 +265,7 @@ describe("SkillWriteTool", () => {
               | undefined
             expect(structured?.skills.map((skill) => skill.name).sort()).toEqual(["alpha", "beta"])
             expect(structured?.skills.find((skill) => skill.name === "alpha")?.description).toBe("first")
-            expect(structured?.skills.every((skill) => skill.path.endsWith("/SKILL.md"))).toBe(true)
+            expect(structured?.skills.every((skill) => path.basename(skill.path) === "SKILL.md")).toBe(true)
           }),
         )
       },
