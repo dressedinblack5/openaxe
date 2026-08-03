@@ -1644,6 +1644,15 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
   )
 }
 
+// El Artesano: craftsman verbs for the thinking spinner, stable per mount.
+const CRAFTSMAN_VERBS = ["Honing", "Shaping", "Crafting", "Whetting", "Carving"]
+let craftsmanVerbIndex = 0
+function nextCraftsmanVerb(): string {
+  const verb = CRAFTSMAN_VERBS[craftsmanVerbIndex % CRAFTSMAN_VERBS.length]
+  craftsmanVerbIndex += 1
+  return verb
+}
+
 function ReasoningHeader(props: {
   toggleable: boolean
   open: boolean
@@ -1652,6 +1661,7 @@ function ReasoningHeader(props: {
   duration?: string
 }) {
   const { theme } = useTheme()
+  const verb = nextCraftsmanVerb()
   const fg = () =>
     props.open
       ? RGBA.fromValues(theme.warning.r, theme.warning.g, theme.warning.b, theme.thinkingOpacity)
@@ -1661,7 +1671,7 @@ function ReasoningHeader(props: {
     <Switch>
       <Match when={!props.done}>
         <box flexDirection="row">
-          <Spinner color={fg()}>{props.title ? "Thinking: " + props.title : "Thinking"}</Spinner>
+          <Spinner color={fg()}>{props.title ? `${verb}: ${props.title}` : verb}</Spinner>
         </box>
       </Match>
       <Match when={true}>
@@ -1814,7 +1824,7 @@ function GenericTool(props: ToolProps) {
     <Show
       when={props.output && ctx.showGenericToolOutput()}
       fallback={
-        <InlineTool icon="⚙" pending="Writing command..." complete={true} part={props.part}>
+        <InlineTool icon="⚙" pending="Turning the wheel..." complete={true} part={props.part}>
           {props.tool} {input(props.input)}
         </InlineTool>
       }
@@ -2096,7 +2106,7 @@ function Shell(props: ToolProps) {
         </BlockTool>
       </Match>
       <Match when={true}>
-        <InlineTool icon="$" pending="Writing command..." complete={stringValue(props.input.command)} part={props.part}>
+        <InlineTool icon="$" pending="Turning the wheel..." complete={stringValue(props.input.command)} part={props.part}>
           {stringValue(props.input.command)}
         </InlineTool>
       </Match>
@@ -2130,7 +2140,7 @@ function Write(props: ToolProps) {
       <Match when={true}>
         <InlineTool
           icon="←"
-          pending="Preparing write..."
+          pending="Laying the cut..."
           complete={stringValue(props.input.filePath)}
           part={props.part}
         >
@@ -2169,7 +2179,7 @@ function Read(props: ToolProps) {
     <>
       <InlineTool
         icon="→"
-        pending="Reading file..."
+        pending="Examining the grain..."
         complete={stringValue(props.input.filePath)}
         spinner={isRunning()}
         part={props.part}
@@ -2192,7 +2202,7 @@ function Read(props: ToolProps) {
 function Grep(props: ToolProps) {
   const pathFormatter = usePathFormatter()
   return (
-    <InlineTool icon="✱" pending="Searching content..." complete={stringValue(props.input.pattern)} part={props.part}>
+    <InlineTool icon="✱" pending="Combing the bench..." complete={stringValue(props.input.pattern)} part={props.part}>
       Grep "{stringValue(props.input.pattern)}"{" "}
       <Show when={stringValue(props.input.path)}>in {pathFormatter.format(stringValue(props.input.path))} </Show>
       <Show when={numberValue(props.metadata.matches)}>
@@ -2204,7 +2214,7 @@ function Grep(props: ToolProps) {
 
 function WebFetch(props: ToolProps) {
   return (
-    <InlineTool icon="%" pending="Fetching from the web..." complete={stringValue(props.input.url)} part={props.part}>
+    <InlineTool icon="%" pending="Fetching from the forge..." complete={stringValue(props.input.url)} part={props.part}>
       WebFetch {stringValue(props.input.url)}
     </InlineTool>
   )
@@ -2303,7 +2313,7 @@ function Task(props: ToolProps) {
       color={retry() ? theme.error : undefined}
       spinner={isRunning()}
       complete={stringValue(props.input.description)}
-      pending="Delegating..."
+      pending="Handing off the work..."
       part={props.part}
       onClick={() => {
         const id = sessionID()
@@ -2379,7 +2389,7 @@ function Edit(props: ToolProps) {
         </BlockTool>
       </Match>
       <Match when={true}>
-        <InlineTool icon="←" pending="Preparing edit..." complete={stringValue(props.input.filePath)} part={props.part}>
+        <InlineTool icon="←" pending="Setting the chisel..." complete={stringValue(props.input.filePath)} part={props.part}>
           Edit {pathFormatter.format(stringValue(props.input.filePath))} {input({ replaceAll: props.input.replaceAll })}
         </InlineTool>
       </Match>
