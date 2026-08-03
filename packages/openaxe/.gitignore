@@ -12,6 +12,9 @@ src/tiktoken_bg.wasm
 .openaxe/artifacts/
 AXE.md
 
+# playwright-mcp test artifacts
+.playwright-mcp/
+
 # release artifacts
 *.zip
 

@@ -48,6 +48,7 @@ export type Draft = {
 export interface Interface extends State.Transformable<Draft> {
   readonly sources: () => Effect.Effect<Source[]>
   readonly list: () => Effect.Effect<Info[]>
+  readonly invalidate: () => Effect.Effect<void>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/v2/Skill") {}
@@ -127,6 +128,7 @@ export const layer = Layer.effect(
         return state.get().sources
       }),
       list,
+      invalidate: () => Effect.sync(() => cache.clear()),
     })
   }),
 )

@@ -1,6 +1,8 @@
 import { Effect, Layer, LayerMap } from "effect"
 import { Location } from "./location"
 import { Memory } from "./memory"
+import { Kanban } from "./kanban/kanban"
+import { FTSIndex } from "./database/fts"
 import { AxeSync } from "./axe-sync"
 import { Policy } from "./policy"
 import { Config } from "./config"
@@ -82,9 +84,14 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
       Layer.provide(resources),
       Layer.provide(base),
     )
-    const services = Layer.mergeAll(base, resources, permissionsAndTools, Memory.defaultLayer).pipe(
-      Layer.provideMerge(AxeSync.defaultLayer),
-    )
+    const services = Layer.mergeAll(
+      base,
+      resources,
+      permissionsAndTools,
+      Memory.defaultLayer,
+      Kanban.defaultLayer,
+      FTSIndex.defaultLayer,
+    ).pipe(Layer.provideMerge(AxeSync.defaultLayer))
     const image = Image.layer.pipe(Layer.provide(services))
     const mutation = FileMutation.locationLayer.pipe(Layer.provide(services))
     const skillGuidance = SkillGuidance.locationLayer.pipe(Layer.provide(services))

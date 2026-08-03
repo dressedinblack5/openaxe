@@ -31,6 +31,14 @@ export const Plugin = define({
             }),
           )
         }
+        // Always scan the project-local .openaxe/skills directory (skill_write
+        // target) even when the .openaxe directory did not exist at config load.
+        draft.source(
+          SkillV2.DirectorySource.make({
+            type: "directory",
+            path: AbsolutePath.make(path.join(location.project.directory, ".openaxe", "skills")),
+          }),
+        )
         for (const item of items) {
           if (URL.canParse(item) && /^(https?:)$/.test(new URL(item).protocol)) {
             draft.source(SkillV2.UrlSource.make({ type: "url", url: item }))

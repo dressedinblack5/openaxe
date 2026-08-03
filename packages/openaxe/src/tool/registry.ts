@@ -29,6 +29,7 @@ import { Provider } from "@/provider/provider"
 import { WebSearchTool } from "./websearch"
 import { ShellTool } from "./shell/shell"
 import { LspTool } from "./lsp"
+import { DiscoveryCache } from "./discovery-cache"
 import { Truncate } from "./truncate"
 import { ApplyPatchTool } from "./apply_patch"
 import { Glob } from "@opencode-ai/core/util/glob"
@@ -54,6 +55,12 @@ import { BackgroundJob } from "@/background/job"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
+import { Kanban } from "@opencode-ai/core/kanban/kanban"
+import { FTSIndex } from "@opencode-ai/core/database/fts"
+import { KanbanTool } from "./kanban"
+import { SessionSearchTool } from "./session-search"
+import { SkillWriteV1Tool } from "./skill-write"
+import { ToolSearchTool } from "./tool-search"
 
 export function webSearchEnabled(providerID: ProviderV2.ID, flags = { exa: false, parallel: false }) {
   return providerID === ProviderV2.ID.opencode || flags.exa || flags.parallel
@@ -103,6 +110,10 @@ export const layer = Layer.effect(
     const patchtool = yield* ApplyPatchTool
     const shell = yield* ShellTool
     const skilltool = yield* SkillTool
+    const kanban = yield* KanbanTool
+    const sessionSearch = yield* SessionSearchTool
+    const skillWrite = yield* SkillWriteV1Tool
+    const toolSearch = yield* ToolSearchTool
     const agent = yield* Agent.Service
 
     const state = yield* InstanceState.make<State>(
@@ -167,25 +178,127 @@ export const layer = Layer.effect(
           }
         }
 
-        const dirs = yield* config.directories()
-        const matches = dirs.flatMap((dir) => {
-          try {
-            return Glob.scanSync("{tool,tools}/*.{js,ts}", { cwd: dir, absolute: true, dot: true, symlink: true })
-          } catch {
-            return []
-          }
-        })
-        if (matches.length) yield* config.waitForDependencies()
-        for (const match of matches) {
+        function registerToolExports(mod: Record<string, unknown>, match: string) {
           const namespace = path.basename(match, path.extname(match))
-          // `match` is an absolute filesystem path from `Glob.scanSync(..., { absolute: true })`.
-          // Import it as `file://` so Node on Windows accepts the dynamic import.
-          const mod = yield* Effect.promise(() => import(pathToFileURL(match).href))
           for (const [id, def] of Object.entries(mod)) {
             if (!isPluginTool(def)) continue
             custom.push(fromPlugin(id === "default" ? namespace : `${namespace}_${id}`, def))
           }
         }
+
+        const dirs = yield* config.directories()
+        const cache = yield* DiscoveryCache.load()
+
+        const isCovered = (
+          prev: DiscoveryCache.DirCache | undefined,
+          subdirs: Record<string, DiscoveryCache.FileSignature | undefined>,
+        ) => Boolean(prev && DiscoveryCache.sameSubdirs(prev.subdirs, subdirs))
+
+        // Per-directory discovery backed by a disk-memoized manifest. On a
+        // warm run (the `tool`/`tools` subdirectories are unchanged since the
+        // last scan and the files are unchanged) the glob and the imports of
+        // files that do not register tools are skipped entirely.
+        const plans: Array<{
+          dir: string
+          subdirs: Record<string, DiscoveryCache.FileSignature | undefined>
+          files: string[]
+        }> = []
+        const updated: Record<string, DiscoveryCache.DirCache> = {}
+        let anyMatches = false
+
+        for (const dir of dirs) {
+          const prev = cache.dirs[dir]
+          const subdirs: Record<string, DiscoveryCache.FileSignature | undefined> = {}
+          for (const sub of DiscoveryCache.SCAN_SUBDIRS) {
+            subdirs[sub] = DiscoveryCache.statPath(path.join(dir, sub))
+          }
+          const covered = isCovered(prev, subdirs)
+          let files: string[]
+          if (covered && prev) {
+            files = Object.keys(prev.files)
+          } else {
+            try {
+              files = Glob.scanSync("{tool,tools}/*.{js,ts}", {
+                cwd: dir,
+                absolute: true,
+                dot: true,
+                symlink: true,
+              })
+            } catch {
+              files = []
+            }
+          }
+          if (files.length) anyMatches = true
+          plans.push({ dir, subdirs, files })
+        }
+
+        if (anyMatches) yield* config.waitForDependencies()
+
+        for (const plan of plans) {
+          const prev = cache.dirs[plan.dir]
+          const files: Record<string, DiscoveryCache.FileCacheEntry> = prev ? { ...prev.files } : {}
+          // Anything that touched the manifest (a glob, a refresh, a drop) is
+          // persisted so the next run can take the warm path.
+          let dirty = !isCovered(prev, plan.subdirs)
+
+          for (const match of plan.files) {
+            const sig = DiscoveryCache.statPath(match)
+            if (!sig) {
+              // The file disappeared since the last scan — drop it.
+              if (files[match]) {
+                delete files[match]
+                dirty = true
+              }
+              continue
+            }
+
+            const cached = files[match]
+            if (cached && DiscoveryCache.sameSignature(cached, sig)) {
+              // Unchanged file. Files that do not register tools are skipped
+              // without importing (the Hermes win: no need to import every
+              // candidate to learn whether it registers tools). Tool files
+              // still import — their `execute`/zod `args` are runtime values
+              // a JSON manifest cannot rehydrate — but a failed import never
+              // records a success verdict, so it retries after the grace
+              // window instead of permanently poisoning the cache.
+              if (!cached.exports.length && cached.failedAt === undefined) continue
+              if (cached.failedAt !== undefined && Date.now() - cached.failedAt < DiscoveryCache.FAILURE_GRACE_MS) {
+                continue
+              }
+              const mod = yield* importTool(match)
+              if (!mod) {
+                files[match] = { ...cached, failedAt: Date.now() }
+                dirty = true
+                continue
+              }
+              if (cached.failedAt !== undefined) {
+                files[match] = { ...sig, exports: collectToolExports(mod) }
+                dirty = true
+              }
+              registerToolExports(mod, match)
+              continue
+            }
+
+            // New or changed file — import and refresh the manifest entry.
+            const mod = yield* importTool(match)
+            if (!mod) {
+              // Keep the previous entry (if any) and mark the failure so the
+              // file retries after the grace window instead of being dropped.
+              files[match] = { ...sig, exports: cached?.exports ?? [], failedAt: Date.now() }
+              dirty = true
+              continue
+            }
+            files[match] = { ...sig, exports: collectToolExports(mod) }
+            dirty = true
+            registerToolExports(mod, match)
+          }
+
+          if (dirty && (prev || Object.keys(files).length > 0)) {
+            updated[plan.dir] = { subdirs: plan.subdirs, files }
+          }
+        }
+
+        if (Object.keys(updated).length) yield* DiscoveryCache.save(updated)
 
         const plugins = yield* plugin.list()
         for (const p of plugins) {
@@ -214,6 +327,10 @@ export const layer = Layer.effect(
           lsp: init(lsptool),
           plan: init(plan),
           shell: init(shell),
+          kanban: init(kanban),
+          sessionSearch: init(sessionSearch),
+          skillWrite: init(skillWrite),
+          toolSearch: init(toolSearch),
         })
 
         return {
@@ -234,6 +351,10 @@ export const layer = Layer.effect(
             tool.patch,
             tool.lsp,
             tool.shell,
+            tool.kanban,
+            tool.sessionSearch,
+            tool.skillWrite,
+            tool.toolSearch,
             ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
           ],
           task: tool.task,
@@ -338,6 +459,8 @@ export const defaultLayer = Layer.suspend(() =>
       Layer.provide(CrossSpawnSpawner.defaultLayer),
       Layer.provide(AppProcess.defaultLayer),
       Layer.provide(Truncate.defaultLayer),
+      Layer.provide(Kanban.defaultLayer),
+      Layer.provide(FTSIndex.defaultLayer),
     )
     .pipe(Layer.provide(Database.defaultLayer), Layer.provide(RuntimeFlags.defaultLayer)),
 )
@@ -348,6 +471,27 @@ function isZodType(value: unknown): value is z.ZodType {
 
 function isPluginTool(value: unknown): value is ToolDefinition {
   return typeof value === "object" && value !== null && "args" in value && "description" in value && "execute" in value
+}
+
+function importTool(file: string): Effect.Effect<Record<string, unknown> | undefined> {
+  return Effect.match(
+    Effect.tryPromise(() => import(pathToFileURL(file).href)),
+    {
+      onFailure: (error) => {
+        // A broken tool file must never fail registry initialization or poison
+        // the discovery cache: log once and let the cached entry retry later.
+        console.error(`[tool.registry] failed to import custom tool ${file}:`, error)
+        return undefined
+      },
+      onSuccess: (mod) => mod as Record<string, unknown>,
+    },
+  )
+}
+
+function collectToolExports(mod: Record<string, unknown>) {
+  return Object.entries(mod)
+    .filter(([, def]) => isPluginTool(def))
+    .map(([id]) => id)
 }
 
 function isJsonSchemaDefinition(value: unknown): value is JSONSchema7Definition {
@@ -437,6 +581,8 @@ export const node = LayerNode.make(layer.pipe(Layer.provide(Ripgrep.defaultLayer
   Truncate.node,
   RuntimeFlags.node,
   Database.node,
+  Kanban.node,
+  FTSIndex.node,
 ])
 
 export * as ToolRegistry from "./registry"

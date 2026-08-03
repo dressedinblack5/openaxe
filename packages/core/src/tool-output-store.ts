@@ -19,6 +19,8 @@ export interface BoundInput {
   readonly sessionID: SessionSchema.ID
   readonly toolCallID: string
   readonly output: ToolOutput
+  /** Per-tool character cap on the text representation of the result (Hermes `max_result_size_chars`). */
+  readonly maxResultSizeChars?: number
 }
 
 export interface BoundResult {
@@ -102,6 +104,20 @@ const boundedPreview = (text: string, marker: string, maxLines: number, maxBytes
   return bounded.tail ? `${bounded.head}\n\n${marker}\n\n${bounded.tail}` : `${bounded.head}\n\n${marker}`
 }
 
+const boundedChars = (text: string, maxChars: number) => {
+  if (text.length <= maxChars) return text
+  const head = text.slice(0, Math.ceil(maxChars / 2))
+  const tail = text.slice(text.length - Math.floor(maxChars / 2))
+  return `${head}\n\n... output truncated ...\n\n${tail}`
+}
+
+const boundedCharsWithMarker = (text: string, marker: string, maxChars: number) => {
+  const budget = Math.max(0, maxChars - marker.length - 4)
+  if (budget <= 0) return marker
+  const capped = boundedChars(text, budget)
+  return `${capped}\n\n${marker}`
+}
+
 const lineCount = (text: string) => {
   let count = 1
   for (const char of text) if (char === "\n") count++
@@ -145,7 +161,9 @@ export const layer = Layer.effect(
               catch: (cause) => new StorageError({ operation: "encode", cause }),
             })
           : text.map((item) => item.text).join("")
+      const withinChars = input.maxResultSizeChars == null || contextual.length <= input.maxResultSizeChars
       if (
+        withinChars &&
         lineCount(contextual) <= outputLimits.maxLines &&
         Buffer.byteLength(contextual, "utf-8") <= outputLimits.maxBytes
       )
@@ -163,7 +181,10 @@ export const layer = Layer.effect(
           content: [
             {
               type: "text" as const,
-              text: boundedPreview(contextual, marker, outputLimits.maxLines, outputLimits.maxBytes),
+              text:
+                input.maxResultSizeChars != null
+                  ? boundedCharsWithMarker(boundedPreview(contextual, marker, outputLimits.maxLines, outputLimits.maxBytes), marker, input.maxResultSizeChars)
+                  : boundedPreview(contextual, marker, outputLimits.maxLines, outputLimits.maxBytes),
             },
             ...media,
           ],
