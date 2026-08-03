@@ -83,6 +83,7 @@ jobs:
         run: GITHUB_ACTIONS=false bun --smol test --shard=${{ matrix.shard }}/5 --timeout 300000 --path-ignore-patterns='**/provider/**' --path-ignore-patterns='**/lsp.test.ts' --path-ignore-patterns='**/test/fixture/lsp/**'
         env:
           OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
+          BUN_FEATURE_FLAG_DISABLE_ASYNC_TRANSPILER: "1"
 
       - name: Run HttpApi exerciser gates
         if: matrix.settings.name == 'linux' && matrix.shard == 1
