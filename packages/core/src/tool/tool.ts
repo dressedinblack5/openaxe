@@ -81,10 +81,12 @@ type Config<Input extends SchemaType<any>, Output extends SchemaType<any>> = {
     readonly input: Schema.Schema.Type<Input>
     readonly output: Output["Encoded"]
   }) => ReadonlyArray<Content>
+  readonly maxResultSizeChars?: number
 }
 
 type Runtime = {
   readonly permission?: string
+  readonly maxResultSizeChars?: number
   readonly definition: (name: string) => ToolDefinition
   readonly settle: (call: ToolCall, context: Context) => Effect.Effect<ToolOutput, ToolFailure>
 }
@@ -99,6 +101,7 @@ export function make<Input extends SchemaType<any>, Output extends SchemaType<an
   const tool = Object.freeze({}) as Definition<Input, Output>
   const definitions = new Map<string, ToolDefinition>()
   runtimes.set(tool, {
+    maxResultSizeChars: config.maxResultSizeChars,
     definition: (name) => {
       const cached = definitions.get(name)
       if (cached) return cached
@@ -187,6 +190,7 @@ export const withPermission = <Input extends SchemaType<any>, Output extends Sch
 export const permission = (tool: AnyTool, name: string) => runtimeOf(tool).permission ?? name
 export const definition = (name: string, tool: AnyTool) => runtimeOf(tool).definition(name)
 export const settle = (tool: AnyTool, call: ToolCall, context: Context) => runtimeOf(tool).settle(call, context)
+export const maxResultSizeChars = (tool: AnyTool) => runtimeOf(tool).maxResultSizeChars
 
 function runtimeOf(tool: AnyTool) {
   const runtime = runtimes.get(tool)
