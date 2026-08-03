@@ -12,6 +12,15 @@
       "model": "google/gemini-3.5-flash",
       "mode": "subagent",
       "description": "Analyzes media files (PDFs, images, diagrams) that require interpretation beyond raw text."
+    },
+    "oracle": {
+      "model": "google/gemini-3.1-pro",
+      "fallback_models": [
+        "google/gemini-2.5-pro",
+        "google/gemini-3.5-flash",
+        "google/gemini-2.5-flash"
+      ],
+      "mode": "subagent"
     }
   }
 }
