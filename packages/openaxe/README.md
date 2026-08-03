@@ -9,11 +9,13 @@ For development guidance — module layout, Effect v4 rules, LSP native tooling,
 ## Quick reference
 
 ```bash
-bun dev              # Start TUI dev server
+bun dev              # Start TUI dev server (primary, no binary)
 bun test             # Run tests (--timeout 60000)
 bun run typecheck    # TypeScript check via tsgo
-bun run build        # Build binary via script/build.ts
+bun run build        # Build binary via script/build.ts (distribution only)
 ```
+
+> **Note:** `bun dev` runs the TUI directly from source — this is the primary way to run openaxe (Linux/macOS rolling release, no binary). The binary (`bun run build`) is only needed for **Windows distribution** and official releases.
 
 ## Links
 

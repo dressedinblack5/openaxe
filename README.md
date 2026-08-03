@@ -33,11 +33,15 @@ New to openaxe? Here's what to read in order:
 **Linux / macOS**
 
 ```bash
-# Preferred — one-liner (prebuilt binary, auto-detects architecture)
-curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install.sh | sh
+# Rolling release (recommended for daily use) — no binary, runs from source via bun dev
+# Always on latest: update = git pull + bun install
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install.sh | sh -s -- --dev
 
-# Alternative — install from source (requires Git + Bun)
+# Install from source (same rolling model, fuller setup: PATH + desktop entry)
 curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install | bash
+
+# Prebuilt binary — for users who don't want to run from source
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install.sh | sh
 ```
 
 **Windows**
@@ -70,7 +74,16 @@ git clone https://github.com/dressedinblack5/openaxe.git
 cd openaxe
 bun install
 cd packages/openaxe
-bun dev
+bun dev          # Primary: run TUI directly (no binary)
+```
+
+**`bun dev` is the primary way to run openaxe.** It runs the TUI directly from source with no build step. On Linux/macOS, the rolling release (`--dev`) install keeps you on latest without ever touching a binary. The binary is only needed for **Windows distribution** and official releases.
+
+To build a binary for Windows distribution:
+```bash
+cd packages/cli
+bun run script/build.ts --single   # current platform only
+bun run script/build.ts            # all targets
 ```
 
 ### First Run
@@ -106,7 +119,7 @@ openaxe run "explain this codebase"
 - **Session management** — Persistent SQLite + Drizzle ORM, export/import, session fork/continue
 - **GitHub integration** — PR fetch/checkout, GitHub agent for issue/PR operations
 - **Headless server** — Background HTTP API server with optional web interface
-- **All major platforms** — Linux, macOS, Windows (native binaries, AVX2/musl detection)
+- **All major platforms** — Linux, macOS, Windows. Linux/macOS run from source via `bun dev` (rolling release); binaries are built for **Windows distribution** and official releases (AVX2/musl detection)
 - **Durable agent memory** — SQLite-backed key-value store synced to project `AXE.md`, survives across sessions; **AxeMdSync/AxeSync round-trip fixed** so both list-item (`- **key**: value`) and free-text sections read/write correctly
 - **Auto-verification guardrails** — automatic LSP diagnostics after every file mutation, plus `tsc`/`cargo`/`ruff`/`go vet`, bracket balance, and import validation; **bracket checker now skips `//` and `/* */` comments** and template strings to eliminate false positives
 - **Predictive context prepper** — new `core/context-prepper` SystemContext source that runs `git diff HEAD --name-status` on each turn and injects `<recent_changes>` so the agent knows what changed before you ask
