@@ -395,6 +395,142 @@ describe("EditTool", () => {
   )
 })
 
+describe("EditTool fuzzy correction", () => {
+  it.live("applies a line-trimmed match when the exact indentation differs", () =>
+    Effect.acquireUseRelease(
+      Effect.promise(async () => tmpdir()),
+      (tmp) => {
+        reset()
+        const target = path.join(tmp.path, "trimmed.txt")
+        return Effect.promise(async () => fs.writeFile(target, "function a() {\n    return 1;\n  }\n")).pipe(
+          Effect.andThen(
+            withTool(tmp.path, (registry) =>
+              settleTool(registry, call({ path: "trimmed.txt", oldString: "return 1;", newString: "return 2;" })),
+            ),
+          ),
+          Effect.andThen((settled) =>
+            Effect.gen(function* () {
+              expect(settled.output?.structured).toMatchObject({ replacements: 1 })
+              expect(yield* Effect.promise(async () => fs.readFile(target, "utf8"))).toBe(
+                "function a() {\n    return 2;\n  }\n",
+              )
+              expect(writes).toHaveLength(1)
+            }),
+          ),
+        )
+      },
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
+    ),
+  )
+
+  it.live("applies a block-anchor fallback when a middle line differs slightly", () =>
+    Effect.acquireUseRelease(
+      Effect.promise(async () => tmpdir()),
+      (tmp) => {
+        reset()
+        const target = path.join(tmp.path, "anchored.txt")
+        const content = "function outer() {\n  const x = 1;\n  const y = 2;\n  return x;\n}\n"
+        return Effect.promise(async () => fs.writeFile(target, content)).pipe(
+          Effect.andThen(
+            withTool(tmp.path, (registry) =>
+              settleTool(
+                registry,
+                call({
+                  path: "anchored.txt",
+                  oldString: "const x = 1;\nconst y = 9;\nreturn x;",
+                  newString: "const x = 1;\nconst y = 3;\nreturn x;",
+                }),
+              ),
+            ),
+          ),
+          Effect.andThen((settled) =>
+            Effect.gen(function* () {
+              expect(settled.output?.structured).toMatchObject({ replacements: 1 })
+              expect(yield* Effect.promise(async () => fs.readFile(target, "utf8"))).toBe(
+                "function outer() {\nconst x = 1;\nconst y = 3;\nreturn x;\n}\n",
+              )
+              expect(writes).toHaveLength(1)
+            }),
+          ),
+        )
+      },
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
+    ),
+  )
+
+  it.live("applies an indentation-flexible match when the whole block is re-indented", () =>
+    Effect.acquireUseRelease(
+      Effect.promise(async () => tmpdir()),
+      (tmp) => {
+        reset()
+        const target = path.join(tmp.path, "reindented.txt")
+        return Effect.promise(async () => fs.writeFile(target, "  const a = 1;\n  const b = 2;\n")).pipe(
+          Effect.andThen(
+            withTool(tmp.path, (registry) =>
+              settleTool(
+                registry,
+                call({
+                  path: "reindented.txt",
+                  oldString: "const a = 1;\nconst b = 2;",
+                  newString: "const a = 9;\nconst b = 9;",
+                }),
+              ),
+            ),
+          ),
+          Effect.andThen((settled) =>
+            Effect.gen(function* () {
+              expect(settled.output?.structured).toMatchObject({ replacements: 1 })
+              expect(yield* Effect.promise(async () => fs.readFile(target, "utf8"))).toBe("const a = 9;\nconst b = 9;\n")
+              expect(writes).toHaveLength(1)
+            }),
+          ),
+        )
+      },
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
+    ),
+  )
+
+  it.live("rejects an ambiguous fuzzy match without writing", () =>
+    Effect.acquireUseRelease(
+      Effect.promise(async () => tmpdir()),
+      (tmp) => {
+        reset()
+        const target = path.join(tmp.path, "fuzzy-ambiguous.txt")
+        return Effect.promise(async () =>
+          fs.writeFile(target, "  const a = 1;\n  const b = 2;\n\n  const a = 1;\n  const b = 2;\n"),
+        ).pipe(
+          Effect.andThen(
+            withTool(tmp.path, (registry) =>
+              executeTool(
+                registry,
+                call({
+                  path: "fuzzy-ambiguous.txt",
+                  oldString: "const a = 1;\nconst b = 2;",
+                  newString: "const c = 3;\nconst d = 4;",
+                }),
+              ),
+            ),
+          ),
+          Effect.andThen((result) =>
+            Effect.gen(function* () {
+              expect(result).toEqual({
+                type: "error",
+                value:
+                  "Found multiple fuzzy matches for oldString. Provide more surrounding context or set replaceAll to true.",
+              })
+              expect(yield* Effect.promise(async () => fs.readFile(target, "utf8"))).toBe(
+                "  const a = 1;\n  const b = 2;\n\n  const a = 1;\n  const b = 2;\n",
+              )
+              expect(writes).toEqual([])
+            }),
+          ),
+        )
+      },
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
+    ),
+  )
+})
+
 test("keeps the locked edit schema, semantics docstring, and deferred TODOs visible", async () => {
   const source = (await fs.readFile(new URL("../src/tool/edit.ts", import.meta.url), "utf8")).replaceAll("\r\n", "\n")
   const definition = await Effect.runPromise(
@@ -407,7 +543,6 @@ test("keeps the locked edit schema, semantics docstring, and deferred TODOs visi
     "absolute external paths retain mutation capability through a separate\n * external_directory approval before edit approval.",
   )
   for (const todo of [
-    "Port V1 fuzzy correction strategies only after exact-edit behavior is established: line-trimmed matching, block-anchor fallback, indentation correction, and similarity-threshold review.",
     "Add formatter integration after V2 formatter runtime exists.",
     "Publish watcher/file-edit events after V2 watcher integration exists.",
     "Add snapshots / undo after design exists.",
