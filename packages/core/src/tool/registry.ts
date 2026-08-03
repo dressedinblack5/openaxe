@@ -12,7 +12,7 @@ import { AutoCommit } from "../auto-commit"
 import { ErrorJournal } from "../error-journal"
 import { Guardrail } from "../guardrail"
 import { ApplicationTools } from "./application-tools"
-import { definition, permission, settle, validateName, type AnyTool, type RegistrationError } from "./tool"
+import { definition, maxResultSizeChars, permission, settle, validateName, type AnyTool, type RegistrationError } from "./tool"
 import { Tools } from "./tools"
 
 export type ExecuteInput = {
@@ -24,6 +24,7 @@ export type ExecuteInput = {
 
 export interface Interface {
   readonly materialize: (permissions?: PermissionV2.Ruleset) => Effect.Effect<Materialization>
+  readonly search: (query: string, limit?: number) => Effect.Effect<ReadonlyArray<ToolDefinition>>
   /** Internal registration capability exposed publicly only through Tools.Service. */
   readonly register: (tools: Readonly<Record<string, AnyTool>>) => Effect.Effect<void, RegistrationError, Scope.Scope>
 }
@@ -114,13 +115,54 @@ const registryLayer = Layer.effect(
 
       AutoCommit.recordMutation(input.sessionID, filePaths, process.cwd())
 
-      const bounded = yield* resources.bound({ sessionID: input.sessionID, toolCallID: input.call.id, output: guardedOutput })
+      const bounded = yield* resources.bound({
+        sessionID: input.sessionID,
+        toolCallID: input.call.id,
+        output: guardedOutput,
+        maxResultSizeChars: maxResultSizeChars(registration.tool),
+      })
       const result = ToolOutput.toResultValue(bounded.output)
       if (result.type === "error")
         return bounded.outputPaths.length > 0 ? { result, outputPaths: bounded.outputPaths } : { result }
       return bounded.outputPaths.length > 0
         ? { result, output: bounded.output, outputPaths: bounded.outputPaths }
         : { result, output: bounded.output }
+    })
+
+    const materializeWith = Effect.fn("ToolRegistry.materialize")(function* (permissions: PermissionV2.Ruleset = []) {
+      // Direct Map lookup - O(1) per tool instead of iterating all entries
+      const registrations = new Map<string, Registration>()
+      for (const [name, entry] of applications.entries()) {
+        registrations.set(name, { identity: entry.identity, tool: entry.tool })
+      }
+      for (const [name, entries] of local) {
+        const registration = entries.at(-1)?.registration
+        if (registration) registrations.set(name, registration)
+      }
+      for (const [name, registration] of registrations)
+        if (whollyDisabled(permission(registration.tool, name), permissions)) registrations.delete(name)
+      return registrations
+    })
+
+    const search = Effect.fn("ToolRegistry.search")(function* (query: string, limit = 10) {
+      const needle = query.trim().toLowerCase()
+      const registrations = yield* materializeWith()
+      const matches = Array.from(registrations, ([name, registration]) => {
+        const toolDefinition = definition(name, registration.tool)
+        const score =
+          needle.length === 0
+            ? 1
+            : name.toLowerCase().includes(needle)
+              ? 2
+              : toolDefinition.description.toLowerCase().includes(needle)
+                ? 1
+                : 0
+        return { definition: toolDefinition, score }
+      })
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+      return matches.map((entry) => entry.definition)
     })
 
     return Service.of({
@@ -146,18 +188,9 @@ const registryLayer = Layer.effect(
           }),
         )
       }),
-materialize: Effect.fn("ToolRegistry.materialize")(function* (permissions = []) {
-        // Direct Map lookup - O(1) per tool instead of iterating all entries
-        const registrations = new Map<string, Registration>()
-        for (const [name, entry] of applications.entries()) {
-          registrations.set(name, { identity: entry.identity, tool: entry.tool })
-        }
-        for (const [name, entries] of local) {
-          const registration = entries.at(-1)?.registration
-          if (registration) registrations.set(name, registration)
-        }
-        for (const [name, registration] of registrations)
-          if (whollyDisabled(permission(registration.tool, name), permissions)) registrations.delete(name)
+      search,
+      materialize: Effect.fn("ToolRegistry.materialize")(function* (permissions: PermissionV2.Ruleset = []) {
+        const registrations = yield* materializeWith(permissions)
         return {
           definitions: Array.from(registrations, ([name, registration]) => definition(name, registration.tool)),
           settle: (input) => {
