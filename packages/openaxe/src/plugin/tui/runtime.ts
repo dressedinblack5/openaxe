@@ -244,7 +244,6 @@ function resolveRoot(root: string) {
 function createThemeInstaller(
   meta: ConfigPlugin.Origin,
   root: string,
-  spec: string,
   plugin: PluginEntry,
 ): TuiTheme["install"] {
   return async (file) => {
@@ -376,7 +375,7 @@ async function readThemeFiles(spec: string, pkg?: PluginPackage) {
 async function syncPluginThemes(plugin: PluginEntry) {
   if (!plugin.load.theme_files.length) return
   if (plugin.meta.state === "same") return
-  const install = createThemeInstaller(plugin.load.origin, plugin.load.plugin_root, plugin.load.spec, plugin)
+  const install = createThemeInstaller(plugin.load.origin, plugin.load.plugin_root, plugin)
   for (const file of plugin.load.theme_files) {
     await install(file).catch((error) => {
       warn("failed to sync tui plugin oc-themes", { path: plugin.load.spec, id: plugin.id, theme: file, error })
@@ -587,7 +586,7 @@ function pluginApi(runtime: RuntimeState, plugin: PluginEntry, scope: PluginScop
   }
 
   const theme: TuiPluginApi["theme"] = Object.assign(Object.create(api.theme), {
-    install: createThemeInstaller(load.origin, load.plugin_root, load.spec, plugin),
+    install: createThemeInstaller(load.origin, load.plugin_root, plugin),
   })
 
   const event: TuiPluginApi["event"] = {

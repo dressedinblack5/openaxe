@@ -25,7 +25,7 @@ function isOpenAiErrorRetryable(e: APICallError) {
 
 // Providers not reliably handled in this function:
 // - z.ai: can accept overflow silently (needs token-count/context-window checks)
-function message(providerID: ProviderV2.ID, e: APICallError) {
+function message(e: APICallError) {
   return iife(() => {
     const msg = e.message
     if (msg === "") {
@@ -175,7 +175,7 @@ function isContentFilter(body: unknown, message_: string): boolean {
 }
 
 export function parseAPICallError(input: { providerID: ProviderV2.ID; error: APICallError }): ParsedAPICallError {
-  const m = message(input.providerID, input.error)
+  const m = message(input.error)
   const body = json(input.error.responseBody)
   if (isContentFilter(body, m)) {
     return {

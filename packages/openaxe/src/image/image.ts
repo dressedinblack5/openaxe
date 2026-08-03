@@ -65,7 +65,6 @@ function rebuildDataUrl(mime: string, base64: string): string {
 async function tryResize(
   photon: typeof import("@silvia-odwyer/photon-node"),
   imageBuffer: Buffer,
-  mime: string,
   maxWidth: number,
   maxHeight: number,
   maxBytes: number,
@@ -164,7 +163,6 @@ export const layer = Layer.effect(
 
       const mimeMatch = input.url.match(/^data:([^;]+);base64,/)
       if (!mimeMatch) return yield* new InvalidDataUrlError({ url: input.url })
-      const mime = mimeMatch[1]
 
       const base64 = extractBase64(input.url)
       const bytes = Buffer.from(base64, "base64").length
@@ -225,7 +223,7 @@ export const layer = Layer.effect(
       )
 
       const result = yield* Effect.tryPromise({
-        try: () => tryResize(photon, imageBuffer, mime, maxWidth, maxHeight, maxBase64Bytes),
+        try: () => tryResize(photon, imageBuffer, maxWidth, maxHeight, maxBase64Bytes),
         catch: () => new ResizerUnavailableError({}),
       })
 

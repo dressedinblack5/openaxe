@@ -26,7 +26,7 @@ function makeCtx(): Tool.Context {
   }
 }
 
-function makeTool(id: string, executeFn?: () => void) {
+function makeTool(executeFn?: () => void) {
   return {
     description: "test tool",
     parameters: params,
@@ -40,7 +40,7 @@ function makeTool(id: string, executeFn?: () => void) {
 describe("Tool.define", () => {
   it.effect("object-defined tool does not mutate the original init object", () =>
     Effect.gen(function* () {
-      const original = makeTool("test")
+      const original = makeTool()
       // oxlint-disable-next-line typescript-eslint/unbound-method -- identity comparison needs the raw method reference.
       const originalExecute = original.execute
 
@@ -59,7 +59,7 @@ describe("Tool.define", () => {
     Effect.gen(function* () {
       const info = yield* Tool.define(
         "test-fn-tool",
-        Effect.succeed(() => Effect.succeed(makeTool("test"))),
+        Effect.succeed(() => Effect.succeed(makeTool())),
       )
 
       const first = yield* info.init()
@@ -71,7 +71,7 @@ describe("Tool.define", () => {
 
   it.effect("object-defined tool returns distinct objects per init() call", () =>
     Effect.gen(function* () {
-      const info = yield* Tool.define("test-copy", Effect.succeed(makeTool("test")))
+      const info = yield* Tool.define("test-copy", Effect.succeed(makeTool()))
 
       const first = yield* info.init()
       const second = yield* info.init()

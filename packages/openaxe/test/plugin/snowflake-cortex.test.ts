@@ -195,7 +195,7 @@ describe("plugin.snowflake-cortex", () => {
 
     let sentBody: string | undefined
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async (request, init) => {
+    globalThis.fetch = (async (_request, init) => {
       sentBody = typeof init?.body === "string" ? init.body : undefined
       return new Response("{}", { status: 200, headers: { "content-type": "application/json" } })
     }) as typeof fetch
