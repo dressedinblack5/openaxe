@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "oh-my-openagent",
+    "opencode-plugin-selector",
+    "opencode-vibeguard",
+    "@tarquinen/opencode-dcp",
+    "ecc-universal"
+  ],
+  "agent": {
+    "multimodal-looker": {
+      "model": "google/gemini-3.5-flash",
+      "mode": "subagent",
+      "description": "Analyzes media files (PDFs, images, diagrams) that require interpretation beyond raw text."
+    }
+  }
+}
