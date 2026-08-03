@@ -24,6 +24,33 @@ export default {
         );
       `)
       yield* tx.run(`
+        CREATE TABLE \`kanban_board\` (
+          \`id\` text PRIMARY KEY,
+          \`root_session_id\` text NOT NULL,
+          \`title\` text NOT NULL,
+          \`status\` text DEFAULT 'active' NOT NULL,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
+        CREATE TABLE \`kanban_card\` (
+          \`id\` text PRIMARY KEY,
+          \`board_id\` text NOT NULL,
+          \`root_session_id\` text NOT NULL,
+          \`title\` text NOT NULL,
+          \`description\` text,
+          \`status\` text DEFAULT 'backlog' NOT NULL,
+          \`priority\` integer DEFAULT 0 NOT NULL,
+          \`position\` integer DEFAULT 0 NOT NULL,
+          \`worker_session_id\` text,
+          \`parent_id\` text,
+          \`verification\` text,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`memory\` (
           \`key\` text PRIMARY KEY,
           \`value\` text,
@@ -276,6 +303,7 @@ export default {
         `CREATE INDEX \`session_message_session_time_created_id_idx\` ON \`session_message\` (\`session_id\`,\`time_created\`,\`id\`);`,
       )
       yield* tx.run(`CREATE INDEX \`session_message_time_created_idx\` ON \`session_message\` (\`time_created\`);`)
+      yield* tx.run(`CREATE INDEX \`session_message_time_updated_idx\` ON \`session_message\` (\`time_updated\`);`)
       yield* tx.run(`CREATE INDEX \`session_project_idx\` ON \`session\` (\`project_id\`);`)
       yield* tx.run(`CREATE INDEX \`session_workspace_idx\` ON \`session\` (\`workspace_id\`);`)
       yield* tx.run(`CREATE INDEX \`session_parent_idx\` ON \`session\` (\`parent_id\`);`)
