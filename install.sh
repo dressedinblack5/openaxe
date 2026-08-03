@@ -1,10 +1,54 @@
 #!/bin/sh
 # openaxe - one-line install
 # Usage: curl -sL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install.sh | sh
+#        curl -sL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install.sh | sh -s -- --dev
+#   --dev  Rolling release: install from source and run via `bun dev` (Linux/macOS only).
+#          Updates = git pull + bun install. No binary involved.
 set -eu
 
-BIN_DIR="${1:-$HOME/.local/bin}"
+BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 REPO="${REPO:-dressedinblack5/openaxe}"
+
+MODE="binary"
+for arg in "$@"; do
+  case "$arg" in
+    --dev) MODE="dev" ;;
+    --binary) MODE="binary" ;;
+    *) BIN_DIR="$arg" ;;
+  esac
+done
+
+# Rolling release (source + bun dev). Keeps Linux updates binary-free.
+if [ "$MODE" = "dev" ]; then
+  SRC_DIR="${OPENAXE_SRC:-$HOME/.local/share/openaxe/src}"
+
+  command -v bun >/dev/null 2>&1 || { echo "bun is required for dev mode. Install: curl -fsSL https://bun.sh/install | bash"; exit 1; }
+  command -v git >/dev/null 2>&1 || { echo "git is required for dev mode."; exit 1; }
+
+  mkdir -p "$SRC_DIR" "$BIN_DIR"
+  if [ ! -d "$SRC_DIR/packages/openaxe" ]; then
+    echo "Cloning $REPO into $SRC_DIR ..."
+    git clone --depth 1 "https://github.com/$REPO.git" "$SRC_DIR"
+  elif git -C "$SRC_DIR" remote -v | grep -q .; then
+    echo "openaxe source already present. Pulling latest..."
+    git -C "$SRC_DIR" pull --ff-only || echo "Pull failed — continuing with existing source."
+  fi
+  bun install --cwd "$SRC_DIR"
+
+  {
+    echo "#!/usr/bin/env bash"
+    echo "set -euo pipefail"
+    echo "# Run the source entry directly: \`bun dev\` would redirect cwd to the openaxe package, so openaxe would operate on itself instead of the project it was launched from."
+    echo "exec bun run --conditions=browser \"$SRC_DIR/packages/openaxe/src/index.ts\" \"\$@\""
+  } > "$BIN_DIR/openaxe"
+  chmod +x "$BIN_DIR/openaxe"
+
+  echo "Installed openaxe (rolling, dev mode) to $BIN_DIR/openaxe"
+  echo "  - Runs the source entry directly via bun — no binary"
+  echo "  - Update: git -C $SRC_DIR pull && bun install --cwd $SRC_DIR"
+  echo "  - Add $BIN_DIR to your PATH if not already there"
+  exit 0
+fi
 
 # detect platform
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')

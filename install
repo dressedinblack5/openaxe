@@ -51,7 +51,8 @@ mkdir -p "$BIN_DIR"
 
 cat > "$WRAPPER" <<SCRIPT
 #!/usr/bin/env bash
-exec bun --conditions=browser "$INSTALL_DIR/packages/openaxe/src/index.ts" "\$@"
+# Run the source entry directly: \`bun dev\` would redirect cwd to the openaxe package, so openaxe would operate on itself instead of the project it was launched from.
+exec bun run --conditions=browser "$INSTALL_DIR/packages/openaxe/src/index.ts" "\$@"
 SCRIPT
 chmod +x "$WRAPPER"
 
