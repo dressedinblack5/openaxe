@@ -15,7 +15,6 @@ import { BUNDLED_PLUGINS } from "@/config/config"
 import { ConfigPlugin } from "@/config/plugin"
 import { parsePluginSpecifier } from "@/plugin/shared"
 import { TuiKeybind } from "@opencode-ai/tui/config/keybind"
-import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { makeRuntime } from "@opencode-ai/core/effect/runtime"
 import { Filesystem } from "@/util/filesystem"
 import { ConfigVariable } from "@/config/variable"
@@ -223,7 +222,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
               add: [
                 {
                   name: "@opencode-ai/plugin",
-                  version: InstallationLocal ? undefined : InstallationVersion,
+                  // ponytail: no version pin — see config.ts; resolve `latest`.
                 },
                 ...BUNDLED_PLUGINS.filter((p): p is (typeof BUNDLED_PLUGINS)[number] & { kinds: readonly ("server" | "tui")[] } => p.kinds.includes("tui")).map((p) => ({ name: p.spec })),
               ],

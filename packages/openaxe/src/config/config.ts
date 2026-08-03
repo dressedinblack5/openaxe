@@ -11,7 +11,6 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { applyEdits, modify } from "jsonc-parser"
-import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Account } from "@/account/account"
 import { isRecord } from "@/util/record"
 import type { ConsoleState } from "@opencode-ai/core/v1/config/console-state"
@@ -485,7 +484,7 @@ export const layer = Layer.effect(
                 add: [
                   {
                     name: "@opencode-ai/plugin",
-                    version: InstallationLocal ? undefined : InstallationVersion,
+                    // ponytail: no version pin — the CLI build version is not a published @opencode-ai/plugin version; resolve `latest`.
                   },
                 ],
               })
