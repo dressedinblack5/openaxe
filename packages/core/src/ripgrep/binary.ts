@@ -1,7 +1,7 @@
 import { exec } from "node:child_process"
 import { promisify } from "node:util"
 import path from "node:path"
-import { Context, Effect, Layer, Stream } from "effect"
+import { Context, Effect, Layer, Result, Stream } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http"
 import { ChildProcess } from "effect/unstable/process"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
@@ -10,6 +10,7 @@ import { LayerNode } from "../effect/layer-node"
 import { httpClient } from "../effect/layer-node-platform"
 import { FSUtil } from "../fs-util"
 import { Global } from "../global"
+import { extractTgz, extractZip } from "../util/archive"
 import { which } from "../util/which"
 
 // ponytail: promisify exec — shell resolves PATHEXT on Windows where
@@ -40,7 +41,10 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* FSUtil.Service
-    const http = HttpClient.filterStatusOk(yield* HttpClient.HttpClient)
+    // ponytail: follow redirects before filtering status — GitHub release
+    // /releases/download URLs 302 to objects.githubusercontent.com, and the
+    // Node http client does not follow redirects on its own.
+    const http = HttpClient.filterStatusOk(HttpClient.followRedirects(5)(yield* HttpClient.HttpClient))
     const spawner = yield* ChildProcessSpawner
 
     const run = Effect.fnUntraced(function* (command: string, args: string[]) {
@@ -62,6 +66,11 @@ export const layer = Layer.effect(
       target: string,
     ) {
       const dir = yield* fs.makeTempDirectoryScoped({ directory: Global.Path.bin, prefix: "ripgrep-" })
+      const extracted = path.join(
+        dir,
+        `ripgrep-${VERSION}-${config.platform}`,
+        process.platform === "win32" ? "rg.exe" : "rg",
+      )
 
       if (config.extension === "zip") {
         const unzipOk = yield* Effect.tryPromise({
@@ -76,28 +85,35 @@ export const layer = Layer.effect(
               execAsync(`"${shell}" -NoProfile -NonInteractive -Command "${psCmd.replaceAll('"', '\\"')}"`, {
                 shell: true,
               }),
-            catch: (cause: unknown) => {
-              const msg = cause instanceof Error ? cause.message : String(cause)
-              return new Error(`ripgrep extraction failed: ${msg}`)
-            },
-          })
+            catch: (cause: unknown) => cause,
+          }).pipe(Effect.isSuccess)
+        }
+        // ponytail: shell extractors can exit 0 without extracting (Wine's
+        // powershell stub succeeds but does nothing) — fall back to pure-JS
+        // extraction whenever the executable is still missing.
+        if (!(yield* fs.isFile(extracted).pipe(Effect.orDie))) {
+          yield* Effect.try({
+            try: () => extractZip(archive, dir),
+            catch: (cause) => new Error(`ripgrep extraction failed: ${String(cause)}`),
+          }).pipe(Effect.orDie)
         }
       }
 
       if (config.extension === "tar.gz") {
-        const result = yield* run("tar", ["-xzf", archive, "-C", dir])
-        if (result.code !== 0)
-          throw new Error(
-            result.stderr.trim() || result.stdout.trim() || `ripgrep extraction failed with code ${result.code}`,
-          )
+        const result = yield* Effect.result(run("tar", ["-xzf", archive, "-C", dir]))
+        if (
+          Result.isFailure(result) ||
+          result.success.code !== 0 ||
+          !(yield* fs.isFile(extracted).pipe(Effect.orDie))
+        ) {
+          yield* Effect.try({
+            try: () => extractTgz(archive, dir),
+            catch: (cause) => new Error(`ripgrep extraction failed: ${String(cause)}`),
+          }).pipe(Effect.orDie)
+        }
       }
 
-      const extracted = path.join(
-        dir,
-        `ripgrep-${VERSION}-${config.platform}`,
-        process.platform === "win32" ? "rg.exe" : "rg",
-      )
-      if (!(yield* fs.isFile(extracted))) throw new Error(`ripgrep archive did not contain executable: ${extracted}`)
+      if (!(yield* fs.isFile(extracted).pipe(Effect.orDie))) throw new Error(`ripgrep archive did not contain executable: ${extracted}`)
 
       yield* fs.copyFile(extracted, target)
       if (process.platform !== "win32") yield* fs.chmod(target, 0o755)

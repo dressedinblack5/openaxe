@@ -2,6 +2,7 @@ import path from "node:path"
 import { mkdirSync, existsSync, rmSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { Option, Effect } from "effect"
+import { extractTgz } from "@opencode-ai/core/util/archive"
 import { Global } from "@opencode-ai/core/global"
 import { run } from "@/util/process"
 
@@ -66,12 +67,15 @@ const downloadRuntime = Effect.fn("Codegraph.downloadRuntime")(function* () {
   const result = yield* Effect.tryPromise(() =>
     run(["tar", "-xzf", tmpTgz, "--strip-components=1", "-C", root], { nothrow: true }),
   )
-  rmSync(tmpTgz, { force: true })
   if (result.code !== 0) {
-    yield* Effect.fail(
-      new Error(`Failed to extract codegraph runtime: ${result.stderr.toString().trim() || "tar failed"}`),
-    )
+    // ponytail: Wine ships no tar.exe and a stub powershell — pure-JS
+    // extraction is the last-resort fallback.
+    yield* Effect.try({
+      try: () => extractTgz(tmpTgz, root, 1),
+      catch: (cause) => new Error(`Failed to extract codegraph runtime: ${String(cause)}`),
+    }).pipe(Effect.orDie)
   }
+  rmSync(tmpTgz, { force: true })
 
   const command = bundleCommand(root)
   if (!command) {
