@@ -116,6 +116,10 @@ openaxe run "explain this codebase"
 - **/revert** — undo AI file changes via snapshot-based rollback
 - **Learning review** — post-turn background eval that auto-discovers skill and observation updates from each interaction (opt-in via `experimental.learning.review`)
 - **Context compressor** — LLM-driven structured compression with ghost-skill re-injection: produces sectioned summaries that preserve agent context across long sessions (opt-in via `experimental.compressor.enabled`)
+- **Cross-session search** — SQLite FTS5 full-text index over all past session messages; the `session_search` tool finds relevant history across sessions (CJK-capable trigram tokenizer)
+- **Kanban swarm board** — SQLite-backed `kanban` tool for coordinating root→worker→verifier multi-agent task flows
+- **Procedural skill memory** — `skill_write` tool lets the agent create and update project-local `.openaxe/skills/SKILL.md` files, persisting learned procedures across sessions
+- **Tool discovery** — `tool_search` resolves tools by name/description at runtime, and `plan_exit` lets subagents signal plan completion
 
 ## Plugins
 
@@ -192,7 +196,7 @@ Configure via `.openaxe/openaxe.jsonc` in your project root:
 
 ## Built-in Tools
 
-openaxe ships with a rich set of built-in tools that the AI assistant can invoke. The tool system supports 30+ tools covering file operations, code intelligence, shell execution, web access, and subagent delegation.
+openaxe ships with a rich set of built-in tools that the AI assistant can invoke. The tool system supports 30+ tools covering file operations, code intelligence, shell execution, web access, subagent delegation, cross-session search, task orchestration, and skill memory.
 
 ### LSP Code Intelligence — Native Tooling Arsenal
 
@@ -254,7 +258,7 @@ Every file mutation (`edit`, `write`, `apply_patch`) automatically triggers `tou
 
 ### Hermes-Inspired Intelligence Features
 
-Two optional systems ported from the [Hermes agent](https://github.com/NousResearch/hermes-agent) architecture:
+Five systems ported from the [Hermes agent](https://github.com/NousResearch/hermes-agent) architecture:
 
 #### Learning Review (`src/session/learning/`)
 
@@ -306,6 +310,54 @@ Hook: called during compaction before the compaction LLM prompt
   }
 }
 ```
+
+#### Cross-Session Search (`src/database/fts.ts` + `src/tool/session-search.ts`)
+
+SQLite FTS5 full-text index over all `session_message` rows. The `session_search` tool queries past sessions without re-reading full transcripts.
+
+```
+Module: src/database/fts.ts            FTSIndex service (raw SQLite FTS5 virtual table)
+Tool:   session_search                 query → { sessionID, sessionTitle, snippet, rank }[]
+```
+
+- Indexes user/assistant/system message text lazily with a high-water (time, rowid) cursor
+- **Trigram tokenizer** — CJK-aware substring matching, not just whitespace-separated words
+- Results restricted to a single session via the optional `sessionID` input
+- FTS table dropped in a finalizer before the native DB closes (no teardown segfault)
+- Reserved FTS5 characters (`* : ^ ( ) "`) sanitized in queries
+- Permission-gated via `permission.assert({ action: "session_search", ... })`
+
+#### Kanban Swarm Board (`src/kanban/` + `src/tool/kanban.ts`)
+
+SQLite-backed kanban board for coordinating multi-agent task flows (root → workers → verifier).
+
+```
+Module: src/kanban/kanban.ts   Kanban service (boards, cards, transitions)
+Tool:   kanban                 create board / add card / move card / list
+```
+
+- Boards, lanes, and cards persisted in SQLite via the Drizzle schema
+- Card lifecycle: `backlog → todo → in_progress → done` (plus `blocked`), with priority, ordering, an optional `worker_session_id` for assigned subagents, and an optional `parent_id` for root→worker→verifier hierarchies
+- Permission-gated via `permission.assert({ action: "kanban", ... })`
+
+#### Procedural Skill Memory (`src/tool/skill-write.ts`)
+
+The `skill_write` tool lets the agent create and update project-local `.openaxe/skills/<name>/SKILL.md` files, persisting learned procedures across sessions.
+
+```
+Tool: skill_write   write|list → project .openaxe/skills/<name>/SKILL.md
+```
+
+- Writes only to the project-local skills directory (no path override)
+- `list` returns existing skills; `write` creates or updates a skill file
+- Invalidates the `SkillV2` cache after writes so new skills are immediately visible to the agent
+- Permission-gated via `permission.assert({ action: "skill_write", ... })`
+
+#### Tool Discovery & Planning (`src/tool/tool-search.ts`, `src/tool/plan-exit.ts`)
+
+- **`tool_search`** — resolves tools by name or description at runtime so the agent can discover capabilities dynamically
+- **`plan_exit`** — lets subagents signal plan completion back to the orchestrator
+- Both permission-gated via `permission.assert`
 
 ## Architecture
 
