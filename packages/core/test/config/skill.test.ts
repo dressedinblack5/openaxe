@@ -67,6 +67,10 @@ describe("ConfigSkillPlugin.Plugin", () => {
           type: "directory",
           path: AbsolutePath.make(path.join("/repo/.opencode", "skills")),
         }),
+        SkillV2.DirectorySource.make({
+          type: "directory",
+          path: AbsolutePath.make(path.join(directory, ".openaxe", "skills")),
+        }),
         SkillV2.DirectorySource.make({ type: "directory", path: AbsolutePath.make(path.join(directory, "skills")) }),
         SkillV2.DirectorySource.make({
           type: "directory",
