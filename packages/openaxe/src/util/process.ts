@@ -221,7 +221,16 @@ export async function run(cmd: string[], opts: RunOptions = {}): Promise<Result>
     stderr: "pipe",
   })
 
-  if (!proc.stdout || !proc.stderr) throw new Error("Process output not available")
+  if (!proc.stdout || !proc.stderr) {
+    // ponytail: spawn failure (e.g. missing binary on Windows) leaves
+    // stdout/stderr null — nothrow callers expect a code-1 result, not a
+    // synchronous throw that bypasses the Promise.all catch below.
+    const err = new Error("Process output not available")
+    if (opts.nothrow) {
+      return { code: 1, stdout: Buffer.alloc(0), stderr: Buffer.from(errorMessage(err)) }
+    }
+    throw err
+  }
 
   const out = await Promise.all([proc.exited, buffer(proc.stdout), buffer(proc.stderr)])
     .then(([code, stdout, stderr]) => ({
