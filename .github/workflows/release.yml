@@ -115,24 +115,6 @@ jobs:
             packages/openaxe/dist/openaxe-darwin*
             packages/openaxe/dist/openaxe-linux*
 
-  build-windows:
-    needs: release
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-tags: true
-
-      - uses: ./.github/actions/setup-bun
-
-      - name: Build Windows
-        run: bun ./packages/openaxe/script/build.ts --single
-        env:
-          OPENCODE_VERSION: ${{ needs.release.outputs.version }}
-          OPENCODE_RELEASE: "true"
-          GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: openaxe-cli-windows
@@ -149,7 +131,6 @@ jobs:
   sign-windows:
     needs:
       - build
-      - build-windows
       - release
       - sign-ready
     if: needs.sign-ready.outputs.available == 'true'
@@ -182,7 +163,9 @@ jobs:
           signing-account-name: ${{ env.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
           certificate-profile-name: ${{ env.AZURE_TRUSTED_SIGNING_CERTIFICATE_PROFILE }}
           files: |
+            ${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-arm64\bin\openaxe.exe
             ${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64\bin\openaxe.exe
+            ${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64-baseline\bin\openaxe.exe
           exclude-environment-credential: true
           exclude-workload-identity-credential: true
           exclude-managed-identity-credential: true
@@ -198,7 +181,9 @@ jobs:
         shell: pwsh
         run: |
           $files = @(
-            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64\bin\openaxe.exe"
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-arm64\bin\openaxe.exe",
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64\bin\openaxe.exe",
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64-baseline\bin\openaxe.exe"
           )
 
           foreach ($file in $files) {
@@ -212,7 +197,9 @@ jobs:
         working-directory: packages/openaxe/dist
         shell: pwsh
         run: |
+          Compress-Archive -Path "openaxe-windows-arm64\bin\*" -DestinationPath "openaxe-windows-arm64.zip" -Force
           Compress-Archive -Path "openaxe-windows-x64\bin\*" -DestinationPath "openaxe-windows-x64.zip" -Force
+          Compress-Archive -Path "openaxe-windows-x64-baseline\bin\*" -DestinationPath "openaxe-windows-x64-baseline.zip" -Force
 
       - name: Upload signed Windows CLI release assets
         if: needs.release.outputs.version != ''
@@ -221,22 +208,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "v${{ needs.release.outputs.version }}" `
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-arm64.zip" `
             "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64.zip" `
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64-baseline.zip" `
             --clobber `
             --repo ${{ github.repository }}
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: openaxe-cli-signed-windows
-          path: packages/openaxe/dist/openaxe-windows-x64
+          path: |
+            packages/openaxe/dist/openaxe-windows-arm64
+            packages/openaxe/dist/openaxe-windows-x64
+            packages/openaxe/dist/openaxe-windows-x64-baseline
 
   publish:
     needs:
       - release
       - build
-      - build-windows
       - sign-windows
-    if: needs.build.result == 'success' && needs.build-windows.result == 'success' && needs.sign-windows.result != 'failure'
+    if: needs.build.result == 'success' && needs.sign-windows.result != 'failure'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

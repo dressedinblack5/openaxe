@@ -109,42 +109,13 @@ jobs:
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opencode-preview-cli
-          path: packages/cli/dist/cli-*
-
-    outputs:
-      version: ${{ needs.version.outputs.version }}
-
-  build-cli-windows:
-    if: github.repository == 'dressedinblack5/openaxe'
-    needs: version
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-tags: true
-
-      - uses: ./.github/actions/setup-bun
-
-      - name: Setup git committer
-        id: committer
-        uses: ./.github/actions/setup-git-committer
-        with:
-          opencode-app-id: ${{ vars.OPENCODE_APP_ID }}
-          opencode-app-secret: ${{ secrets.OPENCODE_APP_SECRET }}
-
-      - name: Build Windows
-        run: bun ./packages/openaxe/script/build.ts --single
-        env:
-          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
-          OPENCODE_RELEASE: ${{ needs.version.outputs.release }}
-          GH_REPO: ${{ needs.version.outputs.repo }}
-          GH_TOKEN: ${{ steps.committer.outputs.token }}
+          name: openaxe-cli-windows
+          path: packages/openaxe/dist/openaxe-windows*
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: openaxe-cli-windows
-          path: packages/openaxe/dist/openaxe-windows*
+          name: opencode-preview-cli
+          path: packages/cli/dist/cli-*
 
     outputs:
       version: ${{ needs.version.outputs.version }}
@@ -161,7 +132,6 @@ jobs:
   sign-cli-windows:
     needs:
       - build-cli
-      - build-cli-windows
       - version
       - sign-ready
     if: needs.sign-ready.outputs.available == 'true'
@@ -201,7 +171,9 @@ jobs:
           signing-account-name: ${{ env.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
           certificate-profile-name: ${{ env.AZURE_TRUSTED_SIGNING_CERTIFICATE_PROFILE }}
           files: |
+            ${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-arm64\bin\openaxe.exe
             ${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64\bin\openaxe.exe
+            ${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64-baseline\bin\openaxe.exe
           exclude-environment-credential: true
           exclude-workload-identity-credential: true
           exclude-managed-identity-credential: true
@@ -217,7 +189,9 @@ jobs:
         shell: pwsh
         run: |
           $files = @(
-            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64\bin\openaxe.exe"
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-arm64\bin\openaxe.exe",
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64\bin\openaxe.exe",
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64-baseline\bin\openaxe.exe"
           )
 
           foreach ($file in $files) {
@@ -231,7 +205,9 @@ jobs:
         working-directory: packages/openaxe/dist
         shell: pwsh
         run: |
+          Compress-Archive -Path "openaxe-windows-arm64\bin\*" -DestinationPath "openaxe-windows-arm64.zip" -Force
           Compress-Archive -Path "openaxe-windows-x64\bin\*" -DestinationPath "openaxe-windows-x64.zip" -Force
+          Compress-Archive -Path "openaxe-windows-x64-baseline\bin\*" -DestinationPath "openaxe-windows-x64-baseline.zip" -Force
 
       - name: Upload signed Windows CLI release assets
         if: needs.version.outputs.release != ''
@@ -240,21 +216,25 @@ jobs:
           GH_TOKEN: ${{ steps.committer.outputs.token }}
         run: |
           gh release upload "v${{ needs.version.outputs.version }}" `
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-arm64.zip" `
             "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64.zip" `
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64-baseline.zip" `
             --clobber `
             --repo "${{ needs.version.outputs.repo }}"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: openaxe-cli-signed-windows
-          path: packages/openaxe/dist/openaxe-windows-x64
+          path: |
+            packages/openaxe/dist/openaxe-windows-arm64
+            packages/openaxe/dist/openaxe-windows-x64
+            packages/openaxe/dist/openaxe-windows-x64-baseline
 
   publish:
-    if: github.repository == 'dressedinblack5/openaxe' && needs.build-cli.result == 'success' && needs.build-cli-windows.result == 'success' && needs.sign-cli-windows.result != 'failure'
+    if: github.repository == 'dressedinblack5/openaxe' && needs.build-cli.result == 'success' && needs.sign-cli-windows.result != 'failure'
     needs:
       - version
       - build-cli
-      - build-cli-windows
       - sign-cli-windows
     runs-on: ubuntu-latest
     steps:
