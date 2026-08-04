@@ -65,7 +65,13 @@ async function input(value?: string) {
   return piped + "\n" + value
 }
 
-export function resolveThreadDirectory(project?: string, envPWD = process.env.PWD, cwd = process.cwd()) {
+// OPENAXE_DIRECTORY carries the real launch directory from the launcher wrappers,
+// which exec under `bun --cwd` (bun rewrites PWD and process.cwd() to the package dir).
+export function resolveThreadDirectory(
+  project?: string,
+  envPWD = process.env.OPENAXE_DIRECTORY ?? process.env.PWD,
+  cwd = process.env.OPENAXE_DIRECTORY ?? process.cwd(),
+) {
   if (project) {
     const root = Filesystem.resolve(envPWD ?? cwd)
     return Filesystem.resolve(path.isAbsolute(project) ? project : path.join(root, project))
