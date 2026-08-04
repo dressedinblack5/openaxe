@@ -39,13 +39,13 @@ console.log("\n=== cli ===\n")
 await $`bun ./packages/openaxe/script/publish.ts`
 
 console.log("\n=== preview cli ===\n")
-await $`bun ./packages/cli/script/publish.ts`
+await publishPackage("./packages/cli/package.json", "./packages/cli/script/publish.ts")
 
 console.log("\n=== sdk ===\n")
-await $`bun ./packages/sdk/js/script/publish.ts`
+await publishPackage("./packages/sdk/js/package.json", "./packages/sdk/js/script/publish.ts")
 
 console.log("\n=== plugin ===\n")
-await $`bun ./packages/plugin/script/publish.ts`
+await publishPackage("./packages/plugin/package.json", "./packages/plugin/script/publish.ts")
 
 
 
@@ -64,4 +64,15 @@ if (Script.release && !Script.preview) {
 
 if (Script.release) {
   await $`gh release edit ${tag} --draft=false --repo ${process.env.GH_REPO}`
+}
+
+// The fork cannot publish to @opencode-ai/* scoped names — they are owned by the
+// upstream org. Skip any package that still carries the upstream name.
+async function publishPackage(pkgPath: string, scriptPath: string) {
+  const pkg = await Bun.file(pkgPath).json()
+  if (pkg.name.startsWith("@opencode-ai/")) {
+    console.log(`skipping ${pkg.name} (upstream-owned name)`)
+    return
+  }
+  await $`bun ${scriptPath}`
 }
