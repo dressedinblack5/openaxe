@@ -3,9 +3,9 @@
   "plugin": [
     "oh-my-openagent",
     "opencode-plugin-selector",
-    "opencode-vibeguard",
     "@tarquinen/opencode-dcp",
-    "ecc-universal"
+    "ecc-universal",
+    "@dietrichgebert/ponytail"
   ],
   "agent": {
     "multimodal-looker": {
@@ -21,6 +21,16 @@
         "google/gemini-2.5-flash"
       ],
       "mode": "subagent"
+    }
+  },
+  "mcp": {
+    "github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_TOKEN}"
+      }
     }
   }
 }

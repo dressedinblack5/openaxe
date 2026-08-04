@@ -207,16 +207,6 @@ export const layer = Layer.effect(
             }
             if (plugins.length) yield* config.waitForDependencies()
 
-            // Point vibeguard at openaxe's config dir if present
-            if (!process.env.OPENCODE_VIBEGUARD_CONFIG) {
-              const homeDir = process.env.HOME
-              if (homeDir) {
-                const vbPath = `${homeDir}/.config/openaxe/vibeguard.config.json`
-                const vbExists = yield* Effect.promise(() => Bun.file(vbPath).exists())
-                if (vbExists) process.env.OPENCODE_VIBEGUARD_CONFIG = vbPath
-              }
-            }
-
             const loaded = yield* Effect.promise(() =>
               PluginLoader.loadExternal({
                 items: plugins,

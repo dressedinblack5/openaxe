@@ -179,10 +179,9 @@ Auto-configured on first run. They auto-install the first time you run `openaxe`
 |---|---|---|
 | **oh-my-openagent** | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents | server + tui |
 | **opencode-plugin-selector** | Interactive plugin manager | server + tui |
-| **opencode-vibeguard** | Safety guardrails for agent actions | server + tui |
 | **@tarquinen/opencode-dcp** | Context compression for long sessions | server + tui |
 | **ecc-universal** | Everything Claude Code — agents, skills, hooks, MCP, and rules | server only |
-| **ponytail** | Lazy senior dev mode — cuts boilerplate (local file; manual install) | server + tui |
+| **ponytail** | Lazy senior dev mode — cuts boilerplate (npm; auto-install) | server + tui |
 
 Write your own using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK.
 
