@@ -1,34 +1,42 @@
 import { Schema } from "effect"
 import { NamedError } from "@opencode-ai/core/util/error"
-import { OutputLengthError as OutputLengthErrorClass, AuthError as AuthErrorClass, AbortedError as AbortedErrorClass, StructuredOutputError as StructuredOutputErrorClass, APIError as APIErrorClass, ContextOverflowError as ContextOverflowErrorClass, ContentFilterError as ContentFilterErrorClass } from "@opencode-ai/schema/session-v1"
+import { NonNegativeInt } from "@opencode-ai/core/schema"
 
-const OutputLengthErrorSchema_ = (OutputLengthErrorClass as any).Schema as any
-const AuthErrorSchema_ = (AuthErrorClass as any).Schema as any
-const AbortedErrorSchema_ = (AbortedErrorClass as any).Schema as any
-const StructuredOutputErrorSchema_ = (StructuredOutputErrorClass as any).Schema as any
-const APIErrorSchema_ = (APIErrorClass as any).Schema as any
-const ContextOverflowErrorSchema_ = (ContextOverflowErrorClass as any).Schema as any
-const ContentFilterErrorSchema_ = (ContentFilterErrorClass as any).Schema as any
-
-export const OutputLengthError = NamedError.create("MessageOutputLengthError", OutputLengthErrorSchema_)
+export const OutputLengthError = NamedError.create("MessageOutputLengthError", Schema.Struct({}))
 export type OutputLengthError = InstanceType<typeof OutputLengthError>
 
-export const AuthError = NamedError.create("ProviderAuthError", AuthErrorSchema_)
+export const AuthError = NamedError.create("ProviderAuthError", {
+  providerID: Schema.String,
+  message: Schema.String,
+})
 export type AuthError = InstanceType<typeof AuthError>
 
-export const AbortedError = NamedError.create("MessageAbortedError", AbortedErrorSchema_)
+export const AbortedError = NamedError.create("MessageAbortedError", { message: Schema.String })
 export type AbortedError = InstanceType<typeof AbortedError>
 
-export const StructuredOutputError = NamedError.create("StructuredOutputError", StructuredOutputErrorSchema_)
+export const StructuredOutputError = NamedError.create("StructuredOutputError", {
+  message: Schema.String,
+  retries: NonNegativeInt,
+})
 export type StructuredOutputError = InstanceType<typeof StructuredOutputError>
 
-export const APIError = NamedError.create("APIError", APIErrorSchema_)
+export const APIError = NamedError.create("APIError", {
+  message: Schema.String,
+  statusCode: Schema.optional(NonNegativeInt),
+  isRetryable: Schema.Boolean,
+  responseHeaders: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+  responseBody: Schema.optional(Schema.String),
+  metadata: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+})
 export type APIError = InstanceType<typeof APIError>
 
-export const ContextOverflowError = NamedError.create("ContextOverflowError", ContextOverflowErrorSchema_)
+export const ContextOverflowError = NamedError.create("ContextOverflowError", {
+  message: Schema.String,
+  responseBody: Schema.optional(Schema.String),
+})
 export type ContextOverflowError = InstanceType<typeof ContextOverflowError>
 
-export const ContentFilterError = NamedError.create("ContentFilterError", ContentFilterErrorSchema_)
+export const ContentFilterError = NamedError.create("ContentFilterError", { message: Schema.String })
 export type ContentFilterError = InstanceType<typeof ContentFilterError>
 
 // Backward compatibility aliases
