@@ -102,10 +102,10 @@ jobs:
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opencode-cli
+          name: openaxe-cli
           path: |
-            packages/openaxe/dist/opencode-darwin*
-            packages/openaxe/dist/opencode-linux*
+            packages/openaxe/dist/openaxe-darwin*
+            packages/openaxe/dist/openaxe-linux*
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -143,8 +143,8 @@ jobs:
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opencode-cli-windows
-          path: packages/openaxe/dist/opencode-windows*
+          name: openaxe-cli-windows
+          path: packages/openaxe/dist/openaxe-windows*
 
     outputs:
       version: ${{ needs.version.outputs.version }}
@@ -168,7 +168,7 @@ jobs:
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: opencode-cli-windows
+          name: openaxe-cli-windows
           path: packages/openaxe/dist
 
       - name: Setup git committer
@@ -191,9 +191,9 @@ jobs:
           signing-account-name: ${{ env.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
           certificate-profile-name: ${{ env.AZURE_TRUSTED_SIGNING_CERTIFICATE_PROFILE }}
           files: |
-            ${{ github.workspace }}\packages\openaxe\dist\opencode-windows-arm64\bin\opencode.exe
-            ${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64\bin\opencode.exe
-            ${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64-baseline\bin\opencode.exe
+            ${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-arm64\bin\openaxe.exe
+            ${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64\bin\openaxe.exe
+            ${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64-baseline\bin\openaxe.exe
           exclude-environment-credential: true
           exclude-workload-identity-credential: true
           exclude-managed-identity-credential: true
@@ -209,9 +209,9 @@ jobs:
         shell: pwsh
         run: |
           $files = @(
-            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-arm64\bin\opencode.exe",
-            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64\bin\opencode.exe",
-            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64-baseline\bin\opencode.exe"
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-arm64\bin\openaxe.exe",
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64\bin\openaxe.exe",
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64-baseline\bin\openaxe.exe"
           )
 
           foreach ($file in $files) {
@@ -225,9 +225,9 @@ jobs:
         working-directory: packages/openaxe/dist
         shell: pwsh
         run: |
-          Compress-Archive -Path "opencode-windows-arm64\bin\*" -DestinationPath "opencode-windows-arm64.zip" -Force
-          Compress-Archive -Path "opencode-windows-x64\bin\*" -DestinationPath "opencode-windows-x64.zip" -Force
-          Compress-Archive -Path "opencode-windows-x64-baseline\bin\*" -DestinationPath "opencode-windows-x64-baseline.zip" -Force
+          Compress-Archive -Path "openaxe-windows-arm64\bin\*" -DestinationPath "openaxe-windows-arm64.zip" -Force
+          Compress-Archive -Path "openaxe-windows-x64\bin\*" -DestinationPath "openaxe-windows-x64.zip" -Force
+          Compress-Archive -Path "openaxe-windows-x64-baseline\bin\*" -DestinationPath "openaxe-windows-x64-baseline.zip" -Force
 
       - name: Upload signed Windows CLI release assets
         if: needs.version.outputs.release != ''
@@ -236,19 +236,19 @@ jobs:
           GH_TOKEN: ${{ steps.committer.outputs.token }}
         run: |
           gh release upload "v${{ needs.version.outputs.version }}" `
-            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-arm64.zip" `
-            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64.zip" `
-            "${{ github.workspace }}\packages\openaxe\dist\opencode-windows-x64-baseline.zip" `
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-arm64.zip" `
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64.zip" `
+            "${{ github.workspace }}\packages\openaxe\dist\openaxe-windows-x64-baseline.zip" `
             --clobber `
             --repo "${{ needs.version.outputs.repo }}"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opencode-cli-signed-windows
+          name: openaxe-cli-signed-windows
           path: |
-            packages/openaxe/dist/opencode-windows-arm64
-            packages/openaxe/dist/opencode-windows-x64
-            packages/openaxe/dist/opencode-windows-x64-baseline
+            packages/openaxe/dist/openaxe-windows-arm64
+            packages/openaxe/dist/openaxe-windows-x64
+            packages/openaxe/dist/openaxe-windows-x64-baseline
 
   publish:
     if: github.repository == 'dressedinblack5/openaxe'
@@ -283,24 +283,18 @@ jobs:
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: opencode-cli
+          name: openaxe-cli
           path: packages/openaxe/dist
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: github.repository == 'dressedinblack5/openaxe'
         with:
-          name: opencode-cli-windows
-          path: packages/openaxe/dist
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: github.repository == 'dressedinblack5/openaxe'
-        with:
-          name: opencode-cli-signed-windows
+          name: openaxe-cli-signed-windows
           path: packages/openaxe/dist
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: opencode-preview-cli
+          name: openaxe-preview-cli
           path: packages/cli/dist
 
       - name: Setup git committer
