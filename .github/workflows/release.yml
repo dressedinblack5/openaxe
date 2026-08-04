@@ -54,10 +54,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
 
   release:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: version
+    if: always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && !failure()
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ steps.version.outputs.version || steps.version_dispatch.outputs.version }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -85,8 +86,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
 
-      - name: Create release
-        run: gh release create "v${{ steps.version.outputs.version || steps.version_dispatch.outputs.version }}" --target ${{ github.sha }} --title "v${{ steps.version.outputs.version || steps.version_dispatch.outputs.version }}" --notes-file <(echo "${{ steps.changelog.outputs.changelog }}")
+      - name: Create or update release
+        run: |
+          VERSION="v${{ steps.version.outputs.version || steps.version_dispatch.outputs.version }}"
+          if gh release view "$VERSION" --repo ${{ github.repository }} >/dev/null 2>&1; then
+            gh release edit "$VERSION" --title "$VERSION" --notes-file <(echo "${{ steps.changelog.outputs.changelog }}") --draft=false --repo ${{ github.repository }}
+          else
+            gh release create "$VERSION" --target ${{ github.sha }} --title "$VERSION" --notes-file <(echo "${{ steps.changelog.outputs.changelog }}") --repo ${{ github.repository }}
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
