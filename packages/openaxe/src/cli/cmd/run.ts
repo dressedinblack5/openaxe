@@ -132,7 +132,7 @@ export const RunCommand = effectCmd({
   // For --dir without --attach, load instance for the resolved target dir.
   // The handler also chdirs (preserving the legacy order: chdir → file resolution).
   directory: (args) => {
-    const cwd = process.env.PWD ?? process.cwd()
+    const cwd = process.env.OPENAXE_DIRECTORY ?? process.env.PWD ?? process.cwd()
     return args.dir && !args.attach ? path.resolve(cwd, args.dir) : cwd
   },
   builder: (yargs: Argv) =>
@@ -316,16 +316,16 @@ export const RunCommand = effectCmd({
 
       const replay = !args.replay ? false : args.replay || args["replay-limit"] !== undefined
 
-      const root = Filesystem.resolve(process.env.PWD ?? process.cwd())
+      const root = Filesystem.resolve(process.env.OPENAXE_DIRECTORY ?? process.env.PWD ?? process.cwd())
       const directory = (() => {
-        if (!args.dir) return args.attach ? undefined : root
         if (args.attach) return args.dir
 
+        const target = path.resolve(root, args.dir ?? ".")
         try {
-          process.chdir(path.isAbsolute(args.dir) ? args.dir : path.join(root, args.dir))
+          process.chdir(target)
           return process.cwd()
         } catch {
-          UI.error("Failed to change directory to " + args.dir)
+          UI.error("Failed to change directory to " + target)
           process.exit(1)
         }
       })()

@@ -33,7 +33,7 @@ export const V2Command = effectCmd({
       Effect.provide(
         LocationServiceMap.get(
           Location.Ref.make({
-            directory: AbsolutePath.make(process.cwd()),
+            directory: AbsolutePath.make(process.env.OPENAXE_DIRECTORY ?? process.cwd()),
           }),
         ),
       ),
