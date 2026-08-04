@@ -30,7 +30,7 @@
       "@effect/platform-node": "4.0.0-beta.82",
       "@effect/sql-sqlite-bun": "4.0.0-beta.82",
       "@npmcli/arborist": "9.4.0",
-"@types/bun": "1.3.14",
+      "@types/bun": "1.3.14",
       "@octokit/rest": "22.0.0",
       "@hono/standard-validator": "0.2.0",
       "@hono/zod-validator": "0.4.2",
@@ -101,13 +101,14 @@
     "turbo": "2.8.13"
   },
   "dependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
     "@aws-sdk/client-s3": "3.933.0",
     "@opencode-ai/plugin": "workspace:*",
     "@opencode-ai/script": "workspace:*",
     "@opencode-ai/sdk": "workspace:*",
+    "@opentui/core": "0.4.2",
     "heap-snapshot-toolkit": "1.1.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "typescript": "5.8.2"
   },
   "repository": {
@@ -135,7 +136,7 @@
     "@opentui/core": "0.4.2",
     "@opentui/keymap": "0.4.2",
     "@opentui/solid": "0.4.2",
-"@types/bun": "1.3.14",
+    "@types/bun": "1.3.14",
     "@types/node": "24.12.2"
   },
   "patchedDependencies": {
