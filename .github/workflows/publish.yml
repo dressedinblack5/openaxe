@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   version:
-    if: github.repository == 'anomalyco/opencode'
+    if: github.repository == 'dressedinblack5/openaxe'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -72,7 +72,7 @@ jobs:
       repo: ${{ steps.version.outputs.repo }}
 
   build-cli:
-    if: github.repository == 'anomalyco/opencode'
+    if: github.repository == 'dressedinblack5/openaxe'
     needs: version
     runs-on: ubuntu-latest
     steps:
@@ -109,13 +109,42 @@ jobs:
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opencode-cli-windows
-          path: packages/openaxe/dist/opencode-windows*
+          name: opencode-preview-cli
+          path: packages/cli/dist/cli-*
+
+    outputs:
+      version: ${{ needs.version.outputs.version }}
+
+  build-cli-windows:
+    if: github.repository == 'dressedinblack5/openaxe'
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-tags: true
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Setup git committer
+        id: committer
+        uses: ./.github/actions/setup-git-committer
+        with:
+          opencode-app-id: ${{ vars.OPENCODE_APP_ID }}
+          opencode-app-secret: ${{ secrets.OPENCODE_APP_SECRET }}
+
+      - name: Build Windows
+        run: ./packages/openaxe/script/build.ts --single
+        env:
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+          OPENCODE_RELEASE: ${{ needs.version.outputs.release }}
+          GH_REPO: ${{ needs.version.outputs.repo }}
+          GH_TOKEN: ${{ steps.committer.outputs.token }}
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opencode-preview-cli
-          path: packages/cli/dist/cli-*
+          name: opencode-cli-windows
+          path: packages/openaxe/dist/opencode-windows*
 
     outputs:
       version: ${{ needs.version.outputs.version }}
@@ -123,8 +152,9 @@ jobs:
   sign-cli-windows:
     needs:
       - build-cli
+      - build-cli-windows
       - version
-    if: github.repository == 'anomalyco/opencode'
+    if: github.repository == 'dressedinblack5/openaxe'
     runs-on: windows-latest
     env:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -221,10 +251,11 @@ jobs:
             packages/openaxe/dist/opencode-windows-x64-baseline
 
   publish:
-    if: github.repository == 'anomalyco/opencode'
+    if: github.repository == 'dressedinblack5/openaxe'
     needs:
       - version
       - build-cli
+      - build-cli-windows
       - sign-cli-windows
     runs-on: ubuntu-latest
     steps:
@@ -256,13 +287,13 @@ jobs:
           path: packages/openaxe/dist
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: github.repository == 'anomalyco/opencode'
+        if: github.repository == 'dressedinblack5/openaxe'
         with:
           name: opencode-cli-windows
           path: packages/openaxe/dist
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: github.repository == 'anomalyco/opencode'
+        if: github.repository == 'dressedinblack5/openaxe'
         with:
           name: opencode-cli-signed-windows
           path: packages/openaxe/dist
