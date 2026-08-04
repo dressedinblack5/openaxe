@@ -9,7 +9,7 @@ import { LSPServer, type Info as ServerInfo } from "./server"
 import { Config } from "@/config/config"
 import { Process } from "@/util/process"
 import { spawn } from "./launch"
-import { Effect, Layer, Context, Schema } from "effect"
+import { Effect, Layer, Context, Schema, Schedule, Duration } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import { containsPath } from "@/project/instance-context"
 import { NonNegativeInt } from "@opencode-ai/core/schema"
@@ -117,6 +117,7 @@ interface State {
   servers: Record<string, ServerInfo>
   broken: Map<string, number>
   spawning: Map<string, Promise<ClientInfo | undefined>>
+  used: Map<string, number>
 }
 
 export interface Interface {
@@ -204,6 +205,7 @@ export const layer = Layer.effect(
           servers,
           broken: new Map(),
           spawning: new Map(),
+          used: new Map(),
         }
 
         yield* Effect.addFinalizer(() =>
@@ -211,6 +213,25 @@ export const layer = Layer.effect(
             await Promise.all(s.clients.map((client) => client.shutdown()))
           }),
         )
+
+        // ponytail: LSP child processes (tsserver ~300-500MB) are held per
+        // (root, serverID) until project close. Shut down clients idle for
+        // 15 minutes; getClients respawns on demand. Keep broken entries
+        // cleared so respawn isn't stuck behind the 5-minute cooldown.
+        const IDLE_TTL = 15 * 60_000
+        const prune = Effect.gen(function* () {
+          const now = Date.now()
+          const idle = s.clients.filter((c) => now - (s.used.get(c.root + c.serverID) ?? now) > IDLE_TTL)
+          if (idle.length === 0) return
+          yield* Effect.promise(() => Promise.all(idle.map((c) => c.shutdown().catch(() => {}))))
+          const keys = new Set(idle.map((c) => c.root + c.serverID))
+          s.clients = s.clients.filter((c) => !keys.has(c.root + c.serverID))
+          for (const key of keys) {
+            s.broken.delete(key)
+            s.used.delete(key)
+          }
+        })
+        yield* prune.pipe(Effect.repeat(Schedule.spaced(Duration.minutes(1))), Effect.forkScoped)
 
         return s
       }),
@@ -304,6 +325,7 @@ export const layer = Layer.effect(
       yield* Effect.forEach(Array.from({ length: clients.updated }), () => events.publish(Event.Updated, {}), {
         discard: true,
       })
+      for (const client of clients.result) s.used.set(client.root + client.serverID, Date.now())
       return clients.result
     })
 
@@ -314,6 +336,7 @@ export const layer = Layer.effect(
 
     const runAll = Effect.fnUntraced(function* <T>(fn: (client: ClientInfo) => Promise<T>) {
       const s = yield* InstanceState.get(state)
+      for (const client of s.clients) s.used.set(client.root + client.serverID, Date.now())
       return yield* Effect.promise(() => Promise.all(s.clients.map((x) => fn(x))))
     })
 

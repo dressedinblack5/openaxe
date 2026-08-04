@@ -1,6 +1,6 @@
 export * as BackgroundJob from "./background-job"
 
-import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Scope, SynchronizedRef } from "effect"
+import { Cause, Clock, Context, Deferred, Duration, Effect, Exit, Layer, Schedule, Scope, SynchronizedRef } from "effect"
 import { Identifier } from "./id/id"
 
 export type Status = "running" | "completed" | "error" | "cancelled"
@@ -121,6 +121,26 @@ export const make = Effect.gen(function* () {
     jobs: yield* SynchronizedRef.make(new Map()),
     scope: yield* Scope.Scope,
   }
+
+  // ponytail: terminal jobs were retained forever (long-lived projects kept
+  // every completed Task output). Prune finished jobs after 10 minutes; late
+  // wait()/get() on a pruned id returns an empty snapshot, which callers
+  // already tolerate via optional chaining.
+  const JOB_TTL = 10 * 60_000
+  const prune = Effect.gen(function* () {
+    const now = yield* Clock.currentTimeMillis
+    yield* SynchronizedRef.update(state.jobs, (jobs) => {
+      const next = new Map(jobs)
+      for (const [id, job] of jobs) {
+        const completed_at = job.info.completed_at
+        if (job.info.status !== "running" && completed_at !== undefined && now - completed_at > JOB_TTL) {
+          next.delete(id)
+        }
+      }
+      return next
+    })
+  })
+  yield* prune.pipe(Effect.repeat(Schedule.spaced(Duration.minutes(1))), Effect.forkScoped)
 
   const settle = Effect.fn("BackgroundJob.settle")(function* (
     id: string,

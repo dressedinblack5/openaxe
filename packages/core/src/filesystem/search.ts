@@ -128,6 +128,11 @@ export const fffLayer = Layer.effect(
           aiMode: true,
           enableFsRootScanning: true,
           enableHomeDirScanning: true,
+          // ponytail: mmap cache + content index are grep accelerators costing
+          // ~100MB RSS on large trees; grep uses live regex scan (1500ms budget)
+          // so disabling them only slows the first grep, never changes results.
+          disableMmapCache: true,
+          disableContentIndexing: true,
         }),
       catch: (cause) => cause,
     }).pipe(Effect.orDie)
