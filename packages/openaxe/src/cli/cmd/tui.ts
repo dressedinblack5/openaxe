@@ -14,8 +14,7 @@ import { writeHeapSnapshot } from "v8"
 import { validateSession } from "../tui/validate-session"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
 import { mark, report } from "@/cli/startup-timing"
-import { Cause } from "effect"
-import { TuiConfig } from "@/config/tui"
+import type { TuiConfig } from "@/config/tui"
 
 declare global {
   const OPENCODE_WORKER_PATH: string
@@ -208,8 +207,8 @@ export const TuiCommand = cmd({
 
       const { TuiConfig } = await configMod
       mark("config-mod")
-      const [{ Effect }, { run }, { createLegacyTuiPluginHost }] = await Promise.all([
-        effectMod.then((m) => ({ Effect: m.Effect })),
+      const [{ Effect, Cause }, { run }, { createLegacyTuiPluginHost }] = await Promise.all([
+        effectMod.then((m) => ({ Effect: m.Effect, Cause: m.Cause })),
         layerMod.then((m) => ({ run: m.run })),
         pluginMod.then((m) => ({ createLegacyTuiPluginHost: m.createLegacyTuiPluginHost })),
       ])
@@ -303,6 +302,8 @@ export const TuiCommand = cmd({
       try {
         await nativeLibPromise
         mark("native-lib")
+        // OPENCODE_FAST_BOOT (read at packages/tui app.tsx) skips the StartupLoading screen.
+        process.env.OPENCODE_FAST_BOOT ??= "1"
         mark("run-start")
         try {
           await Effect.runPromise(
