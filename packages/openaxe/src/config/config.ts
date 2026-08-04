@@ -47,8 +47,8 @@ interface BundledPlugin {
 
 const BUNDLED_PLUGINS_RAW = [
   { spec: "oh-my-openagent", kinds: ["server", "tui"] as const },
-  { spec: "opencode-plugin-selector", kinds: ["server", "tui"] as const },
-  { spec: "opencode-vibeguard", kinds: ["server", "tui"] as const },
+  { spec: "opencode-plugin-selector", kinds: ["server"] as const },
+  { spec: "opencode-vibeguard", kinds: ["server"] as const },
   { spec: "@tarquinen/opencode-dcp", kinds: ["server", "tui"] as const },
   { spec: "ecc-universal", kinds: ["server"] as const },
 ] as const
