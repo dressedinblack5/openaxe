@@ -227,7 +227,7 @@ jobs:
       - release
       - build
       - sign-windows
-    if: needs.build.result == 'success' && needs.sign-windows.result != 'failure'
+    if: always() && !failure() && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

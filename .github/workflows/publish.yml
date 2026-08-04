@@ -231,7 +231,7 @@ jobs:
             packages/openaxe/dist/openaxe-windows-x64-baseline
 
   publish:
-    if: github.repository == 'dressedinblack5/openaxe' && needs.build-cli.result == 'success' && needs.sign-cli-windows.result != 'failure'
+    if: always() && github.repository == 'dressedinblack5/openaxe' && !failure() && !cancelled()
     needs:
       - version
       - build-cli
