@@ -38,13 +38,14 @@ if [ "$MODE" = "dev" ]; then
   {
     echo "#!/usr/bin/env bash"
     echo "set -euo pipefail"
-    echo "# Run the source entry directly: \`bun dev\` would redirect cwd to the openaxe package, so openaxe would operate on itself instead of the project it was launched from."
-    echo "exec bun run --conditions=browser \"$SRC_DIR/packages/openaxe/src/index.ts\" \"\$@\""
+    echo "# OPENAXE_DIRECTORY carries the real launch directory: \`bun dev\` redirects cwd to the openaxe package, so openaxe would otherwise operate on itself instead of the project it was launched from."
+    echo "export OPENAXE_DIRECTORY=\"\$(pwd)\""
+    echo "exec bun --cwd \"$SRC_DIR/packages/openaxe\" dev \"\$@\""
   } > "$BIN_DIR/openaxe"
   chmod +x "$BIN_DIR/openaxe"
 
   echo "Installed openaxe (rolling, dev mode) to $BIN_DIR/openaxe"
-  echo "  - Runs the source entry directly via bun — no binary"
+  echo "  - Runs via bun dev — no binary"
   echo "  - Update: git -C $SRC_DIR pull && bun install --cwd $SRC_DIR"
   echo "  - Add $BIN_DIR to your PATH if not already there"
   exit 0

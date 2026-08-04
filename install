@@ -51,8 +51,9 @@ mkdir -p "$BIN_DIR"
 
 cat > "$WRAPPER" <<SCRIPT
 #!/usr/bin/env bash
-# Run the source entry directly: \`bun dev\` would redirect cwd to the openaxe package, so openaxe would operate on itself instead of the project it was launched from.
-exec bun run --conditions=browser "$INSTALL_DIR/packages/openaxe/src/index.ts" "\$@"
+# OPENAXE_DIRECTORY carries the real launch directory: \`bun dev\` redirects cwd to the openaxe package, so openaxe would otherwise operate on itself instead of the project it was launched from.
+export OPENAXE_DIRECTORY="\$(pwd)"
+exec bun --cwd "$INSTALL_DIR/packages/openaxe" dev "\$@"
 SCRIPT
 chmod +x "$WRAPPER"
 
