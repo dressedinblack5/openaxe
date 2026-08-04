@@ -93,17 +93,8 @@ function getServerPlugin(value: unknown) {
 }
 
 function getLegacyPlugins(mod: Record<string, unknown>) {
-  const seen = new Set<PluginInstance>()
-  const result: PluginInstance[] = []
-
-  for (const entry of Object.values(mod)) {
-    const plugin = getServerPlugin(entry)
-    if (!plugin || seen.has(plugin)) continue
-    seen.add(plugin)
-    result.push(plugin)
-  }
-
-  return result
+  const plugin = getServerPlugin(mod.default)
+  return plugin ? [plugin] : []
 }
 
 async function applyPlugin(load: PluginLoader.Loaded, input: PluginInput, hooks: Hooks[]) {
