@@ -27,7 +27,7 @@ New to openaxe? Here's what to read in order:
 
 - **None** for the binary install — just `curl` (and `unzip` on macOS)
 - **Bun** 1.2+ — only required to build from source: `curl -fsSL https://bun.sh/install | bash` (Linux/macOS) or `powershell -c "irm bun.sh/install.ps1 | iex"` (Windows)
-- **Git** 2.30+ (for session/GitHub features)
+- **Git** (for session/GitHub features)
 - **Ripgrep** (optional, for faster codebase search)
 
 ### Install
@@ -93,7 +93,7 @@ openaxe run "explain this codebase"
 
 ## Features
 
-- **Multi-provider LLM** — 15+ providers: Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, GitLab, and more
+- **Multi-provider LLM** — 25+ providers: Anthropic, OpenAI, Google, Groq, Mistral, AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter, Alibaba, Venice, GitLab, Cohere, NVIDIA, Google Vertex, SAP AI Core, Vercel, DeepSeek, Fireworks, Ollama, and more
 - **Rich TUI** — SolidJS terminal UI via OpenTUI, session management, conversation history, keyboard-driven workflow
 - **MCP & ACP** — Model Context Protocol server management and Agent Client Protocol server
 - **Plugin system** — Extend with plugins from npm, local paths, or git URLs
@@ -107,7 +107,7 @@ openaxe run "explain this codebase"
 - **Versioned artifact store** — content-versioned storage for build outputs and generated files with TUI preview
 - **Auto-commit** — automatic git commits at each AI mutation turn
 - **Error journal** — tool errors logged to `.openaxe/errors.jsonl` for debugging
-- **/revert** — undo AI file changes via snapshot-based rollback
+- **Revert** — undo AI file changes via snapshot-based rollback from the TUI session menu (`revert`/`unrevert` session actions)
 - **Learning review** — post-turn background eval that auto-discovers skill and observation updates from each interaction (opt-in via `experimental.learning.review`)
 - **Context compressor** — LLM-driven structured compression with ghost-skill re-injection: produces sectioned summaries that preserve agent context across long sessions (opt-in via `experimental.compressor.enabled`)
 - **Cross-session search** — SQLite FTS5 full-text index over all past session messages; the `session_search` tool finds relevant history across sessions (CJK-capable trigram tokenizer)
@@ -159,10 +159,9 @@ Auto-configured on first run. They auto-install the first time you run `openaxe`
 | Plugin | Description | Kind |
 |---|---|---|
 | **oh-my-openagent** | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents | server + tui |
-| **opencode-plugin-selector** | Interactive plugin manager | server + tui |
+| **opencode-plugin-selector** | Interactive plugin manager | server only |
 | **@tarquinen/opencode-dcp** | Context compression for long sessions | server + tui |
 | **ecc-universal** | Everything Claude Code — agents, skills, hooks, MCP, and rules | server only |
-| **ponytail** | Lazy senior dev mode — cuts boilerplate (npm; auto-install) | server + tui |
 
 Write your own using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK.
 
@@ -360,7 +359,7 @@ The monorepo ships 13 packages:
 |---|---|
 | `openaxe` | CLI orchestrator — yargs entry, lazy-loaded commands |
 | `core` | Session/agent/project/tool orchestration, DB, permissions |
-| `llm` | LLM integrations — 15+ providers, 6 protocol adapters |
+| `llm` | LLM integrations — 25+ providers, 6 protocol adapters |
 | `tui` | SolidJS terminal UI via OpenTUI |
 | `ui` | Shared SolidJS component library |
 | `schema` | Data validation schemas (Effect) |
