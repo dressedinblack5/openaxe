@@ -3,7 +3,7 @@ import { Effect } from "effect"
 import { cmd } from "./cmd"
 import { effectCmd, fail } from "../effect-cmd"
 import { Session } from "@/session/session"
-import { SessionID } from "../../session/schema"
+import { SessionID, MessageID } from "../../session/schema"
 import { UI } from "../ui"
 import { Locale } from "@/util/locale"
 import { Flag } from "@opencode-ai/core/flag/flag"
@@ -15,6 +15,7 @@ import path from "path"
 import { which } from "@opencode-ai/core/util/which"
 import { InstanceState } from "@/effect/instance-state"
 import { Template } from "@/session/template"
+import { ForkMerge } from "@/session/fork-merge"
 
 function pagerCmd(): string[] {
   const lessOptions = ["-R", "-S"]
@@ -47,7 +48,13 @@ export const SessionCommand = cmd({
   command: "session",
   describe: "manage sessions",
   builder: (yargs: Argv) =>
-    yargs.command(SessionListCommand).command(SessionDeleteCommand).command(SessionCreateCommand).demandCommand(),
+    yargs
+      .command(SessionListCommand)
+      .command(SessionDeleteCommand)
+      .command(SessionCreateCommand)
+      .command(SessionForkCommand)
+      .command(SessionMergeCommand)
+      .demandCommand(),
   async handler() {},
 })
 
@@ -98,6 +105,85 @@ export const SessionCreateCommand = effectCmd({
     const session = yield* Session.Service
     const created = yield* session.create({})
     UI.println(UI.Style.TEXT_SUCCESS_BOLD + `Session ${created.id} created` + UI.Style.TEXT_NORMAL)
+  }),
+})
+
+export const SessionForkCommand = effectCmd({
+  command: "fork <sessionID>",
+  describe: "fork a session at a message: copies messages from the fork point onward into a new child session",
+  builder: (yargs) =>
+    yargs
+      .positional("sessionID", {
+        describe: "session ID to fork",
+        type: "string",
+        demandOption: true,
+      })
+      .option("at-message", {
+        alias: "m",
+        describe: "message ID to fork at (inclusive; messages from this point onward are copied)",
+        type: "string",
+        demandOption: true,
+      })
+      .option("name", {
+        describe: "title for the new session",
+        type: "string",
+      }),
+  handler: Effect.fn("Cli.session.fork")(function* (args) {
+    const sessionID = SessionID.make(args.sessionID)
+    let atMessage: MessageID
+    try {
+      atMessage = MessageID.make(args.atMessage)
+    } catch {
+      return yield* fail(`Message not found: ${args.atMessage} (must start with "msg")`)
+    }
+    const result = yield* ForkMerge.fork({
+      sessionID,
+      atMessage,
+      ...(args.name ? { name: args.name } : {}),
+    }).pipe(Effect.catchTag("ForkMergeError", (error) => fail(error.message)))
+    UI.println(
+      UI.Style.TEXT_SUCCESS_BOLD +
+        `Session ${result.id} forked from ${args.sessionID} at ${args.atMessage}` +
+        UI.Style.TEXT_NORMAL +
+        ` (${result.copied} messages copied, parent: ${args.sessionID})`,
+    )
+  }),
+})
+
+export const SessionMergeCommand = effectCmd({
+  command: "merge <sourceSessionID>",
+  describe: "merge a source session into a target session (last-write-wins, conflict markers on overlap)",
+  builder: (yargs) =>
+    yargs
+      .positional("sourceSessionID", {
+        describe: "session ID to merge from",
+        type: "string",
+        demandOption: true,
+      })
+      .option("into", {
+        alias: "t",
+        describe: "session ID to merge into",
+        type: "string",
+        demandOption: true,
+      })
+      .option("strategy", {
+        describe: "merge strategy (3way is an alias for lww)",
+        type: "string",
+        choices: ["lww", "3way"],
+        default: "lww",
+      }),
+  handler: Effect.fn("Cli.session.merge")(function* (args) {
+    const result = yield* ForkMerge.merge({
+      sourceSessionID: SessionID.make(args.sourceSessionID),
+      targetSessionID: SessionID.make(args.into),
+      strategy: args.strategy,
+    }).pipe(Effect.catchTag("ForkMergeError", (error) => fail(error.message)))
+    UI.println(
+      UI.Style.TEXT_SUCCESS_BOLD +
+        `Merged ${args.sourceSessionID} into ${args.into}` +
+        UI.Style.TEXT_NORMAL +
+        ` (${result.appended} appended, ${result.conflicts} conflicts, ${result.identical} identical)`,
+    )
   }),
 })
 
