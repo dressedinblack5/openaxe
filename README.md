@@ -10,7 +10,7 @@ A fork of [anomalyco/opencode](https://github.com/anomalyco/opencode) that strip
 
 ## Reading Guide
 
-> New to openaxe? Here's what to read in order:
+New to openaxe? Here's what to read in order:
 
 | If you want to... | Start here |
 |---|---|
