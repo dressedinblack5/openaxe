@@ -61,6 +61,7 @@ import { KanbanTool } from "./kanban"
 import { SessionSearchTool } from "./session-search"
 import { SkillWriteV1Tool } from "./skill-write"
 import { ToolSearchTool } from "./tool-search"
+import { KanbanSwarmTool } from "./kanban-swarm"
 
 export function webSearchEnabled(providerID: ProviderV2.ID, flags = { exa: false, parallel: false }) {
   return providerID === ProviderV2.ID.opencode || flags.exa || flags.parallel
@@ -110,8 +111,9 @@ export const layer = Layer.effect(
     const patchtool = yield* ApplyPatchTool
     const shell = yield* ShellTool
     const skilltool = yield* SkillTool
-    const kanban = yield* KanbanTool
-    const sessionSearch = yield* SessionSearchTool
+const kanban = yield* KanbanTool
+        const kanbanSwarm = yield* KanbanSwarmTool
+        const sessionSearch = yield* SessionSearchTool
     const skillWrite = yield* SkillWriteV1Tool
     const toolSearch = yield* ToolSearchTool
     const agent = yield* Agent.Service
@@ -328,6 +330,7 @@ export const layer = Layer.effect(
           plan: init(plan),
           shell: init(shell),
           kanban: init(kanban),
+          kanbanSwarm: init(kanbanSwarm),
           sessionSearch: init(sessionSearch),
           skillWrite: init(skillWrite),
           toolSearch: init(toolSearch),
@@ -352,6 +355,7 @@ export const layer = Layer.effect(
             tool.lsp,
             tool.shell,
             tool.kanban,
+            tool.kanbanSwarm,
             tool.sessionSearch,
             tool.skillWrite,
             tool.toolSearch,
