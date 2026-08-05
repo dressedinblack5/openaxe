@@ -9,6 +9,7 @@ import { SessionRevert } from "./revert"
 import { Session } from "./session"
 import { Agent } from "../agent/agent"
 import { Provider } from "@/provider/provider"
+import { EventError } from "./event-error"
 
 import { type Tool as AITool, tool, jsonSchema } from "ai"
 import type { JSONSchema7 } from "@ai-sdk/provider"
@@ -311,13 +312,13 @@ export const layer = Layer.effect(
         { args: taskArgs },
       )
 
-      const taskAgent = yield* agents.get(task.agent)
+const taskAgent = yield* agents.get(task.agent)
       if (!taskAgent) {
         const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-        const error = new NamedError.Unknown({ message: `Agent not found: "${task.agent}".${hint}` })
-        yield* events.publish(Session.Event.Error, { sessionID, error: error.toObject() })
-        throw error
+        const error = EventError.unknown(`Agent not found: "${task.agent}".${hint}`)
+        yield* events.publish(Session.Event.Error, { sessionID, error })
+        throw new Error(`Agent not found: "${task.agent}".${hint}`)
       }
 
       let error: Error | undefined
@@ -459,13 +460,13 @@ export const layer = Layer.effect(
             if (session.revert) {
               yield* revert.cleanup(session)
             }
-            const agent = yield* agents.get(input.agent)
+const agent = yield* agents.get(input.agent)
             if (!agent) {
               const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
               const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-              const error = new NamedError.Unknown({ message: `Agent not found: "${input.agent}".${hint}` })
-              yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error: error.toObject() })
-              throw error
+              const error = EventError.unknown(`Agent not found: "${input.agent}".${hint}`)
+              yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
+              throw new Error(`Agent not found: "${input.agent}".${hint}`)
             }
             const model = input.model ?? agent.model ?? (yield* currentModel(input.sessionID))
             const userMsg: SessionV1.User = {
@@ -650,15 +651,15 @@ export const layer = Layer.effect(
       return yield* provider.defaultModel().pipe(Effect.orDie)
     })
 
-    const createUserMessage = Effect.fn("SessionPrompt.createUserMessage")(function* (input: PromptInput) {
+const createUserMessage = Effect.fn("SessionPrompt.createUserMessage")(function* (input: PromptInput) {
       const agentName = input.agent
       const ag = agentName ? yield* agents.get(agentName) : yield* agents.defaultInfo()
       if (!ag) {
         const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-        const error = new NamedError.Unknown({ message: `Agent not found: "${agentName}".${hint}` })
-        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error: error.toObject() })
-        throw error
+        const error = EventError.unknown(`Agent not found: "${agentName}".${hint}`)
+        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
+        throw new Error(`Agent not found: "${agentName}".${hint}`)
       }
 
       const current = yield* db
@@ -1277,13 +1278,13 @@ export const layer = Layer.effect(
             continue
           }
 
-          const agent = yield* agents.get(lastUser.agent)
+const agent = yield* agents.get(lastUser.agent)
           if (!agent) {
             const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
             const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-            const error = new NamedError.Unknown({ message: `Agent not found: "${lastUser.agent}".${hint}` })
-            yield* events.publish(Session.Event.Error, { sessionID, error: error.toObject() })
-            throw error
+            const error = EventError.unknown(`Agent not found: "${lastUser.agent}".${hint}`)
+            yield* events.publish(Session.Event.Error, { sessionID, error })
+            throw new Error(`Agent not found: "${lastUser.agent}".${hint}`)
           }
           const maxSteps = agent.steps ?? Infinity
           const isLastStep = step >= maxSteps
@@ -1480,9 +1481,9 @@ export const layer = Layer.effect(
       if (!cmd) {
         const available = (yield* commands.list()).map((c) => c.name)
         const hint = available.length ? ` Available commands: ${available.join(", ")}` : ""
-        const error = new NamedError.Unknown({ message: `Command not found: "${input.command}".${hint}` })
-        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error: error.toObject() })
-        throw error
+        const error = EventError.unknown(`Command not found: "${input.command}".${hint}`)
+        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
+        throw new Error(`Command not found: "${input.command}".${hint}`)
       }
       const agentName = cmd.agent ?? input.agent
 
@@ -1541,9 +1542,9 @@ export const layer = Layer.effect(
       if (!agent) {
         const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-        const error = new NamedError.Unknown({ message: `Agent not found: "${agentName}".${hint}` })
-        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error: error.toObject() })
-        throw error
+        const error = EventError.unknown(`Agent not found: "${agentName}".${hint}`)
+        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
+        throw new Error(`Agent not found: "${agentName}".${hint}`)
       }
 
       const templateParts = yield* resolvePromptParts(template)

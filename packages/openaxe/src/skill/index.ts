@@ -2,7 +2,7 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import path from "path"
 import { pathToFileURL } from "url"
 import { Effect, Layer, Context, Schema } from "effect"
-import { NamedError } from "@opencode-ai/core/util/error"
+import { EventError } from "@/session/event-error"
 import type { Agent } from "@/agent/agent"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { InstanceState } from "@/effect/instance-state"
@@ -111,7 +111,7 @@ const add = Effect.fnUntraced(function* (state: State, match: string, events: Ev
       Effect.fnUntraced(function* (err) {
         const message = err instanceof FrontmatterError ? err.message : `Failed to parse skill ${match}`
         const { Session } = yield* Effect.promise(() => import("@/session/session"))
-        yield* events.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() })
+        yield* events.publish(Session.Event.Error, { error: EventError.unknown(message) })
         yield* Effect.logError("failed to load skill", { skill: match, error: err })
         return undefined
       }),
