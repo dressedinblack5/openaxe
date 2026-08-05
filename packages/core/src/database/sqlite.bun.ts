@@ -12,6 +12,7 @@ import type { Connection } from "effect/unstable/sql/SqlConnection"
 import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
 import { defaultTransforms, makeCompilerSqlite } from "effect/unstable/sql/Statement";
 import { Sqlite } from "./sqlite"
+import { withVec0 } from "./vec"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
 
@@ -160,6 +161,7 @@ const nativeLayer = (config: Config) =>
       })
       yield* Effect.addFinalizer(() => Effect.sync(() => native.close()))
       if (config.disableWAL !== true) native.run("PRAGMA journal_mode = WAL;")
+      yield* withVec0((path) => native.loadExtension(path))
       return native
     }),
   )
