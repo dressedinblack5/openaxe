@@ -1,7 +1,5 @@
 import { Schema } from "effect"
-import { NonNegativeInt } from "@opencode-ai/core/schema"
 import { ModelNotFoundError as ProviderModelNotFoundError } from "@/provider/provider"
-import type { Agent } from "@/agent/agent"
 
 const UnknownErrorSchema = Schema.Struct({
   name: Schema.Literal("UnknownError"),
