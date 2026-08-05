@@ -7,6 +7,7 @@ import { EditTool } from "./edit"
 import { GlobTool } from "./glob"
 import { GrepTool } from "./grep"
 import { KanbanTool } from "./kanban"
+import { MemoryTool } from "./memory"
 import { PlanExitTool } from "./plan-exit"
 import { QuestionTool } from "./question"
 import { ReadTool } from "./read"
@@ -46,6 +47,7 @@ export const locationLayer = Layer.mergeAll(
   GlobTool.layer,
   GrepTool.layer,
   KanbanTool.layer,
+  MemoryTool.layer,
   PlanExitTool.layer,
   QuestionTool.layer,
   ReadTool.layer.pipe(Layer.provide(ReadToolFileSystem.layer)),

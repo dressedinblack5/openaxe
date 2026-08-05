@@ -1,6 +1,7 @@
 import { Effect, Layer, LayerMap } from "effect"
 import { Location } from "./location"
 import { Memory } from "./memory"
+import { WorkspaceMemory } from "./memory/workspace-memory"
 import { Kanban } from "./kanban/kanban"
 import { FTSIndex } from "./database/fts"
 import { AxeSync } from "./axe-sync"
@@ -89,6 +90,7 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
       resources,
       permissionsAndTools,
       Memory.defaultLayer,
+      WorkspaceMemory.defaultLayer,
       Kanban.defaultLayer,
       FTSIndex.defaultLayer,
     ).pipe(Layer.provideMerge(AxeSync.defaultLayer))
