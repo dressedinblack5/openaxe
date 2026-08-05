@@ -1042,6 +1042,31 @@ const scenarios: Scenario[] = [
       headers: ctx.headers(),
     }))
     .status(404, undefined, "status"),
+
+  http.protected
+    .get("/api/search", "v2.search.global")
+    .at((ctx) => ({
+      path: "/api/search?q=test&limit=5",
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      object(body)
+      object(body.results)
+      array(body.results)
+    }),
+
+  http.protected
+    .get("/api/session/{sessionID}/search", "v2.session.search")
+    .seeded((ctx) => ctx.session({ title: "Search session" }))
+    .at((ctx) => ({
+      path: route("/api/session/{sessionID}/search", { sessionID: ctx.state.id }) + "?q=hello&limit=5",
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      object(body)
+      object(body.results)
+      array(body.results)
+    }),
   http.protected
     .get("/session", "session.list")
     .seeded((ctx) => ctx.session({ title: "List me" }))
