@@ -131,6 +131,38 @@ describe("LSP service lifecycle", () => {
   )
 })
 
+describe("LSP idle pruning", () => {
+  test("selectIdleKeys returns keys idle past the TTL and excludes recently-used", () => {
+    const now = 1_000_000
+    const used = new Map([
+      ["ats", now - 1_000_000], // idle 1M ms > 60s TTL
+      ["bts", now - 1_000], // used 1s ago < 60s TTL
+    ])
+    const result = LSP.selectIdleKeys(
+      [
+        { root: "a", serverID: "ts" },
+        { root: "b", serverID: "ts" },
+      ],
+      used,
+      now,
+      60_000,
+    )
+    expect(result).toEqual(["ats"])
+  })
+
+  test("selectIdleKeys returns empty when no client is idle", () => {
+    const now = 1_000_000
+    const used = new Map([["ats", now - 10_000]])
+    const result = LSP.selectIdleKeys([{ root: "a", serverID: "ts" }], used, now, 60_000)
+    expect(result).toEqual([])
+  })
+
+  test("selectIdleKeys treats unknown keys as fresh (not idle)", () => {
+    const result = LSP.selectIdleKeys([{ root: "a", serverID: "ts" }], new Map(), 1_000_000, 60_000)
+    expect(result).toEqual([])
+  })
+})
+
 describe("LSP.Diagnostic", () => {
   test("pretty() formats error diagnostic", () => {
     const result = LSP.Diagnostic.pretty({

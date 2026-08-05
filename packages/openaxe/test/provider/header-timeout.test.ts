@@ -81,6 +81,35 @@ it.live("chunkTimeout raises a response stream error when SSE body stalls", () =
   30000,
 )
 
+it.live("chunkTimeout does not abort an actively streaming body", () =>
+  Effect.gen(function* () {
+    const server = yield* Effect.acquireRelease(
+      Effect.promise(() => activeStreamServer(4, 100)),
+      (server) => Effect.sync(() => server.server.close()),
+    )
+
+    yield* provideTmpdirInstance(
+      () =>
+        Effect.gen(function* () {
+          const provider = yield* Provider.Service
+          const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
+          const result = streamText({
+            model: yield* provider.getLanguage(model),
+            onError() {},
+            messages: [{ role: "user", content: "hello" }],
+          })
+
+          // Total stream is 400ms > chunkTimeout 200ms, but chunks arrive every
+          // 100ms < 200ms so the per-chunk idle timer never trips. A timer armed
+          // once at response arrival would abort this mid-generation.
+          expect(yield* Effect.promise(() => result.text)).toBe("abcd")
+        }),
+      { config: providerConfig(server.url, { chunkTimeout: 200 }) },
+    )
+  }),
+  30000,
+)
+
 it.live("headerTimeout aborts when response headers do not arrive", () =>
   Effect.gen(function* () {
     const server = yield* Effect.acquireRelease(
@@ -209,6 +238,28 @@ async function delayedBodyServer(delay: number): Promise<{ server: Server; url: 
     setTimeout(() => {
       res.end('data: {"choices":[{"delta":{"content":"late"}}]}\n\ndata: [DONE]\n\n')
     }, delay)
+  })
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+  const address = server.address()
+  if (!address || typeof address === "string") throw new Error("server did not bind to a TCP port")
+  return { server, url: `http://127.0.0.1:${address.port}` }
+}
+
+async function activeStreamServer(chunks: number, interval: number): Promise<{ server: Server; url: string }> {
+  const server = createServer((_, res) => {
+    res.writeHead(200, { "content-type": "text/event-stream" })
+    res.flushHeaders()
+    let i = 0
+    const send = () => {
+      if (i >= chunks) {
+        res.end("data: [DONE]\n\n")
+        return
+      }
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: String.fromCharCode(97 + i) } }] })}\n\n`)
+      i++
+      setTimeout(send, interval)
+    }
+    send()
   })
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
   const address = server.address()

@@ -1,6 +1,7 @@
 import { describe, expect } from "bun:test"
 import { BackgroundJob } from "@opencode-ai/core/background-job"
-import { Deferred, Effect, Exit, Scope } from "effect"
+import { Deferred, Duration, Effect, Exit, Scope } from "effect"
+import * as TestClock from "effect/testing/TestClock"
 import { it } from "./lib/effect"
 
 describe("BackgroundJob", () => {
@@ -99,5 +100,27 @@ describe("BackgroundJob", () => {
       // The abandoned in-memory registry is not a durable observation channel.
       expect((yield* jobs.get(job.id))?.status).toBe("running")
     }),
+  )
+
+  it.effect("prunes terminal jobs after the TTL", () =>
+    Effect.gen(function* () {
+      const jobs = yield* BackgroundJob.Service
+      const latch = yield* Deferred.make<void>()
+      const job = yield* jobs.start({
+        type: "test",
+        run: Deferred.await(latch).pipe(Effect.as("done")),
+      })
+
+      yield* Deferred.succeed(latch, undefined)
+      expect(yield* jobs.wait({ id: job.id })).toMatchObject({
+        timedOut: false,
+        info: { status: "completed", output: "done" },
+      })
+
+      // Advance past JOB_TTL (10 min) so the 1-min prune sweep deletes the job.
+      yield* TestClock.adjust(Duration.minutes(12))
+
+      expect(yield* jobs.get(job.id)).toBeUndefined()
+    }).pipe(Effect.provide(BackgroundJob.layer)),
   )
 })

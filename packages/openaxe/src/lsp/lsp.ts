@@ -98,6 +98,15 @@ const kinds = [
 
 const BROKEN_TTL = 300_000 // 5 minutes before retrying a failed LSP server
 
+export function selectIdleKeys(
+  clients: { root: string; serverID: string }[],
+  used: Map<string, number>,
+  now: number,
+  ttl: number,
+) {
+  return clients.filter((c) => now - (used.get(c.root + c.serverID) ?? now) > ttl).map((c) => c.root + c.serverID)
+}
+
 const filterExperimentalServers = (servers: Record<string, ServerInfo>, flags: RuntimeFlags.Info) => {
   if (flags.experimentalLspTy) {
     if (servers["pyright"]) {
@@ -220,13 +229,14 @@ export const layer = Layer.effect(
         // cleared so respawn isn't stuck behind the 5-minute cooldown.
         const IDLE_TTL = 15 * 60_000
         const prune = Effect.gen(function* () {
-          const now = Date.now()
-          const idle = s.clients.filter((c) => now - (s.used.get(c.root + c.serverID) ?? now) > IDLE_TTL)
-          if (idle.length === 0) return
-          yield* Effect.promise(() => Promise.all(idle.map((c) => c.shutdown().catch(() => {}))))
-          const keys = new Set(idle.map((c) => c.root + c.serverID))
-          s.clients = s.clients.filter((c) => !keys.has(c.root + c.serverID))
-          for (const key of keys) {
+          const keys = selectIdleKeys(s.clients, s.used, Date.now(), IDLE_TTL)
+          if (keys.length === 0) return
+          const keySet = new Set(keys)
+          yield* Effect.promise(() =>
+            Promise.all(s.clients.filter((c) => keySet.has(c.root + c.serverID)).map((c) => c.shutdown().catch(() => {}))),
+          )
+          s.clients = s.clients.filter((c) => !keySet.has(c.root + c.serverID))
+          for (const key of keySet) {
             s.broken.delete(key)
             s.used.delete(key)
           }
