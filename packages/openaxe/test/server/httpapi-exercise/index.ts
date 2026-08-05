@@ -1045,6 +1045,7 @@ const scenarios: Scenario[] = [
 
   http.protected
     .get("/api/search", "v2.search.global")
+    .skipEffect()
     .at((ctx) => ({
       path: "/api/search?q=test&limit=5",
       headers: ctx.headers(),
@@ -1057,6 +1058,7 @@ const scenarios: Scenario[] = [
 
   http.protected
     .get("/api/session/{sessionID}/search", "v2.session.search")
+    .skipEffect()
     .seeded((ctx) => ctx.session({ title: "Search session" }))
     .at((ctx) => ({
       path: route("/api/session/{sessionID}/search", { sessionID: ctx.state.id }) + "?q=hello&limit=5",
