@@ -57,6 +57,31 @@ const cli = yargs(args)
   .usage("")
   .completion("completion", "generate shell completion script")
   .command(
+    lazyCommand("embed", "embedding tools", undefined, () =>
+      import("./cli/cmd/embed").then((m) => m.EmbedCommand),
+    ),
+  )
+  .command(
+    lazyCommand("kb", "build project knowledge base", undefined, () =>
+      import("./cli/cmd/kb").then((m) => m.KbCommand),
+    ),
+  )
+  .command(
+    lazyCommand("skill", "manage skills", undefined, () =>
+      import("./cli/cmd/skill").then((m) => m.SkillCommand),
+    ),
+  )
+  .command(
+    lazyCommand("reflection", "error pattern reflection", undefined, () =>
+      import("./cli/cmd/reflection").then((m) => m.ReflectionCommand),
+    ),
+  )
+  .command(
+    lazyCommand("schedule", "schedule autonomous agent runs", undefined, () =>
+      import("./cli/cmd/schedule").then((m) => m.ScheduleCommand),
+    ),
+  )
+  .command(
     lazyCommand("acp", "start ACP (Agent Client Protocol) server", undefined, () =>
       import("./cli/cmd/acp").then((m) => m.AcpCommand),
     ),
