@@ -69,8 +69,6 @@ curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install
 
 **Build from source**
 
-> **`bun dev` is the primary way to run openaxe.** It runs the TUI directly from source with no build step. On Linux/macOS, the rolling release (`--dev`) install keeps you on latest without ever touching a binary. The binary is only needed for **Windows distribution** and official releases.
-
 ```bash
 git clone https://github.com/dressedinblack5/openaxe.git
 cd openaxe
@@ -78,6 +76,7 @@ bun install
 cd packages/openaxe
 bun dev          # Primary: run TUI directly (no binary)
 ```
+> **`bun dev` is the primary way to run openaxe.** It runs the TUI directly from source with no build step. On Linux/macOS, the rolling release (`--dev`) install keeps you on latest without ever touching a binary. The binary is only needed for **Windows distribution** and official releases.
 
 ### First Run
 
