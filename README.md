@@ -8,7 +8,7 @@ A fork of [anomalyco/opencode](https://github.com/anomalyco/opencode) that strip
 
 ## Reading Guide
 
-New to openaxe? Here's what to read in order:
+> New to openaxe? Here's what to read in order:
 
 | If you want to... | Start here |
 |---|---|
@@ -69,21 +69,14 @@ curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install
 
 **Build from source**
 
+> **`bun dev` is the primary way to run openaxe.** It runs the TUI directly from source with no build step. On Linux/macOS, the rolling release (`--dev`) install keeps you on latest without ever touching a binary. The binary is only needed for **Windows distribution** and official releases.
+
 ```bash
 git clone https://github.com/dressedinblack5/openaxe.git
 cd openaxe
 bun install
 cd packages/openaxe
 bun dev          # Primary: run TUI directly (no binary)
-```
-
-**`bun dev` is the primary way to run openaxe.** It runs the TUI directly from source with no build step. On Linux/macOS, the rolling release (`--dev`) install keeps you on latest without ever touching a binary. The binary is only needed for **Windows distribution** and official releases.
-
-To build a binary for Windows distribution:
-```bash
-cd packages/cli
-bun run script/build.ts --single   # current platform only
-bun run script/build.ts            # all targets
 ```
 
 ### First Run
@@ -93,22 +86,9 @@ bun run script/build.ts            # all targets
 cd my-project
 openaxe
 
-# Run a single prompt, non-interactive
+# Single prompt, non-interactive
 openaxe run "explain this codebase"
 ```
-
-## Advantages Over Official OpenCode
-
-| | openaxe | official opencode |
-|---|---|---|
-| **Monorepo size** | 13 packages | 27 |
-| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
-| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
-| **Effects** | Effect v4 throughout | Mixed patterns |
-| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
-| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
-| **Startup** | Lazy-loaded CLI commands | Eager imports |
-| **Identity** | Renamed project-wide (`openaxe`) | N/A |
 
 ## Features
 
@@ -404,7 +384,20 @@ The monorepo ships 13 packages:
 - **`--pure` mode** — run without plugins to eliminate third-party code.
 - **Supply chain** — native deps use `node-gyp rebuild` during install. For defense-in-depth: `bun install --ignore-scripts` + `bun audit`.
 
-Contributions welcome — see `AGENTS.md` for development guidelines.
+## Advantages Over Official OpenCode
+
+| | openaxe | official opencode |
+|---|---|---|
+| **Monorepo size** | 13 packages | 27 |
+| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
+| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
+| **Effects** | Effect v4 throughout | Mixed patterns |
+| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
+| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
+| **Startup** | Lazy-loaded CLI commands | Eager imports |
+| **Identity** | Renamed project-wide (`openaxe`) | N/A |
+
+> Contributions welcome — see `AGENTS.md` for development guidelines.
 
 ## Links
 
