@@ -1,6 +1,6 @@
 # openaxe
 
-> Lean TUI/CLI AI coding assistant — Effect v4, security-first, 52% fewer packages, zero Electron.
+> Lean TUI/CLI AI coding assistant — Effect v4, security-first, 64% fewer packages, zero Electron.
 
 A fork of [anomalyco/opencode](https://github.com/anomalyco/opencode) that strips the bloat and crystalizes the power. Runs in your terminal, no cloud dependency.
 
@@ -388,7 +388,7 @@ The monorepo ships 13 packages:
 
 | | openaxe | official opencode |
 |---|---|---|
-| **Monorepo size** | 13 packages | 27 |
+| **Monorepo size** | 13 packages | 36 |
 | **Dependency footprint** | ~1.1 GB | ~2 GB+ |
 | **Architecture** | TUI/CLI only | TUI + Electron + web apps |
 | **Effects** | Effect v4 throughout | Mixed patterns |
