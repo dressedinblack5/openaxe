@@ -29,6 +29,7 @@ import { ArtifactHandler } from "./handlers/artifact"
 import { MemoryHandler } from "./handlers/memory"
 import { Artifact } from "@opencode-ai/core/artifact"
 import { Memory } from "@opencode-ai/core/memory"
+import { SearchHandler } from "./handlers/search"
 
 export const handlers = Layer.mergeAll(
   HealthHandler,
@@ -51,6 +52,7 @@ export const handlers = Layer.mergeAll(
   ProjectCopyHandler,
   ArtifactHandler,
   MemoryHandler,
+  SearchHandler,
 ).pipe(
   Layer.provide(sessionLocationLayer),
   Layer.provide(layer),

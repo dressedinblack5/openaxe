@@ -22,6 +22,7 @@ import { CredentialGroup } from "./groups/credential"
 import { ProjectCopyGroup } from "./groups/project-copy"
 import { ArtifactGroup } from "./groups/artifact"
 import { MemoryGroup } from "./groups/memory"
+import { SearchGroup } from "./groups/search"
 
 const makeApiFromGroup = <const Group extends HttpApiGroup.Any>(eventGroup: Group) =>
   HttpApi.make("server")
@@ -45,6 +46,7 @@ const makeApiFromGroup = <const Group extends HttpApiGroup.Any>(eventGroup: Grou
     .add(ProjectCopyGroup)
     .add(ArtifactGroup)
     .add(MemoryGroup)
+    .add(SearchGroup)
     .annotateMerge(
       OpenApi.annotations({
         title: "opencode HttpApi",
