@@ -50,7 +50,7 @@ const mockSessionLayer = Layer.mock(Session.Service, {
       slug: "test",
       version: "1.0.0",
       projectID: "test-project" as any,
-      directory: input.directory ?? "/tmp",
+      directory: "/tmp",
       workspaceID: input.workspaceID,
       parentID: input.parentID,
       title: input.title ?? "New Session",
@@ -93,7 +93,7 @@ const toolContext = (agent: string) =>
       promptOps: {
         cancel: () => Effect.void,
         resolvePromptParts: (template: string) => Effect.succeed([{ type: "text", text: template }]),
-        prompt: (input) => Effect.succeed({
+        prompt: (input: { sessionID: SessionID; model: { modelID: string; providerID: string }; agent: string; variant?: string; parts: { type: string; text: string }[] }) => Effect.succeed({
           info: {
             id: MessageID.make("test"),
             role: "assistant",
