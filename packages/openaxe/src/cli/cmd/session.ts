@@ -13,6 +13,8 @@ import { NotFoundError } from "@/storage/storage"
 import { EOL } from "os"
 import path from "path"
 import { which } from "@opencode-ai/core/util/which"
+import { InstanceState } from "@/effect/instance-state"
+import { Template } from "@/session/template"
 
 function pagerCmd(): string[] {
   const lessOptions = ["-R", "-S"]
@@ -44,8 +46,59 @@ function pagerCmd(): string[] {
 export const SessionCommand = cmd({
   command: "session",
   describe: "manage sessions",
-  builder: (yargs: Argv) => yargs.command(SessionListCommand).command(SessionDeleteCommand).demandCommand(),
+  builder: (yargs: Argv) =>
+    yargs.command(SessionListCommand).command(SessionDeleteCommand).command(SessionCreateCommand).demandCommand(),
   async handler() {},
+})
+
+export const SessionCreateCommand = effectCmd({
+  command: "create",
+  describe: "create a session, optionally from a YAML template in .openaxe/templates",
+  builder: (yargs) =>
+    yargs
+      .option("template", {
+        alias: "t",
+        describe: "create from .openaxe/templates/<name>.yaml",
+        type: "string",
+      })
+      .option("list", {
+        describe: "list available session templates",
+        type: "boolean",
+      }),
+  handler: Effect.fn("Cli.session.create")(function* (args) {
+    const ctx = yield* InstanceState.context
+    const directory = ctx.directory
+
+    if (args.list) {
+      const names = yield* Template.listTemplates(directory)
+      if (names.length === 0) {
+        UI.println("No templates in " + Template.templatesDir(directory))
+        return
+      }
+      UI.println(names.join(EOL))
+      return
+    }
+
+    if (args.template) {
+      const template = yield* Template.loadTemplate(directory, args.template).pipe(
+        Effect.catchTag("SessionTemplateError", (error) => fail(error.message)),
+      )
+      const info = yield* Template.createFromTemplate({ template, directory }).pipe(
+        Effect.catchTag("SessionTemplateError", (error) => fail(error.message)),
+      )
+      UI.println(
+        UI.Style.TEXT_SUCCESS_BOLD +
+          `Session ${info.id} created from template "${template.name}"` +
+          UI.Style.TEXT_NORMAL +
+          ` (agent: ${template.agent ?? "default"}, model: ${template.model ?? "default"}, steps: ${template.steps?.length ?? 0})`,
+      )
+      return
+    }
+
+    const session = yield* Session.Service
+    const created = yield* session.create({})
+    UI.println(UI.Style.TEXT_SUCCESS_BOLD + `Session ${created.id} created` + UI.Style.TEXT_NORMAL)
+  }),
 })
 
 export const SessionDeleteCommand = effectCmd({
