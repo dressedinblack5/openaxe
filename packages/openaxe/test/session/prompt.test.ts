@@ -12,7 +12,6 @@ import { expect } from "bun:test"
 import { Cause, Deferred, Duration, Effect, Exit, Fiber, Layer } from "effect"
 import path from "path"
 import { fileURLToPath } from "url"
-import { NamedError } from "@opencode-ai/core/util/error"
 import { Agent as AgentSvc } from "../../src/agent/agent"
 import { BackgroundJob } from "@/background/job"
 import { Command } from "../../src/command"
@@ -2293,12 +2292,16 @@ noLLMServer.instance(
 
       expect(Exit.isFailure(exit)).toBe(true)
       if (Exit.isFailure(exit)) {
-        const err = Cause.squash(exit.cause)
+        const err = Cause.squash(exit.cause) as { name: string; data: { message: string } }
         expect(err).not.toBeInstanceOf(TypeError)
-        expect(NamedError.Unknown.isInstance(err)).toBe(true)
-        if (NamedError.Unknown.isInstance(err)) {
-          expect(err.data.message).toContain('Agent not found: "nonexistent-agent-xyz"')
-        }
+        // Check for wire format error from EventError.unknown()
+        expect(err).toEqual(expect.objectContaining({
+          name: "UnknownError",
+          data: expect.objectContaining({
+            message: expect.stringContaining('Agent not found: "nonexistent-agent-xyz"'),
+          }),
+        }))
+        expect(err.data.message).toContain('Agent not found: "nonexistent-agent-xyz"')
       }
     }),
   30_000,
@@ -2322,11 +2325,14 @@ noLLMServer.instance(
 
       expect(Exit.isFailure(exit)).toBe(true)
       if (Exit.isFailure(exit)) {
-        const err = Cause.squash(exit.cause)
-        expect(NamedError.Unknown.isInstance(err)).toBe(true)
-        if (NamedError.Unknown.isInstance(err)) {
-          expect(err.data.message).toContain("build")
-        }
+        const err = Cause.squash(exit.cause) as { name: string; data: { message: string } }
+        expect(err).toEqual(expect.objectContaining({
+          name: "UnknownError",
+          data: expect.objectContaining({
+            message: expect.stringContaining("build"),
+          }),
+        }))
+        expect(err.data.message).toContain("build")
       }
     }),
   30_000,
@@ -2349,13 +2355,16 @@ noLLMServer.instance(
 
       expect(Exit.isFailure(exit)).toBe(true)
       if (Exit.isFailure(exit)) {
-        const err = Cause.squash(exit.cause)
+        const err = Cause.squash(exit.cause) as { name: string; data: { message: string } }
         expect(err).not.toBeInstanceOf(TypeError)
-        expect(NamedError.Unknown.isInstance(err)).toBe(true)
-        if (NamedError.Unknown.isInstance(err)) {
-          expect(err.data.message).toContain('Command not found: "nonexistent-command-xyz"')
-          expect(err.data.message).toContain("init")
-        }
+        expect(err).toEqual(expect.objectContaining({
+          name: "UnknownError",
+          data: expect.objectContaining({
+            message: expect.stringContaining('Command not found: "nonexistent-command-xyz"'),
+          }),
+        }))
+        expect(err.data.message).toContain('Command not found: "nonexistent-command-xyz"')
+        expect(err.data.message).toContain("init")
       }
     }),
   30_000,

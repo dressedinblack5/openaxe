@@ -318,7 +318,7 @@ const taskAgent = yield* agents.get(task.agent)
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
         const error = EventError.unknown(`Agent not found: "${task.agent}".${hint}`)
         yield* events.publish(Session.Event.Error, { sessionID, error })
-        throw new Error(`Agent not found: "${task.agent}".${hint}`)
+        throw error
       }
 
       let error: Error | undefined
@@ -466,7 +466,7 @@ const agent = yield* agents.get(input.agent)
               const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
               const error = EventError.unknown(`Agent not found: "${input.agent}".${hint}`)
               yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
-              throw new Error(`Agent not found: "${input.agent}".${hint}`)
+              throw error
             }
             const model = input.model ?? agent.model ?? (yield* currentModel(input.sessionID))
             const userMsg: SessionV1.User = {
@@ -659,7 +659,7 @@ const createUserMessage = Effect.fn("SessionPrompt.createUserMessage")(function*
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
         const error = EventError.unknown(`Agent not found: "${agentName}".${hint}`)
         yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
-        throw new Error(`Agent not found: "${agentName}".${hint}`)
+        throw error
       }
 
       const current = yield* db
@@ -1284,7 +1284,7 @@ const agent = yield* agents.get(lastUser.agent)
             const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
             const error = EventError.unknown(`Agent not found: "${lastUser.agent}".${hint}`)
             yield* events.publish(Session.Event.Error, { sessionID, error })
-            throw new Error(`Agent not found: "${lastUser.agent}".${hint}`)
+            throw error
           }
           const maxSteps = agent.steps ?? Infinity
           const isLastStep = step >= maxSteps
@@ -1483,7 +1483,7 @@ const agent = yield* agents.get(lastUser.agent)
         const hint = available.length ? ` Available commands: ${available.join(", ")}` : ""
         const error = EventError.unknown(`Command not found: "${input.command}".${hint}`)
         yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
-        throw new Error(`Command not found: "${input.command}".${hint}`)
+        throw error
       }
       const agentName = cmd.agent ?? input.agent
 
@@ -1544,7 +1544,7 @@ const agent = yield* agents.get(lastUser.agent)
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
         const error = EventError.unknown(`Agent not found: "${agentName}".${hint}`)
         yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
-        throw new Error(`Agent not found: "${agentName}".${hint}`)
+        throw error
       }
 
       const templateParts = yield* resolvePromptParts(template)
