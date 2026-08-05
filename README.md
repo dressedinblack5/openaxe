@@ -2,7 +2,7 @@
 
 > Lean TUI/CLI AI coding assistant — Effect v4, security-first, 52% fewer packages, zero Electron.
 
-A fork of [anomalyco/opencode](https://github.com/anomalyco/opencode) that strips the bloat and keeps the power. Runs in your terminal, no cloud dependency.
+A fork of [anomalyco/opencode](https://github.com/anomalyco/opencode) that strips the bloat and crystalizes the power. Runs in your terminal, no cloud dependency.
 
 ![openaxe preview](screenshots/openaxe-preview.png)
 
