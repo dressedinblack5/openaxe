@@ -1,9 +1,9 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "239b8b77-9aa4-47b6-91c7-461755f116c5",
+  "id": "34d48cd2-c0d0-4827-9550-10400845eb4e",
   "prevIds": [
-    "1ec3ab91-ffbc-46fb-88a9-cbd9ed1cd684"
+    "239b8b77-9aa4-47b6-91c7-461755f116c5"
   ],
   "ddl": [
     {
@@ -24,6 +24,14 @@
     },
     {
       "name": "memory",
+      "entityType": "tables"
+    },
+    {
+      "name": "workspace_memory",
+      "entityType": "tables"
+    },
+    {
+      "name": "retry_policy_overrides",
       "entityType": "tables"
     },
     {
@@ -60,6 +68,10 @@
     },
     {
       "name": "project",
+      "entityType": "tables"
+    },
+    {
+      "name": "session_schedule",
       "entityType": "tables"
     },
     {
@@ -453,6 +465,136 @@
       "name": "time_updated",
       "entityType": "columns",
       "table": "memory"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "project_id",
+      "entityType": "columns",
+      "table": "workspace_memory"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "key",
+      "entityType": "columns",
+      "table": "workspace_memory"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "value",
+      "entityType": "columns",
+      "table": "workspace_memory"
+    },
+    {
+      "type": "blob",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "vector",
+      "entityType": "columns",
+      "table": "workspace_memory"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "workspace_memory"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "workspace_memory"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "retry_reason",
+      "entityType": "columns",
+      "table": "retry_policy_overrides"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "max_attempts",
+      "entityType": "columns",
+      "table": "retry_policy_overrides"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "base_delay_ms",
+      "entityType": "columns",
+      "table": "retry_policy_overrides"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "max_delay_ms",
+      "entityType": "columns",
+      "table": "retry_policy_overrides"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "backoff_multiplier",
+      "entityType": "columns",
+      "table": "retry_policy_overrides"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "jitter",
+      "entityType": "columns",
+      "table": "retry_policy_overrides"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "retry_policy_overrides"
     },
     {
       "type": "integer",
@@ -1050,6 +1192,66 @@
       "autoincrement": false,
       "default": null,
       "generated": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "table": "session_schedule"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "cron",
+      "entityType": "columns",
+      "table": "session_schedule"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "next_run",
+      "entityType": "columns",
+      "table": "session_schedule"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "enabled",
+      "entityType": "columns",
+      "table": "session_schedule"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "session_schedule"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "session_schedule"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
       "name": "id",
       "entityType": "columns",
       "table": "message"
@@ -1305,6 +1507,16 @@
       "table": "session_message"
     },
     {
+      "type": "blob",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "vector",
+      "entityType": "columns",
+      "table": "session_message"
+    },
+    {
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
@@ -1431,6 +1643,16 @@
       "default": null,
       "generated": null,
       "name": "share_url",
+      "entityType": "columns",
+      "table": "session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "fork_point_message_id",
       "entityType": "columns",
       "table": "session"
     },
@@ -1951,6 +2173,16 @@
     },
     {
       "columns": [
+        "project_id",
+        "key"
+      ],
+      "nameExplicit": false,
+      "name": "workspace_memory_pk",
+      "entityType": "pks",
+      "table": "workspace_memory"
+    },
+    {
+      "columns": [
         "email",
         "url"
       ],
@@ -2026,6 +2258,15 @@
     },
     {
       "columns": [
+        "retry_reason"
+      ],
+      "nameExplicit": false,
+      "name": "retry_policy_overrides_pk",
+      "table": "retry_policy_overrides",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
         "id"
       ],
       "nameExplicit": false,
@@ -2085,6 +2326,15 @@
       "nameExplicit": false,
       "name": "project_pk",
       "table": "project",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "session_id"
+      ],
+      "nameExplicit": false,
+      "name": "session_schedule_pk",
+      "table": "session_schedule",
       "entityType": "pks"
     },
     {

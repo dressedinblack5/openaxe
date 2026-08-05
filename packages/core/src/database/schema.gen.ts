@@ -62,6 +62,28 @@ export default {
         );
       `)
       yield* tx.run(`
+        CREATE TABLE \`workspace_memory\` (
+          \`project_id\` text NOT NULL,
+          \`key\` text NOT NULL,
+          \`value\` text NOT NULL,
+          \`vector\` blob,
+          \`created_at\` integer NOT NULL,
+          \`updated_at\` integer NOT NULL,
+          CONSTRAINT \`workspace_memory_pk\` PRIMARY KEY(\`project_id\`, \`key\`)
+        );
+      `)
+      yield* tx.run(`
+        CREATE TABLE \`retry_policy_overrides\` (
+          \`retry_reason\` text PRIMARY KEY,
+          \`max_attempts\` integer NOT NULL,
+          \`base_delay_ms\` integer NOT NULL,
+          \`max_delay_ms\` integer NOT NULL,
+          \`backoff_multiplier\` real NOT NULL,
+          \`jitter\` real NOT NULL,
+          \`updated_at\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`account_state\` (
           \`id\` integer PRIMARY KEY,
           \`active_account_id\` text,
@@ -163,6 +185,16 @@ export default {
         );
       `)
       yield* tx.run(`
+        CREATE TABLE \`session_schedule\` (
+          \`session_id\` text PRIMARY KEY,
+          \`cron\` text NOT NULL,
+          \`next_run\` integer,
+          \`enabled\` integer NOT NULL,
+          \`created_at\` integer NOT NULL,
+          \`updated_at\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`message\` (
           \`id\` text PRIMARY KEY,
           \`session_id\` text NOT NULL,
@@ -210,6 +242,7 @@ export default {
           \`session_id\` text NOT NULL,
           \`type\` text NOT NULL,
           \`seq\` integer NOT NULL,
+          \`vector\` blob,
           \`time_created\` integer NOT NULL,
           \`time_updated\` integer NOT NULL,
           \`data\` text NOT NULL,
@@ -228,6 +261,7 @@ export default {
           \`title\` text NOT NULL,
           \`version\` text NOT NULL,
           \`share_url\` text,
+          \`fork_point_message_id\` text,
           \`summary_additions\` integer,
           \`summary_deletions\` integer,
           \`summary_files\` integer,
