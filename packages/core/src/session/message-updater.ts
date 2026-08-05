@@ -1,5 +1,7 @@
 import { castDraft, produce, type WritableDraft } from "immer"
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
+import { Embedding } from "../embedding/embedding"
+import { Vector } from "../vector/vector"
 import { SessionEvent } from "./event"
 import { SessionMessage } from "./message"
 
@@ -169,9 +171,15 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
     })
 
   return Effect.gen(function* () {
+    const append = (message: SessionMessage.Message) =>
+      Effect.gen(function* () {
+        yield* adapter.appendMessage(message)
+        // Async, detached: embedding never blocks or fails the message write.
+        yield* forkEmbedding(message, event.data.sessionID)
+      })
     yield* SessionEvent.All.match(event, {
       "session.next.agent.switched": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.AgentSwitched.make({
             id: event.data.messageID,
             type: "agent-switched",
@@ -182,7 +190,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
         )
       },
       "session.next.model.switched": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.ModelSwitched.make({
             id: event.data.messageID,
             type: "model-switched",
@@ -194,7 +202,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
       },
       "session.next.moved": () => Effect.void,
       "session.next.prompted": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.User.make({
             id: event.data.messageID,
             type: "user",
@@ -208,7 +216,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
       },
       "session.next.prompt.admitted": () => Effect.void,
       "session.next.context.updated": (event) =>
-        adapter.appendMessage(
+        append(
           SessionMessage.System.make({
             id: event.data.messageID,
             type: "system",
@@ -217,7 +225,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
           }),
         ),
       "session.next.synthetic": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.Synthetic.make({
             sessionID: event.data.sessionID,
             text: event.data.text,
@@ -228,7 +236,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
         )
       },
       "session.next.shell.started": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.Shell.make({
             id: event.data.messageID,
             type: "shell",
@@ -263,7 +271,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
               }),
             )
           }
-          yield* adapter.appendMessage(
+          yield* append(
             SessionMessage.Assistant.make({
               id: event.data.assistantMessageID,
               type: "assistant",
@@ -438,7 +446,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
       "session.next.compaction.started": () => Effect.void,
       "session.next.compaction.delta": () => Effect.void,
       "session.next.compaction.ended": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.Compaction.make({
             id: event.data.messageID,
             type: "compaction",
@@ -453,5 +461,48 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
     })
   })
 }
+
+const embeddableText = (message: SessionMessage.Message): string | undefined => {
+  switch (message.type) {
+    case "user":
+    case "system":
+    case "synthetic":
+      return message.text
+    case "compaction":
+      return message.summary
+    case "shell":
+      return message.command
+    default:
+      // Assistant content is streamed via updates; embedding per delta would
+      // duplicate vec rows, so it is left to the T16 backfill.
+      return undefined
+  }
+}
+
+/**
+ * Fork a detached embed of a just-persisted message into session_message_vec.
+ * No-op when the embedding/vector services are absent from the runtime context.
+ */
+export const forkEmbedding: (message: SessionMessage.Message, sessionID: string) => Effect.Effect<void> = (
+  message,
+  sessionID,
+) =>
+  Effect.gen(function* () {
+    const text = embeddableText(message)
+    if (text === undefined) return
+    const embedding = yield* Effect.serviceOption(Embedding.Service)
+    const vector = yield* Effect.serviceOption(Vector.Service)
+    if (Option.isNone(embedding) || Option.isNone(vector)) return
+    yield* Effect.gen(function* () {
+      const vec = yield* embedding.value.embed([text])
+      const vectorValue = vec.vectors[0]
+      if (vectorValue) yield* vector.value.insert("session_message", message.id, vectorValue, { sessionId: sessionID })
+    }).pipe(
+      // catchCause, not catch: SQLite/vec0 defects surface as causes, not typed errors.
+      Effect.catchCause((cause) => Effect.logWarning(`embedding session message ${message.id} failed`, { cause })),
+      Effect.forkDetach({ startImmediately: true }),
+      Effect.asVoid,
+    )
+  })
 
 export * as SessionMessageUpdater from "./message-updater"
