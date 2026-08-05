@@ -58,6 +58,9 @@ const queryFailed = (error: unknown): VectorError => ({
   message: describe(error),
 })
 
+/** vec0 accepts vectors as Float32Array byte buffers; same format as WorkspaceMemory. */
+const blob = (vector: number[]) => Buffer.from(new Float32Array(vector).buffer)
+
 const TABLE_NAMES: Readonly<Record<VectorTable, string>> = {
   session_message: "session_message_vec",
   workspace_memory: "workspace_memory_vec",
@@ -65,21 +68,21 @@ const TABLE_NAMES: Readonly<Record<VectorTable, string>> = {
 
 // workspace_memory_vec's shape is contracted with WorkspaceMemory (memory/workspace-memory.ts),
 // which writes rows directly: (vector, project_id, key). session_message_vec carries the
-// session scoping columns T7 filters on.
+// session scoping columns T7 filters on. Both use cosine distance, matching WorkspaceMemory.
 const createSql = (table: VectorTable, dimension: number) =>
   table === "session_message"
-    ? sql`CREATE VIRTUAL TABLE IF NOT EXISTS ${sql.identifier("session_message_vec")} USING vec0(vector float[${sql.raw(String(dimension))}], id text, project_id text, session_id text)`
-    : sql`CREATE VIRTUAL TABLE IF NOT EXISTS ${sql.identifier("workspace_memory_vec")} USING vec0(vector float[${sql.raw(String(dimension))}], project_id text, key text)`
+    ? sql`CREATE VIRTUAL TABLE IF NOT EXISTS ${sql.identifier("session_message_vec")} USING vec0(vector float[${sql.raw(String(dimension))}] distance_metric=cosine, id text, project_id text, session_id text)`
+    : sql`CREATE VIRTUAL TABLE IF NOT EXISTS ${sql.identifier("workspace_memory_vec")} USING vec0(vector float[${sql.raw(String(dimension))}] distance_metric=cosine, project_id text, key text)`
 
 const insertSql = (table: VectorTable, id: string, vector: number[], metadata?: InsertMetadata) =>
   table === "session_message"
-    ? sql`INSERT INTO ${sql.identifier("session_message_vec")} (vector, id, project_id, session_id) VALUES (${JSON.stringify(vector)}, ${id}, ${metadata?.projectId ?? ""}, ${metadata?.sessionId ?? ""})`
-    : sql`INSERT INTO ${sql.identifier("workspace_memory_vec")} (vector, project_id, key) VALUES (${JSON.stringify(vector)}, ${metadata?.projectId ?? ""}, ${id})`
+    ? sql`INSERT INTO ${sql.identifier("session_message_vec")} (vector, id, project_id, session_id) VALUES (${blob(vector)}, ${id}, ${metadata?.projectId ?? ""}, ${metadata?.sessionId ?? ""})`
+    : sql`INSERT INTO ${sql.identifier("workspace_memory_vec")} (vector, project_id, key) VALUES (${blob(vector)}, ${metadata?.projectId ?? ""}, ${id})`
 
 const searchSql = (table: VectorTable, queryVector: number[], k: number, filter?: SQL) =>
   table === "session_message"
-    ? sql`SELECT id, distance FROM ${sql.identifier("session_message_vec")} WHERE vector MATCH ${JSON.stringify(queryVector)} AND k = ${k} ${filter ? sql`AND ${filter}` : sql``} ORDER BY distance`
-    : sql`SELECT key AS id, distance FROM ${sql.identifier("workspace_memory_vec")} WHERE vector MATCH ${JSON.stringify(queryVector)} AND k = ${k} ${filter ? sql`AND ${filter}` : sql``} ORDER BY distance`
+    ? sql`SELECT id, distance FROM ${sql.identifier("session_message_vec")} WHERE vector MATCH ${blob(queryVector)} AND k = ${k} ${filter ? sql`AND ${filter}` : sql``} ORDER BY distance`
+    : sql`SELECT key AS id, distance FROM ${sql.identifier("workspace_memory_vec")} WHERE vector MATCH ${blob(queryVector)} AND k = ${k} ${filter ? sql`AND ${filter}` : sql``} ORDER BY distance`
 
 const deleteSql = (table: VectorTable, id: string) =>
   table === "session_message"
@@ -146,9 +149,8 @@ export const layer = Layer.effect(
         const rows = yield* db.all<{ id: string; distance: number }>(searchSql(table, queryVector, k, filter)).pipe(
           Effect.mapError(queryFailed),
         )
-        // vec0 0.1.9 default metric is L2 (no cosine option); score = 1 - distance
-        // keeps the plan's semantics: identical vectors score 1, higher = more similar.
-        return rows.map((row) => ({ id: row.id, score: 1 - row.distance }))
+        // Cosine distance from the query — lower is more relevant (same convention as WorkspaceMemory).
+        return rows.map((row) => ({ id: row.id, score: row.distance }))
       })
 
     const deleteVector: Interface["delete"] = (table, id) =>
