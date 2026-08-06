@@ -97,47 +97,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  upload-assets:
-    needs:
-      - release
-      - build
-    if: github.event_name == 'push' && !failure() && !cancelled()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: openaxe-cli-Linux
-          path: packages/openaxe/dist
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: openaxe-cli-macOS
-          path: packages/openaxe/dist
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: openaxe-cli-Windows
-          path: packages/openaxe/dist
-
       - name: Upload all release assets
+        if: github.event_name == 'push'
         run: |
-          VERSION="v${{ needs.release.outputs.version }}"
+          VERSION="v${{ steps.version.outputs.version || steps.version_dispatch.outputs.version }}"
           gh release upload "$VERSION" packages/openaxe/dist/*.tar.gz packages/openaxe/dist/*.zip --clobber --repo ${{ github.repository }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-build:
+  build:
     needs: release
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            targets: "linux-x64,linux-arm64,linux-x64-musl,linux-arm64-musl,linux-x64-baseline"
-          - os: macos-latest
-            targets: "darwin-x64,darwin-arm64"
-          - os: windows-latest
-            targets: "windows-x64,windows-arm64,windows-x64-baseline"
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -145,8 +115,8 @@ build:
 
       - uses: ./.github/actions/setup-bun
 
-      - name: Build for ${{ runner.os }}
-        run: ./packages/openaxe/script/build.ts --single
+      - name: Build all platforms
+        run: ./packages/openaxe/script/build.ts
         env:
           OPENCODE_VERSION: ${{ needs.release.outputs.version }}
           OPENCODE_RELEASE: "true"
@@ -155,9 +125,9 @@ build:
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: openaxe-cli-${{ runner.os }}
+          name: openaxe-cli
           path: packages/openaxe/dist/*.tar.gz
-            packages/openaxe/dist/*.zip
+          packages/openaxe/dist/*.zip
 
   sign-ready:
     runs-on: ubuntu-latest
@@ -256,7 +226,7 @@ build:
   publish:
     needs:
       - release
-      - upload-assets
+      - build
     if: !failure() && !cancelled()
     runs-on: ubuntu-latest
     steps:
@@ -284,17 +254,7 @@ build:
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: openaxe-cli-Linux
-          path: packages/openaxe/dist
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: openaxe-cli-macOS
-          path: packages/openaxe/dist
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: openaxe-cli-Windows
+          name: openaxe-cli
           path: packages/openaxe/dist
 
       - name: Setup git committer
