@@ -325,7 +325,8 @@ export function withCliFixture<A, E>(
       } satisfies RunHandle
     })
 
-    const serve = Effect.fn("opencode.serve")(function* (opts?: ServeOpts) {
+    const serve = Effect.fn("opencode.serve")(
+      function* (opts?: ServeOpts) {
       const argv = ["serve"]
       // Default port 0 — let the OS pick a free port, parse the actual one
       // off stdout. Hard-coded ports flake under parallel tests.
@@ -387,6 +388,20 @@ export function withCliFixture<A, E>(
             ),
         }),
       )
+
+      // Wait for health endpoint to ensure all routes are ready
+      yield* Effect.retry(
+        Effect.tryPromise({
+          try: async () => {
+            const res = await fetch(`${match.url}/global/health`, { signal: AbortSignal.timeout(1000) })
+            if (!res.ok) throw new Error(`health check failed: ${res.status}`)
+            const json = await res.json()
+            if (json.healthy !== true) throw new Error(`health check returned unhealthy`)
+          },
+          catch: (e) => e instanceof Error ? e : new Error(String(e)),
+        }),
+        { times: 20, delay: "250 millis" },
+      ).pipe(Effect.timeoutOrElse({ duration: "10 seconds", orElse: () => Effect.fail(new Error("health endpoint never became ready")) }))
 
       return {
         url: match.url,
