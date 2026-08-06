@@ -7,6 +7,7 @@ import { AppProcess } from "@opencode-ai/core/process"
 import { testEffect } from "../lib/effect"
 
 const encoder = new TextEncoder()
+const isWindows = process.platform === "win32"
 
 function mockHttpClient(handler: (request: HttpClientRequest.HttpClientRequest) => Response) {
   const client = HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, handler(request))))
@@ -181,6 +182,12 @@ describe("installation", () => {
       testLayer(
         () => new Response("install script with token=secret", { status: 200 }),
         (cmd, args) => {
+          if (isWindows) {
+            if (cmd === "cmd" && args[0] === "/c" && args[1]?.endsWith(".bat")) {
+              return { code: 1, stderr: "script output with token=secret" }
+            }
+            return ""
+          }
           if (cmd === "bash" && args[0] === "--version") return "GNU bash"
           if (cmd === "bash" || cmd === "sh") return { code: 1, stderr: "script output with token=secret" }
           return ""
@@ -201,6 +208,11 @@ describe("installation", () => {
       testLayer(
         () => new Response("install script", { status: 200 }),
         (cmd, args) => {
+          if (isWindows) {
+            if (cmd === "cmd" && args[0] === "--version") return { code: 1, stderr: "missing" }
+            if (cmd === "cmd") return { code: 1, stderr: "should not execute installer with cmd" }
+            return ""
+          }
           if (cmd === "bash" && args[0] === "--version") return { code: 1, stderr: "missing" }
           if (cmd === "bash") return { code: 1, stderr: "should not execute installer with bash" }
           if (cmd === "sh") return "ok"
