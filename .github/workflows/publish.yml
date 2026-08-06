@@ -231,7 +231,7 @@ jobs:
             packages/openaxe/dist/openaxe-windows-x64-baseline
 
   publish:
-    if: always() && github.repository == 'dressedinblack5/openaxe' && github.event_name == 'workflow_dispatch' && !failure() && !cancelled()
+    if: github.repository == 'dressedinblack5/openaxe' && github.event_name == 'workflow_dispatch' && !failure() && !cancelled()
     needs:
       - version
       - build-cli
