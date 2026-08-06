@@ -9,6 +9,8 @@ import { ChildProcess } from "effect/unstable/process"
 import { AppProcess } from "@opencode-ai/core/process"
 import path from "path"
 import { fileURLToPath } from "url"
+import os from "node:os"
+import { randomUUID } from "node:crypto"
 import { makeRuntime } from "@opencode-ai/core/effect/runtime"
 import { InstallationChannel, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { InstallationEvent } from "@opencode-ai/schema/installation-event"
@@ -153,11 +155,32 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
 
     const upgradeCurl = Effect.fnUntraced(
       function* (target: string) {
+        const isWindows = process.platform === "win32"
+        const scriptName = isWindows ? "install.bat" : "install"
         const response = yield* httpOk.execute(
-          HttpClientRequest.get("https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install"),
+          HttpClientRequest.get(`https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/${scriptName}`),
         )
         const body = yield* response.text
         const bodyBytes = new TextEncoder().encode(body)
+
+        if (isWindows) {
+          // .bat is cmd-only syntax; write a temp file since `cmd /c echo` can't emit multi-line content.
+          const tempPath = path.join(os.tmpdir(), `openaxe-upgrade-${randomUUID()}.bat`)
+          yield* Effect.tryPromise(() => Bun.write(tempPath, body))
+          const result = yield* appProcess.run(
+            ChildProcess.make("cmd", ["/c", tempPath], {
+              env: { VERSION: target },
+              extendEnv: true,
+            }),
+          )
+          yield* Effect.tryPromise(() => Bun.file(tempPath).delete()).pipe(Effect.orElseSucceed(() => undefined))
+          return {
+            code: result.exitCode,
+            stdout: result.stdout.toString("utf8"),
+            stderr: result.stderr.toString("utf8"),
+          }
+        }
+
         const shell = yield* upgradeScriptShell()
         const result = yield* appProcess.run(
           ChildProcess.make(shell, [], {
