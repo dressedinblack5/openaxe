@@ -209,20 +209,11 @@ export const TuiCommand = cmd({
 
     const unguard = win32InstallCtrlCGuard()
     try {
-      // Kick off all heavy module imports in parallel
+      // Load config early (needed for plugin_origins and config)
       const configMod = import("@/config/tui")
-      const effectMod = import("effect")
-      const layerMod = import("../tui/layer")
-      const pluginMod = import("@/plugin/tui/runtime")
-
       const { TuiConfig } = await configMod
       mark("config-mod")
-      const [{ Effect, Cause }, { run }, { createLegacyTuiPluginHost }] = await Promise.all([
-        effectMod.then((m) => ({ Effect: m.Effect, Cause: m.Cause })),
-        layerMod.then((m) => ({ run: m.run })),
-        pluginMod.then((m) => ({ createLegacyTuiPluginHost: m.createLegacyTuiPluginHost })),
-      ])
-      mark("parallel-imports")
+
       if (args.fork && !args.continue && !args.session) {
         UI.error("--fork requires --continue or --session")
         process.exitCode = 1
@@ -321,6 +312,15 @@ export const TuiCommand = cmd({
         // OPENCODE_FAST_BOOT (read at packages/tui app.tsx) skips the StartupLoading screen.
         process.env.OPENCODE_FAST_BOOT ??= "1"
         mark("run-start")
+
+        // Defer heavy imports until actually needed for run()
+        const [{ Effect, Cause }, { run }, { createLegacyTuiPluginHost }] = await Promise.all([
+          import("effect").then((m) => ({ Effect: m.Effect, Cause: m.Cause })),
+          import("../tui/layer").then((m) => ({ run: m.run })),
+          import("@/plugin/tui/runtime").then((m) => ({ createLegacyTuiPluginHost: m.createLegacyTuiPluginHost })),
+        ])
+        mark("deferred-imports")
+
         try {
           await Effect.runPromise(
             run({
