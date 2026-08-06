@@ -15,6 +15,7 @@ import { validateSession } from "../tui/validate-session"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
 import { mark, report } from "@/cli/startup-timing"
 import type { TuiConfig } from "@/config/tui"
+import { HttpApiApp } from "@/server/routes/instance/httpapi/server"
 
 declare global {
   const OPENCODE_WORKER_PATH: string
@@ -48,6 +49,15 @@ function createEventSource(client: RpcClient): EventSource {
       })
     },
   }
+}
+
+function createInternalFetch(): typeof fetch {
+  const { handler } = HttpApiApp.webHandler()
+  const fn = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const request = new Request(input, init)
+    return handler(request, HttpApiApp.context)
+  }
+  return fn as typeof fetch
 }
 
 async function target() {
@@ -267,20 +277,26 @@ export const TuiCommand = cmd({
         network.port !== 0 ||
         network.hostname !== "127.0.0.1"
 
-      // Start server in both internal and external modes - worker fetch needs it
-      const serverResult = await client.call("server", network)
-      mark("server-url")
-      const transport = external
-        ? {
-            url: serverResult.url,
-            fetch: undefined,
-            events: undefined,
-          }
-        : {
-            url: "http://opencode.internal",
-            fetch: createWorkerFetch(client),
-            events: createEventSource(client),
-          }
+      let transport: { url: string; fetch: typeof fetch; events: EventSource }
+      if (external) {
+        // External mode: start HTTP server and proxy through it
+        const serverResult = await client.call("server", network)
+        mark("server-url")
+        transport = {
+          url: serverResult.url,
+          fetch: createWorkerFetch(client),
+          events: createEventSource(client),
+        }
+      } else {
+        // Internal mode: use webHandler directly (no HTTP server needed)
+        mark("server-url-skip")
+        const internalFetch = createInternalFetch()
+        transport = {
+          url: "http://opencode.internal",
+          fetch: internalFetch,
+          events: createEventSource(client),
+        }
+      }
       try {
         await validateSession({
           url: transport.url,
