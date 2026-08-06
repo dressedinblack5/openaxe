@@ -325,7 +325,7 @@ export function withCliFixture<A, E>(
       } satisfies RunHandle
     })
 
-    const serve = Effect.fn("opencode.serve")(
+    const serve: (opts?: ServeOpts) => Effect.Effect<ServeHandle, Error, Scope.Scope> = Effect.fn("opencode.serve")(
       function* (opts?: ServeOpts) {
       const argv = ["serve"]
       // Default port 0 — let the OS pick a free port, parse the actual one
