@@ -50,6 +50,7 @@ const BUNDLED_PLUGINS_RAW = [
   { spec: "opencode-plugin-selector", kinds: ["server"] as const },
   { spec: "@tarquinen/opencode-dcp", kinds: ["server", "tui"] as const },
   { spec: "ecc-universal", kinds: ["server"] as const },
+  { spec: "@dietrichgebert/ponytail", kinds: ["tui"] as const },
 ] as const
 
 export const BUNDLED_PLUGINS = BUNDLED_PLUGINS_RAW.map((p) => ({
@@ -277,6 +278,29 @@ export const layer = Layer.effect(
           }
           if (!disableDefaultPlugins) {
             defaultConfig.plugin = BUNDLED_PLUGINS.map((p) => p.spec)
+          }
+          defaultConfig.agent = {
+            multimodal: {
+              model: "google/gemini-3.5-flash",
+              mode: "subagent",
+              description:
+                "Analyzes media files (PDFs, images, diagrams) that require interpretation beyond raw text.",
+            },
+            oracle: {
+              model: "google/gemini-3.1-pro",
+              mode: "subagent",
+            },
+          }
+          defaultConfig.mcp = {
+            github: {
+              type: "remote",
+              url: "https://api.githubcopilot.com/mcp/",
+              enabled: true,
+              timeout: 60000,
+              headers: {
+                Authorization: "Bearer {env:GITHUB_TOKEN}",
+              },
+            },
           }
           yield* fs.writeWithDirs(file, JSON.stringify(defaultConfig, null, 2)).pipe(Effect.catch(() => Effect.void))
         }
