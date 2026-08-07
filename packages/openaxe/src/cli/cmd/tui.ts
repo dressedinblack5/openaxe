@@ -52,10 +52,14 @@ function createEventSource(client: RpcClient): EventSource {
 }
 
 function createInternalFetch(): typeof fetch {
-  const { handler } = HttpApiApp.webHandler()
   const fn = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const { Server } = await import("@/server/server")
+    const { ServerAuth } = await import("@/server/auth")
     const request = new Request(input, init)
-    return handler(request, HttpApiApp.context)
+    const headers = new Headers(request.headers)
+    const auth = ServerAuth.header()
+    if (auth) headers.set("Authorization", auth)
+    return Server.Default().app.fetch(new Request(request, { headers }))
   }
   return fn as typeof fetch
 }
@@ -268,7 +272,7 @@ export const TuiCommand = cmd({
         network.port !== 0 ||
         network.hostname !== "127.0.0.1"
 
-      let transport: { url: string; fetch: typeof fetch; events: EventSource }
+      let transport: { url: string; fetch: typeof fetch; events?: EventSource }
       if (external) {
         // External mode: start HTTP server and proxy through it
         const serverResult = await client.call("server", network)
@@ -285,7 +289,7 @@ export const TuiCommand = cmd({
         transport = {
           url: "http://opencode.internal",
           fetch: internalFetch,
-          events: createEventSource(client),
+          events: undefined,
         }
       }
       try {
