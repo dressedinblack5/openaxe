@@ -117,6 +117,7 @@ jobs:
 
       - name: Build for ${{ runner.os }}
         run: ./packages/openaxe/script/build.ts
+        shell: bash
         env:
           OPENCODE_VERSION: ${{ github.ref_name }}
           OPENCODE_RELEASE: "true"
