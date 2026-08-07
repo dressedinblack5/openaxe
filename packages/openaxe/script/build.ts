@@ -323,8 +323,7 @@ if (Script.release) {
       await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
     }
   }
-  await $`gh release create v${Script.version} --repo ${process.env.GH_REPO} --notes "" --title "v${Script.version}"`.nothrow()
-  await $`gh release upload v${Script.version} ./dist/*.zip ./dist/*.tar.gz --clobber --repo ${process.env.GH_REPO}`
+  // Workflow handles release upload via softprops/action-gh-release and upload-assets job
 }
 
 export { binaries }
