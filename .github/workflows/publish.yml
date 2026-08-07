@@ -100,17 +100,15 @@ jobs:
           GH_REPO: ${{ needs.version.outputs.repo }}
           GH_TOKEN: ${{ steps.committer.outputs.token }}
 
+      - name: Remove Windows cross-compile artifacts (release.yml does native Windows)
+        run: rm -rf packages/openaxe/dist/openaxe-windows*
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: openaxe-cli
           path: |
             packages/openaxe/dist/openaxe-darwin*
             packages/openaxe/dist/openaxe-linux*
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: openaxe-cli-windows
-          path: packages/openaxe/dist/openaxe-windows*
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
