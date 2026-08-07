@@ -130,10 +130,18 @@ jobs:
             packages/openaxe/dist/*.tar.gz
             packages/openaxe/dist/*.zip
 
+  wait-for-builds:
+    needs:
+      - build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All build matrix jobs completed"
+
   upload-assets:
     needs:
       - release
-      - build
+      - wait-for-builds
     if: github.event_name == 'push' && !failure() && !cancelled()
     runs-on: ubuntu-latest
     steps:
