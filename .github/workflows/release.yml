@@ -97,7 +97,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
-    needs: release
+    needs: version
+    if: github.event_name == 'push'
     strategy:
       matrix:
         include:
