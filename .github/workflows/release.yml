@@ -96,35 +96,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  upload-assets:
-    needs:
-      - release
-      - build
-    if: github.event_name == 'push' && !failure() && !cancelled()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: openaxe-cli-Linux
-          path: packages/openaxe/dist
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: openaxe-cli-macOS
-          path: packages/openaxe/dist
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: openaxe-cli-Windows
-          path: packages/openaxe/dist
-
-      - name: Upload all release assets
-        run: |
-          VERSION="v${{ needs.release.outputs.version }}"
-          gh release upload "$VERSION" packages/openaxe/dist/*.tar.gz packages/openaxe/dist/*.zip --clobber --repo ${{ github.repository }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build:
     needs: release
     strategy:
@@ -158,6 +129,35 @@ jobs:
           path: |
             packages/openaxe/dist/*.tar.gz
             packages/openaxe/dist/*.zip
+
+  upload-assets:
+    needs:
+      - release
+      - build
+    if: github.event_name == 'push' && !failure() && !cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: openaxe-cli-Linux
+          path: packages/openaxe/dist
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: openaxe-cli-macOS
+          path: packages/openaxe/dist
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: openaxe-cli-Windows
+          path: packages/openaxe/dist
+
+      - name: Upload all release assets
+        run: |
+          VERSION="v${{ needs.release.outputs.version }}"
+          gh release upload "$VERSION" packages/openaxe/dist/*.tar.gz packages/openaxe/dist/*.zip --clobber --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   sign-ready:
     runs-on: ubuntu-latest
