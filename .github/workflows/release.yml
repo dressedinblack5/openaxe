@@ -126,7 +126,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-build:
+  build:
     needs: release
     strategy:
       matrix:
@@ -258,7 +258,7 @@ build:
     needs:
       - release
       - upload-assets
-    if: !failure() && !cancelled()
+    if: "!failure() && !cancelled()"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

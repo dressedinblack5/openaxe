@@ -15,7 +15,6 @@ import { validateSession } from "../tui/validate-session"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
 import { mark, report } from "@/cli/startup-timing"
 import type { TuiConfig } from "@/config/tui"
-import { HttpApiApp } from "@/server/routes/instance/httpapi/server"
 
 declare global {
   const OPENCODE_WORKER_PATH: string
