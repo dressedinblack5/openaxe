@@ -132,9 +132,9 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: openaxe-cli-${{ runner.os }}
-          path: |
-            packages/openaxe/dist/*.tar.gz
-            packages/openaxe/dist/*.zip
+          # Ship the whole dist tree (unpacked bins + package.json) so the
+          # publish job can run script/publish.ts; archives are included too.
+          path: packages/openaxe/dist
 
   wait-for-builds:
     needs:
