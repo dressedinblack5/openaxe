@@ -87,15 +87,14 @@ jobs:
           GH_REPO: ${{ github.repository }}
 
       - name: Create or update release
-        run: |
-          VERSION="v${{ steps.version.outputs.version || steps.version_dispatch.outputs.version }}"
-          if gh release view "$VERSION" --repo ${{ github.repository }} >/dev/null 2>&1; then
-            gh release edit "$VERSION" --title "$VERSION" --notes-file <(echo "${{ steps.changelog.outputs.changelog }}") --draft=false --repo ${{ github.repository }}
-          else
-            gh release create "$VERSION" --target ${{ github.sha }} --title "$VERSION" --notes-file <(echo "${{ steps.changelog.outputs.changelog }}") --repo ${{ github.repository }}
-          fi
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version || steps.version_dispatch.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   upload-assets:
     needs:
