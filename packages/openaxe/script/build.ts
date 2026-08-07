@@ -211,8 +211,6 @@ function nativeCopyDir(item: (typeof allTargets)[number]) {
   return `dist/${name}/bin`
 }
 
-  const coreEntry =  import.meta.resolve("@opentui/core")
-  const coreDir = new URL(".", coreEntry).href
 for (const item of targets) {
   const name = [
     pkg.name,
