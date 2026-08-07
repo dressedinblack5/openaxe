@@ -336,6 +336,9 @@ if (Script.release) {
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
       await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}/bin`)
+    } else if (key.includes("windows")) {
+      // `zip` is not available on windows-latest runners; PowerShell is always present.
+      await $`powershell.exe -NoProfile -Command "Compress-Archive -Path * -DestinationPath ../../${key}.zip -Force"`.cwd(`dist/${key}/bin`)
     } else {
       await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
     }
