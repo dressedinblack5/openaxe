@@ -2,7 +2,9 @@ import { dlopen, ptr } from "bun:ffi"
 import type { ReadStream } from "node:tty"
 
 const STD_INPUT_HANDLE = -10
+const STD_OUTPUT_HANDLE = -11
 const ENABLE_PROCESSED_INPUT = 0x0001
+const ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
 
 const kernel = () =>
   dlopen("kernel32.dll", {
@@ -22,6 +24,30 @@ function load(): ReturnType<typeof kernel> | undefined {
   } catch {
     return undefined
   }
+}
+
+/**
+ * Enable ANSI escape sequence processing on the console stdout handle.
+ *
+ * Windows Terminal and most modern terminals enable virtual terminal
+ * processing themselves, but the legacy conhost (plain cmd.exe / PowerShell
+ * window) requires the application to opt in via
+ * ENABLE_VIRTUAL_TERMINAL_PROCESSING or ANSI output renders as raw escape
+ * codes.
+ */
+export function win32EnableVirtualTerminalProcessing() {
+  if (process.platform !== "win32") return
+  if (!process.stdout.isTTY) return
+  const api = load()
+  if (!api) return
+
+  const handle = api.symbols.GetStdHandle(STD_OUTPUT_HANDLE)
+  const buf = new Uint32Array(1)
+  if (api.symbols.GetConsoleMode(handle, ptr(buf)) === 0) return
+
+  const mode = buf[0]
+  if ((mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING) !== 0) return
+  api.symbols.SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
 }
 
 /**

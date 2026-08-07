@@ -83,7 +83,11 @@ import { ArtifactPreview } from "./component/artifact-preview"
 import { MemoryBrowser } from "./component/memory-browser"
 import { createTuiAttention } from "./attention"
 import { dispose } from "./audio";
-import { win32DisableProcessedInput, win32FlushInputBuffer } from "./terminal-win32"
+import {
+  win32DisableProcessedInput,
+  win32EnableVirtualTerminalProcessing,
+  win32FlushInputBuffer,
+} from "./terminal-win32"
 import { destroyRenderer } from "./util/renderer"
 import { cliErrorMessage, errorFormat } from "./util/error"
 
@@ -208,6 +212,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
             destroyRenderer(renderer)
           }),
       )
+      win32EnableVirtualTerminalProcessing()
       win32DisableProcessedInput()
       const keymap = createDefaultOpenTuiKeymap(renderer)
       yield* Effect.acquireRelease(

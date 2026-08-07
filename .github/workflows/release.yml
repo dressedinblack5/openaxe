@@ -119,6 +119,10 @@ jobs:
         run: ./packages/openaxe/script/build.ts
         shell: bash
         env:
+          # bun#28327: cross-arch download extracts to cwd, live cache is on a
+          # different drive on Windows runners -> rename fails. Pin cache to the
+          # runner temp drive (same as the repo checkout).
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/bun-cache
           OPENCODE_VERSION: ${{ github.ref_name }}
           OPENCODE_RELEASE: "true"
           GH_REPO: ${{ github.repository }}
