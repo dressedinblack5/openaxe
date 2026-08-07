@@ -165,6 +165,21 @@ const targets = singleFlag
     })
   : allTargets
 
+// Filter by TARGETS env var (comma-separated target names like "windows-x64,windows-arm64")
+const targetsEnv = process.env.TARGETS
+if (targetsEnv) {
+  const targetNames = targetsEnv.split(",").map((s) => s.trim())
+  const filtered = targets.filter((t) => {
+    const name = `${t.os}-${t.arch}${t.abi === "musl" ? "-musl" : ""}${t.avx2 === false ? "-baseline" : ""}`.replace("win32", "windows")
+    return targetNames.includes(name)
+  })
+  if (filtered.length === 0) {
+    console.error(`No targets matched TARGETS="${targetsEnv}"`)
+    process.exit(1)
+  }
+  targets.splice(0, targets.length, ...filtered)
+}
+
 await $`rm -rf dist`
 
 const binaries: Record<string, string> = {}

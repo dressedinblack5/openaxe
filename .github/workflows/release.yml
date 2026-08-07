@@ -116,12 +116,13 @@ jobs:
       - uses: ./.github/actions/setup-bun
 
       - name: Build for ${{ runner.os }}
-        run: ./packages/openaxe/script/build.ts --single
+        run: ./packages/openaxe/script/build.ts
         env:
           OPENCODE_VERSION: ${{ github.ref_name }}
           OPENCODE_RELEASE: "true"
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGETS: ${{ matrix.targets }}
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
