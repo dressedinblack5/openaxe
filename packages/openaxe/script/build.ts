@@ -283,16 +283,20 @@ for (const item of targets) {
   }
 
   try {
+    const libName = nativeLibName(item.os)
+    // Resolve from hoisted node_modules (same pattern as parser.worker.js);
+    // the bun install cache path is unreliable on Windows (invalid /C:/ prefix,
+    // version-mismatched cache keys).
     const platformPkg = `@opentui/core-${platformSuffix(item)}`
-    const pkgEntry =  import.meta.resolve(platformPkg, coreDir)
-    const pkgRoot = new URL(".", pkgEntry).href
-    const src = new URL(nativeLibName(item.os), pkgRoot)
-    const dst = `${nativeCopyDir(item)}/${nativeLibName(item.os)}`
-    await $`cp ${src.pathname} ${dst}`
+    const localLib = path.resolve(dir, `node_modules/${platformPkg}/${libName}`)
+    const rootLib = path.resolve(dir, `../../node_modules/${platformPkg}/${libName}`)
+    const src = fs.realpathSync(fs.existsSync(localLib) ? localLib : rootLib)
+    const dst = `${nativeCopyDir(item)}/${libName}`
+    await $`cp ${src} ${dst}`
     // Copy alongside the repo's bin/openaxe so bun link global install
     // and dist installations both find libopentui.so via process.execPath.
     if (item.os === process.platform && item.arch === process.arch && !item.abi) {
-      await $`cp ${src.pathname} ${dir}/bin/${nativeLibName(item.os)}`
+      await $`cp ${src} ${dir}/bin/${libName}`
     }
   } catch {
     console.warn(`  warning: could not copy native lib for ${name}`)
