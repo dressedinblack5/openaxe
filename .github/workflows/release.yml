@@ -97,7 +97,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
-    needs: version
     if: github.event_name == 'push'
     strategy:
       matrix:
@@ -119,7 +118,7 @@ jobs:
       - name: Build for ${{ runner.os }}
         run: ./packages/openaxe/script/build.ts --single
         env:
-          OPENCODE_VERSION: ${{ needs.release.outputs.version }}
+          OPENCODE_VERSION: ${{ github.ref_name }}
           OPENCODE_RELEASE: "true"
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
