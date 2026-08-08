@@ -341,6 +341,7 @@ jobs:
         env:
           OPENCODE_VERSION: ${{ needs.release.outputs.version }}
           OPENCODE_RELEASE: "true"
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           AUR_KEY: ${{ secrets.AUR_KEY }}
           GITHUB_TOKEN: ${{ steps.committer.outputs.token }}
           GH_REPO: ${{ github.repository }}
