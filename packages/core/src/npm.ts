@@ -135,6 +135,7 @@ export const layer = Layer.effect(
           progress: false,
           savePrefix: "",
           ignoreScripts: true,
+          force: true,
         })
         // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- arborist.reify resolves the full dependency tree; pin its shape for the caller.
         return yield* Effect.tryPromise({
@@ -226,6 +227,7 @@ export const layer = Layer.effect(
           progress: false,
           savePrefix: "",
           ignoreScripts: true,
+          force: true,
         })
         return yield* Effect.tryPromise({
           try: async () =>
