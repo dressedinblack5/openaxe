@@ -1,12 +1,4 @@
 import { Schema } from "effect"
-import type {
-  CassetteMetadata,
-  HttpInteraction,
-  RequestSnapshot,
-  ResponseSnapshot,
-  WebSocketEvent,
-  WebSocketInteraction,
-} from "./types.js"
 
 export type {
   CassetteMetadata,
