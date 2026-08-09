@@ -181,6 +181,7 @@ if (targetsEnv) {
 }
 
 await $`rm -rf dist`
+await $`mkdir -p ${dir}/bin`
 
 const binaries: Record<string, string> = {}
 if (!skipInstall) {
