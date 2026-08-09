@@ -158,6 +158,9 @@ export const TuiCommand = cmd({
         hidden: true,
       }),
   handler: async (args) => {
+    // OPENCODE_FAST_BOOT (read at packages/tui app.tsx) skips the StartupLoading screen.
+    // Set FIRST, before any async work, so TuiStartupProvider reads it during render.
+    process.env.OPENCODE_FAST_BOOT ??= "1"
     mark("handler-start")
     if (args.replay === true) {
       UI.error("--replay is not supported; replay is enabled by default")
@@ -233,7 +236,15 @@ export const TuiCommand = cmd({
       // Also fetch plugin_origins in the same run to avoid duplicate layer init.
       const configPromise = TuiConfig.getWithPluginOrigins(next)
 
-      const file = await target()
+      // Parallelize: worker creation + Effect imports + config loading
+      const filePromise = target()
+      const effectImportsPromise = Promise.all([
+        import("effect").then((m) => ({ Effect: m.Effect, Cause: m.Cause })),
+        import("../tui/layer").then((m) => ({ run: m.run })),
+        import("@/plugin/tui/runtime").then((m) => ({ createLegacyTuiPluginHost: m.createLegacyTuiPluginHost })),
+      ])
+
+      const file = await filePromise
       try {
         process.chdir(next)
       } catch {
@@ -245,6 +256,14 @@ export const TuiCommand = cmd({
       const worker = new Worker(file)
       const client = Rpc.client<typeof rpc>(worker, { requestTimeout: 120_000 })
       mark("worker-created")
+
+      const [effectImports, { config, pluginOrigins }] = await Promise.all([
+        effectImportsPromise,
+        configPromise,
+      ])
+      const [{ Effect, Cause }, { run }, { createLegacyTuiPluginHost }] = effectImports
+      mark("deferred-imports")
+
       const reload = () => {
         client.call("reload", undefined).catch(() => {})
       }
@@ -260,7 +279,6 @@ export const TuiCommand = cmd({
       }
 
       const prompt = await input(args.prompt)
-      const { config, pluginOrigins } = await configPromise
 
       const network = resolveNetworkOptionsNoConfig(args)
       const external =
@@ -312,17 +330,7 @@ export const TuiCommand = cmd({
       try {
         await nativeLibPromise
         mark("native-lib")
-        // OPENCODE_FAST_BOOT (read at packages/tui app.tsx) skips the StartupLoading screen.
-        process.env.OPENCODE_FAST_BOOT ??= "1"
         mark("run-start")
-
-        // Defer heavy imports until actually needed for run()
-        const [{ Effect, Cause }, { run }, { createLegacyTuiPluginHost }] = await Promise.all([
-          import("effect").then((m) => ({ Effect: m.Effect, Cause: m.Cause })),
-          import("../tui/layer").then((m) => ({ run: m.run })),
-          import("@/plugin/tui/runtime").then((m) => ({ createLegacyTuiPluginHost: m.createLegacyTuiPluginHost })),
-        ])
-        mark("deferred-imports")
 
         try {
           await Effect.runPromise(
