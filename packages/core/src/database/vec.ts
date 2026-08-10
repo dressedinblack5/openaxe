@@ -1,5 +1,9 @@
+import { existsSync } from "node:fs"
+import { dirname, join } from "node:path"
 import { Effect, Option } from "effect"
 import { getLoadablePath } from "sqlite-vec"
+
+const vec0Extension = process.platform === "win32" ? "dll" : process.platform === "darwin" ? "dylib" : "so"
 
 /**
  * Path to the vec0 loadable binary (vec0.so/.dylib/.dll) for the current
@@ -8,9 +12,21 @@ import { getLoadablePath } from "sqlite-vec"
  * import.meta.resolve — no hardcoded paths. Requires SQLite >= 3.41;
  * bun:sqlite bundles 3.53.2 and node:sqlite (Node >= 22.5) ships recent
  * enough builds on supported platforms.
+ *
+ * Compiled binaries cannot resolve the platform package via import.meta.resolve;
+ * the build ships vec0 next to the executable (same pattern as libopentui), so
+ * fall back to that path when resolution fails.
  */
 export const vecLoadablePath = Effect.try({
-  try: () => getLoadablePath(),
+  try: () => {
+    try {
+      return getLoadablePath()
+    } catch (cause) {
+      const local = join(dirname(process.execPath), `vec0.${vec0Extension}`)
+      if (existsSync(local)) return local
+      throw cause
+    }
+  },
   catch: (cause) => new Error(`unable to resolve vec0 binary: ${describe(cause)}`),
 })
 
