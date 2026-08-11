@@ -244,13 +244,32 @@ function assertPayloadKeyword() {
   }
 }
 
+function isIssueCommentEvent(payload: unknown): payload is IssueCommentEvent {
+  return typeof payload === "object" && payload !== null && "issue" in payload && "comment" in payload
+}
+
+function isReviewCommentEvent(payload: unknown): payload is PullRequestReviewCommentEvent {
+  return typeof payload === "object" && payload !== null && "comment" in payload
+}
+
+function useIssueCommentPayload(): IssueCommentEvent {
+  const payload: unknown = useContext().payload
+  if (!isIssueCommentEvent(payload)) {
+    throw new Error("Unexpected payload: expected issue_comment event")
+  }
+  return payload
+}
+
 function getReviewCommentContext() {
   const context = useContext()
   if (context.eventName !== "pull_request_review_comment") {
     return null
   }
 
-  const payload = context.payload as PullRequestReviewCommentEvent
+  const payload = context.payload
+  if (!isReviewCommentEvent(payload)) {
+    return null
+  }
   return {
     file: payload.comment.path,
     diffHunk: payload.comment.diff_hunk,
@@ -343,18 +362,20 @@ function isMock() {
 }
 
 function isPullRequest() {
-  const context = useContext()
-  const payload = context.payload as IssueCommentEvent
-  return Boolean(payload.issue.pull_request)
+  const payload: unknown = useContext().payload
+  return isIssueCommentEvent(payload) && Boolean(payload.issue.pull_request)
 }
 
 function useContext() {
-  return isMock() ? (JSON.parse(useEnvMock().mockEvent) as GitHubContext) : github.context
+  if (isMock()) {
+    const parsed: GitHubContext = JSON.parse(useEnvMock().mockEvent)
+    return parsed
+  }
+  return github.context
 }
 
 function useIssueId() {
-  const payload = useContext().payload as IssueCommentEvent
-  return payload.issue.number
+  return useIssueCommentPayload().issue.number
 }
 
 function useShareUrl() {
@@ -575,8 +596,7 @@ async function summarize(response: string) {
     if (isScheduleEvent()) {
       return "Scheduled task changes"
     }
-    const payload = useContext().payload as IssueCommentEvent
-    return `Fix issue: ${payload.issue.title}`
+    return `Fix issue: ${useIssueCommentPayload().issue.title}`
   }
 }
 
@@ -880,7 +900,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
 }
 
 function buildPromptDataForIssue(issue: GitHubIssue) {
-  const payload = useContext().payload as IssueCommentEvent
+  const payload = useIssueCommentPayload()
 
   const comments = (issue.comments?.nodes || [])
     .filter((c) => {
@@ -1007,7 +1027,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
 }
 
 function buildPromptDataForPR(pr: GitHubPullRequest) {
-  const payload = useContext().payload as IssueCommentEvent
+  const payload = useIssueCommentPayload()
 
   const comments = (pr.comments?.nodes || [])
     .filter((c) => {
