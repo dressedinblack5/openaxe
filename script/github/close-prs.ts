@@ -3,7 +3,7 @@
 import { parseArgs } from "node:util"
 
 const defaultRepo = "dressedinblack5/openaxe"
-const defaultAgeMonths = 1
+const defaultAgeMonths = 3
 const defaultThreshold = 2
 const defaultSleepMs = 20_000
 const defaultPrintLimit = 50
@@ -32,8 +32,8 @@ Usage: bun script/github/close-prs.ts [options]
 Dry-run is the default. The script only comments and closes PRs when --execute is passed.
 
 Criteria:
-  - PRs created within the last month are untouched
-  - PRs older than one month are closed when they have fewer than 2 positive reactions
+  - PRs created within the last 3 months are untouched
+  - PRs older than 3 months are closed when they have fewer than 2 positive reactions
   - Positive reactions are THUMBS_UP, HEART, HOORAY, and ROCKET reactions on the PR
 
 Options:
