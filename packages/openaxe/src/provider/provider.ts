@@ -1623,7 +1623,7 @@ export const layer = Layer.effect(
 
           const options = yield* Effect.promise(() =>
             plugin.auth!.loader!(
-              () => bridge.promise(auth.get(providerID).pipe(Effect.orDie)) as any,
+              () => bridge.promise(auth.get(providerID).pipe(Effect.orDie)) as Promise<Auth.Info>,
               toPublicInfo(database[plugin.auth!.provider]),
             ),
           )

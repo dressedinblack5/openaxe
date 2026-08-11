@@ -25,7 +25,7 @@ export const AuthRemoveResponse = Schema.Struct({
   success: Schema.Literal(true),
 })
 export class UnsupportedOAuthError extends Schema.ErrorClass<UnsupportedOAuthError>("McpUnsupportedOAuthError")(
-  { error: Schema.String } as any,
+  Schema.Struct({ error: Schema.String }),
   { httpApiStatus: 400 },
 ) {}
 

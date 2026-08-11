@@ -258,7 +258,7 @@ export const KanbanSwarmTool = define(
               const verification = state === "completed" ? { result: text, timestamp: Date.now() } : { error: text, timestamp: Date.now() }
               yield* kanban.updateCard(card.id, {
                 status: state === "completed" ? "done" : "blocked",
-                verification: verification as any,
+                verification,
               })
             })
 
@@ -531,7 +531,7 @@ export const KanbanSwarmTool = define(
               const verification = state === "completed" ? { result: text, timestamp: Date.now() } : { error: text, timestamp: Date.now() }
               yield* kanban.updateCard(card.id, {
                 status: state === "completed" ? "done" : "blocked",
-                verification: verification as any,
+                verification,
               })
             })
 

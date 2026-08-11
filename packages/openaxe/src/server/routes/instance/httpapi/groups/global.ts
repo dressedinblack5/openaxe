@@ -59,7 +59,7 @@ const GlobalUpgradeResult = Schema.Union([
   }),
   Schema.Struct({
     success: Schema.Literal(false),
-    error: Schema.String as any,
+    error: Schema.String,
   }),
 ])
 

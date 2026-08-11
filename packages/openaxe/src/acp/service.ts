@@ -678,7 +678,7 @@ function replayMessages(subscription: ACPEvent.Subscription | undefined, message
   if (!subscription) return Effect.void
   return Effect.promise(async () => {
     for (const message of messages) {
-      await subscription.replayMessage(message).catch(() => {})
+      await subscription.replayMessage(message).catch((err) => console.error("[acp] message replay failed", err))
     }
   })
 }

@@ -1,4 +1,4 @@
-import type { ModelMessage, ToolResultPart } from "ai"
+import type { AssistantContent, ModelMessage, ToolContent, ToolResultPart } from "ai"
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import type { Model as ProviderModel } from "./provider"
 import type { Model as ModelsDevModel } from "@opencode-ai/core/models-dev"
@@ -157,7 +157,7 @@ const filterEmptyMessages = (msgs: ModelMessage[], provider: "anthropic" | "bedr
         return true
       })
       if (filtered.length === 0) return undefined
-      return { ...msg, content: filtered as any } as ModelMessage
+      return { ...msg, content: filtered as ModelMessage["content"] } as ModelMessage
     })
     .filter((msg): msg is ModelMessage => msg !== undefined && msg.content !== "")
 }
@@ -171,7 +171,7 @@ const scrubClaudeToolCallIds = (msgs: ModelMessage[]) => {
           return { ...part, toolCallId: scrub(part.toolCallId) }
         }
         return part
-      }) as any
+      }) as AssistantContent | ToolContent
     }
   })
   return msgs
