@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Removed
+- **`openaxe memory` CLI command removed** — AXE.md file sync is deleted. Project memory now lives in WorkspaceMemory (project-scoped SQLite with semantic search), injected into the LLM context via the `core/workspace-memory` system-context builtin. Breaking change for users of the AXE.md workflow.
+
 ## [1.2.6] - 2026-07-16
 
 ### Added
