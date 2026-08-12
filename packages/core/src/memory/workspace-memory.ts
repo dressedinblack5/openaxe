@@ -1,6 +1,6 @@
 export * as WorkspaceMemory from "./workspace-memory"
 
-import { and, asc, eq, inArray, sql } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
 import { Context, Effect, Layer, Option, Result } from "effect"
 import { Database } from "../database/database"
 import { Embedding } from "../embedding/embedding"
@@ -29,6 +29,7 @@ export interface Interface {
   readonly delete: (key: string) => Effect.Effect<void>
   readonly search: (query: string, k: number) => Effect.Effect<ReadonlyArray<SearchHit>>
   readonly list: () => Effect.Effect<ReadonlyArray<string>>
+  readonly listEntries: (limit: number) => Effect.Effect<ReadonlyArray<{ readonly key: string; readonly value: string; readonly updatedAt: number }>>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/v2/WorkspaceMemory") {}
@@ -166,6 +167,24 @@ export const layer = Layer.effect(
         return rows.map((row) => row.key)
       })
 
+    const listEntries = (limit: number): Effect.Effect<ReadonlyArray<{ key: string; value: string; updatedAt: number }>> =>
+      Effect.gen(function* () {
+        const pid = yield* projectID()
+        const rows = yield* db
+          .select({
+            key: WorkspaceMemoryTable.key,
+            value: WorkspaceMemoryTable.value,
+            updatedAt: WorkspaceMemoryTable.updated_at,
+          })
+          .from(WorkspaceMemoryTable)
+          .where(eq(WorkspaceMemoryTable.project_id, pid))
+          .orderBy(desc(WorkspaceMemoryTable.updated_at))
+          .limit(Math.min(limit, 100))
+          .all()
+          .pipe(Effect.orDie)
+        return rows.map((row) => ({ key: row.key, value: String(row.value), updatedAt: row.updatedAt }))
+      })
+
     const search = (query: string, k: number): Effect.Effect<ReadonlyArray<SearchHit>> =>
       Effect.gen(function* () {
         const pid = yield* projectID()
@@ -199,7 +218,7 @@ export const layer = Layer.effect(
         })
       })
 
-    return Service.of({ get, set, delete: remove, search, list })
+    return Service.of({ get, set, delete: remove, search, list, listEntries })
   }),
 )
 

@@ -2,7 +2,7 @@ export * as SystemContextBuiltIns from "./builtins"
 
 import { DateTime, Effect, Layer, Schema } from "effect"
 import { Location } from "../location"
-import { Memory } from "../memory"
+import { WorkspaceMemory } from "../memory/workspace-memory"
 import { SystemContext } from "./index"
 import { ContextPrepper } from "../context-prepper"
 import { InstructionContext } from "../instruction-context"
@@ -36,15 +36,15 @@ const builtIns = Layer.effectDiscard(
         baseline: (date) => `Today's date: ${date}`,
         update: (_previous, date) => `Today's date is now: ${date}`,
       }),
-SystemContext.make({
-        key: SystemContext.Key.make("core/memory"),
+      SystemContext.make({
+        key: SystemContext.Key.make("core/workspace-memory"),
         codec: Schema.toCodecJson(Schema.String),
         load: Effect.gen(function* () {
-          const memory = yield* Memory.Service
-          const entries = yield* memory.list(undefined, "project", "axe-md")
+          const memory = yield* WorkspaceMemory.Service
+          const entries = yield* memory.listEntries(20)
           if (entries.length === 0) return "No project memory configured."
-          return entries.map((e) => `${e.key}:\n${String(e.value)}`).join("\n\n")
-        }).pipe(Effect.provide(Memory.defaultLayer)),
+          return entries.map((e) => `<memory_entry>\n${e.key}:\n${e.value}\n</memory_entry>`).join("\n\n")
+        }).pipe(Effect.provide(WorkspaceMemory.defaultLayer)),
         baseline: (text) => ["<memory>", text, "</memory>"].join("\n"),
         update: (_prev, text) => ["<memory>", text, "</memory>"].join("\n"),
       }),

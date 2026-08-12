@@ -106,6 +106,48 @@ describe("WorkspaceMemory", () => {
     expect(keys).toEqual(["apple", "mango", "zebra"])
   })
 
+  test("listEntries returns entries ordered by updated_at desc with values", async () => {
+    const dir = await tmpdir()
+    const file = path.join(dir.path, "workspace-memory.sqlite")
+    for (const [key, value] of [
+      ["older", "old value"],
+      ["newer", "new value"],
+      ["newest", "newest value"],
+    ]) {
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const service = yield* WorkspaceMemory.Service
+          yield* service.set(key, value)
+        }).pipe(Effect.provide(makeLayer(file))),
+      )
+      await Bun.sleep(2)
+    }
+    const entries = await Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* WorkspaceMemory.Service
+        return yield* service.listEntries(10)
+      }).pipe(Effect.provide(makeLayer(file))),
+    )
+    expect(entries.map((e) => e.key)).toEqual(["newest", "newer", "older"])
+    expect(entries[0]?.value).toBe("newest value")
+    expect(entries.every((e, i) => i === 0 || entries[i - 1].updatedAt >= e.updatedAt)).toBe(true)
+    await dir[Symbol.asyncDispose]()
+  })
+
+  test("listEntries respects the limit", async () => {
+    const entries = await run(
+      Effect.gen(function* () {
+        const service = yield* WorkspaceMemory.Service
+        yield* service.set("a", "1")
+        yield* service.set("b", "2")
+        yield* service.set("c", "3")
+        return yield* service.listEntries(2)
+      }),
+    )
+    expect(entries).toHaveLength(2)
+    expect(entries.map((e) => e.key).sort()).toEqual(["b", "c"])
+  })
+
   test("set with an existing key overwrites the value", async () => {
     const result = await run(
       Effect.gen(function* () {

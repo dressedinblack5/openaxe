@@ -4,7 +4,6 @@ import { Memory } from "./memory"
 import { WorkspaceMemory } from "./memory/workspace-memory"
 import { Kanban } from "./kanban/kanban"
 import { FTSIndex } from "./database/fts"
-import { AxeSync } from "./axe-sync"
 import { Policy } from "./policy"
 import { Config } from "./config"
 import { PluginV2 } from "./plugin"
@@ -93,7 +92,7 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
       WorkspaceMemory.defaultLayer,
       Kanban.defaultLayer,
       FTSIndex.defaultLayer,
-    ).pipe(Layer.provideMerge(AxeSync.defaultLayer))
+    )
     const image = Image.layer.pipe(Layer.provide(services))
     const mutation = FileMutation.locationLayer.pipe(Layer.provide(services))
     const skillGuidance = SkillGuidance.locationLayer.pipe(Layer.provide(services))
@@ -120,25 +119,6 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
     // have a location
     const projectCopyRefresh = Layer.effectDiscard(ProjectCopy.refreshAfterBoot).pipe(Layer.provide(services))
 
-    const axeSync = Layer.effectDiscard(
-      Effect.gen(function* () {
-        const sync = yield* AxeSync.Service
-        const location = yield* Location.Service
-        const memory = yield* Memory.Service
-
-        // Load AXE.md into memory on boot
-        yield* sync.load(location.project.directory)
-
-        // Register real-time sync: after every memory.set(), flush to AXE.md
-        yield* memory.onSet((_key, _value, _kind, _scope, _source) =>
-          sync.save(location.project.directory),
-        )
-        yield* memory.onRemove((_key) =>
-          sync.save(location.project.directory),
-        )
-      }),
-    ).pipe(Layer.provide(services))
-
     return Layer.mergeAll(
       boot,
       services,
@@ -152,7 +132,6 @@ export class LocationServiceMap extends LayerMap.Service<LocationServiceMap>()("
       builtInTools,
       referenceGuidance,
       projectCopyRefresh,
-      axeSync,
     ).pipe(Layer.fresh)
   },
   idleTimeToLive: "60 minutes",

@@ -11,7 +11,6 @@ src/effect/
 ├── app-core-layer.ts     — App core layer composition
 ├── app-layer.ts          — App layer composition
 ├── app-runtime.ts        — AppRuntime service
-├── axe-sync-disposer.ts  — AXE sync disposer
 ├── bootstrap-runtime.ts  — Bootstrap runtime
 ├── bridge.ts             — EffectBridge (native/external callbacks)
 ├── config-service.ts     — Config-backed service generator

@@ -21,7 +21,6 @@ cli/cmd/
 ├── github.ts    — GitHub agent operations (issue, PR, repo)
 ├── import.ts    — Session data import
 ├── mcp.ts       — MCP server configuration (add, list, remove, test)
-├── memory.ts    — AXE.md memory management (list, set, get, remove)
 ├── models.ts    — Available model listing
 ├── plugin.ts    — Plugin installation and management
 ├── pr.ts        — Fetch and checkout a GitHub PR
