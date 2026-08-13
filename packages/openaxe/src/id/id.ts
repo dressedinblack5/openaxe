@@ -57,7 +57,15 @@ export function create(prefix: string, direction: "descending" | "ascending", ti
   }
   counter++
 
-  let now = BigInt(currentTimestamp) * BigInt(0x1000) + BigInt(counter)
+  // 4-bit counter overflows at 15 IDs/ms; roll lastTimestamp so the next call resets
+  // counter against a fresh millisecond, keeping IDs monotonic and unique.
+  if (counter > 0xf) {
+    lastTimestamp = currentTimestamp + 1
+    counter = 0
+  }
+
+  // 44-bit ms timestamp << 4 | counter fills the 48-bit (12 hex char) time field
+  let now = (BigInt(currentTimestamp) << 4n) | BigInt(counter)
 
   now = direction === "descending" ? ~now : now
 
@@ -74,7 +82,7 @@ export function timestamp(id: string): number {
   const prefix = id.split("_")[0]
   const hex = id.slice(prefix.length + 1, prefix.length + 13)
   const encoded = BigInt("0x" + hex)
-  return Number(encoded / BigInt(0x1000))
+  return Number(encoded >> 4n)
 }
 
 export * as Identifier from "./id"
