@@ -57,7 +57,7 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const review = Effect.fn("LearningReview.review")(function* (input: ReviewInput) {
       const config = yield* Effect.serviceOption(Config.Service)
-      const cfg = Option.isSome(config) ? yield* config.value.get() : ({ experimental: undefined } as any)
+      const cfg = Option.isSome(config) ? yield* config.value.get() : { experimental: undefined }
       const learning = cfg.experimental?.learning
       if (!learning?.review) return
 
@@ -70,13 +70,13 @@ export const layer = Layer.effect(
 
       const model = yield* provider.getModel(ProviderV2.ID.make(input.providerID), ModelV2.ID.make(input.modelID)).pipe(
         Effect.tapError(() => Effect.logWarning("learning: model not found", { providerID: input.providerID, modelID: input.modelID })),
-        Effect.catch(() => Effect.succeed(undefined as any)),
+        Effect.catch(() => Effect.succeed(undefined)),
       )
       if (!model) return
 
       const info = yield* provider.getProvider(ProviderV2.ID.make(input.providerID)).pipe(
         Effect.tapError(() => Effect.logWarning("learning: provider not found", { providerID: input.providerID })),
-        Effect.catch(() => Effect.succeed(undefined as any)),
+        Effect.catch(() => Effect.succeed(undefined)),
       )
       if (!info) return
 
@@ -119,12 +119,12 @@ If nothing worth learning, return empty arrays.`
           headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
           body,
         }),
-      ).pipe(Effect.catch(() => Effect.succeed(undefined as any)))
+      ).pipe(Effect.catch(() => Effect.succeed(undefined)))
 
       if (!response) return
 
       const data = yield* Effect.tryPromise<any>(() => response.json()).pipe(
-        Effect.catch(() => Effect.succeed(undefined as any)),
+        Effect.catch(() => Effect.succeed(undefined)),
       )
       if (!data) return
 

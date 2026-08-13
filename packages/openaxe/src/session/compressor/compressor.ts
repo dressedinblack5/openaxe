@@ -48,7 +48,7 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const compress = Effect.fn("Compressor.compress")(function* (input: CompressInput) {
       const config = yield* Effect.serviceOption(Config.Service)
-      const cfg = Option.isSome(config) ? yield* config.value.get() : ({ experimental: undefined } as any)
+      const cfg = Option.isSome(config) ? yield* config.value.get() : { experimental: undefined }
       if (!cfg.experimental?.compressor?.enabled) return emptyResult
 
       const providerOpt = yield* Effect.serviceOption(Provider.Service)
@@ -60,13 +60,13 @@ export const layer = Layer.effect(
 
       const model = yield* provider.getModel(ProviderV2.ID.make(input.providerID), ModelV2.ID.make(input.modelID)).pipe(
         Effect.tapError(() => Effect.logWarning("compressor: model not found", { providerID: input.providerID, modelID: input.modelID })),
-        Effect.catch(() => Effect.succeed(undefined as any)),
+        Effect.catch(() => Effect.succeed(undefined)),
       )
       if (!model) return emptyResult
 
       const info = yield* provider.getProvider(ProviderV2.ID.make(input.providerID)).pipe(
         Effect.tapError(() => Effect.logWarning("compressor: provider not found", { providerID: input.providerID })),
-        Effect.catch(() => Effect.succeed(undefined as any)),
+        Effect.catch(() => Effect.succeed(undefined)),
       )
       if (!info) return emptyResult
 
@@ -108,12 +108,12 @@ Output JSON:
           headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
           body,
         }),
-      ).pipe(Effect.catch(() => Effect.succeed(undefined as any)))
+      ).pipe(Effect.catch(() => Effect.succeed(undefined)))
 
       if (!response) return emptyResult
 
       const data = yield* Effect.tryPromise<any>(() => response.json()).pipe(
-        Effect.catch(() => Effect.succeed(undefined as any)),
+        Effect.catch(() => Effect.succeed(undefined)),
       )
       if (!data) return emptyResult
 

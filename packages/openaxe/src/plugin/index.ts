@@ -180,7 +180,7 @@ export const layer = Layer.effect(
         // Notify internal plugins of current config eagerly
         for (const hook of hooks) {
           yield* Effect.tryPromise({
-            try: () => Promise.resolve((hook as any).config?.(cfg)),
+            try: () => Promise.resolve(hook.config?.(cfg as Record<string, unknown>)),
             catch: errorMessage,
           }).pipe(
             Effect.tapError((error) => Effect.logError("plugin config hook failed", { error })),
@@ -281,7 +281,7 @@ export const layer = Layer.effect(
             // Notify all plugins (internal + newly loaded external) of current config
             for (const hook of hooks) {
               yield* Effect.tryPromise({
-                try: () => Promise.resolve((hook as any).config?.(cfg)),
+                try: () => Promise.resolve(hook.config?.(cfg as Record<string, unknown>)),
                 catch: errorMessage,
               }).pipe(
                 Effect.tapError((error) => Effect.logError("plugin config hook failed", { error })),
@@ -293,7 +293,7 @@ export const layer = Layer.effect(
             hookMap.clear()
             for (const hook of hooks) {
               for (const key in hook) {
-                const fn = (hook as any)[key]
+                const fn = (hook as Record<string, unknown>)[key]
                 if (typeof fn !== "function") continue
                 let list = hookMap.get(key)
                 if (!list) { list = []; hookMap.set(key, list) }
