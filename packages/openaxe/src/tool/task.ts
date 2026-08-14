@@ -9,7 +9,7 @@ import { Session } from "@/session/session"
 import { SessionID, MessageID } from "../session/schema"
 import { MessageV2 } from "../session/message-v2"
 import { Agent } from "../agent/agent"
-import { deriveSubagentSessionPermission } from "../agent/subagent-permissions"
+import { ancestorDepth, deriveSubagentSessionPermission } from "../agent/subagent-permissions"
 import type { SessionPrompt } from "../session/prompt"
 import { Config } from "@/config/config"
 import { parseModel } from "@/provider/provider"
@@ -122,6 +122,17 @@ export const TaskTool = define(
         ? yield* sessions.get(SessionID.make(params.task_id)).pipe(Effect.catchCause(() => Effect.void))
         : undefined
       const parent = yield* sessions.get(ctx.sessionID)
+      const depthLimit = cfg.experimental?.subagent_depth_limit
+      if (depthLimit !== undefined) {
+        const depth = yield* ancestorDepth(sessions.get, parent)
+        if (depth >= depthLimit) {
+          return yield* Effect.fail(
+            new Error(
+              `Subagent depth limit reached (${depthLimit}). Increase "experimental.subagent_depth_limit" to allow nested subagents.`,
+            ),
+          )
+        }
+      }
       const childPermission = deriveSubagentSessionPermission({
         parentSessionPermission: parent.permission ?? [],
         subagent: next,

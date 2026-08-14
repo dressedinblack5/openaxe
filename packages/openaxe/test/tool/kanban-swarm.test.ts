@@ -1,10 +1,11 @@
 import { afterEach, describe, expect } from "bun:test"
 import path from "path"
-import { Effect, Layer } from "effect"
+import { Cause, Effect, Exit, Layer } from "effect"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { ToolRegistry } from "@/tool/registry"
 import { Tool } from "@/tool/tool"
 import { Kanban } from "@opencode-ai/core/kanban/kanban"
+import { SessionProjector } from "@opencode-ai/core/session/projector"
 import { disposeAllInstances } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 import { TestConfig } from "../fixture/config"
@@ -67,7 +68,7 @@ const mockSessionLayer = Layer.mock(Session.Service, {
     } as any),
 }) as any
 
-const root = LayerNode.group([ToolRegistry.node, Agent.node, SessionPrompt.node, Session.node, BackgroundJob.node, Kanban.node, Database.node])
+const root = LayerNode.group([ToolRegistry.node, Agent.node, SessionPrompt.node, Session.node, BackgroundJob.node, Kanban.node, Database.node, SessionProjector.node])
 const replacements = [
   LayerNode.replace(Config.node, configLayer),
   LayerNode.replace(RuntimeFlags.node, RuntimeFlags.layer()),
@@ -75,6 +76,23 @@ const replacements = [
 ]
 
 const it = testEffect(LayerNode.buildLayer(root, { replacements }))
+
+// Real Session service (no mock) so the parentID chain is walkable; config
+// pins the depth limit the enforcement test exercises.
+const itDepth = testEffect(
+  LayerNode.buildLayer(root, {
+    replacements: [
+      LayerNode.replace(
+        Config.node,
+        TestConfig.layer({
+          get: () => Effect.succeed({ experimental: { subagent_depth_limit: 1 } }),
+          directories: () => InstanceState.directory.pipe(Effect.map((dir) => [path.join(dir, ".openaxe")])),
+        }),
+      ),
+      LayerNode.replace(RuntimeFlags.node, RuntimeFlags.layer()),
+    ],
+  }),
+)
 
 afterEach(async () => {
   await disposeAllInstances()
@@ -242,5 +260,46 @@ expect(completeResult.output).toContain("Verify worker output")
       expect(updatedCard!.verification).toEqual({ result: "Verification passed", timestamp: expect.any(Number) })
       expect(updatedCard!.parentId).toBe(workerCard.id)
     }),
+  )
+
+  itDepth.instance(
+    "create_worker fails when the session is at the subagent_depth_limit",
+    () =>
+      Effect.gen(function* () {
+        const sessions = yield* Session.Service
+        const registry = yield* ToolRegistry.Service
+        const kanbanSwarm = (yield* registry.all()).find((tool) => tool.id === "kanban-swarm")
+        if (!kanbanSwarm) throw new Error("kanban-swarm tool not found")
+
+        const chat = yield* sessions.create({ title: "root" })
+        const child = yield* sessions.create({ parentID: chat.id, title: "child" })
+
+        const exit = yield* kanbanSwarm
+          .execute(
+            {
+              operation: "create_worker",
+              boardId: "board-1",
+              title: "worker",
+              prompt: "work",
+              subagent_type: "explore",
+            },
+            {
+              sessionID: child.id,
+              messageID: MessageID.make("msg_kanban_swarm_depth"),
+              agent: "build",
+              abort: new AbortController().signal,
+              messages: [],
+              metadata: () => Effect.void,
+              ask: () => Effect.void,
+            },
+          )
+          .pipe(Effect.exit)
+
+        expect(Exit.isFailure(exit)).toBe(true)
+        if (Exit.isFailure(exit)) {
+          expect(String(Cause.squash(exit.cause))).toContain("Subagent depth limit reached (1)")
+        }
+        expect(yield* sessions.children(chat.id)).toHaveLength(1)
+      }),
   )
 })

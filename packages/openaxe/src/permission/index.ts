@@ -86,6 +86,23 @@ export const layer = Layer.effect(
 
       if (!needsAsk) return
 
+      // Dedupe identical pending requests so the user is prompted once per permission/pattern/session.
+      const identical = Array.from(pending.values()).find(
+        (item) =>
+          item.info.sessionID === request.sessionID &&
+          item.info.permission === request.permission &&
+          item.info.patterns.length === request.patterns.length &&
+          item.info.patterns.every((pattern, i) => pattern === request.patterns[i]),
+      )
+      if (identical) {
+        return yield* Effect.ensuring(
+          Deferred.await(identical.deferred),
+          Effect.sync(() => {
+            pending.delete(identical.info.id)
+          }),
+        )
+      }
+
       const pluginOption = yield* Effect.serviceOption(Plugin.Service)
       if (Option.isSome(pluginOption)) {
         const sdkPermission: SDKPermission = {

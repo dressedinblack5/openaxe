@@ -7,7 +7,7 @@ import { SessionID, MessageID } from "@/session/schema"
 import { SessionPrompt } from "@/session/prompt"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Agent } from "@/agent/agent"
-import { deriveSubagentSessionPermission } from "@/agent/subagent-permissions"
+import { ancestorDepth, deriveSubagentSessionPermission } from "@/agent/subagent-permissions"
 import { Config } from "@/config/config"
 import { parseModel } from "@/provider/provider"
 import { EffectBridge } from "@/effect/bridge"
@@ -117,6 +117,17 @@ export const KanbanSwarmTool = define(
           }
 
           const parentSession = yield* sessions.get(ctx.sessionID)
+          const depthLimit = cfg.experimental?.subagent_depth_limit
+          if (depthLimit !== undefined) {
+            const depth = yield* ancestorDepth(sessions.get, parentSession)
+            if (depth >= depthLimit) {
+              return yield* Effect.fail(
+                new Error(
+                  `Subagent depth limit reached (${depthLimit}). Increase "experimental.subagent_depth_limit" to allow nested subagents.`,
+                ),
+              )
+            }
+          }
           const childPermission = deriveSubagentSessionPermission({
             parentSessionPermission: parentSession.permission ?? [],
             subagent: next,
@@ -389,6 +400,17 @@ export const KanbanSwarmTool = define(
             }
 
             const parentSession = yield* sessions.get(ctx.sessionID)
+            const depthLimit = cfg.experimental?.subagent_depth_limit
+            if (depthLimit !== undefined) {
+              const depth = yield* ancestorDepth(sessions.get, parentSession)
+              if (depth >= depthLimit) {
+                return yield* Effect.fail(
+                  new Error(
+                    `Subagent depth limit reached (${depthLimit}). Increase "experimental.subagent_depth_limit" to allow nested subagents.`,
+                  ),
+                )
+              }
+            }
             const childPermission = deriveSubagentSessionPermission({
               parentSessionPermission: parentSession.permission ?? [],
               subagent: next,

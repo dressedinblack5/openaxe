@@ -157,3 +157,65 @@ it.effect("subagent inherits parent session deny rules as hard runtime ceilings"
     expect(Permission.evaluate("bash", "git status", effective).action).toBe("deny")
   }),
 )
+
+it.effect("subagent inherits parent session allow rules", () =>
+  Effect.sync(() => {
+    const executor = testAgent({
+      name: "executor",
+      mode: "subagent",
+      permission: {},
+    })
+    const effective = Permission.merge(
+      executor.permission,
+      deriveSubagentSessionPermission({
+        parentSessionPermission: Permission.fromConfig({ edit: "allow" }),
+        subagent: executor,
+      }),
+    )
+
+    expect(Permission.evaluate("edit", "/some/file.ts", effective).action).toBe("allow")
+    expect(Permission.disabled(["edit", "write", "apply_patch"], effective)).toEqual(new Set())
+  }),
+)
+
+it.effect("subagent inherits parent session external_directory rules", () =>
+  Effect.sync(() => {
+    const executor = testAgent({
+      name: "executor",
+      mode: "subagent",
+      permission: {},
+    })
+    const effective = Permission.merge(
+      executor.permission,
+      deriveSubagentSessionPermission({
+        parentSessionPermission: [
+          { permission: "external_directory", pattern: "/data/*", action: "allow" },
+        ],
+        subagent: executor,
+      }),
+    )
+
+    expect(Permission.evaluate("external_directory", "/data/repo", effective).action).toBe("allow")
+    expect(Permission.evaluate("external_directory", "/other/repo", effective).action).toBe("ask")
+  }),
+)
+
+it.effect("inherited parent allows cannot lift default todowrite/task denies", () =>
+  Effect.sync(() => {
+    const executor = testAgent({
+      name: "executor",
+      mode: "subagent",
+      permission: {},
+    })
+    const effective = Permission.merge(
+      executor.permission,
+      deriveSubagentSessionPermission({
+        parentSessionPermission: Permission.fromConfig({ task: "allow", todowrite: "allow" }),
+        subagent: executor,
+      }),
+    )
+
+    expect(Permission.evaluate("task", "*", effective).action).toBe("deny")
+    expect(Permission.evaluate("todowrite", "*", effective).action).toBe("deny")
+  }),
+)
