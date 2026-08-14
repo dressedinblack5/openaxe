@@ -187,6 +187,9 @@ export const Info = Schema.Struct({
           review: Schema.optional(Schema.Boolean).annotate({
             description: "Enable post-turn learning review — fork a background LLM eval to auto-update skills and observations",
           }),
+          provider: Schema.optional(Schema.String).annotate({
+            description: "Optional separate provider for learning reviews (defaults to the agent's provider)",
+          }),
           model: Schema.optional(Schema.String).annotate({
             description: "Optional separate model for learning reviews (defaults to agent model)",
           }),
