@@ -87,6 +87,7 @@ export const SessionPaths = {
   update: `${root}/:sessionID`,
   fork: `${root}/:sessionID/fork`,
   abort: `${root}/:sessionID/abort`,
+  resume: `${root}/:sessionID/resume`,
   share: `${root}/:sessionID/share`,
   init: `${root}/:sessionID/init`,
   summarize: `${root}/:sessionID/summarize`,
@@ -258,6 +259,19 @@ export const SessionApi = HttpApi.make("session")
             identifier: "session.abort",
             summary: "Abort session",
             description: "Abort an active session and stop any ongoing AI processing or command execution.",
+          }),
+        ),
+        HttpApiEndpoint.post("resume", SessionPaths.resume, {
+          params: { sessionID: SessionID },
+          query: WorkspaceRoutingQuery,
+          success: described(Schema.Boolean, "Resumed pending work"),
+          error: errors(HttpApiError.BadRequest, ApiNotFoundError),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "session.resume",
+            summary: "Resume pending work",
+            description:
+              "Continue the interrupted pending work in a session. Returns false when the session has no pending work to resume.",
           }),
         ),
         HttpApiEndpoint.post("init", SessionPaths.init, {

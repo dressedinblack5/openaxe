@@ -403,7 +403,11 @@ export const RunCommand = effectCmd({
       message = resolveRunInput(message, piped) ?? ""
       const initialInput = resolveRunInput(rawMessage, piped)
 
-      if (message.trim().length === 0 && !args.command && !interactive) {
+      // An empty message is allowed when resuming: the server resumes pending
+      // interrupted work, otherwise the requirement below still applies.
+      const resuming = (args.continue || args.session) && !args.fork
+
+      if (message.trim().length === 0 && !args.command && !interactive && !resuming) {
         UI.error("You must provide a message or a command")
         process.exit(1)
       }
@@ -838,6 +842,22 @@ export const RunCommand = effectCmd({
               return
             }
             await finish()
+            return
+          }
+
+          if (resuming && message.trim().length === 0) {
+            const resumed = await client.session.resume({ sessionID })
+            if (resumed.error) {
+              if (!emit("error", { error: resumed.error })) UI.error(formatRunError(resumed.error))
+              process.exit(1)
+              return
+            }
+            if (resumed.data) {
+              await finish()
+              return
+            }
+            UI.error("You must provide a message or a command")
+            process.exit(1)
             return
           }
 
