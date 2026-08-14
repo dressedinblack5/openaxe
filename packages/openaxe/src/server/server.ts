@@ -8,6 +8,7 @@ import { HttpApiApp } from "./routes/instance/httpapi/server"
 import { disposeMiddleware } from "./routes/instance/httpapi/lifecycle"
 import { WebSocketTracker } from "./routes/instance/httpapi/websocket-tracker"
 import { PublicApi } from "./routes/instance/httpapi/public"
+import { mark } from "@/cli/startup-timing"
 import type { CorsOptions } from "@opencode-ai/server/cors"
 import { lazy } from "@/util/lazy"
 ;(globalThis as { AI_SDK_LOG_WARNINGS: boolean }).AI_SDK_LOG_WARNINGS = false
@@ -49,6 +50,7 @@ class ListenerServerService extends Context.Service<ListenerServerService, Liste
 ) {}
 
 export const Default = lazy(() => {
+  mark("server-layer-build-start")
   const handler = HttpApiApp.webHandler().handler
   const app: ServerApp = {
     fetch: (request: Request) => handler(request, HttpApiApp.context),
@@ -56,6 +58,7 @@ export const Default = lazy(() => {
       return app.fetch(input instanceof Request ? input : new Request(new URL(input, "http://localhost"), init))
     },
   }
+  mark("server-layer-build-done")
   return { app }
 })
 

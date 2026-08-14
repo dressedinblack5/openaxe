@@ -4,6 +4,12 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Added
+- **Separate provider/model for learning reviews** — `experimental.learning.provider` config lets the post-turn learning review run on a different provider than the agent's own (original provider/model still used as fallback). Reviews now go through the AI SDK (`generateText`) instead of raw `chat/completions` fetching.
+
+### Performance
+- **TUI startup cut ~48% to first data** — pre-start the server module so its eval overlaps the worker boot, pre-warm the shared instance boot before the TUI sync's first requests, and flag the sync `complete` after the blocking batch so the model dialog unlocks before the slow tail (sessions/LSP/MCP/VCS) streams in. Measured with `OPENAXE_STARTUP_TIMING=1` on an idle machine: sync-blocking-done 16846ms → 8810ms, first content 8974ms → 6447ms, TTF 7430ms → ~5800ms.
+
 ### Removed
 - **`openaxe memory` CLI command removed** — AXE.md file sync is deleted. Project memory now lives in WorkspaceMemory (project-scoped SQLite with semantic search), injected into the LLM context via the `core/workspace-memory` system-context builtin. Breaking change for users of the AXE.md workflow.
 

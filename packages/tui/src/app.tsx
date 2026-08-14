@@ -6,6 +6,7 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { ClipboardProvider, useClipboard } from "./context/clipboard"
 import { ExitProvider, useExit } from "./context/exit"
+import { tuiMark } from "./startup-timing"
 import { EpilogueProvider } from "./context/epilogue"
 import { copy, handleSelectionKey } from "./util/selection";
 import { createCliRenderer } from "@opentui/core"
@@ -416,6 +417,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       console.error("Failed to load TUI plugins", error)
     })
     .finally(() => {
+      tuiMark("ready")
       setReady(true)
     })
 

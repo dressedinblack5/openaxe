@@ -1,4 +1,5 @@
 import { Effect, Layer, Context, Schema, Option } from "effect"
+import { generateText } from "ai"
 import { Config } from "@/config/config"
 import { SessionID } from "@/session/schema"
 import { Provider } from "@/provider/provider"
@@ -42,16 +43,6 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/LearningReview") {}
 
-function chatCompletionsURL(url: string): string {
-  const base = (url || "").replace(/\/+$/, "")
-  if (base.includes("/chat/completions")) return base
-  return `${base.replace(/\/v1\/?$/i, "")}/v1/chat/completions`
-}
-
-function getApiKey(info: Provider.Info): string | undefined {
-  return typeof info.options.apiKey === "string" ? info.options.apiKey : info.key
-}
-
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -68,26 +59,21 @@ export const layer = Layer.effect(
       }
       const provider = providerOpt.value
 
-      const model = yield* provider.getModel(ProviderV2.ID.make(input.providerID), ModelV2.ID.make(input.modelID)).pipe(
-        Effect.tapError(() => Effect.logWarning("learning: model not found", { providerID: input.providerID, modelID: input.modelID })),
+      const providerID = ProviderV2.ID.make(learning.provider ?? input.providerID)
+      const modelID = ModelV2.ID.make(learning.model ?? input.modelID)
+      yield* Effect.logInfo("learning: review started", { providerID, modelID })
+
+      const model = yield* provider.getModel(providerID, modelID).pipe(
+        Effect.tapError(() => Effect.logWarning("learning: model not found", { providerID, modelID })),
         Effect.catch(() => Effect.succeed(undefined)),
       )
       if (!model) return
 
-      const info = yield* provider.getProvider(ProviderV2.ID.make(input.providerID)).pipe(
-        Effect.tapError(() => Effect.logWarning("learning: provider not found", { providerID: input.providerID })),
+      const language = yield* provider.getLanguage(model).pipe(
+        Effect.tapError(() => Effect.logWarning("learning: language model init failed", { providerID, modelID })),
         Effect.catch(() => Effect.succeed(undefined)),
       )
-      if (!info) return
-
-      const key = getApiKey(info)
-      if (!key) {
-        yield* Effect.logWarning("learning: no API key for provider", { providerID: input.providerID })
-        return
-      }
-
-      const url = chatCompletionsURL(model.api.url)
-      const modelID = learning.model ?? model.api.id
+      if (!language) return
 
       const systemPrompt = `You are a learning agent. Analyze the conversation turn below and identify if anything should be remembered for future interactions.
 
@@ -104,33 +90,24 @@ Output ONLY valid JSON:
 
 If nothing worth learning, return empty arrays.`
 
-      const body = JSON.stringify({
-        model: modelID,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `User:\n${input.userMessage}\n\nAssistant:\n${input.assistantMessage}` },
-        ],
-        temperature: 0.1,
-      })
-
-      const response = yield* Effect.tryPromise<Response>(() =>
-        fetch(url, {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-          body,
+      const result = yield* Effect.tryPromise(() =>
+        generateText({
+          model: language,
+          system: systemPrompt,
+          prompt: `User:\n${input.userMessage}\n\nAssistant:\n${input.assistantMessage}`,
+          temperature: 0.1,
         }),
-      ).pipe(Effect.catch(() => Effect.succeed(undefined)))
-
-      if (!response) return
-
-      const data = yield* Effect.tryPromise<any>(() => response.json()).pipe(
-        Effect.catch(() => Effect.succeed(undefined)),
+      ).pipe(
+        Effect.timeout("30 seconds"),
+        Effect.catch((err) =>
+          Effect.logWarning("learning: review failed", { error: String(err) }).pipe(Effect.as(undefined)),
+        ),
       )
-      if (!data) return
+      if (!result) return
 
-      const text: string | undefined = data.choices?.[0]?.message?.content ?? data.content
+      const text = result.text
       if (!text) {
-        yield* Effect.logInfo("learning: unexpected response format")
+        yield* Effect.logInfo("learning: unexpected empty response")
         return
       }
 
@@ -144,6 +121,7 @@ If nothing worth learning, return empty arrays.`
 
       const updates = Array.isArray(parsed.skillUpdates) ? parsed.skillUpdates : []
       const observations = Array.isArray(parsed.observations) ? parsed.observations : []
+      yield* Effect.logInfo("learning: review done", { skillUpdateCount: updates.length, observationCount: observations.length })
 
       // ponytail: persist to JSONL, add read API when consumed
       if (updates.length > 0 || observations.length > 0) {

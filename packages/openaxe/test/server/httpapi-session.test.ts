@@ -456,6 +456,13 @@ describe("session HttpApi", () => {
         expect(abort.status).toBe(200)
         expect(yield* responseJson(abort)).toBe(true)
 
+        const resume = yield* request(pathFor(SessionPaths.resume, { sessionID: missingSession }), {
+          headers,
+          method: "POST",
+        })
+        expect(resume.status).toBe(404)
+        expect(yield* responseJson(resume)).toEqual(missingSessionBody)
+
         const session = yield* createSession({ title: "missing message" })
         const missingMessage = MessageID.ascending()
         const message = yield* request(
@@ -581,6 +588,98 @@ describe("session HttpApi", () => {
       })
     }).pipe(Effect.provide(TestLLMServer.layer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
   180_000,
+  )
+
+  it.instance(
+    "resume reports no pending work when the session has none",
+    () =>
+      Effect.gen(function* () {
+        const test = yield* TestInstance
+        const headers = { "x-opencode-directory": test.directory }
+
+        const empty = yield* createSession({ title: "empty" })
+        const fresh = yield* request(pathFor(SessionPaths.resume, { sessionID: empty.id }), { headers, method: "POST" })
+        expect(fresh.status).toBe(200)
+        expect(yield* responseJson(fresh)).toBe(false)
+
+        const answered = yield* createSession({ title: "answered" })
+        yield* createTextMessage(answered.id, "hello")
+        const settled = yield* request(pathFor(SessionPaths.resume, { sessionID: answered.id }), {
+          headers,
+          method: "POST",
+        })
+        expect(settled.status).toBe(200)
+        expect(yield* responseJson(settled)).toBe(false)
+      }),
+    { git: true, config: { formatter: false, lsp: false } },
+  )
+
+  it.live(
+    "resume continues an interrupted turn",
+    () =>
+      Effect.gen(function* () {
+        const llm = yield* TestLLMServer
+        yield* llm.text("ok", { usage: { input: 1, output: 1 } })
+        const config = testProviderConfig(llm.url)
+        const directory = yield* tmpdirScoped({ git: true, config })
+        const headers = { "x-opencode-directory": directory }
+
+        const session = yield* createSession({ title: "interrupted" }).pipe(provideInstanceEffect(directory))
+        const svc = yield* Session.Service
+        const user = yield* svc
+          .updateMessage({
+            id: MessageID.ascending(),
+            role: "user",
+            sessionID: session.id,
+            agent: "build",
+            model: { providerID: ProviderV2.ID.make("test"), modelID: ModelV2.ID.make("test-model") },
+            time: { created: Date.now() },
+          })
+          .pipe(provideInstanceEffect(directory))
+        yield* svc
+          .updatePart({
+            id: PartID.ascending(),
+            sessionID: session.id,
+            messageID: user.id,
+            type: "text",
+            text: "finish the task",
+          })
+          .pipe(provideInstanceEffect(directory))
+        const aborted = yield* svc
+          .updateMessage({
+            id: MessageID.ascending(),
+            role: "assistant",
+            sessionID: session.id,
+            parentID: user.id,
+            mode: "build",
+            agent: "build",
+            modelID: ModelV2.ID.make("test-model"),
+            providerID: ProviderV2.ID.make("test"),
+            path: { cwd: directory, root: directory },
+            cost: 0,
+            tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+            time: { created: Date.now() },
+          })
+          .pipe(provideInstanceEffect(directory))
+
+        const resumed = yield* request(pathFor(SessionPaths.resume, { sessionID: session.id }), {
+          headers,
+          method: "POST",
+        })
+        expect(resumed.status).toBe(200)
+        expect(yield* responseJson(resumed)).toBe(true)
+
+        const messages = yield* Session.use
+          .messages({ sessionID: session.id })
+          .pipe(provideInstanceEffect(directory), Effect.orDie)
+        const last = messages.at(-1)
+        expect(last?.info.role).toBe("assistant")
+        expect(last?.info.id === aborted.id).toBe(false)
+        if (last?.info.role === "assistant") {
+          expect(last.info.finish).toBe("stop")
+        }
+      }).pipe(Effect.provide(TestLLMServer.layer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
+    180_000,
   )
 
   it.instance(

@@ -460,6 +460,48 @@ it.instance("ignores legacy tui keys in openaxe config", () =>
   120_000,
 )
 
+it.effect("configBoundary stops upward config traversal", () =>
+  Effect.gen(function* () {
+    const root = yield* tmpdirScoped()
+    const global = yield* tmpdirScoped()
+    const mid = path.join(root, "mid")
+    const directory = path.join(mid, "proj")
+    yield* Effect.all([
+      writeConfigEffect(root, {
+        $schema: "https://opencode.ai/config.json",
+        logLevel: "INFO",
+        agent: { top: { model: "top/model" } },
+      }),
+      writeConfigEffect(mid, {
+        $schema: "https://opencode.ai/config.json",
+        configBoundary: true,
+        snapshot: false,
+        shell: "/bin/zsh",
+      }),
+      writeConfigEffect(directory, {
+        $schema: "https://opencode.ai/config.json",
+        shell: "/bin/bash",
+      }),
+    ])
+    return yield* withGlobalConfigDir(
+      global,
+      withInstanceDir(
+        directory,
+        Effect.gen(function* () {
+          const config = yield* Config.use.get()
+          // Configs above the boundary file are dropped; the boundary file itself and deeper ones load.
+          expect((config as Record<string, unknown>).logLevel).toBeUndefined()
+          expect((config as Record<string, unknown>).configBoundary).toBeUndefined()
+          expect(config.snapshot).toBe(false)
+          expect(config.shell).toBe("/bin/bash")
+          expect(config.agent).not.toHaveProperty("top")
+        }),
+      ),
+    )
+  }),
+  120_000,
+)
+
 it.instance("loads JSONC config file", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
@@ -608,15 +650,15 @@ accountTokenIt.instance("resolves env templates in account config with account t
   }),
 )
 
-it.instance("validates config schema and throws on invalid fields", () =>
+it.instance("drops unknown top-level config keys instead of failing", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* writeConfigEffect(test.directory, {
       $schema: "https://opencode.ai/config.json",
       invalid_field: "should cause error",
     })
-    const exit = yield* Config.use.get().pipe(Effect.exit)
-    expect(Exit.isFailure(exit)).toBe(true)
+    const config = yield* Config.use.get()
+    expect((config as Record<string, unknown>).invalid_field).toBeUndefined()
   }),
 )
 
@@ -1317,7 +1359,7 @@ it.instance("permission config preserves user key order", () =>
   }),
 )
 
-test("config parser preserves permission order while rejecting unknown top-level keys", () => {
+test("config parser preserves permission order and drops unknown top-level keys", () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     {
@@ -1331,13 +1373,8 @@ test("config parser preserves permission order while rejecting unknown top-level
   )
 
   expect(Object.keys(config.permission!)).toEqual(["bash", "*", "edit"])
-  try {
-    ConfigParse.schema(ConfigV1.Info, { invalid_field: true }, "test")
-    throw new Error("expected config parse to fail")
-  } catch (err) {
-    const error = err as { issues?: Array<{ code?: string; keys?: string[]; path?: string[] }> }
-    expect(error.issues?.[0]).toMatchObject({ code: "unrecognized_keys", keys: ["invalid_field"], path: [] })
-  }
+  expect(ConfigParse.schema(ConfigV1.Info, { invalid_field: true }, "test")).toEqual({})
+  expect(ConfigParse.topLevelExtraKeys(ConfigV1.Info, { invalid_field: true })).toEqual(["invalid_field"])
 })
 
 // MCP config merging tests

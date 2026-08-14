@@ -31,6 +31,7 @@ import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
 import path from "node:path"
 import { useKV } from "./kv"
+import { tuiMark } from "../startup-timing"
 
 const emptyConsoleState: ConsoleState = {
   consoleManagedProviders: [],
@@ -433,24 +434,40 @@ export const {
     const args = useArgs()
 
     async function bootstrap(input: { fatal?: boolean } = {}) {
+      tuiMark("sync-bootstrap-start")
       const fatal = input.fatal ?? true
       const workspace = project.workspace.current()
       const projectPromise = project.sync()
       const sessionListPromise = projectPromise.then( async () => listSessions())
 
       // blocking - include session.list when continuing a session
-      const providersPromise = sdk.client.config.providers({ workspace }, { throwOnError: true })
-      const providerListPromise = sdk.client.provider.list({ workspace }, { throwOnError: true })
+      const providersPromise = sdk.client.config.providers({ workspace }, { throwOnError: true }).then((x) => {
+        tuiMark("sync-blocking:providers")
+        return x
+      })
+      const providerListPromise = sdk.client.provider.list({ workspace }, { throwOnError: true }).then((x) => {
+        tuiMark("sync-blocking:provider-list")
+        return x
+      })
       const capabilitiesPromise = sdk.client.experimental.capabilities
         .get({ workspace }, { throwOnError: true })
-        .then((x) => x.data)
+        .then((x) => {
+          tuiMark("sync-blocking:capabilities")
+          return x.data
+        })
         .catch(() => undefined)
       const consoleStatePromise = sdk.client.experimental.console
         .get({ workspace }, { throwOnError: true })
         .then((x) => x.data)
         .catch(() => emptyConsoleState)
-      const agentsPromise = sdk.client.app.agents({ workspace }, { throwOnError: true })
-      const configPromise = sdk.client.config.get({ workspace }, { throwOnError: true })
+      const agentsPromise = sdk.client.app.agents({ workspace }, { throwOnError: true }).then((x) => {
+        tuiMark("sync-blocking:agents")
+        return x
+      })
+      const configPromise = sdk.client.config.get({ workspace }, { throwOnError: true }).then((x) => {
+        tuiMark("sync-blocking:config")
+        return x
+      })
       await Promise.all([
         providersPromise,
         providerListPromise,
@@ -461,6 +478,7 @@ export const {
         ...(args.continue ? [sessionListPromise] : []),
       ])
         .then(async () => {
+          tuiMark("sync-blocking-done")
           const providersResponse = providersPromise.then((x) => x.data)
           const providerListResponse = providerListPromise.then((x) => x.data)
           const capabilitiesResponse = capabilitiesPromise
@@ -499,7 +517,10 @@ export const {
           })
         })
         .then(() => {
-          if (store.status !== "complete") setStore("status", "partial")
+          // The blocking batch carries everything the UI gates on (providers,
+          // config, agents, capabilities). The non-blocking batch below only
+          // populates stores progressively — don't hold "complete" for it.
+          if (store.status !== "complete") setStore("status", "complete")
           // non-blocking
           void Promise.all([
             ...(args.continue ? [] : [sessionListPromise.then((sessions) => setStore("session", reconcile(sessions)))]),
@@ -518,10 +539,11 @@ export const {
             sdk.client.vcs.get({ workspace }).then((x) => setStore("vcs", reconcile(x.data))),
             project.workspace.sync(),
           ]).then(() => {
-            setStore("status", "complete")
+            tuiMark("sync-complete")
           })
         })
         .catch(async (e) => {
+          tuiMark(`sync-bootstrap-failed: ${e instanceof Error ? e.message : String(e)}`)
           console.error("tui bootstrap failed", {
             error: e instanceof Error ? e.message : String(e),
             name: e instanceof Error ? e.name : undefined,

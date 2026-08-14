@@ -10,6 +10,7 @@ import { ShareNext } from "@/share/share-next"
 import { Effect, Layer } from "effect"
 import { Config } from "@/config/config"
 import { Service } from "./bootstrap-service"
+import { mark } from "@/cli/startup-timing"
 
 export { Service } from "./bootstrap-service"
 export type { Interface } from "./bootstrap-service"
@@ -32,14 +33,26 @@ export const layer = Layer.effect(
       const ctx = yield* InstanceState.context
       yield* Effect.logInfo("bootstrapping", { directory: ctx.directory })
       // everything depends on config so eager load it for nice traces
-      yield* config.get()
+      yield* config.get().pipe(Effect.tap(() => Effect.sync(() => mark("boot-config-done"))))
       // Plugin can mutate config so it has to be initialized before anything else.
-      yield* plugin.init()
+      yield* plugin.init().pipe(Effect.tap(() => Effect.sync(() => mark("boot-plugin-done"))))
       // Each service self-manages its own slow work via Effect.forkScoped against
       // its per-instance state scope. We just await materialization here.
       yield* Effect.forEach(
-        [shareNext, format, vcs, snapshot, project],
-        (s) => s.init().pipe(Effect.catchCause((cause) => Effect.logWarning("init failed", { cause }))),
+        [
+          ["shareNext", shareNext],
+          ["format", format],
+          ["vcs", vcs],
+          ["snapshot", snapshot],
+          ["project", project],
+        ] as const,
+        ([name, s]) =>
+          s
+            .init()
+            .pipe(
+              Effect.catchCause((cause) => Effect.logWarning("init failed", { cause })),
+              Effect.tap(() => Effect.sync(() => mark(`boot-init:${name}`))),
+            ),
         { concurrency: "unbounded", discard: true },
       ).pipe(Effect.withSpan("InstanceBootstrap.init"))
     }).pipe(Effect.withSpan("InstanceBootstrap"))

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect } from "bun:test"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Database } from "@opencode-ai/core/database/database"
-import { Deferred, Effect, Exit, Fiber, Layer } from "effect"
+import { Cause, Deferred, Effect, Exit, Fiber, Layer } from "effect"
 import { Agent } from "../../src/agent/agent"
 import { BackgroundJob } from "@/background/job"
 import { EventV2Bridge } from "@/event-v2-bridge"
@@ -62,10 +62,17 @@ function defer<T>() {
 const seed = Effect.fn("TaskToolTest.seed")(function* (title = "Pinned") {
   const session = yield* Session.Service
   const chat = yield* session.create({ title })
+  const assistant = yield* assistantIn(chat.id)
+  return { chat, assistant }
+})
+
+/** Creates a user + assistant message in an existing session (task tool execution requires one). */
+const assistantIn = Effect.fn("TaskToolTest.assistantIn")(function* (sessionID: SessionID) {
+  const session = yield* Session.Service
   const user = yield* session.updateMessage({
     id: MessageID.ascending(),
     role: "user",
-    sessionID: chat.id,
+    sessionID,
     agent: "build",
     model: ref,
     time: { created: Date.now() },
@@ -74,7 +81,7 @@ const seed = Effect.fn("TaskToolTest.seed")(function* (title = "Pinned") {
     id: MessageID.ascending(),
     role: "assistant",
     parentID: user.id,
-    sessionID: chat.id,
+    sessionID,
     mode: "build",
     agent: "build",
     cost: 0,
@@ -86,8 +93,21 @@ const seed = Effect.fn("TaskToolTest.seed")(function* (title = "Pinned") {
     time: { created: Date.now() },
   }
   yield* session.updateMessage(assistant)
-  return { chat, assistant }
+  return assistant
 })
+
+function taskContext(sessionID: SessionID, messageID: MessageID, promptOps: TaskPromptOps) {
+  return {
+    sessionID,
+    messageID,
+    agent: "build",
+    abort: new AbortController().signal,
+    extra: { promptOps },
+    messages: [],
+    metadata: () => Effect.void,
+    ask: () => Effect.void,
+  }
+}
 
 function stubOps(opts?: { onPrompt?: (input: SessionPrompt.PromptInput) => void; text?: string }): TaskPromptOps {
   return {
@@ -444,6 +464,64 @@ describe("tool.task", () => {
         },
       },
     },
+  )
+
+  it.instance(
+    "execute fails when experimental.subagent_depth_limit is reached",
+    () =>
+      Effect.gen(function* () {
+        const sessions = yield* Session.Service
+        const { chat, assistant } = yield* seed()
+        const tool = yield* TaskTool
+        const def = yield* tool.init()
+        const promptOps = stubOps()
+        const run = (sessionID: SessionID, messageID: MessageID, description: string) =>
+          def.execute(
+            { description, prompt: "look into the cache key path", subagent_type: "general" },
+            taskContext(sessionID, messageID, promptOps),
+          )
+
+        const child = yield* sessions.get(
+          (yield* run(chat.id, assistant.id, "spawn child")).metadata.sessionId,
+        )
+        const childMsg = yield* assistantIn(child.id)
+        const grandchild = yield* sessions.get(
+          (yield* run(child.id, childMsg.id, "spawn grandchild")).metadata.sessionId,
+        )
+        expect(grandchild.parentID).toBe(child.id)
+
+        const grandchildMsg = yield* assistantIn(grandchild.id)
+        const exit = yield* run(grandchild.id, grandchildMsg.id, "spawn great-grandchild").pipe(Effect.exit)
+        expect(Exit.isFailure(exit)).toBe(true)
+        if (Exit.isFailure(exit)) expect(String(Cause.squash(exit.cause))).toContain("Subagent depth limit reached (2)")
+        expect(yield* sessions.children(grandchild.id)).toHaveLength(0)
+      }),
+    { config: { experimental: { subagent_depth_limit: 2 } } },
+  )
+
+  it.instance("execute allows nested subagents when subagent_depth_limit is unset", () =>
+    Effect.gen(function* () {
+      const sessions = yield* Session.Service
+      const { chat, assistant } = yield* seed()
+      const tool = yield* TaskTool
+      const def = yield* tool.init()
+      const promptOps = stubOps()
+      const run = (sessionID: SessionID, messageID: MessageID) =>
+        def.execute(
+          { description: "inspect bug", prompt: "look into the cache key path", subagent_type: "general" },
+          taskContext(sessionID, messageID, promptOps),
+        )
+
+      const child = yield* sessions.get((yield* run(chat.id, assistant.id)).metadata.sessionId)
+      const childMsg = yield* assistantIn(child.id)
+      const grandchild = yield* sessions.get((yield* run(child.id, childMsg.id)).metadata.sessionId)
+      const grandchildMsg = yield* assistantIn(grandchild.id)
+      const great = yield* sessions.get((yield* run(grandchild.id, grandchildMsg.id)).metadata.sessionId)
+
+      expect(child.parentID).toBe(chat.id)
+      expect(grandchild.parentID).toBe(child.id)
+      expect(great.parentID).toBe(grandchild.id)
+    }),
   )
 
   it.instance("rejects background execution when the experiment is disabled", () =>

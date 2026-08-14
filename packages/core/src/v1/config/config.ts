@@ -173,6 +173,10 @@ export const Info = Schema.Struct({
       primary_tools: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
         description: "Tools that should only be available to primary agents.",
       }),
+      subagent_depth_limit: Schema.optional(NonNegativeInt).annotate({
+        description:
+          "Maximum subagent nesting depth. Spawning a subagent from a session whose ancestor chain is at or above the limit fails. Unset (default) means unlimited. Set to 1 to allow only primary agents to spawn subagents.",
+      }),
       continue_loop_on_deny: Schema.optional(Schema.Boolean).annotate({
         description: "Continue the agent loop when a tool call is denied",
       }),
@@ -186,6 +190,9 @@ export const Info = Schema.Struct({
         Schema.Struct({
           review: Schema.optional(Schema.Boolean).annotate({
             description: "Enable post-turn learning review — fork a background LLM eval to auto-update skills and observations",
+          }),
+          provider: Schema.optional(Schema.String).annotate({
+            description: "Optional separate provider for learning reviews (defaults to the agent's provider)",
           }),
           model: Schema.optional(Schema.String).annotate({
             description: "Optional separate model for learning reviews (defaults to agent model)",

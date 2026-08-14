@@ -37,21 +37,8 @@ export function schema<S extends Schema.Decoder<unknown>>(
   data: unknown,
   source: string,
 ): DeepMutable<S["Type"]> {
-  const extra = topLevelExtraKeys(schema, data)
-  if (extra.length) {
-    throw new InvalidError({
-      path: source,
-      issues: [
-        {
-          code: "unrecognized_keys",
-          keys: extra,
-          path: [],
-          message: `Unrecognized key${extra.length === 1 ? "" : "s"}: ${extra.join(", ")}`,
-        },
-      ],
-    })
-  }
-
+  // Unknown top-level keys are dropped by the Struct decode (excess properties are ignored)
+  // instead of failing the parse; callers warn about them via topLevelExtraKeys.
   const decoded = Schema.decodeUnknownExit(schema)(data, { errors: "all", propertyOrder: "original" })
   if (Exit.isSuccess(decoded)) return decoded.value as DeepMutable<S["Type"]>
   const error = Cause.squash(decoded.cause)
@@ -68,7 +55,7 @@ export function schema<S extends Schema.Decoder<unknown>>(
   })
 }
 
-function topLevelExtraKeys(schema: Schema.Top, data: unknown) {
+export function topLevelExtraKeys(schema: Schema.Top, data: unknown) {
   if (typeof data !== "object" || data === null || Array.isArray(data)) return []
   if (schema.ast._tag !== "Objects" || schema.ast.indexSignatures.length > 0) return []
   const known = new Set(schema.ast.propertySignatures.map((item) => String(item.name)))
