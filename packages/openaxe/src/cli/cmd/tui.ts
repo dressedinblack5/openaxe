@@ -51,6 +51,7 @@ function createEventSource(client: RpcClient): EventSource {
 }
 
 function createInternalFetch(): typeof fetch {
+  let first = true
   const fn = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const { Server } = await import("@/server/server")
     const { ServerAuth } = await import("@/server/auth")
@@ -58,9 +59,51 @@ function createInternalFetch(): typeof fetch {
     const headers = new Headers(request.headers)
     const auth = ServerAuth.header()
     if (auth) headers.set("Authorization", auth)
-    return Server.Default().app.fetch(new Request(request, { headers }))
+    if (first) mark("tui-fetch-start")
+    const response = await Server.Default().app.fetch(new Request(request, { headers }))
+    if (first) {
+      first = false
+      mark("tui-fetch-done")
+    }
+    return response
   }
   return fn as typeof fetch
+}
+
+/**
+ * Best-effort background warm-up of the AppLayer runtime. The first SDK call
+ * into the server pays a one-time ~8s cost (dynamic import of the ~45-module
+ * app layer + ManagedRuntime.make + first-use service init). Firing a few real
+ * requests during the TUI's own boot moves that cost off the sync's critical
+ * path — the sync re-fetches the same endpoints and finds services warm.
+ * Failures only cost boot-time CPU; never blocks or fails boot.
+ */
+function prewarmAppLayer(fetchFn: typeof fetch, url: string, directory: string) {
+  void (async () => {
+    const warm = (path: string) =>
+      fetchFn(`${url}${path}?directory=${encodeURIComponent(directory)}`).catch(() => {})
+    const warms = [
+      warm("/config/providers"),
+      warm("/provider"),
+      warm("/experimental/capabilities"),
+      warm("/agent"),
+      warm("/config"),
+      warm("/path"),
+      warm("/project/current"),
+    ]
+    try {
+      // Fire the warms BEFORE importing the app layer: the 45-module dynamic
+      // import blocks the main thread for ~1.6s, and every request waits on the
+      // shared instance boot anyway — getting a head start on the boot beats
+      // warms that arrive 400ms before the sync.
+      await Promise.allSettled(warms)
+      const { AppRuntime } = await import("@/effect/app-runtime")
+      const { Effect } = await import("effect")
+      await Promise.allSettled([AppRuntime.runPromise(Effect.void)])
+    } catch {
+      // pre-warm is best-effort
+    }
+  })()
 }
 
 async function target() {
@@ -220,6 +263,19 @@ export const TuiCommand = cmd({
       const { TuiConfig } = await configMod
       mark("config-mod")
 
+      // Detect external mode early (pure: argv + args only) so the server
+      // module eval (~2.4s) overlaps the worker boot. Without this the eval
+      // serializes after run-start and gates the pre-warm's first requests.
+      const network = resolveNetworkOptionsNoConfig(args)
+      const external =
+        process.argv.includes("--port") ||
+        process.argv.includes("--hostname") ||
+        process.argv.includes("--mdns") ||
+        network.mdns ||
+        network.port !== 0 ||
+        network.hostname !== "127.0.0.1"
+      if (!external) void import("@/server/server").catch(() => {})
+
       if (args.fork && !args.continue && !args.session) {
         UI.error("--fork requires --continue or --session")
         process.exitCode = 1
@@ -280,15 +336,6 @@ export const TuiCommand = cmd({
 
       const prompt = await input(args.prompt)
 
-      const network = resolveNetworkOptionsNoConfig(args)
-      const external =
-        process.argv.includes("--port") ||
-        process.argv.includes("--hostname") ||
-        process.argv.includes("--mdns") ||
-        network.mdns ||
-        network.port !== 0 ||
-        network.hostname !== "127.0.0.1"
-
       let transport: { url: string; fetch: typeof fetch; events?: EventSource }
       if (external) {
         // External mode: start HTTP server and proxy through it
@@ -309,6 +356,9 @@ export const TuiCommand = cmd({
           events: undefined,
         }
       }
+      // Warm the AppLayer runtime in the background so the sync's first SDK
+      // calls don't pay the one-time ~8s service-init cost on the critical path.
+      prewarmAppLayer(transport.fetch, transport.url, cwd)
       try {
         await validateSession({
           url: transport.url,

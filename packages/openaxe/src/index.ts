@@ -1,5 +1,7 @@
 process.title = "openaxe"
 
+import { mark } from "./cli/startup-timing"
+mark("process-start")
 import yargs from "yargs"
 import { hideBin } from "yargs/helpers"
 import { UI } from "./cli/ui"

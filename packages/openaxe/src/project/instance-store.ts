@@ -10,6 +10,7 @@ import { type InstanceContext } from "./instance-context"
 import { InstanceBootstrap } from "./bootstrap-service"
 import { InstanceBootstrap as InstanceBootstrapGraph } from "./bootstrap"
 import { Project } from "./project"
+import { mark } from "@/cli/startup-timing"
 
 export interface LoadInput {
   directory: string
@@ -44,6 +45,7 @@ export const layer: Layer.Layer<Service, never, Project.Service | InstanceBootst
 
     const boot = (input: LoadInput & { directory: string }) =>
       Effect.gen(function* () {
+        mark("boot-from-directory-start")
         const ctx: InstanceContext =
           input.project && input.worktree
             ? {
@@ -58,7 +60,10 @@ export const layer: Layer.Layer<Service, never, Project.Service | InstanceBootst
                   project: result.project,
                 })),
               )
+        mark("boot-from-directory-done")
+        mark("boot-bootstrap-run-start")
         yield* bootstrap.run.pipe(Effect.provideService(InstanceRef, ctx))
+        mark("boot-bootstrap-run-done")
         return ctx
       }).pipe(Effect.withSpan("InstanceStore.boot"))
 
