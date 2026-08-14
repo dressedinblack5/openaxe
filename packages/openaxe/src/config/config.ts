@@ -76,6 +76,8 @@ function mergeConfigConcatArrays(target: Info, source: Info): Info {
 function normalizeLoadedConfig(data: unknown) {
   if (!isRecord(data)) return data
   const copy = { ...data }
+  // configBoundary is a traversal stop marker consumed by the loader, not a persisted field.
+  delete copy.configBoundary
   const hadLegacy = "theme" in copy || "keybinds" in copy || "tui" in copy
   if (!hadLegacy) return copy
   delete copy.theme
@@ -135,6 +137,9 @@ type Info = ConfigV1.Info & {
   // plugin_origins is derived state, not a persisted config field. It keeps each winning plugin spec together
   // with the file and scope it came from so later runtime code can make location-sensitive decisions.
   plugin_origins?: ConfigPlugin.Origin[]
+  // Transient stop marker set by the loader when a config file declares `configBoundary: true`;
+  // stripped before merging so it never reaches the exposed config.
+  configBoundary?: boolean
 }
 
 type State = {
@@ -182,7 +187,7 @@ function patchJsonc(input: string, patch: unknown, path: string[] = []): string 
 }
 
 function writable(info: Info) {
-  const { plugin_origins: _plugin_origins, ...next } = info
+  const { plugin_origins: _plugin_origins, configBoundary: _configBoundary, ...next } = info
   return next
 }
 
@@ -245,7 +250,14 @@ export const layer = Layer.effect(
         ),
       )
       const parsed = ConfigParse.jsonc(expanded, source)
-      const data = ConfigParse.schema(ConfigV1.Info, normalizeLoadedConfig(parsed), source)
+      const configBoundary = isRecord(parsed) && parsed.configBoundary === true
+      const normalized = normalizeLoadedConfig(parsed)
+      const extraKeys = ConfigParse.topLevelExtraKeys(ConfigV1.Info, normalized)
+      const data = ConfigParse.schema(ConfigV1.Info, normalized, source)
+      if (extraKeys.length) {
+        yield* Effect.logWarning("unrecognized top-level config keys", { source, keys: extraKeys })
+      }
+      if (configBoundary) (data as Info).configBoundary = true
       if (!("path" in options)) return data
 
       yield* Effect.promise(() => resolveLoadedPlugins(data, options.path))
@@ -414,6 +426,7 @@ export const layer = Layer.effect(
         })
 
         const merge = (source: string, next: Info, kind?: ConfigPlugin.Scope) => {
+          if (next.configBoundary) delete next.configBoundary
           result = mergeConfigConcatArrays(result, next)
           return mergePluginOrigins(source, next.plugin, kind)
         }
@@ -468,9 +481,27 @@ export const layer = Layer.effect(
           yield* Effect.logDebug("loaded custom config", { path: Flag.OPENCODE_CONFIG })
         }
 
+        let boundaryDir: string | undefined
+
         if (!Flag.OPENCODE_DISABLE_PROJECT_CONFIG) {
-          for (const file of yield* ConfigPaths.files("openaxe", ctx.directory, ctx.worktree).pipe(Effect.orDie)) {
-            yield* merge(file, yield* loadFile(file, authEnv), "local")
+          // configBoundary: project config files are merged highest-first, so a file declaring
+          // `configBoundary: true` must drop every file at-or-above its directory; the deepest
+          // boundary wins.
+          const files = yield* ConfigPaths.files("openaxe", ctx.directory, ctx.worktree).pipe(Effect.orDie)
+          const loaded: { file: string; config: Info }[] = []
+          for (const file of files) {
+            loaded.push({ file, config: yield* loadFile(file, authEnv) })
+          }
+          let start = 0
+          for (let i = loaded.length - 1; i >= 0; i--) {
+            if (loaded[i].config.configBoundary) {
+              boundaryDir = path.dirname(loaded[i].file)
+              start = i
+              break
+            }
+          }
+          for (let i = start; i < loaded.length; i++) {
+            yield* merge(loaded[i].file, loaded[i].config, "local")
           }
         }
 
@@ -487,11 +518,21 @@ export const layer = Layer.effect(
         const deps: Fiber.Fiber<void>[] = []
 
         for (const dir of directories) {
+          // configBoundary stops upward traversal: skip directories at-or-above the boundary file's directory.
+          if (
+            boundaryDir &&
+            FSUtil.contains(path.dirname(dir), boundaryDir) &&
+            path.dirname(dir) !== boundaryDir
+          ) {
+            break
+          }
           if (dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR) {
             for (const file of ["openaxe.json", "openaxe.jsonc"]) {
               const source = path.join(dir, file)
               yield* Effect.logDebug(`loading config from ${source}`)
-              yield* merge(source, yield* loadFile(source, authEnv))
+              const next: Info = yield* loadFile(source, authEnv)
+              if (next.configBoundary) boundaryDir = dir
+              yield* merge(source, next)
               result.agent ??= {}
               result.mode ??= {}
               result.plugin ??= []
