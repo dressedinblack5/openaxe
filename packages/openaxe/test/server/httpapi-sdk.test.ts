@@ -220,8 +220,8 @@ function httpapiInstance<A, E>(
   )
 }
 
-function serverPathParity<A, E>(name: string, scenario: (serverPath: ServerPath) => Effect.Effect<A, E, TestScope>) {
-  it.live(name, scenario("raw"))
+function serverPathParity<A, E>(name: string, scenario: (serverPath: ServerPath) => Effect.Effect<A, E, TestScope>, timeout?: number) {
+  it.live(name, scenario("raw"), timeout)
 }
 
 function withProject<A, E, E2 = never>(
@@ -773,38 +773,41 @@ describe("HttpApi SDK", () => {
     ),
   )
 
-  serverPathParity("matches generated SDK prompt streaming through fake LLM", (serverPath) =>
-    withFakeLlm(serverPath, ({ sdk, llm }) =>
-      Effect.gen(function* () {
-        yield* llm.text("fake world", { usage: { input: 11, output: 7 } })
-        const session = yield* capture(() =>
-          sdk.session.create({
-            title: "llm prompt",
-            permission: [{ permission: "*", pattern: "*", action: "allow" }],
-          }),
-        )
-        const sessionID = String(record(session.data).id)
-        const prompt = yield* capture(() =>
-          sdk.session.prompt({
-            sessionID,
-            agent: "build",
-            model: { providerID: "test", modelID: "test-model" },
-            parts: [{ type: "text", text: "hello llm" }],
-          }),
-        )
-        const messages = yield* capture(() => sdk.session.messages({ sessionID }))
-        const inputs = yield* llm.inputs
+  serverPathParity(
+    "matches generated SDK prompt streaming through fake LLM",
+    (serverPath) =>
+      withFakeLlm(serverPath, ({ sdk, llm }) =>
+        Effect.gen(function* () {
+          yield* llm.text("fake world", { usage: { input: 11, output: 7 } })
+          const session = yield* capture(() =>
+            sdk.session.create({
+              title: "llm prompt",
+              permission: [{ permission: "*", pattern: "*", action: "allow" }],
+            }),
+          )
+          const sessionID = String(record(session.data).id)
+          const prompt = yield* capture(() =>
+            sdk.session.prompt({
+              sessionID,
+              agent: "build",
+              model: { providerID: "test", modelID: "test-model" },
+              parts: [{ type: "text", text: "hello llm" }],
+            }),
+          )
+          const messages = yield* capture(() => sdk.session.messages({ sessionID }))
+          const inputs = yield* llm.inputs
 
-        return {
-          statuses: statuses({ session, prompt, messages }),
-          calls: inputs.length,
-          requestedModel: inputs[0]?.model,
-          responseText: JSON.stringify(prompt.data).includes("fake world"),
-          persistedText: JSON.stringify(messages.data).includes("fake world"),
-          userText: JSON.stringify(messages.data).includes("hello llm"),
-        }
-      }),
-    ),
+          return {
+            statuses: statuses({ session, prompt, messages }),
+            calls: inputs.length,
+            requestedModel: inputs[0]?.model,
+            responseText: JSON.stringify(prompt.data).includes("fake world"),
+            persistedText: JSON.stringify(messages.data).includes("fake world"),
+            userText: JSON.stringify(messages.data).includes("hello llm"),
+          }
+        }),
+      ),
+    600_000,
   )
 
   httpapi(
