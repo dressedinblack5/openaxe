@@ -14,6 +14,7 @@ import { Session } from "./session"
 import { LLM } from "./llm"
 import { MessageV2 } from "./message-v2"
 import { isOverflow } from "./overflow"
+import { TokenEstimator } from "./token-estimator"
 import { PartID } from "./schema"
 import type { SessionID } from "./schema"
 import { SessionRetry } from "./retry"
@@ -42,7 +43,11 @@ function lastUserText(messages: ModelMessage[]): string {
     const m = messages[i]
     if (m.role !== "user") continue
     if (typeof m.content === "string") return m.content
-    if (Array.isArray(m.content)) return m.content.filter(p => p.type === "text").map(p => p.text ?? "").join("\n")
+    if (Array.isArray(m.content))
+      return m.content
+        .filter((p) => p.type === "text")
+        .map((p) => p.text ?? "")
+        .join("\n")
     return ""
   }
   return ""
@@ -124,6 +129,7 @@ export const layer = Layer.effect(
     const flags = yield* RuntimeFlags.Service
     const database = yield* Database.Service
     const learning = yield* Effect.serviceOption(Learning.Service)
+    const tokenEstimator = yield* TokenEstimator.Service
 
     const create = Effect.fn("SessionProcessor.create")(function* (input: Input) {
       // Pre-capture snapshot before the LLM stream starts. The AI SDK
@@ -724,6 +730,12 @@ export const layer = Layer.effect(
             ctx.assistantMessage.finish = value.reason
             ctx.assistantMessage.cost += usage.cost
             ctx.assistantMessage.tokens = usage.tokens
+            yield* tokenEstimator.recordUsage(ctx.sessionID, {
+              input: usage.tokens.input,
+              output: usage.tokens.output,
+              cacheRead: usage.tokens.cache.read,
+              cacheWrite: usage.tokens.cache.write,
+            })
             yield* session.updatePart({
               id: PartID.ascending(),
               reason: value.reason,
@@ -1137,7 +1149,10 @@ export const layer = Layer.effect(
                   yield* Effect.fail(new Error("No fallback model available"))
                 } else {
                   // Get the full model from the default model result
-                  const defaultModel = yield* provider.getModel(defaultModelResult.providerID, defaultModelResult.modelID)
+                  const defaultModel = yield* provider.getModel(
+                    defaultModelResult.providerID,
+                    defaultModelResult.modelID,
+                  )
                   // Use default model as fallback
                   currentStreamInput = {
                     ...currentStreamInput,
@@ -1145,7 +1160,6 @@ export const layer = Layer.effect(
                   }
                 }
               } else {
-
                 yield* Effect.logInfo("Selected fallback model", {
                   sessionID: ctx.sessionID,
                   fallbackProviderID: fallbackModel.providerID,
@@ -1198,6 +1212,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Database.defaultLayer),
     Layer.provide(EventV2Bridge.defaultLayer),
     Layer.provide(Learning.defaultLayer),
+    Layer.provide(TokenEstimator.defaultLayer),
   ),
 )
 
@@ -1217,6 +1232,7 @@ export const node = LayerNode.make(layer, [
   RuntimeFlags.node,
   Database.node,
   Learning.node,
+  TokenEstimator.node,
 ])
 
 export * as SessionProcessor from "./processor"

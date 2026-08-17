@@ -30,10 +30,7 @@ export class OutputLengthError extends Schema.TaggedErrorClass<OutputLengthError
   static isInstance(input: unknown): input is OutputLengthError {
     return (
       input instanceof OutputLengthError ||
-      (typeof input === "object" &&
-        input !== null &&
-        "name" in input &&
-        input.name === "MessageOutputLengthError")
+      (typeof input === "object" && input !== null && "name" in input && input.name === "MessageOutputLengthError")
     )
   }
   toObject(): { name: string; data: Record<string, unknown> } {
@@ -48,10 +45,7 @@ export class AuthError extends Schema.TaggedErrorClass<AuthError>()("ProviderAut
   static isInstance(input: unknown): input is AuthError {
     return (
       input instanceof AuthError ||
-      (typeof input === "object" &&
-        input !== null &&
-        "name" in input &&
-        input.name === "ProviderAuthError")
+      (typeof input === "object" && input !== null && "name" in input && input.name === "ProviderAuthError")
     )
   }
   toObject(): { name: string; data: { providerID: string; message: string } } {
@@ -65,10 +59,7 @@ export class AbortedError extends Schema.TaggedErrorClass<AbortedError>()("Messa
   static isInstance(input: unknown): input is AbortedError {
     return (
       input instanceof AbortedError ||
-      (typeof input === "object" &&
-        input !== null &&
-        "name" in input &&
-        input.name === "MessageAbortedError")
+      (typeof input === "object" && input !== null && "name" in input && input.name === "MessageAbortedError")
     )
   }
   toObject(): { name: string; data: { message: string } } {
@@ -83,10 +74,7 @@ export class StructuredOutputError extends Schema.TaggedErrorClass<StructuredOut
   static isInstance(input: unknown): input is StructuredOutputError {
     return (
       input instanceof StructuredOutputError ||
-      (typeof input === "object" &&
-        input !== null &&
-        "name" in input &&
-        input.name === "StructuredOutputError")
+      (typeof input === "object" && input !== null && "name" in input && input.name === "StructuredOutputError")
     )
   }
   toObject(): { name: string; data: { message: string; retries: number } } {
@@ -105,10 +93,7 @@ export class APIError extends Schema.TaggedErrorClass<APIError>()("APIError", {
   static isInstance(input: unknown): input is APIError {
     return (
       input instanceof APIError ||
-      (typeof input === "object" &&
-        input !== null &&
-        "name" in input &&
-        input.name === "APIError")
+      (typeof input === "object" && input !== null && "name" in input && input.name === "APIError")
     )
   }
   toObject(): { name: string; data: Record<string, unknown> } {
@@ -128,10 +113,7 @@ export class ContextOverflowError extends Schema.TaggedErrorClass<ContextOverflo
   static isInstance(input: unknown): input is ContextOverflowError {
     return (
       input instanceof ContextOverflowError ||
-      (typeof input === "object" &&
-        input !== null &&
-        "name" in input &&
-        input.name === "ContextOverflowError")
+      (typeof input === "object" && input !== null && "name" in input && input.name === "ContextOverflowError")
     )
   }
   toObject(): { name: string; data: Record<string, unknown> } {
@@ -147,10 +129,7 @@ export class ContentFilterError extends Schema.TaggedErrorClass<ContentFilterErr
   static isInstance(input: unknown): input is ContentFilterError {
     return (
       input instanceof ContentFilterError ||
-      (typeof input === "object" &&
-        input !== null &&
-        "name" in input &&
-        input.name === "ContentFilterError")
+      (typeof input === "object" && input !== null && "name" in input && input.name === "ContentFilterError")
     )
   }
   toObject(): { name: string; data: { message: string } } {
@@ -303,6 +282,7 @@ export const CompactionPart = Schema.Struct({
   auto: Schema.Boolean,
   overflow: Schema.optional(Schema.Boolean),
   tail_start_id: Schema.optional(MessageID),
+  text: Schema.optional(Schema.String),
 }).annotate({ identifier: "CompactionPart" })
 export type CompactionPart = Types.DeepMutable<Schema.Schema.Type<typeof CompactionPart>>
 

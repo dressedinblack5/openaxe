@@ -312,7 +312,7 @@ export const layer = Layer.effect(
         { args: taskArgs },
       )
 
-const taskAgent = yield* agents.get(task.agent)
+      const taskAgent = yield* agents.get(task.agent)
       if (!taskAgent) {
         const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
@@ -460,7 +460,7 @@ const taskAgent = yield* agents.get(task.agent)
             if (session.revert) {
               yield* revert.cleanup(session)
             }
-const agent = yield* agents.get(input.agent)
+            const agent = yield* agents.get(input.agent)
             if (!agent) {
               const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
               const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
@@ -651,7 +651,7 @@ const agent = yield* agents.get(input.agent)
       return yield* provider.defaultModel().pipe(Effect.orDie)
     })
 
-const createUserMessage = Effect.fn("SessionPrompt.createUserMessage")(function* (input: PromptInput) {
+    const createUserMessage = Effect.fn("SessionPrompt.createUserMessage")(function* (input: PromptInput) {
       const agentName = input.agent
       const ag = agentName ? yield* agents.get(agentName) : yield* agents.defaultInfo()
       if (!ag) {
@@ -1044,11 +1044,7 @@ const createUserMessage = Effect.fn("SessionPrompt.createUserMessage")(function*
         resolvedParts,
         (part) =>
           part.type === "file" && part.mime.startsWith("image/")
-            ? image.normalize(part).pipe(
-                Effect.catch(
-                  () => Effect.succeed(part),
-                ),
-              )
+            ? image.normalize(part).pipe(Effect.catch(() => Effect.succeed(part)))
             : Effect.succeed(part),
         { concurrency: "unbounded" },
       )
@@ -1187,14 +1183,16 @@ const createUserMessage = Effect.fn("SessionPrompt.createUserMessage")(function*
         let step = 0
         const session = yield* sessions.get(sessionID).pipe(Effect.orDie)
         // ponytail: cache system prompt parts per (agent, model) — stable across ticks
-        let sysCache: {
-          agentName: string
-          modelId: string
-          skills: string | undefined
-          env: string[]
-          instructions: string[]
-          mcpInstructions: string | undefined
-        } | undefined
+        let sysCache:
+          | {
+              agentName: string
+              modelId: string
+              skills: string | undefined
+              env: string[]
+              instructions: string[]
+              mcpInstructions: string | undefined
+            }
+          | undefined
 
         while (true) {
           yield* status.set(sessionID, { type: "busy" })
@@ -1272,13 +1270,13 @@ const createUserMessage = Effect.fn("SessionPrompt.createUserMessage")(function*
           if (
             lastFinished &&
             lastFinished.summary !== true &&
-            (yield* compaction.isOverflow({ tokens: lastFinished.tokens, model }))
+            (yield* compaction.isOverflow({ tokens: lastFinished.tokens, model, sessionID }))
           ) {
             yield* compaction.create({ sessionID, agent: lastUser.agent, model: lastUser.model, auto: true })
             continue
           }
 
-const agent = yield* agents.get(lastUser.agent)
+          const agent = yield* agents.get(lastUser.agent)
           if (!agent) {
             const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
             const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
@@ -1364,19 +1362,32 @@ const agent = yield* agents.get(lastUser.agent)
 
             yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
-            const sysEffect = sysCache?.agentName === agent.name && sysCache?.modelId === model.id
-              ? Effect.succeed([sysCache.skills, sysCache.env, sysCache.instructions, sysCache.mcpInstructions] as const)
-              : Effect.all([
-                  sys.skills(agent),
-                  sys.environment(model),
-                  instruction.system().pipe(Effect.orDie),
-                  sys.mcp(agent, session.permission),
-                ]).pipe(
-                  Effect.map(([skills, env, instructions, mcpInstructions]) => {
-                    sysCache = { agentName: agent.name, modelId: model.id, skills, env, instructions, mcpInstructions }
-                    return [skills, env, instructions, mcpInstructions] as const
-                  }),
-                )
+            const sysEffect =
+              sysCache?.agentName === agent.name && sysCache?.modelId === model.id
+                ? Effect.succeed([
+                    sysCache.skills,
+                    sysCache.env,
+                    sysCache.instructions,
+                    sysCache.mcpInstructions,
+                  ] as const)
+                : Effect.all([
+                    sys.skills(agent),
+                    sys.environment(model),
+                    instruction.system().pipe(Effect.orDie),
+                    sys.mcp(agent, session.permission),
+                  ]).pipe(
+                    Effect.map(([skills, env, instructions, mcpInstructions]) => {
+                      sysCache = {
+                        agentName: agent.name,
+                        modelId: model.id,
+                        skills,
+                        env,
+                        instructions,
+                        mcpInstructions,
+                      }
+                      return [skills, env, instructions, mcpInstructions] as const
+                    }),
+                  )
             const [skills, env, instructions, mcpInstructions] = yield* sysEffect
             const modelMsgs = yield* MessageV2.toModelMessagesEffect(msgs, model)
             const system = [
@@ -1454,6 +1465,12 @@ const agent = yield* agents.get(lastUser.agent)
         }
 
         yield* compaction.prune({ sessionID }).pipe(Effect.ignore, Effect.forkIn(scope))
+        yield* MessageV2.filterCompactedEffect(sessionID).pipe(
+          Effect.provideService(Database.Service, database),
+          Effect.flatMap((messages) => compaction.checkpoint({ sessionID, messages })),
+          Effect.ignore,
+          Effect.forkIn(scope),
+        )
         return yield* lastAssistant(sessionID)
       },
     )
