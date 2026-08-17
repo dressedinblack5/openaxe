@@ -161,6 +161,59 @@ export const Info = Schema.Struct({
       reserved: Schema.optional(NonNegativeInt).annotate({
         description: "Token buffer for compaction. Leaves enough window to avoid overflow during compaction.",
       }),
+      structuredSummary: Schema.optional(Schema.Boolean).annotate({
+        description: "Enable structured 8-section compaction summary (default: true)",
+      }),
+      breadcrumb: Schema.optional(Schema.Boolean).annotate({
+        description: "Include transcript breadcrumb in compaction message (default: true)",
+      }),
+      threshold: Schema.optional(Schema.String).annotate({
+        description:
+          "Compaction trigger threshold: percentage (80%), absolute tokens (10000), or remaining headroom (remaining:5000)",
+      }),
+      toolBudgeting: Schema.optional(
+        Schema.Struct({
+          enabled: Schema.optional(Schema.Boolean).annotate({
+            description: "Enable tool output budgeting (default: true)",
+          }),
+          protectChars: Schema.optional(NonNegativeInt).annotate({
+            description: "Characters threshold to trigger budgeting (default: 50000)",
+          }),
+          previewChars: Schema.optional(NonNegativeInt).annotate({
+            description: "Characters to keep as preview (default: 2000)",
+          }),
+        }),
+      ).annotate({
+        description: "Tool output budgeting settings",
+      }),
+      cacheAware: Schema.optional(
+        Schema.Struct({
+          enabled: Schema.optional(Schema.Boolean).annotate({
+            description: "Enable cache-aware token estimation (default: true)",
+          }),
+          reanchorOnResponse: Schema.optional(Schema.Boolean).annotate({
+            description: "Re-anchor token estimate on each provider response (default: true)",
+          }),
+        }),
+      ).annotate({
+        description: "Cache-aware token estimation settings",
+      }),
+      background: Schema.optional(
+        Schema.Struct({
+          enabled: Schema.optional(Schema.Boolean).annotate({
+            description: "Enable background checkpointing of compaction summaries (default: false)",
+          }),
+          checkpointThreshold: Schema.optional(Schema.Number).annotate({
+            description: "Context utilization fraction that triggers pre-computation of a checkpoint (default: 0.60)",
+          }),
+          swapThreshold: Schema.optional(Schema.Number).annotate({
+            description:
+              "Context utilization fraction above which the pre-computed checkpoint is swapped in (default: 0.85)",
+          }),
+        }),
+      ).annotate({
+        description: "Background compaction checkpointing settings",
+      }),
     }),
   ),
   experimental: Schema.optional(
@@ -189,7 +242,8 @@ export const Info = Schema.Struct({
       learning: Schema.optional(
         Schema.Struct({
           review: Schema.optional(Schema.Boolean).annotate({
-            description: "Enable post-turn learning review — fork a background LLM eval to auto-update skills and observations",
+            description:
+              "Enable post-turn learning review — fork a background LLM eval to auto-update skills and observations",
           }),
           provider: Schema.optional(Schema.String).annotate({
             description: "Optional separate provider for learning reviews (defaults to the agent's provider)",

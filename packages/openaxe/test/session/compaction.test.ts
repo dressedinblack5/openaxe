@@ -11,6 +11,9 @@ import { Image } from "@/image/image"
 import { Agent } from "../../src/agent/agent"
 import { LLM } from "../../src/session/llm"
 import { SessionCompaction } from "../../src/session/compaction"
+import { TokenEstimator } from "../../src/session/token-estimator"
+import { BackgroundCompaction } from "../../src/session/compaction/background"
+import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Token } from "@/util/token"
 import { Permission } from "../../src/permission"
 import { Plugin } from "../../src/plugin"
@@ -237,6 +240,9 @@ const deps = Layer.mergeAll(
   Database.defaultLayer,
   EventV2Bridge.defaultLayer,
   Skill.defaultLayer,
+  TokenEstimator.defaultLayer,
+  FSUtil.defaultLayer,
+  BackgroundCompaction.defaultLayer,
 )
 
 const env = Layer.mergeAll(
@@ -294,6 +300,9 @@ function compactionProcessLayer(options?: CompactionProcessOptions) {
     Layer.provide(options?.config ?? Config.defaultLayer),
     Layer.provide(RuntimeFlags.layer({ experimentalEventSystem: true })),
     Layer.provide(EventV2Bridge.defaultLayer),
+    Layer.provide(TokenEstimator.defaultLayer),
+    Layer.provide(FSUtil.defaultLayer),
+    Layer.provide(BackgroundCompaction.defaultLayer),
   )
 }
 
