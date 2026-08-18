@@ -21,7 +21,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/TokenEstimator") {}
 
-const makeState = (sessionID: SessionID) => ({
+const makeState = (_sessionID: SessionID) => ({
   serverReported: 0,
   estimatedDelta: 0,
   lastAnchor: 0,

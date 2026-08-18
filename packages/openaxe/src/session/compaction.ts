@@ -293,8 +293,7 @@ export const layer = Layer.effect(
 
       const msgs = yield* session
         .messages({ sessionID: input.sessionID })
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        .pipe(Effect.catchIf(NotFoundError.isInstance, () => Effect.void))
+        .pipe(Effect.catchIf((error): error is NotFoundError => NotFoundError.isInstance(error), () => Effect.void))
       if (!msgs) return
 
       let total = 0
@@ -341,7 +340,7 @@ export const layer = Layer.effect(
       if (!cfg.compaction?.toolBudgeting?.enabled) return
       const msgs = yield* session
         .messages({ sessionID: input.sessionID })
-        .pipe(Effect.catchIf(NotFoundError.isInstance, () => Effect.void))
+        .pipe(Effect.catchIf((error): error is NotFoundError => NotFoundError.isInstance(error), () => Effect.void))
       if (!msgs) return
 
       const protectChars = cfg.compaction?.toolBudgeting?.protectChars ?? TOOL_OUTPUT_PROTECT
