@@ -1,12 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "oh-my-openagent",
-    "opencode-plugin-selector",
-    "@tarquinen/opencode-dcp",
-    "ecc-universal",
-    "@dietrichgebert/ponytail"
-  ],
   "agent": {
     "multimodal-looker": {
       "model": "google/gemini-3.5-flash",
