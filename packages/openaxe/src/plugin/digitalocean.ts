@@ -255,6 +255,7 @@ function routerModel(router: RouterEntry, providerID: string): Model {
     capabilities: {
       temperature: true,
       reasoning: false,
+      speed: false,
       attachment: false,
       toolcall: true,
       input: { text: true, audio: false, image: false, video: false, pdf: false },

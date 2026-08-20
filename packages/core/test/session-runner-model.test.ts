@@ -38,6 +38,7 @@ const model = (api: Api, variants: ModelV2.Info["variants"] = []) =>
     status: "active",
     enabled: true,
     limit: { context: 100, output: 20 },
+    speeds: [],
   })
 
 describe("SessionRunnerModel", () => {

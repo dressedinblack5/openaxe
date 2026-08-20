@@ -125,6 +125,7 @@ function build(key: string, remote: SelectableItem, url: string, prev?: Model): 
         pdf: false,
       },
       interleaved: false,
+      speed: false,
     },
     // existing wins
     family: prev?.family ?? remote.capabilities.family,

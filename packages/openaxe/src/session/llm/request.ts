@@ -194,7 +194,7 @@ export const prepare = Effect.fn("LLMRequestPrep.prepare")(function* (input: Pre
             "User-Agent": USER_AGENT,
           }),
       ...input.model.headers,
-      ...(speed?.request.headers ?? {}),
+      ...speed?.request.headers,
       ...headers,
     },
   }

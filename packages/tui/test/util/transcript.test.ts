@@ -22,6 +22,7 @@ const providers: Provider[] = [
         capabilities: {
           temperature: true,
           reasoning: true,
+          speed: false,
           attachment: true,
           toolcall: true,
           input: {
