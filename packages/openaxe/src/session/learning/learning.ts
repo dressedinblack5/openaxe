@@ -59,22 +59,6 @@ export const layer = Layer.effect(
       }
       const provider = providerOpt.value
 
-      const providerID = ProviderV2.ID.make(learning.provider ?? input.providerID)
-      const modelID = ModelV2.ID.make(learning.model ?? input.modelID)
-      yield* Effect.logInfo("learning: review started", { providerID, modelID })
-
-      const model = yield* provider.getModel(providerID, modelID).pipe(
-        Effect.tapError(() => Effect.logWarning("learning: model not found", { providerID, modelID })),
-        Effect.catch(() => Effect.succeed(undefined)),
-      )
-      if (!model) return
-
-      const language = yield* provider.getLanguage(model).pipe(
-        Effect.tapError(() => Effect.logWarning("learning: language model init failed", { providerID, modelID })),
-        Effect.catch(() => Effect.succeed(undefined)),
-      )
-      if (!language) return
-
       const systemPrompt = `You are a learning agent. Analyze the conversation turn below and identify if anything should be remembered for future interactions.
 
 Determine if:
@@ -90,19 +74,56 @@ Output ONLY valid JSON:
 
 If nothing worth learning, return empty arrays.`
 
-      const result = yield* Effect.tryPromise(() =>
-        generateText({
-          model: language,
-          system: systemPrompt,
-          prompt: `User:\n${input.userMessage}\n\nAssistant:\n${input.assistantMessage}`,
-          temperature: 0.1,
-        }),
-      ).pipe(
-        Effect.timeout("30 seconds"),
-        Effect.catch((err) =>
-          Effect.logWarning("learning: review failed", { error: String(err) }).pipe(Effect.as(undefined)),
-        ),
-      )
+      const result = yield* Effect.gen(function* () {
+        const candidates = [
+          { provider: learning.provider ?? input.providerID, model: learning.model ?? input.modelID },
+          ...(learning.fallback ?? []),
+        ]
+        for (const candidate of candidates) {
+          const providerID = ProviderV2.ID.make(candidate.provider)
+          const modelID = ModelV2.ID.make(candidate.model)
+          yield* Effect.logInfo("learning: review started", { providerID, modelID })
+
+          const model = yield* provider.getModel(providerID, modelID).pipe(
+            Effect.tapError(() => Effect.logWarning("learning: model not found", { providerID, modelID })),
+            Effect.catch(() => Effect.succeed(undefined)),
+          )
+          if (!model) continue
+
+          const language = yield* provider.getLanguage(model).pipe(
+            Effect.tapError(() => Effect.logWarning("learning: language model init failed", { providerID, modelID })),
+            Effect.catch(() => Effect.succeed(undefined)),
+          )
+          if (!language) continue
+
+          const attempt = yield* Effect.tryPromise(() =>
+            generateText({
+              model: language,
+              system: systemPrompt,
+              prompt: `User:\n${input.userMessage}\n\nAssistant:\n${input.assistantMessage}`,
+              temperature: 0.1,
+            }),
+          ).pipe(
+            Effect.timeout("30 seconds"),
+            Effect.catch((err) =>
+              Effect.logWarning("learning: review failed", {
+                error:
+                  err instanceof Error
+                    ? err.cause instanceof Error
+                      ? err.cause.message
+                      : typeof err.cause === "string"
+                        ? err.cause
+                        : err.message
+                    : JSON.stringify(err),
+                providerID,
+                modelID,
+              }).pipe(Effect.as(undefined)),
+            ),
+          )
+          if (attempt) return attempt
+        }
+        return undefined
+      })
       if (!result) return
 
       const text = result.text
