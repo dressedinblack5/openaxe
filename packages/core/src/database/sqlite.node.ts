@@ -1,16 +1,16 @@
-import { DatabaseSync, type SQLInputValue } from "node:sqlite"
+import { DatabaseSync, type SQLInputValue, type StatementSync } from "node:sqlite"
 import { drizzle } from "drizzle-orm/node-sqlite"
-import { get, getUnsafe } from "effect/Context";
+import { get, getUnsafe } from "effect/Context"
 import { Effect, Scope, Semaphore } from "effect"
-import { getCurrent } from "effect/Fiber";
+import { getCurrent } from "effect/Fiber"
 import { identity } from "effect/Function"
-import { effect, merge, provide } from "effect/Layer";
-import { die } from "effect/Stream";
+import { effect, merge, provide } from "effect/Layer"
+import { die } from "effect/Stream"
 import { layer as reactivityLayer } from "effect/unstable/reactivity/Reactivity"
 import { SqlClient, SafeIntegers, make as makeClient } from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
 import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
-import { defaultTransforms, makeCompilerSqlite } from "effect/unstable/sql/Statement";
+import { defaultTransforms, makeCompilerSqlite } from "effect/unstable/sql/Statement"
 import { Sqlite } from "./sqlite"
 import { withVec0 } from "./vec"
 
@@ -53,10 +53,27 @@ const make = (options: Config) =>
       ? defaultTransforms(options.transformResultNames).array
       : undefined
 
+    // Reuse compiled statements per query string — node:sqlite recompiles on
+    // every prepare(), and the session hot loop executes a bounded set of
+    // queries thousands of times. Statements are safe to re-bind + re-execute;
+    // per-call flags are reset below exactly as before.
+    const prepared = new Map<string, StatementSync>()
+    const prepare = (query: string) => {
+      let statement = prepared.get(query)
+      if (!statement) {
+        statement = native.prepare(query)
+        // ponytail: cap cache, clear-all on overflow — distinct queries are bounded in practice
+        if (prepared.size >= 500) prepared.clear()
+        prepared.set(query, statement)
+      }
+      return statement
+    }
+
     const run = (query: string, params: ReadonlyArray<unknown> = []) =>
       Effect.withFiber<Array<Record<string, unknown>>, SqlError>((fiber) => {
-        const statement = native.prepare(query)
+        const statement = prepare(query)
         statement.setReadBigInts(get(fiber.context, SafeIntegers))
+        statement.setReturnArrays(false)
         try {
           // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- node:sqlite bindings are driver-typed; Effect passes ReadonlyArray<unknown>.
           return Effect.succeed(statement.all(...(params as SQLInputValue[])) as Array<Record<string, unknown>>)
@@ -71,7 +88,7 @@ const make = (options: Config) =>
 
     const runValues = (query: string, params: ReadonlyArray<unknown> = []) =>
       Effect.withFiber<ReadonlyArray<ReadonlyArray<unknown>>, SqlError>((fiber) => {
-        const statement = native.prepare(query)
+        const statement = prepare(query)
         statement.setReadBigInts(get(fiber.context, SafeIntegers))
         statement.setReturnArrays(true)
         try {
@@ -178,7 +195,5 @@ const drizzleLayer = effect(
 
 export const layer = (config: Config) => {
   const native = nativeLayer(config)
-  return merge(native, merge(sqliteLayer(config), drizzleLayer).pipe(provide(native))).pipe(
-    provide(reactivityLayer),
-  )
+  return merge(native, merge(sqliteLayer(config), drizzleLayer).pipe(provide(native))).pipe(provide(reactivityLayer))
 }

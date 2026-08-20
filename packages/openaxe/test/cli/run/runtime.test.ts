@@ -23,6 +23,7 @@ const provider: RunProvider = {
       name: "Little Frank",
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,

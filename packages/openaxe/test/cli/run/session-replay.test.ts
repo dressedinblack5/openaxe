@@ -120,6 +120,7 @@ const provider = (name: string): RunProvider => ({
       name,
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,

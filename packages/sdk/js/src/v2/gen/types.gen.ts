@@ -193,6 +193,7 @@ export type Session = {
     id: string
     providerID: string
     variant?: string
+    speed?: string
   }
   version: string
   metadata?: {
@@ -247,6 +248,7 @@ export type UserMessage = {
     providerID: string
     modelID: string
     variant?: string
+    speed?: string
   }
   system?: string
   tools?: {
@@ -628,6 +630,7 @@ export type CompactionPart = {
   auto: boolean
   overflow?: boolean
   tail_start_id?: string
+  text?: string
 }
 
 export type Part =
@@ -845,6 +848,7 @@ export type GlobalEvent = {
             id: string
             providerID: string
             variant?: string
+            speed?: string
           }
         }
       }
@@ -933,6 +937,7 @@ export type GlobalEvent = {
             id: string
             providerID: string
             variant?: string
+            speed?: string
           }
           snapshot?: string
         }
@@ -1560,6 +1565,12 @@ export type GlobalEvent = {
         type: "session.compacted"
         properties: {
           sessionID: string
+          source?: "checkpoint" | "fresh"
+          timestamp?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+          tokensBefore?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+          tokensAfter?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+          summary?: string
+          transcriptPath?: string
         }
       }
     | {
@@ -2029,18 +2040,47 @@ export type Config = {
     tail_turns?: number
     preserve_recent_tokens?: number
     reserved?: number
+    structuredSummary?: boolean
+    breadcrumb?: boolean
+    threshold?: string
+    toolBudgeting?: {
+      enabled?: boolean
+      protectChars?: number
+      previewChars?: number
+    }
+    cacheAware?: {
+      enabled?: boolean
+      reanchorOnResponse?: boolean
+    }
+    background?: {
+      enabled?: boolean
+      /**
+       * Context utilization fraction that triggers pre-computation of a checkpoint (default: 0.60)
+       */
+      checkpointThreshold?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      /**
+       * Context utilization fraction above which the pre-computed checkpoint is swapped in (default: 0.85)
+       */
+      swapThreshold?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
   }
   experimental?: {
     disable_paste_summary?: boolean
     batch_tool?: boolean
     openTelemetry?: boolean
     primary_tools?: Array<string>
+    subagent_depth_limit?: number
     continue_loop_on_deny?: boolean
     mcp_timeout?: number
     policies?: Array<ConfigV2ExperimentalPolicy>
     learning?: {
       review?: boolean
+      provider?: string
       model?: string
+      fallback?: Array<{
+        provider: string
+        model: string
+      }>
     }
     compressor?: {
       enabled?: boolean
@@ -2051,6 +2091,370 @@ export type Config = {
 
 export type EffectHttpApiErrorBadRequest = {
   _tag: "BadRequest"
+}
+
+export type Config4 = {
+  $schema?: string
+  shell?: string
+  logLevel?: LogLevel
+  server?: ServerConfig
+  command?: {
+    [key: string]: {
+      template: string
+      description?: string
+      agent?: string
+      model?: string
+      variant?: string
+      subtask?: boolean
+    }
+  }
+  skills?: {
+    paths?: Array<string>
+    urls?: Array<string>
+  }
+  references?: {
+    [key: string]: string | ConfigV2ReferenceGit | ConfigV2ReferenceLocal
+  }
+  reference?: {
+    [key: string]: string | ConfigV2ReferenceGit | ConfigV2ReferenceLocal
+  }
+  watcher?: {
+    ignore?: Array<string>
+  }
+  snapshot?: boolean
+  plugin?: Array<
+    | string
+    | [
+        string,
+        {
+          [key: string]: unknown
+        },
+      ]
+  >
+  share?: "manual" | "auto" | "disabled"
+  autoshare?: boolean
+  /**
+   * Automatically update to the latest version. Set to true to auto-update, false to disable, or 'notify' to show update notifications
+   */
+  autoupdate?: boolean | "notify"
+  disabled_providers?: Array<string>
+  enabled_providers?: Array<string>
+  model?: string
+  small_model?: string
+  default_agent?: string
+  username?: string
+  mode?: {
+    build?: AgentConfig
+    plan?: AgentConfig
+    [key: string]: AgentConfig | undefined
+  }
+  agent?: {
+    plan?: AgentConfig
+    build?: AgentConfig
+    general?: AgentConfig
+    explore?: AgentConfig
+    title?: AgentConfig
+    summary?: AgentConfig
+    compaction?: AgentConfig
+    [key: string]: AgentConfig | undefined
+  }
+  provider?: {
+    [key: string]: ProviderConfig
+  }
+  mcp?: {
+    [key: string]:
+      | McpLocalConfig
+      | McpRemoteConfig
+      | {
+          enabled: boolean
+        }
+  }
+  /**
+   * Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
+   */
+  formatter?:
+    | boolean
+    | {
+        [key: string]: {
+          disabled?: boolean
+          command?: Array<string>
+          environment?: {
+            [key: string]: string
+          }
+          extensions?: Array<string>
+        }
+      }
+  /**
+   * Enable or configure LSP servers. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
+   */
+  lsp?:
+    | boolean
+    | {
+        [key: string]:
+          | {
+              disabled: true
+            }
+          | {
+              command: Array<string>
+              extensions?: Array<string>
+              disabled?: boolean
+              env?: {
+                [key: string]: string
+              }
+              initialization?: {
+                [key: string]: unknown
+              }
+            }
+      }
+  instructions?: Array<string>
+  layout?: LayoutConfig
+  permission?: PermissionConfig
+  tools?: {
+    [key: string]: boolean
+  }
+  attachment?: AttachmentConfig
+  enterprise?: {
+    url?: string
+  }
+  tool_output?: {
+    max_lines?: number
+    max_bytes?: number
+  }
+  compaction?: {
+    auto?: boolean
+    prune?: boolean
+    tail_turns?: number
+    preserve_recent_tokens?: number
+    reserved?: number
+    structuredSummary?: boolean
+    breadcrumb?: boolean
+    threshold?: string
+    toolBudgeting?: {
+      enabled?: boolean
+      protectChars?: number
+      previewChars?: number
+    }
+    cacheAware?: {
+      enabled?: boolean
+      reanchorOnResponse?: boolean
+    }
+    background?: {
+      enabled?: boolean
+      /**
+       * Context utilization fraction that triggers pre-computation of a checkpoint (default: 0.60)
+       */
+      checkpointThreshold?: number | "NaN" | "Infinity" | "-Infinity"
+      /**
+       * Context utilization fraction above which the pre-computed checkpoint is swapped in (default: 0.85)
+       */
+      swapThreshold?: number | "NaN" | "Infinity" | "-Infinity"
+    }
+  }
+  experimental?: {
+    disable_paste_summary?: boolean
+    batch_tool?: boolean
+    openTelemetry?: boolean
+    primary_tools?: Array<string>
+    subagent_depth_limit?: number
+    continue_loop_on_deny?: boolean
+    mcp_timeout?: number
+    policies?: Array<ConfigV2ExperimentalPolicy>
+    learning?: {
+      review?: boolean
+      provider?: string
+      model?: string
+      fallback?: Array<{
+        provider: string
+        model: string
+      }>
+    }
+    compressor?: {
+      enabled?: boolean
+      model?: string
+    }
+  }
+}
+
+export type Config5 = {
+  $schema?: string
+  shell?: string
+  logLevel?: LogLevel
+  server?: ServerConfig
+  command?: {
+    [key: string]: {
+      template: string
+      description?: string
+      agent?: string
+      model?: string
+      variant?: string
+      subtask?: boolean
+    }
+  }
+  skills?: {
+    paths?: Array<string>
+    urls?: Array<string>
+  }
+  references?: {
+    [key: string]: string | ConfigV2ReferenceGit | ConfigV2ReferenceLocal
+  }
+  reference?: {
+    [key: string]: string | ConfigV2ReferenceGit | ConfigV2ReferenceLocal
+  }
+  watcher?: {
+    ignore?: Array<string>
+  }
+  snapshot?: boolean
+  plugin?: Array<
+    | string
+    | [
+        string,
+        {
+          [key: string]: unknown
+        },
+      ]
+  >
+  share?: "manual" | "auto" | "disabled"
+  autoshare?: boolean
+  /**
+   * Automatically update to the latest version. Set to true to auto-update, false to disable, or 'notify' to show update notifications
+   */
+  autoupdate?: boolean | "notify"
+  disabled_providers?: Array<string>
+  enabled_providers?: Array<string>
+  model?: string
+  small_model?: string
+  default_agent?: string
+  username?: string
+  mode?: {
+    build?: AgentConfig
+    plan?: AgentConfig
+    [key: string]: AgentConfig | undefined
+  }
+  agent?: {
+    plan?: AgentConfig
+    build?: AgentConfig
+    general?: AgentConfig
+    explore?: AgentConfig
+    title?: AgentConfig
+    summary?: AgentConfig
+    compaction?: AgentConfig
+    [key: string]: AgentConfig | undefined
+  }
+  provider?: {
+    [key: string]: ProviderConfig
+  }
+  mcp?: {
+    [key: string]:
+      | McpLocalConfig
+      | McpRemoteConfig
+      | {
+          enabled: boolean
+        }
+  }
+  /**
+   * Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
+   */
+  formatter?:
+    | boolean
+    | {
+        [key: string]: {
+          disabled?: boolean
+          command?: Array<string>
+          environment?: {
+            [key: string]: string
+          }
+          extensions?: Array<string>
+        }
+      }
+  /**
+   * Enable or configure LSP servers. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
+   */
+  lsp?:
+    | boolean
+    | {
+        [key: string]:
+          | {
+              disabled: true
+            }
+          | {
+              command: Array<string>
+              extensions?: Array<string>
+              disabled?: boolean
+              env?: {
+                [key: string]: string
+              }
+              initialization?: {
+                [key: string]: unknown
+              }
+            }
+      }
+  instructions?: Array<string>
+  layout?: LayoutConfig
+  permission?: PermissionConfig
+  tools?: {
+    [key: string]: boolean
+  }
+  attachment?: AttachmentConfig
+  enterprise?: {
+    url?: string
+  }
+  tool_output?: {
+    max_lines?: number
+    max_bytes?: number
+  }
+  compaction?: {
+    auto?: boolean
+    prune?: boolean
+    tail_turns?: number
+    preserve_recent_tokens?: number
+    reserved?: number
+    structuredSummary?: boolean
+    breadcrumb?: boolean
+    threshold?: string
+    toolBudgeting?: {
+      enabled?: boolean
+      protectChars?: number
+      previewChars?: number
+    }
+    cacheAware?: {
+      enabled?: boolean
+      reanchorOnResponse?: boolean
+    }
+    background?: {
+      enabled?: boolean
+      /**
+       * Context utilization fraction that triggers pre-computation of a checkpoint (default: 0.60)
+       */
+      checkpointThreshold?: number | "NaN" | "Infinity" | "-Infinity"
+      /**
+       * Context utilization fraction above which the pre-computed checkpoint is swapped in (default: 0.85)
+       */
+      swapThreshold?: number | "NaN" | "Infinity" | "-Infinity"
+    }
+  }
+  experimental?: {
+    disable_paste_summary?: boolean
+    batch_tool?: boolean
+    openTelemetry?: boolean
+    primary_tools?: Array<string>
+    subagent_depth_limit?: number
+    continue_loop_on_deny?: boolean
+    mcp_timeout?: number
+    policies?: Array<ConfigV2ExperimentalPolicy>
+    learning?: {
+      review?: boolean
+      provider?: string
+      model?: string
+      fallback?: Array<{
+        provider: string
+        model: string
+      }>
+    }
+    compressor?: {
+      enabled?: boolean
+      model?: string
+    }
+  }
 }
 
 export type Model = {
@@ -2066,6 +2470,7 @@ export type Model = {
   capabilities: {
     temperature: boolean
     reasoning: boolean
+    speed: boolean
     attachment: boolean
     toolcall: boolean
     input: {
@@ -2134,6 +2539,18 @@ export type Model = {
       [key: string]: unknown
     }
   }
+  speeds?: Array<{
+    id: string
+    label: string
+    request: {
+      body?: {
+        [key: string]: unknown
+      }
+      headers?: {
+        [key: string]: string
+      }
+    }
+  }>
 }
 
 export type Provider = {
@@ -2245,6 +2662,7 @@ export type GlobalSession = {
     id: string
     providerID: string
     variant?: string
+    speed?: string
   }
   version: string
   metadata?: {
@@ -2907,6 +3325,13 @@ export type ArtifactStoreInput = {
   content: string
 }
 
+export type SearchHit = {
+  sessionId: string
+  messageId: string
+  content: string
+  score: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
 export type EffectHttpApiErrorForbidden = {
   _tag: "Forbidden"
 }
@@ -3230,6 +3655,7 @@ export type SyncEventSessionNextModelSwitched = {
         id: string
         providerID: string
         variant?: string
+        speed?: string
       }
     }
   }
@@ -3374,6 +3800,7 @@ export type SyncEventSessionNextStepStarted = {
         id: string
         providerID: string
         variant?: string
+        speed?: string
       }
       snapshot?: string
     }
@@ -3753,6 +4180,7 @@ export type AgentV2Info = {
     id: string
     providerID: string
     variant?: string
+    speed?: string
   }
   request: {
     headers: {
@@ -3780,6 +4208,7 @@ export type SessionV2Info = {
     id: string
     providerID: string
     variant?: string
+    speed?: string
   }
   cost: number
   tokens: {
@@ -3836,6 +4265,7 @@ export type SessionMessageModelSwitched = {
     id: string
     providerID: string
     variant?: string
+    speed?: string
   }
 }
 
@@ -3998,6 +4428,7 @@ export type SessionMessageAssistant = {
     id: string
     providerID: string
     variant?: string
+    speed?: string
   }
   content: Array<SessionMessageAssistantText | SessionMessageAssistantReasoning | SessionMessageAssistantTool>
   snapshot?: {
@@ -4069,6 +4500,7 @@ export type ModelV2Info = {
     tools: boolean
     input: Array<string>
     output: Array<string>
+    speed?: boolean
   }
   request: {
     headers: {
@@ -4081,6 +4513,16 @@ export type ModelV2Info = {
   }
   variants: Array<{
     id: string
+    headers: {
+      [key: string]: string
+    }
+    body: {
+      [key: string]: unknown
+    }
+  }>
+  speeds: Array<{
+    id: string
+    label: string
     headers: {
       [key: string]: string
     }
@@ -4250,6 +4692,7 @@ export type CommandV2Info = {
     id: string
     providerID: string
     variant?: string
+    speed?: string
   }
   subtask?: boolean
 }
@@ -4498,6 +4941,7 @@ export type V2EventSessionNextModelSwitched = {
       id: string
       providerID: string
       variant?: string
+      speed?: string
     }
   }
 }
@@ -4666,6 +5110,7 @@ export type V2EventSessionNextStepStarted = {
       id: string
       providerID: string
       variant?: string
+      speed?: string
     }
     snapshot?: string
   }
@@ -5853,6 +6298,12 @@ export type V2EventSessionCompacted = {
   type: "session.compacted"
   data: {
     sessionID: string
+    source?: "checkpoint" | "fresh"
+    timestamp?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    tokensBefore?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    tokensAfter?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    summary?: string
+    transcriptPath?: string
   }
 }
 
@@ -6157,6 +6608,7 @@ export type EventSessionNextModelSwitched = {
       id: string
       providerID: string
       variant?: string
+      speed?: string
     }
   }
 }
@@ -6253,6 +6705,7 @@ export type EventSessionNextStepStarted = {
       id: string
       providerID: string
       variant?: string
+      speed?: string
     }
     snapshot?: string
   }
@@ -6881,6 +7334,12 @@ export type EventSessionCompacted = {
   type: "session.compacted"
   properties: {
     sessionID: string
+    source?: "checkpoint" | "fresh"
+    timestamp?: number | "NaN" | "Infinity" | "-Infinity"
+    tokensBefore?: number | "NaN" | "Infinity" | "-Infinity"
+    tokensAfter?: number | "NaN" | "Infinity" | "-Infinity"
+    summary?: string
+    transcriptPath?: string
   }
 }
 
@@ -7332,7 +7791,7 @@ export type ConfigGetResponses = {
 export type ConfigGetResponse = ConfigGetResponses[keyof ConfigGetResponses]
 
 export type ConfigUpdateData = {
-  body?: Config
+  body?: Config4
   path?: never
   query?: {
     directory?: string
@@ -7354,7 +7813,7 @@ export type ConfigUpdateResponses = {
   /**
    * Successfully updated config
    */
-  200: Config
+  200: Config5
 }
 
 export type ConfigUpdateResponse = ConfigUpdateResponses[keyof ConfigUpdateResponses]
@@ -9512,6 +9971,7 @@ export type SessionCreateData = {
       id: string
       providerID: string
       variant?: string
+      speed?: string
     }
     metadata?: {
       [key: string]: unknown
@@ -9830,6 +10290,7 @@ export type SessionPromptData = {
     model?: {
       providerID: string
       modelID: string
+      speed?: string
     }
     agent?: string
     noReply?: boolean
@@ -10211,6 +10672,7 @@ export type SessionPromptAsyncData = {
     model?: {
       providerID: string
       modelID: string
+      speed?: string
     }
     agent?: string
     noReply?: boolean
@@ -10259,6 +10721,7 @@ export type SessionCommandData = {
     messageID?: string
     agent?: string
     model?: string
+    speed?: string
     arguments: string
     command: string
     variant?: string
@@ -10313,6 +10776,7 @@ export type SessionShellData = {
     model?: {
       providerID: string
       modelID: string
+      speed?: string
     }
     command: string
   }
@@ -11444,6 +11908,7 @@ export type V2SessionCreateData = {
       id: string
       providerID: string
       variant?: string
+      speed?: string
     }
     location?: LocationRef
   }
@@ -11556,6 +12021,7 @@ export type V2SessionSwitchModelData = {
       id: string
       providerID: string
       variant?: string
+      speed?: string
     }
   }
   path: {
@@ -13425,6 +13891,95 @@ export type V2MemoryGetResponses = {
    */
   200: unknown
 }
+
+export type V2SessionSearchData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query: {
+    /**
+     * Natural-language query to match against past session messages
+     */
+    q: string
+    k?: string
+  }
+  url: "/api/session/{sessionID}/search"
+}
+
+export type V2SessionSearchErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+  /**
+   * SessionNotFoundError
+   */
+  404: SessionNotFoundError
+  /**
+   * ServiceUnavailableError
+   */
+  503: ServiceUnavailableError
+}
+
+export type V2SessionSearchError = V2SessionSearchErrors[keyof V2SessionSearchErrors]
+
+export type V2SessionSearchResponses = {
+  /**
+   * Success
+   */
+  200: {
+    results: Array<SearchHit>
+  }
+}
+
+export type V2SessionSearchResponse = V2SessionSearchResponses[keyof V2SessionSearchResponses]
+
+export type V2SearchGlobalData = {
+  body?: never
+  path?: never
+  query: {
+    /**
+     * Natural-language query to match against past session messages
+     */
+    q: string
+    k?: string
+    projectId?: string
+  }
+  url: "/api/search"
+}
+
+export type V2SearchGlobalErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+  /**
+   * ServiceUnavailableError
+   */
+  503: ServiceUnavailableError
+}
+
+export type V2SearchGlobalError = V2SearchGlobalErrors[keyof V2SearchGlobalErrors]
+
+export type V2SearchGlobalResponses = {
+  /**
+   * Success
+   */
+  200: {
+    results: Array<SearchHit>
+  }
+}
+
+export type V2SearchGlobalResponse = V2SearchGlobalResponses[keyof V2SearchGlobalResponses]
 
 export type PtyConnectData = {
   body?: never

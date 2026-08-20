@@ -1663,6 +1663,7 @@ export const defaultLayer = Layer.suspend(() =>
 const ModelRef = Schema.Struct({
   providerID: ProviderV2.ID,
   modelID: ModelV2.ID,
+  speed: Schema.optional(Schema.String),
 })
 
 export const PromptInput = Schema.Struct({
@@ -1707,6 +1708,7 @@ export const CommandInput = Schema.Struct({
   sessionID: SessionID,
   agent: Schema.optional(Schema.String),
   model: Schema.optional(Schema.String),
+  speed: Schema.optional(Schema.String),
   arguments: Schema.String,
   command: Schema.String,
   variant: Schema.optional(Schema.String),

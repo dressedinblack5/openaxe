@@ -17,6 +17,7 @@ function model(id: string, providerID: string, context: number, variants?: Recor
     name: id,
     capabilities: {
       temperature: true,
+      speed: false,
       reasoning: true,
       attachment: true,
       toolcall: true,

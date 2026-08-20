@@ -25,12 +25,15 @@ test("preserves temperature support from existing provider models", async () => 
                   max_context_window_tokens: 64000,
                   max_output_tokens: 16384,
                   max_prompt_tokens: 64000,
-                },
+                  speed: false
+},
                 supports: {
                   streaming: true,
                   tool_calls: true,
-                },
-              },
+                  speed: false
+},
+                speed: false
+},
             },
             {
               model_picker_enabled: true,
@@ -43,12 +46,15 @@ test("preserves temperature support from existing provider models", async () => 
                   max_context_window_tokens: 32000,
                   max_output_tokens: 8192,
                   max_prompt_tokens: 32000,
-                },
+                  speed: false
+},
                 supports: {
                   streaming: true,
                   tool_calls: false,
-                },
-              },
+                  speed: false
+},
+                speed: false
+},
             },
           ],
         }),
@@ -73,6 +79,7 @@ test("preserves temperature support from existing provider models", async () => 
         family: "gpt",
         capabilities: {
           temperature: true,
+      speed: false,
           reasoning: false,
           attachment: true,
           toolcall: true,
@@ -145,12 +152,15 @@ test("converts Copilot AIC token prices to USD per million tokens", async () => 
                   max_context_window_tokens: 200000,
                   max_output_tokens: 16384,
                   max_prompt_tokens: 200000,
-                },
+                  speed: false
+},
                 supports: {
                   streaming: true,
                   tool_calls: true,
-                },
-              },
+                  speed: false
+},
+                speed: false
+},
             },
             {
               model_picker_enabled: true,
@@ -159,8 +169,10 @@ test("converts Copilot AIC token prices to USD per million tokens", async () => 
               version: "incomplete-internal-model-2026-06-01",
               capabilities: {
                 family: "internal",
-                supports: {},
-              },
+                supports: {  speed: false
+},
+                speed: false
+},
             },
             {
               model_picker_enabled: false,
@@ -205,13 +217,16 @@ test("clears existing variants so refreshed models calculate provider-specific v
                   max_context_window_tokens: 144000,
                   max_output_tokens: 64000,
                   max_prompt_tokens: 128000,
-                },
+                  speed: false
+},
                 supports: {
                   adaptive_thinking: true,
                   streaming: true,
                   tool_calls: true,
-                },
-              },
+                  speed: false
+},
+                speed: false
+},
             },
           ],
         }),
@@ -236,6 +251,7 @@ test("clears existing variants so refreshed models calculate provider-specific v
         family: "claude-opus",
         capabilities: {
           temperature: true,
+      speed: false,
           reasoning: true,
           attachment: true,
           toolcall: true,

@@ -26,7 +26,7 @@ export function DialogConfigureAgent() {
       <DialogModel
         onModelSelect={(providerID, modelID) => {
           const model = `${providerID}/${modelID}`
-          void sdk.client.config.update({ config: { agent: { [agentName]: { model } } } }).then((result) => {
+          void sdk.client.config.update({ config4: { agent: { [agentName]: { model } } } }).then((result) => {
             if (result.error) {
               toast.show({
                 variant: "error",

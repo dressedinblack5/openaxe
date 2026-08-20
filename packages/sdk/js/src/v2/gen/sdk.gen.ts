@@ -19,6 +19,7 @@ import type {
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
+  Config4,
   ConfigGetErrors,
   ConfigGetResponses,
   ConfigProvidersErrors,
@@ -352,6 +353,8 @@ import type {
   V2QuestionRequestListResponses,
   V2ReferenceListErrors,
   V2ReferenceListResponses,
+  V2SearchGlobalErrors,
+  V2SearchGlobalResponses,
   V2SessionCompactErrors,
   V2SessionCompactResponses,
   V2SessionContextErrors,
@@ -376,6 +379,8 @@ import type {
   V2SessionQuestionRejectResponses,
   V2SessionQuestionReplyErrors,
   V2SessionQuestionReplyResponses,
+  V2SessionSearchErrors,
+  V2SessionSearchResponses,
   V2SessionSwitchAgentErrors,
   V2SessionSwitchAgentResponses,
   V2SessionSwitchModelErrors,
@@ -1453,7 +1458,7 @@ export class Config2 extends HeyApiClient {
     parameters?: {
       directory?: string
       workspace?: string
-      config?: Config3
+      config4?: Config4
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1464,7 +1469,7 @@ export class Config2 extends HeyApiClient {
           args: [
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
-            { key: "config", map: "body" },
+            { key: "config4", map: "body" },
           ],
         },
       ],
@@ -3557,6 +3562,7 @@ export class Session2 extends HeyApiClient {
         id: string
         providerID: string
         variant?: string
+        speed?: string
       }
       metadata?: {
         [key: string]: unknown
@@ -3887,6 +3893,7 @@ export class Session2 extends HeyApiClient {
       model?: {
         providerID: string
         modelID: string
+        speed?: string
       }
       agent?: string
       noReply?: boolean
@@ -4272,6 +4279,7 @@ export class Session2 extends HeyApiClient {
       model?: {
         providerID: string
         modelID: string
+        speed?: string
       }
       agent?: string
       noReply?: boolean
@@ -4331,6 +4339,7 @@ export class Session2 extends HeyApiClient {
       messageID?: string
       agent?: string
       model?: string
+      speed?: string
       arguments?: string
       command?: string
       variant?: string
@@ -4356,6 +4365,7 @@ export class Session2 extends HeyApiClient {
             { in: "body", key: "messageID" },
             { in: "body", key: "agent" },
             { in: "body", key: "model" },
+            { in: "body", key: "speed" },
             { in: "body", key: "arguments" },
             { in: "body", key: "command" },
             { in: "body", key: "variant" },
@@ -4391,6 +4401,7 @@ export class Session2 extends HeyApiClient {
       model?: {
         providerID: string
         modelID: string
+        speed?: string
       }
       command?: string
     },
@@ -5494,6 +5505,7 @@ export class Session3 extends HeyApiClient {
         id: string
         providerID: string
         variant?: string
+        speed?: string
       }
       location?: LocationRef
     },
@@ -5594,6 +5606,7 @@ export class Session3 extends HeyApiClient {
         id: string
         providerID: string
         variant?: string
+        speed?: string
       }
     },
     options?: Options<never, ThrowOnError>,
@@ -5752,6 +5765,38 @@ export class Session3 extends HeyApiClient {
     )
     return (options?.client ?? this.client).get<V2SessionMessagesResponses, V2SessionMessagesErrors, ThrowOnError>({
       url: "/api/session/{sessionID}/message",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Semantic search within a session
+   *
+   * Embed the query and return the k most semantically relevant messages in the session, ordered by relevance (lower cosine distance first).
+   */
+  public search<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      q: string
+      k?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "q" },
+            { in: "query", key: "k" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<V2SessionSearchResponses, V2SessionSearchErrors, ThrowOnError>({
+      url: "/api/session/{sessionID}/search",
       ...options,
       ...params,
     })
@@ -7094,6 +7139,40 @@ export class Memory2 extends HeyApiClient {
   }
 }
 
+export class Search extends HeyApiClient {
+  /**
+   * Semantic search across a project
+   *
+   * Embed the query and return the k most semantically relevant messages across all sessions in the project, ordered by relevance.
+   */
+  public global<ThrowOnError extends boolean = false>(
+    parameters: {
+      q: string
+      k?: string
+      projectId?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "q" },
+            { in: "query", key: "k" },
+            { in: "query", key: "projectId" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<V2SearchGlobalResponses, V2SearchGlobalErrors, ThrowOnError>({
+      url: "/api/search",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class V2 extends HeyApiClient {
   private _health?: Health
   get health(): Health {
@@ -7188,6 +7267,11 @@ export class V2 extends HeyApiClient {
   private _memory?: Memory2
   get memory(): Memory2 {
     return (this._memory ??= new Memory2({ client: this.client }))
+  }
+
+  private _search?: Search
+  get search(): Search {
+    return (this._search ??= new Search({ client: this.client }))
   }
 }
 

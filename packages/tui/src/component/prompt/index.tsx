@@ -958,12 +958,12 @@ export function Prompt(props: PromptProps) {
     if (!agent) return false
     const trimmed = store.prompt.input.trim()
     if (trimmed === "exit" || trimmed === "quit" || trimmed === ":q") {
-       exit()
+      exit()
       return true
     }
     const selectedModel = local.model.current()
     if (!selectedModel) {
-       promptModelWarning()
+      promptModelWarning()
       return false
     }
 
@@ -983,6 +983,7 @@ export function Prompt(props: PromptProps) {
     }
 
     const variant = local.model.variant.current()
+    const speed = local.model.speed.current()
     let sessionID = props.sessionID
     let finishMoveProgress = false
     if (sessionID == null) {
@@ -1001,6 +1002,7 @@ export function Prompt(props: PromptProps) {
           providerID: selectedModel.providerID,
           id: selectedModel.modelID,
           variant,
+          speed,
         },
       })
 
@@ -1083,6 +1085,7 @@ export function Prompt(props: PromptProps) {
         agent: agent.name,
         model: `${selectedModel.providerID}/${selectedModel.modelID}`,
         variant,
+        speed,
         parts: nonTextParts.filter((x) => x.type === "file"),
       })
     } else {
@@ -1093,7 +1096,7 @@ export function Prompt(props: PromptProps) {
             sessionID,
             ...selectedModel,
             agent: agent.name,
-            model: selectedModel,
+            model: { ...selectedModel, speed },
             variant,
             parts: [
               ...editorParts,
@@ -1339,7 +1342,6 @@ export function Prompt(props: PromptProps) {
     }
   })
   const maxHeight = createMemo(() => tuiConfig.prompt?.max_height ?? Math.max(6, Math.floor(dimensions().height / 3)))
-  
 
   return (
     <>
@@ -1387,7 +1389,7 @@ export function Prompt(props: PromptProps) {
               onSubmit={() => {
                 // IME: double-defer so the last composed character (e.g. Korean
                 // hangul) is flushed to plainText before we read it for submission.
-                setTimeout(() => setTimeout( async () => submit(), 0), 0)
+                setTimeout(() => setTimeout(async () => submit(), 0), 0)
               }}
               onPaste={async (event: PasteEvent) => {
                 if (props.disabled) {

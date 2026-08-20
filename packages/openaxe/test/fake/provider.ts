@@ -11,6 +11,7 @@ export function model(override: Partial<Provider.Model> = {}): Provider.Model {
     providerID,
     name: "Test Model",
     capabilities: {
+      speed: false,
       toolcall: true,
       attachment: false,
       reasoning: false,

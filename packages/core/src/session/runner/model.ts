@@ -50,6 +50,19 @@ export class VariantUnavailableError extends Schema.TaggedErrorClass<VariantUnav
   }
 }
 
+export class SpeedUnavailableError extends Schema.TaggedErrorClass<SpeedUnavailableError>()(
+  "SessionRunnerModel.SpeedUnavailableError",
+  {
+    providerID: ProviderV2.ID,
+    modelID: ModelV2.ID,
+    speed: Schema.String,
+  },
+) {
+  override get message() {
+    return `Speed unavailable for ${this.providerID}/${this.modelID}: ${this.speed}`
+  }
+}
+
 export class UnsupportedApiError extends Schema.TaggedErrorClass<UnsupportedApiError>()(
   "SessionRunnerModel.UnsupportedApiError",
   {
@@ -67,6 +80,7 @@ export type Error =
   | NoModelAvailableError
   | ModelUnavailableError
   | VariantUnavailableError
+  | SpeedUnavailableError
   | UnsupportedApiError
   | Integration.AuthorizationError
 
@@ -128,6 +142,29 @@ const withVariant = (
   )
 }
 
+const withSpeed = (
+  model: ModelV2.Info,
+  speedID: string | undefined,
+): Effect.Effect<ModelV2.Info, SpeedUnavailableError> => {
+  const speed = speedID === undefined ? undefined : model.speeds.find((item) => item.id === speedID)
+  if (!speed && speedID !== undefined)
+    return Effect.fail(
+      new SpeedUnavailableError({
+        providerID: model.providerID,
+        modelID: model.id,
+        speed: speedID,
+      }),
+    )
+  return Effect.succeed(
+    speed
+      ? produce(model, (draft) => {
+          Object.assign(draft.request.headers, speed.headers)
+          Object.assign(draft.request.body, speed.body)
+        })
+      : model,
+  )
+}
+
 const apiName = (model: ModelV2.Info) =>
   model.api.type === "aisdk" ? `${model.api.type}:${model.api.package}` : model.api.type
 
@@ -173,7 +210,9 @@ export const fromCatalogModel = (
 }
 
 export const resolve = (session: SessionSchema.Info, model: ModelV2.Info, credential?: Credential.Value) =>
-  withVariant(model, session.model?.variant).pipe(Effect.flatMap((model) => fromCatalogModel(model, credential)))
+  withVariant(model, session.model?.variant)
+    .pipe(Effect.flatMap((model) => withSpeed(model, session.model?.speed)))
+    .pipe(Effect.flatMap((model) => fromCatalogModel(model, credential)))
 
 export const supported = (model: ModelV2.Info) =>
   model.api.type === "aisdk" &&

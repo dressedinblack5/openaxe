@@ -122,6 +122,7 @@ describe("GitLab Duo: workflow model routing", () => {
             limit: { context: 200000, output: 64000 },
             capabilities: {
               temperature: false,
+      speed: false,
               reasoning: true,
               attachment: true,
               toolcall: true,

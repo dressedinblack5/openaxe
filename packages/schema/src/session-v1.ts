@@ -433,6 +433,7 @@ export const User = Schema.Struct({
     providerID: Provider.ID,
     modelID: Model.ID,
     variant: Schema.optional(Schema.String),
+    speed: Schema.optional(Schema.String),
   }),
   system: Schema.optional(Schema.String),
   tools: Schema.optional(Schema.Record(Schema.String, Schema.Boolean)),
@@ -654,6 +655,7 @@ const SessionModel = Schema.Struct({
   id: Model.ID,
   providerID: Provider.ID,
   variant: optionalOmitUndefined(Schema.String),
+  speed: optionalOmitUndefined(Schema.String),
 })
 
 export const SessionInfo = Schema.Struct({

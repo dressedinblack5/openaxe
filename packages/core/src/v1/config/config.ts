@@ -251,6 +251,16 @@ export const Info = Schema.Struct({
           model: Schema.optional(Schema.String).annotate({
             description: "Optional separate model for learning reviews (defaults to agent model)",
           }),
+          fallback: Schema.optional(
+            Schema.Array(
+              Schema.Struct({
+                provider: Schema.String,
+                model: Schema.String,
+              }),
+            ),
+          ).annotate({
+            description: "Fallback provider/model pairs tried in order when the primary learning review model fails",
+          }),
         }),
       ),
       compressor: Schema.optional(

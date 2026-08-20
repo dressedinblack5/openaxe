@@ -39,6 +39,7 @@ const providers: RunProvider[] = [
         name: "GPT-5",
         capabilities: {
           temperature: true,
+      speed: false,
           reasoning: true,
           attachment: true,
           toolcall: true,

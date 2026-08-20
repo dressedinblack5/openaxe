@@ -14,6 +14,7 @@ export const Ref = Schema.Struct({
   id: ID,
   providerID: Provider.ID,
   variant: VariantID.pipe(Schema.optional),
+  speed: Schema.String.pipe(Schema.optional),
 })
 export type Ref = typeof Ref.Type
 
@@ -25,6 +26,7 @@ export const Capabilities = Schema.Struct({
   tools: Schema.Boolean,
   input: Schema.String.pipe(Schema.Array, Schema.mutable),
   output: Schema.String.pipe(Schema.Array, Schema.mutable),
+  speed: Schema.Boolean.pipe(Schema.optional),
 })
 
 export interface Cost extends Schema.Schema.Type<typeof Cost> {}
@@ -69,6 +71,11 @@ export const Info = Schema.Struct({
     id: VariantID,
     ...Provider.Request.fields,
   }).pipe(Schema.Array, Schema.mutable),
+  speeds: Schema.Struct({
+    id: Schema.String,
+    label: Schema.String,
+    ...Provider.Request.fields,
+  }).pipe(Schema.Array, Schema.mutable),
   time: Schema.Struct({
     released: Schema.Finite,
   }),
@@ -93,6 +100,7 @@ export const Info = Schema.Struct({
           capabilities: { tools: false, input: [], output: [] },
           request: { headers: {}, body: {} },
           variants: [],
+          speeds: [],
           time: { released: 0 },
           cost: [],
           status: "active",

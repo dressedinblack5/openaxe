@@ -1039,6 +1039,19 @@ export function variants(model: ProviderModel): Record<string, Record<string, an
   return {}
 }
 
+export function speeds(model: ProviderModel): Record<string, Record<string, any>> {
+  if (!model.capabilities.speed) return {}
+  return Object.fromEntries(
+    (model.speeds ?? []).map((tier) => [
+      tier.id,
+      {
+        ...tier.request.body,
+        ...(tier.request.headers ? { headers: tier.request.headers } : {}),
+      },
+    ]),
+  )
+}
+
 export function options(input: {
   model: ProviderModel
   sessionID: string
@@ -1373,7 +1386,20 @@ function sanitizeOpenAISchema(value: unknown): unknown {
   return result
 }
 
+// schema() is a pure function of (model, schema) called per provider turn for
+// every tool. The input schema object from ToolJsonSchema.fromTool is stable
+// (WeakMap-cached by parameters Schema), and the output depends only on three
+// model fields — cache by (input identity, model key). Consumers treat the
+// result as immutable (ai's jsonSchema wraps it), so sharing across turns is
+// safe; callers that pass fresh literal schemas simply miss and recompute.
+const schemaCache = new WeakMap<JSONSchema7, Map<string, JSONSchema7>>()
+
 export function schema(model: ProviderModel, schema: JSONSchema7): JSONSchema7 {
+  const modelKey = `${model.api.npm}|${model.providerID}|${model.api.id.toLowerCase()}`
+  const cached = schemaCache.get(schema)?.get(modelKey)
+  if (cached) return cached
+  const inputSchema = schema
+
   /*
   if (["openai", "azure"].includes(providerID)) {
     if (schema.type === "object" && schema.properties) {
@@ -1511,6 +1537,13 @@ export function schema(model: ProviderModel, schema: JSONSchema7): JSONSchema7 {
 
     schema = sanitizeGemini(schema)
   }
+
+  let byModel = schemaCache.get(inputSchema)
+  if (!byModel) {
+    byModel = new Map()
+    schemaCache.set(inputSchema, byModel)
+  }
+  byModel.set(modelKey, schema)
 
   return schema
 }
