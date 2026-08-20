@@ -64,6 +64,7 @@ const cfModel = (apiId: string, releaseDate = "2026-03-05"): Provider.Model => (
   capabilities: {
     reasoning: true,
     temperature: false,
+      speed: false,
     attachment: true,
     toolcall: true,
     input: { text: true, audio: false, image: true, video: false, pdf: true },

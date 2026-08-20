@@ -19,6 +19,7 @@ describe("ProviderTransform.options - setCacheKey", () => {
     name: "Claude 3.5 Sonnet",
     capabilities: {
       temperature: true,
+      speed: false,
       reasoning: false,
       attachment: true,
       toolcall: true,
@@ -138,6 +139,7 @@ describe("ProviderTransform.options - zai/zhipuai thinking", () => {
       name: "GLM 4.6",
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -223,6 +225,7 @@ describe("ProviderTransform.options - google thinkingConfig gating", () => {
       name: "Gemini 2.0 Flash",
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning,
         attachment: true,
         toolcall: true,
@@ -289,6 +292,7 @@ describe("ProviderTransform.options - gpt-5 textVerbosity", () => {
       name: apiId,
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -453,6 +457,7 @@ describe("ProviderTransform.options - gpt-5 reasoningEffort", () => {
       name: apiId,
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -522,6 +527,7 @@ describe("ProviderTransform.options - gateway", () => {
       name: id,
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -568,6 +574,7 @@ describe("ProviderTransform.providerOptions", () => {
       name: "Test Model",
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -1529,6 +1536,7 @@ describe("ProviderTransform.message - DeepSeek reasoning content", () => {
         name: "DeepSeek Chat",
         capabilities: {
           temperature: true,
+      speed: false,
           reasoning: true,
           attachment: false,
           toolcall: true,
@@ -1591,6 +1599,7 @@ describe("ProviderTransform.message - DeepSeek reasoning content", () => {
         name: "GPT-4",
         capabilities: {
           temperature: true,
+      speed: false,
           reasoning: false,
           attachment: true,
           toolcall: true,
@@ -1635,6 +1644,7 @@ describe("ProviderTransform.message - surrogate sanitization", () => {
     name: "Test Model",
     capabilities: {
       temperature: true,
+      speed: false,
       reasoning: true,
       attachment: true,
       toolcall: true,
@@ -1747,6 +1757,7 @@ describe("ProviderTransform.message - empty image handling", () => {
     name: "Claude 3.5 Sonnet",
     capabilities: {
       temperature: true,
+      speed: false,
       reasoning: false,
       attachment: true,
       toolcall: true,
@@ -1850,6 +1861,7 @@ describe("ProviderTransform.message - anthropic empty content filtering", () => 
     name: "Claude 3.5 Sonnet",
     capabilities: {
       temperature: true,
+      speed: false,
       reasoning: false,
       attachment: true,
       toolcall: true,
@@ -2079,6 +2091,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
     name: "GPT-5",
     capabilities: {
       temperature: true,
+      speed: false,
       reasoning: true,
       attachment: true,
       toolcall: true,
@@ -2440,6 +2453,7 @@ describe("ProviderTransform.message - providerOptions key remapping", () => {
       name: "Test Model",
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning: false,
         attachment: true,
         toolcall: true,
@@ -2549,7 +2563,7 @@ describe("ProviderTransform.message - claude w/bedrock custom inference profile"
         npm: "@ai-sdk/amazon-bedrock",
       },
       name: "Custom inference profile",
-      capabilities: {},
+      capabilities: { speed: false },
       options: {},
       headers: {},
     } as any
@@ -2584,7 +2598,7 @@ describe("ProviderTransform.message - bedrock caching with non-bedrock providerI
         npm: "@ai-sdk/amazon-bedrock",
       },
       name: "Claude Opus 4.6",
-      capabilities: {},
+      capabilities: { speed: false },
       options: {},
       headers: {},
     } as any
@@ -2623,6 +2637,7 @@ describe("ProviderTransform.message - cache control on gateway", () => {
       name: "Claude Sonnet 4",
       capabilities: {
         temperature: true,
+      speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -2789,6 +2804,7 @@ describe("ProviderTransform.variants", () => {
     name: "Test Model",
     capabilities: {
       temperature: true,
+      speed: false,
       reasoning: true,
       attachment: true,
       toolcall: true,
@@ -4479,6 +4495,7 @@ describe("ProviderTransform.providerOptions - ai-gateway-provider", () => {
       },
       capabilities: {
         temperature: false,
+      speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,

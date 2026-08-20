@@ -26,6 +26,7 @@ const model = (providerID: ProviderV2.ID, id: string, variants?: Directory.Model
   family: "test",
   capabilities: {
     temperature: true,
+      speed: false,
     reasoning: Boolean(variants),
     attachment: false,
     toolcall: true,

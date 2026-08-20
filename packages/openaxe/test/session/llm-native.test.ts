@@ -23,6 +23,7 @@ const baseModel: Provider.Model = {
   name: "GPT-5 Mini",
   capabilities: {
     temperature: true,
+      speed: false,
     reasoning: true,
     attachment: true,
     toolcall: true,

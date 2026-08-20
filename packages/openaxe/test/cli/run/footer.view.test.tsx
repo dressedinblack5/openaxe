@@ -65,6 +65,7 @@ function model(input: {
     name: input.name,
     capabilities: {
       temperature: true,
+      speed: false,
       reasoning: true,
       attachment: true,
       toolcall: true,

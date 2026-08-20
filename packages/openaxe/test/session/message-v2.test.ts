@@ -23,6 +23,7 @@ const model: Provider.Model = {
   name: "Test Model",
   capabilities: {
     temperature: true,
+      speed: false,
     reasoning: false,
     attachment: false,
     toolcall: true,
