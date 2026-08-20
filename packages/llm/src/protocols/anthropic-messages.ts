@@ -19,7 +19,7 @@ import {
 } from "../schema"
 import { JsonObject, optionalArray, optionalNull, ProviderShared } from "./shared"
 import { isContextOverflow } from "../provider-error"
-import { type Breakpoints, newBreakpoints, ttlBucket } from "./utils/cache";
+import { type Breakpoints, newBreakpoints, ttlBucket } from "./utils/cache"
 import { Lifecycle } from "./utils/lifecycle"
 import { ToolStream } from "./utils/tool-stream"
 
@@ -164,6 +164,7 @@ const AnthropicBodyFields = {
   top_k: Schema.optional(Schema.Number),
   stop_sequences: optionalArray(Schema.String),
   thinking: Schema.optional(AnthropicThinking),
+  speed: Schema.optional(Schema.Literals(["fast", "standard"])),
 }
 const AnthropicMessagesBody = Schema.Struct(AnthropicBodyFields)
 export type AnthropicMessagesBody = Schema.Schema.Type<typeof AnthropicMessagesBody>
@@ -526,6 +527,7 @@ const fromRequest = Effect.fn("AnthropicMessages.fromRequest")(function* (reques
       `Anthropic Messages: dropped ${breakpoints.dropped} cache breakpoint(s); the API allows at most ${ANTHROPIC_BREAKPOINT_CAP} per request.`,
     )
   }
+  const speed = anthropicOptions(request)?.speed
   return {
     model: request.model.id,
     system,
@@ -539,6 +541,7 @@ const fromRequest = Effect.fn("AnthropicMessages.fromRequest")(function* (reques
     top_k: generation?.topK,
     stop_sequences: generation?.stop,
     thinking: yield* lowerThinking(request),
+    speed,
   }
 })
 

@@ -1039,6 +1039,19 @@ export function variants(model: ProviderModel): Record<string, Record<string, an
   return {}
 }
 
+export function speeds(model: ProviderModel): Record<string, Record<string, any>> {
+  if (!model.capabilities.speed) return {}
+  return Object.fromEntries(
+    (model.speeds ?? []).map((tier) => [
+      tier.id,
+      {
+        ...tier.request.body,
+        ...(tier.request.headers ? { headers: tier.request.headers } : {}),
+      },
+    ]),
+  )
+}
+
 export function options(input: {
   model: ProviderModel
   sessionID: string

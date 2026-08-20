@@ -8,7 +8,7 @@ import { ClipboardProvider, useClipboard } from "./context/clipboard"
 import { ExitProvider, useExit } from "./context/exit"
 import { tuiMark } from "./startup-timing"
 import { EpilogueProvider } from "./context/epilogue"
-import { copy, handleSelectionKey } from "./util/selection";
+import { copy, handleSelectionKey } from "./util/selection"
 import { createCliRenderer } from "@opentui/core"
 import { RouteProvider, useRoute } from "./context/route"
 import {
@@ -80,10 +80,11 @@ import {
 
 import type { EventSource } from "./context/sdk"
 import { DialogVariant } from "./component/dialog-variant"
+import { DialogSpeed } from "./component/dialog-speed"
 import { ArtifactPreview } from "./component/artifact-preview"
 import { MemoryBrowser } from "./component/memory-browser"
 import { createTuiAttention } from "./attention"
-import { dispose } from "./audio";
+import { dispose } from "./audio"
 import {
   win32DisableProcessedInput,
   win32EnableVirtualTerminalProcessing,
@@ -193,7 +194,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
   const result = yield* Effect.scoped(
     Effect.gen(function* () {
       const renderer = yield* Effect.acquireRelease(
-        Effect.tryPromise( async () =>
+        Effect.tryPromise(async () =>
           createCliRenderer({
             externalOutputMode: "passthrough",
             targetFps: 60,
@@ -757,6 +758,31 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         },
       },
       {
+        name: "speed.cycle",
+        title: "Cycle model speed",
+        category: "Agent",
+        run: () => {
+          local.model.speed.cycle()
+        },
+      },
+      {
+        name: "speed.list",
+        title: "Switch model speed",
+        category: "Agent",
+        hidden: local.model.speed.list().length === 0,
+        slashName: "speed",
+        run: () => {
+          if (local.model.speed.list().length === 0) {
+            return toast.show({
+              title: "No speeds available",
+              message: "The current model does not support any speeds.",
+              variant: "info",
+            })
+          }
+          dialog.replace(() => <DialogSpeed />)
+        },
+      },
+      {
         name: "agent.cycle.reverse",
         title: "Agent cycle reverse",
         category: "Agent",
@@ -1141,7 +1167,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       `Successfully updated to OpenAxe v${result.data.version}. Please restart the application.`,
     )
 
-      exit()
+    exit()
   })
 
   const plugin = createMemo(() => {
@@ -1167,9 +1193,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         evt.stopPropagation()
       }}
       onMouseUp={
-        !Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT
-          ? () => copy(renderer, toast, clipboard)
-          : undefined
+        !Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT ? () => copy(renderer, toast, clipboard) : undefined
       }
     >
       <Toast />

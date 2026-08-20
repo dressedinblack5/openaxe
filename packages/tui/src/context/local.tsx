@@ -161,12 +161,14 @@ const Local = createSimpleContext({
           modelID: string
         }[]
         variant: Record<string, string | undefined>
+        speed: Record<string, string | undefined>
       }>({
         ready: false,
         model: {},
         recent: [],
         favorite: [],
         variant: {},
+        speed: {},
       })
 
       const filePath = path.join(paths.state, "model.json")
@@ -184,6 +186,7 @@ const Local = createSimpleContext({
           recent: modelStore.recent,
           favorite: modelStore.favorite,
           variant: modelStore.variant,
+          speed: modelStore.speed,
         })
       }
 
@@ -200,6 +203,15 @@ const Local = createSimpleContext({
               ),
             )
             setModelStore("variant", variant)
+          }
+          if (isRecord(x.speed)) {
+            const speed = Object.fromEntries(
+              Object.entries(x.speed).filter(
+                (entry): entry is [string, string | undefined] =>
+                  typeof entry[1] === "string" || entry[1] === undefined,
+              ),
+            )
+            setModelStore("speed", speed)
           }
         })
         .catch(() => {})
@@ -416,6 +428,50 @@ const Local = createSimpleContext({
               return
             }
             this.set(variants[index + 1])
+          },
+        },
+        speed: {
+          selected() {
+            const m = currentModel()
+            if (!m) return undefined
+            const key = `${m.providerID}/${m.modelID}`
+            return modelStore.speed[key]
+          },
+          current() {
+            const s = this.selected()
+            if (!s) return undefined
+            if (!this.list().some((tier) => tier.id === s)) return undefined
+            return s
+          },
+          list() {
+            const m = currentModel()
+            if (!m) return []
+            const provider = sync.data.provider.find((item) => item.id === m.providerID)
+            const info = provider?.models[m.modelID]
+            if (!info?.speeds) return []
+            return info.speeds
+          },
+          set(value: string | undefined) {
+            const m = currentModel()
+            if (!m) return
+            const key = `${m.providerID}/${m.modelID}`
+            setModelStore("speed", key, value ?? "default")
+            save()
+          },
+          cycle() {
+            const speeds = this.list()
+            if (speeds.length === 0) return
+            const current = this.current()
+            if (!current) {
+              this.set(speeds[0].id)
+              return
+            }
+            const index = speeds.findIndex((tier) => tier.id === current)
+            if (index === -1 || index === speeds.length - 1) {
+              this.set(undefined)
+              return
+            }
+            this.set(speeds[index + 1].id)
           },
         },
       }

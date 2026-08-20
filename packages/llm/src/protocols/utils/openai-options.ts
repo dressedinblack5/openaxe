@@ -20,7 +20,7 @@ export const OpenAIResponseIncludables = [
   "message.output_text.logprobs",
 ] as const
 export type OpenAIResponseIncludable = (typeof OpenAIResponseIncludables)[number]
-export const OpenAIServiceTiers = ["auto", "default", "flex", "priority"] as const
+export const OpenAIServiceTiers = ["auto", "default", "flex", "priority", "on_demand", "performance", "fast"] as const
 export type OpenAIServiceTier = (typeof OpenAIServiceTiers)[number]
 
 const REASONING_EFFORTS = new Set<string>(ReasoningEfforts)

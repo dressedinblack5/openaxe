@@ -130,6 +130,8 @@ export const Definitions = {
   agent_cycle_reverse: keybind("shift+tab", "Previous agent"),
   variant_cycle: keybind("ctrl+t", "Cycle model variants"),
   variant_list: keybind("none", "List model variants"),
+  speed_cycle: keybind("none", "Cycle model speed"),
+  speed_list: keybind("none", "List model speeds"),
 
   messages_page_up: keybind("pageup,ctrl+alt+b", "Scroll messages up by one page"),
   messages_page_down: keybind("pagedown,ctrl+alt+f", "Scroll messages down by one page"),
@@ -336,6 +338,8 @@ export const CommandMap = {
   agent_cycle_reverse: "agent.cycle.reverse",
   variant_cycle: "variant.cycle",
   variant_list: "variant.list",
+  speed_cycle: "speed.cycle",
+  speed_list: "speed.list",
   messages_page_up: "session.page.up",
   messages_page_down: "session.page.down",
   messages_line_up: "session.line.up",

@@ -10,6 +10,7 @@ import { Plugin } from "../plugin"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
 import { type LanguageModelV3 } from "@ai-sdk/provider"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
+import { ProviderSpeed } from "@opencode-ai/core/provider-speed"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
@@ -701,6 +702,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
                   capabilities: {
                     temperature: false,
                     reasoning: true,
+                    speed: false,
                     attachment: true,
                     toolcall: true,
                     input: {
@@ -996,6 +998,7 @@ const ProviderInterleaved = Schema.Union([
 const ProviderCapabilities = Schema.Struct({
   temperature: Schema.Boolean,
   reasoning: Schema.Boolean,
+  speed: Schema.Boolean,
   attachment: Schema.Boolean,
   toolcall: Schema.Boolean,
   input: ProviderModalities,
@@ -1038,6 +1041,15 @@ const ProviderLimit = Schema.Struct({
   output: Schema.Finite,
 })
 
+const ProviderSpeedTier = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  request: Schema.Struct({
+    body: optionalOmitUndefined(Schema.Record(Schema.String, Schema.Any)),
+    headers: optionalOmitUndefined(Schema.Record(Schema.String, Schema.String)),
+  }),
+})
+
 export const Model = Schema.Struct({
   id: ModelV2.ID,
   providerID: ProviderV2.ID,
@@ -1052,6 +1064,7 @@ export const Model = Schema.Struct({
   headers: Schema.Record(Schema.String, Schema.String),
   release_date: Schema.String,
   variants: optionalOmitUndefined(Schema.Record(Schema.String, Schema.Record(Schema.String, Schema.Any))),
+  speeds: optionalOmitUndefined(Schema.Array(ProviderSpeedTier)),
 }).annotate({ identifier: "Model" })
 export type Model = Types.DeepMutable<Schema.Schema.Type<typeof Model>>
 
@@ -1214,6 +1227,8 @@ function cost(c: ModelsDev.Model["cost"]): Model["cost"] {
 }
 
 function fromModelsDevModel(provider: ModelsDev.Provider, model: ModelsDev.Model): Model {
+  const speedEntry = ProviderSpeed.PROVIDER_SPEEDS[provider.id]
+  const speeds = speedEntry && (!speedEntry.models || speedEntry.models.includes(model.id)) ? speedEntry.tiers : []
   const base: Model = {
     id: ModelV2.ID.make(model.id),
     providerID: ProviderV2.ID.make(provider.id),
@@ -1236,6 +1251,7 @@ function fromModelsDevModel(provider: ModelsDev.Provider, model: ModelsDev.Model
     capabilities: {
       temperature: model.temperature ?? false,
       reasoning: model.reasoning ?? false,
+      speed: speeds.length > 0,
       attachment: model.attachment ?? false,
       toolcall: model.tool_call ?? true,
       input: {
@@ -1256,6 +1272,7 @@ function fromModelsDevModel(provider: ModelsDev.Provider, model: ModelsDev.Model
     },
     release_date: model.release_date ?? "",
     variants: {},
+    speeds,
   }
 
   return {
@@ -1509,6 +1526,7 @@ export const layer = Layer.effect(
               capabilities: {
                 temperature: model.temperature ?? existingModel?.capabilities.temperature ?? false,
                 reasoning: model.reasoning ?? existingModel?.capabilities.reasoning ?? false,
+                speed: (model as any).capabilities?.speed ?? existingModel?.capabilities.speed ?? false,
                 attachment: model.attachment ?? existingModel?.capabilities.attachment ?? false,
                 toolcall: model.tool_call ?? existingModel?.capabilities.toolcall ?? true,
                 input: {

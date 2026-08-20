@@ -95,6 +95,7 @@ export const bodyFields = {
   stream_options: Schema.optional(Schema.Struct({ include_usage: Schema.Boolean })),
   store: Schema.optional(Schema.Boolean),
   reasoning_effort: Schema.optional(OpenAIOptions.OpenAIReasoningEffort),
+  service_tier: Schema.optional(OpenAIOptions.OpenAIServiceTier),
   max_tokens: Schema.optional(Schema.Number),
   temperature: Schema.optional(Schema.Number),
   top_p: Schema.optional(Schema.Number),

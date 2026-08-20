@@ -80,6 +80,10 @@ export const prepare = Effect.fn("LLMRequestPrep.prepare")(function* (input: Pre
     !input.small && input.model.variants && input.user.model.variant
       ? input.model.variants[input.user.model.variant]
       : {}
+  const speed =
+    !input.small && input.model.speeds?.length
+      ? input.model.speeds.find((item) => item.id === input.user.model.speed)
+      : undefined
   const base = input.small
     ? ProviderTransform.smallOptions(input.model)
     : ProviderTransform.options({
@@ -87,7 +91,10 @@ export const prepare = Effect.fn("LLMRequestPrep.prepare")(function* (input: Pre
         sessionID: input.sessionID,
         providerOptions: input.provider.options,
       })
-  const options = mergeOptions(mergeOptions(mergeOptions(base, input.model.options), input.agent.options), variant)
+  const options = mergeOptions(
+    mergeOptions(mergeOptions(mergeOptions(base, input.model.options), input.agent.options), variant),
+    speed?.request.body,
+  )
   if (
     input.model.api.npm === "@ai-sdk/azure" &&
     (input.provider.options.useCompletionUrls || input.model.options.useCompletionUrls || options.useCompletionUrls)
@@ -101,12 +108,10 @@ export const prepare = Effect.fn("LLMRequestPrep.prepare")(function* (input: Pre
     isOpenaiOauth || input.isWorkflow
       ? input.messages
       : [
-          ...system.map(
-            (x): ModelMessage => ({
-              role: "system",
-              content: x,
-            }),
-          ),
+          ...system.map((x): ModelMessage => ({
+            role: "system",
+            content: x,
+          })),
           ...input.messages,
         ]
 
@@ -189,6 +194,7 @@ export const prepare = Effect.fn("LLMRequestPrep.prepare")(function* (input: Pre
             "User-Agent": USER_AGENT,
           }),
       ...input.model.headers,
+      ...(speed?.request.headers ?? {}),
       ...headers,
     },
   }

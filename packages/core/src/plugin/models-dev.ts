@@ -3,6 +3,7 @@ import { Effect, Stream } from "effect"
 import { EventV2 } from "../event"
 import { ModelV2 } from "../model"
 import { ModelsDev } from "../models-dev"
+import { ProviderSpeed } from "../provider-speed"
 import { ProviderV2 } from "../provider"
 
 function released(date: string) {
@@ -42,6 +43,18 @@ function variants(model: ModelsDev.Model) {
     id: ModelV2.VariantID.make(id),
     headers: { ...item.provider?.headers },
     body: { ...item.provider?.body },
+  }))
+}
+
+function speeds(providerID: string, model: ModelsDev.Model) {
+  const entry = ProviderSpeed.PROVIDER_SPEEDS[providerID]
+  if (!entry) return []
+  if (entry.models && !entry.models.includes(model.id)) return []
+  return entry.tiers.map((tier) => ({
+    id: tier.id,
+    label: tier.label,
+    headers: { ...tier.request.headers },
+    body: { ...tier.request.body },
   }))
 }
 
@@ -112,6 +125,7 @@ export const ModelsDevPlugin = define({
                 output: [...(model.modalities?.output ?? [])],
               }
               draft.variants = variants(model)
+              draft.speeds = speeds(item.id, model)
               draft.time.released = released(model.release_date)
               draft.cost = cost(model.cost)
               draft.status = model.status ?? "active"

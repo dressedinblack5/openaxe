@@ -52,6 +52,7 @@ export const Model = Schema.Struct({
   attachment: Schema.Boolean,
   reasoning: Schema.Boolean,
   temperature: Schema.Boolean,
+  speed: Schema.optional(Schema.Boolean),
   tool_call: Schema.Boolean,
   interleaved: Schema.optional(
     Schema.Union([

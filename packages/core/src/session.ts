@@ -202,6 +202,7 @@ export const layer = Layer.effect(
                 id: ModelV2.ID.make(input.model.id),
                 providerID: input.model.providerID,
                 variant: input.model.variant,
+                speed: input.model.speed,
               }
             : undefined,
           cost: 0,
