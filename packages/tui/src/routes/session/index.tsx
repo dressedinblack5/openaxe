@@ -317,7 +317,7 @@ export function Session() {
   })
 
   let lastSwitch: string | undefined = undefined
-  event.on("message.part.updated", (evt) => {
+  const offMessagePartUpdated = event.on("message.part.updated", (evt) => {
     const part = evt.properties.part
     if (part.type !== "tool") return
     if (part.sessionID !== route.sessionID) return
@@ -334,7 +334,7 @@ export function Session() {
   })
 
   let seeded = false
-  let scroll: ScrollBoxRenderable
+  let scroll: ScrollBoxRenderable | null = null
   let prompt: PromptRef | undefined
   const bind = (r: PromptRef | undefined) => {
     prompt = r
@@ -347,7 +347,7 @@ export function Session() {
   const dialog = useDialog()
   const renderer = useRenderer()
 
-  event.on("session.status", (evt) => {
+  const offSessionStatus = event.on("session.status", (evt) => {
     if (evt.properties.sessionID !== route.sessionID) return
     if (evt.properties.status.type !== "retry") return
     if (!evt.properties.status.action) return
@@ -367,8 +367,14 @@ export function Session() {
     })
   })
 
+  onCleanup(() => {
+    offMessagePartUpdated()
+    offSessionStatus()
+  })
+
   // Helper: Find next visible message boundary in direction
   const findNextVisibleMessage = (direction: "next" | "prev"): string | null => {
+    if (!scroll || scroll.isDestroyed) return null
     const children = scroll.getChildren()
     const messagesList = messages()
     const scrollTop = scroll.y
@@ -400,6 +406,10 @@ export function Session() {
 
   // Helper: Scroll to message in direction or fallback to page scroll
   const scrollToMessage = (direction: "next" | "prev", dialog: ReturnType<typeof useDialog>) => {
+    if (!scroll || scroll.isDestroyed) {
+      dialog.clear()
+      return
+    }
     const targetID = findNextVisibleMessage(direction)
 
     if (!targetID) {
@@ -519,9 +529,11 @@ export function Session() {
         name: "timeline",
       },
       run: () => {
+        if (!scroll || scroll.isDestroyed) return
         dialog.replace(() => (
           <DialogTimeline
             onMove={(messageID) => {
+              if (!scroll || scroll.isDestroyed) return
               const child = scroll.getChildren().find((child) => {
                 return child.id === messageID
               })
@@ -541,9 +553,11 @@ export function Session() {
         name: "fork",
       },
       run: () => {
+        if (!scroll || scroll.isDestroyed) return
         dialog.replace(() => (
           <DialogForkFromTimeline
             onMove={(messageID) => {
+              if (!scroll || scroll.isDestroyed) return
               if (!messageID) return
               const child = scroll.getChildren().find((child) => {
                 return child.id === messageID
@@ -746,86 +760,94 @@ export function Session() {
         dialog.clear()
       },
     },
-    {
-      title: "Page up",
-      value: "session.page.up",
-      category: "Session",
-      hidden: true,
-      run: () => {
-        scroll.scrollBy(-scroll.height / 2)
-        dialog.clear()
+{
+        title: "Page up",
+        value: "session.page.up",
+        category: "Session",
+        hidden: true,
+        run: () => {
+          if (!scroll || scroll.isDestroyed) return
+          scroll.scrollBy(-scroll.height / 2)
+          dialog.clear()
+        },
       },
-    },
-    {
-      title: "Page down",
-      value: "session.page.down",
-      category: "Session",
-      hidden: true,
-      run: () => {
-        scroll.scrollBy(scroll.height / 2)
-        dialog.clear()
+      {
+        title: "Page down",
+        value: "session.page.down",
+        category: "Session",
+        hidden: true,
+        run: () => {
+          if (!scroll || scroll.isDestroyed) return
+          scroll.scrollBy(scroll.height / 2)
+          dialog.clear()
+        },
       },
-    },
-    {
-      title: "Line up",
-      value: "session.line.up",
-      category: "Session",
-      hidden: true,
-      run: () => {
-        scroll.scrollBy(-1)
-        dialog.clear()
+      {
+        title: "Line up",
+        value: "session.line.up",
+        category: "Session",
+        hidden: true,
+        run: () => {
+          if (!scroll || scroll.isDestroyed) return
+          scroll.scrollBy(-1)
+          dialog.clear()
+        },
       },
-    },
-    {
-      title: "Line down",
-      value: "session.line.down",
-      category: "Session",
-      hidden: true,
-      run: () => {
-        scroll.scrollBy(1)
-        dialog.clear()
+      {
+        title: "Line down",
+        value: "session.line.down",
+        category: "Session",
+        hidden: true,
+        run: () => {
+          if (!scroll || scroll.isDestroyed) return
+          scroll.scrollBy(1)
+          dialog.clear()
+        },
       },
-    },
-    {
-      title: "Half page up",
-      value: "session.half.page.up",
-      category: "Session",
-      hidden: true,
-      run: () => {
-        scroll.scrollBy(-scroll.height / 4)
-        dialog.clear()
+      {
+        title: "Half page up",
+        value: "session.half.page.up",
+        category: "Session",
+        hidden: true,
+        run: () => {
+          if (!scroll || scroll.isDestroyed) return
+          scroll.scrollBy(-scroll.height / 4)
+          dialog.clear()
+        },
       },
-    },
-    {
-      title: "Half page down",
-      value: "session.half.page.down",
-      category: "Session",
-      hidden: true,
-      run: () => {
-        scroll.scrollBy(scroll.height / 4)
-        dialog.clear()
+      {
+        title: "Half page down",
+        value: "session.half.page.down",
+        category: "Session",
+        hidden: true,
+        run: () => {
+          if (!scroll || scroll.isDestroyed) return
+          scroll.scrollBy(scroll.height / 4)
+          dialog.clear()
+        },
       },
-    },
-    {
-      title: "First message",
-      value: "session.first",
-      category: "Session",
-      hidden: true,
-      run: () => {
-        scroll.scrollTo(0)
-        dialog.clear()
+      {
+        title: "First message",
+        value: "session.first",
+        category: "Session",
+        hidden: true,
+        run: () => {
+          if (!scroll || scroll.isDestroyed) return
+          scroll.scrollTo(0)
+          dialog.clear()
+        },
       },
-    },
-    {
-      title: "Last message",
-      value: "session.last",
-      category: "Session",
-      hidden: true,
-      run: () => {
-        scroll.scrollTo(scroll.scrollHeight)
-        dialog.clear()
+      {
+        title: "Last message",
+        value: "session.last",
+        category: "Session",
+        hidden: true,
+        run: () => {
+          if (!scroll || scroll.isDestroyed) return
+          scroll.scrollTo(scroll.scrollHeight)
+          dialog.clear()
+        },
       },
-    },
     {
       title: "Jump to last user message",
       value: "session.messages_last_user",
@@ -848,6 +870,7 @@ export function Session() {
           )
 
           if (hasValidTextPart) {
+            if (!scroll || scroll.isDestroyed) return
             const child = scroll.getChildren().find((child) => {
               return child.id === message.id
             })

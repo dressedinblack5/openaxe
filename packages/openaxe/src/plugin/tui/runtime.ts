@@ -403,7 +403,7 @@ function createPluginScope(load: PluginLoad, id: string, disposeTimeoutMs: numbe
   const track = (fn: (() => void) | undefined) => {
     if (!fn) return () => {}
     let drop = false
-    let off = () => {}
+    let off: () => void = () => {}
     const wrapped = () => {
       if (drop) return
       drop = true
@@ -983,6 +983,7 @@ async function installPluginBySpec(
 let dir = ""
 let loaded: Promise<void> | undefined
 let runtime: RuntimeState | undefined
+let initLock: Promise<void> | null = null
 
 export async function init(input: {
   api: HostPluginApi
@@ -992,19 +993,35 @@ export async function init(input: {
   disposeTimeoutMs?: number
 }) {
   const cwd = process.cwd()
-  if (loaded) {
-    if (dir !== cwd) {
-      // A prior init is still in-flight with a different cwd. Tear it down
-      // before starting fresh. This can happen when Bun runs test files from
-      // the same shard in parallel and they each use TuiPluginRuntime.
-      await dispose()
-    } else {
+  
+  if (loaded && dir === cwd) {
+    return loaded
+  }
+  
+  if (initLock) {
+    await initLock
+    if (loaded && dir === cwd) {
       return loaded
     }
   }
-
+  
+  if (loaded) {
+    await dispose()
+  }
+  
+  const loadPromise = load({ ...input, runtime: input.runtime ?? createPluginRuntime() })
   dir = cwd
-  loaded = load({ ...input, runtime: input.runtime ?? createPluginRuntime() })
+  initLock = loadPromise
+  loaded = loadPromise
+  
+  try {
+    await loadPromise
+  } finally {
+    if (initLock === loadPromise) {
+      initLock = null
+    }
+  }
+  
   return loaded
 }
 

@@ -19,7 +19,11 @@ export type HostSlots = {
 function isHostSlotPlugin(value: unknown): value is HostSlotPlugin<Record<string, object>> {
   if (!isRecord(value)) return false
   if (typeof value.id !== "string") return false
-  return isRecord(value.slots)
+  if (!isRecord(value.slots)) return false
+  for (const slot of Object.values(value.slots)) {
+    if (typeof slot !== "function") return false
+  }
+  return true
 }
 
 export function createSlots() {
