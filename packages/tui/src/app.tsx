@@ -1,6 +1,8 @@
 import { render, TimeToFirstDraw, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createDefaultOpenTuiKeymap } from "@opentui/keymap/opentui"
 import { Deferred, Effect } from "effect"
+import { Artifact } from "@opencode-ai/core/artifact"
+import { Memory } from "@opencode-ai/core/memory"
 import { Global } from "@opencode-ai/core/global"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
@@ -83,6 +85,7 @@ import { DialogVariant } from "./component/dialog-variant"
 import { DialogSpeed } from "./component/dialog-speed"
 import { ArtifactPreview } from "./component/artifact-preview"
 import { MemoryBrowser } from "./component/memory-browser"
+import { InternalServicesProvider } from "./context/internal-services"
 import { createTuiAttention } from "./attention"
 import { dispose } from "./audio"
 import {
@@ -240,6 +243,24 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
       renderer.once("destroy", () => Deferred.doneUnsafe(shutdown, Effect.void))
       const pluginRuntime = createPluginRuntime()
 
+      const artifactService = yield* Artifact.Service
+      const memoryService = yield* Memory.Service
+      const internalServices = {
+        artifact: {
+          list: (keyPrefix?: string) => Effect.runPromise(artifactService.list(keyPrefix)),
+          get: (key: string, version?: number) => Effect.runPromise(artifactService.get(key, version)),
+          store: (key: string, content: string) => Effect.runPromise(artifactService.store(key, content)),
+        },
+        memory: {
+          list: (kind?: string, scope?: string, source?: string) =>
+            Effect.runPromise(memoryService.list(kind, scope, source)),
+          get: (key: string) => Effect.runPromise(memoryService.get(key)),
+          set: (key: string, value: unknown, kind?: string, scope?: string, source?: string) =>
+            Effect.runPromise(memoryService.set(key, value, kind, scope, source)),
+          remove: (key: string) => Effect.runPromise(memoryService.remove(key)),
+        },
+      }
+
       yield* Effect.tryPromise(async () => {
         // Prewarm palette before ThemeProvider mounts so `system` theme avoids a first-paint fallback flash.
         void renderer.getPalette({ size: 16 }).catch(() => undefined)
@@ -248,6 +269,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
 
         await render(() => {
           return (
+            <InternalServicesProvider services={internalServices}>
             <ExitProvider
               exit={(reason) => {
                 if (renderer.isDestroyed) return
@@ -349,6 +371,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                 </ErrorBoundary>
               </EpilogueProvider>
             </ExitProvider>
+            </InternalServicesProvider>
           )
         }, renderer)
       })
@@ -903,7 +926,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         category: "System",
         slashName: "artifacts",
         run: () => {
-          dialog.replace(() => <ArtifactPreview />)
+          dialog.replace(() => <ArtifactPreview />, () => dialog.clear())
         },
       },
       {
@@ -942,7 +965,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         category: "System",
         slashName: "memory",
         run: () => {
-          dialog.replace(() => <MemoryBrowser />)
+          dialog.replace(() => <MemoryBrowser />, () => dialog.clear())
         },
       },
       {

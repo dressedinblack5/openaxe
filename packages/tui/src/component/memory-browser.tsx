@@ -2,8 +2,8 @@ import { TextAttributes } from "@opentui/core"
 import { createMemo, createResource, createSignal, Show } from "solid-js"
 import { useDialog } from "../ui/dialog"
 import { DialogSelect } from "../ui/dialog-select"
-import { useSDK } from "../context/sdk"
 import { useTheme } from "../context/theme"
+import { useInternalServices } from "../context/internal-services"
 import { Button } from "../components/button"
 
 interface MemoryEntry {
@@ -16,14 +16,6 @@ interface MemoryEntry {
 
 const CONTENT_PREVIEW_MAX = 2000
 
-async function fetchJson<T>(url: string, fetchFn: typeof fetch, validate: (value: unknown) => value is T): Promise<T> {
-  const res = await fetchFn(url)
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const value: unknown = await res.json()
-  if (!validate(value)) throw new Error(`Invalid response from ${url}`)
-  return value
-}
-
 type View =
   | { type: "list" }
   | { type: "content"; key: string }
@@ -31,20 +23,13 @@ type View =
 export function MemoryBrowser() {
   const dialog = useDialog()
   const { theme } = useTheme()
-  const sdk = useSDK()
+  const { memory } = useInternalServices()
   const [view, setView] = createSignal<View>({ type: "list" })
-
-  const baseUrl = () => sdk.url.replace(/\/+$/, "")
-  const doFetch = sdk.fetch
 
   const [list] = createResource(
     () => view().type === "list",
     async () => {
-      return fetchJson(
-        `${baseUrl()}/memory`,
-        doFetch,
-        (value): value is MemoryEntry[] => Array.isArray(value),
-      )
+      return memory.list()
     },
   )
 
@@ -94,6 +79,7 @@ export function MemoryBrowser() {
           showFull={showFull()}
           onToggle={() => setShowFull(!showFull())}
           onBack={() => { setView({ type: "list" }); setShowFull(false) }}
+          onClose={() => dialog.clear()}
         />
       </Show>
     }>
@@ -136,6 +122,7 @@ function ContentDisplay(props: {
   showFull: boolean
   onToggle: () => void
   onBack: () => void
+  onClose: () => void
 }) {
   const { theme } = useTheme()
   const dialog = useDialog()
@@ -163,43 +150,54 @@ function ContentDisplay(props: {
         <text fg={theme.text} attributes={TextAttributes.BOLD}>
           {data() ? data()?.key : "Memory entry"}
         </text>
-        <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>esc</text>
+        <box flexDirection="row" gap={2}>
+          <text fg={theme.textMuted} onMouseUp={props.onClose}>
+            close
+          </text>
+          <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>esc</text>
+        </box>
       </box>
-          <Show when={data()} fallback={
-            <text fg={theme.textMuted}>Entry not found</text>
-          }>
-            {(d) => (
-              <box flexDirection="column" gap={1} paddingBottom={1}>
-                <box flexDirection="row" gap={2} paddingBottom={1}>
-                  <text fg={theme.textMuted}>kind: {d().kind}</text>
-                  <text fg={theme.textMuted}>scope: {d().scope}</text>
-                  <text fg={theme.textMuted}>source: {d().source}</text>
-                </box>
-                <box flexGrow={1} flexShrink={1} paddingLeft={1} paddingRight={1} backgroundColor={theme.backgroundElement}>
-                  <text wrapMode="word" fg={theme.text}>
-                    {formatted()}
-                  </text>
-                </box>
-                <Show when={isTruncated()}>
-                  <box flexDirection="row" justifyContent="space-between" paddingTop={1}>
-                    <Button variant="primary" onMouseUp={props.onToggle}>
-                      {props.showFull ? "Show less" : "Show all content"}
-                    </Button>
-                    <Button variant="secondary" onMouseUp={props.onBack}>
-                      Back
-                    </Button>
-                  </box>
-                </Show>
-                <Show when={!isTruncated()}>
-                  <box paddingTop={1}>
-                    <Button variant="secondary" onMouseUp={props.onBack}>
-                      Back
-                    </Button>
-                  </box>
-                </Show>
+      <Show when={data()} fallback={
+        <text fg={theme.textMuted}>Entry not found</text>
+      }>
+        {(d) => (
+          <box flexDirection="column" gap={1} paddingBottom={1}>
+            <box flexDirection="row" gap={2} paddingBottom={1}>
+              <text fg={theme.textMuted}>kind: {d().kind}</text>
+              <text fg={theme.textMuted}>scope: {d().scope}</text>
+              <text fg={theme.textMuted}>source: {d().source}</text>
+            </box>
+            <box flexGrow={1} flexShrink={1} paddingLeft={1} paddingRight={1} backgroundColor={theme.backgroundElement}>
+              <text wrapMode="word" fg={theme.text}>
+                {formatted()}
+              </text>
+            </box>
+            <Show when={isTruncated()}>
+              <box flexDirection="row" justifyContent="space-between" paddingTop={1}>
+                <Button variant="primary" onMouseUp={props.onToggle}>
+                  {props.showFull ? "Show less" : "Show all content"}
+                </Button>
+                <Button variant="secondary" onMouseUp={props.onBack}>
+                  Back
+                </Button>
+                <Button variant="secondary" onMouseUp={props.onClose}>
+                  Close
+                </Button>
               </box>
-            )}
-          </Show>
+            </Show>
+            <Show when={!isTruncated()}>
+              <box paddingTop={1}>
+                <Button variant="secondary" onMouseUp={props.onBack}>
+                  Back
+                </Button>
+                <Button variant="secondary" onMouseUp={props.onClose}>
+                  Close
+                </Button>
+              </box>
+            </Show>
+          </box>
+        )}
+      </Show>
     </box>
   )
 }

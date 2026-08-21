@@ -2,6 +2,7 @@ import { Layer, ManagedRuntime } from "effect"
 import { NodeFileSystem } from "@effect/platform-node"
 import { layer } from "@opencode-ai/core/observability"
 import { Artifact } from "@opencode-ai/core/artifact"
+import { Global } from "@opencode-ai/core/global"
 
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Memory } from "@opencode-ai/core/memory"
@@ -84,6 +85,7 @@ export const AppLayer = Layer.mergeAll(
   SessionRunState.defaultLayer,
   SessionProcessor.defaultLayer,
   SessionCompaction.defaultLayer,
+  Global.defaultLayer,
   SessionRevert.defaultLayer,
   SessionSummary.defaultLayer,
   SessionPrompt.defaultLayer,

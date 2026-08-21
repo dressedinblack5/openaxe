@@ -1,10 +1,12 @@
 import { expect, mock, test } from "bun:test"
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { createTestRenderer } from "@opentui/core/testing"
-import { Effect } from "effect"
-import { Global } from "@opencode-ai/core/global"
+import { Effect, FileSystem } from "effect"
 import { createTuiResolvedConfig } from "./fixture/tui-runtime"
 import { createEventSource, createFetch, directory, json } from "./fixture/tui-sdk"
+import { Global } from "@opencode-ai/core/global"
+import { Artifact } from "@opencode-ai/core/artifact"
+import { Memory } from "@opencode-ai/core/memory"
 
 test("SIGHUP clears title and disposes scoped resources once", async () => {
   const setup = await createTestRenderer({ width: 80, height: 24, useThread: false })
@@ -43,7 +45,12 @@ test("SIGHUP clears title and disposes scoped resources once", async () => {
             disposes++
           },
         },
-      }).pipe(Effect.provide(Global.defaultLayer)),
+      }).pipe(
+        Effect.provide(Global.defaultLayer),
+        Effect.provide(Artifact.defaultLayer),
+        Effect.provide(Memory.defaultLayer),
+        Effect.provide(FileSystem.layerNoop({})),
+      ),
     )
     await ready
     process.emit("SIGHUP")
@@ -91,7 +98,7 @@ test("app.exit prints the session epilogue after scoped cleanup", async () => {
     return true
   }) as typeof process.stdout.write
 
-  try {
+try {
     const { run } = await import("../src/app")
     const task = Effect.runPromise(
       run({
@@ -108,7 +115,12 @@ test("app.exit prints the session epilogue after scoped cleanup", async () => {
           },
           async dispose() {},
         },
-      }).pipe(Effect.provide(Global.defaultLayer)),
+      }).pipe(
+        Effect.provide(Global.defaultLayer),
+        Effect.provide(Artifact.defaultLayer),
+        Effect.provide(Memory.defaultLayer),
+        Effect.provide(FileSystem.layerNoop({})),
+      ),
     )
 
     await ready

@@ -2,10 +2,10 @@ import { TextAttributes } from "@opentui/core"
 import { createMemo, createResource, createSignal, Show } from "solid-js"
 import { useDialog } from "../ui/dialog"
 import { DialogSelect } from "../ui/dialog-select"
-import { useSDK } from "../context/sdk"
 import { useTheme } from "../context/theme"
+import { useInternalServices } from "../context/internal-services"
 import { Button } from "../components/button"
-import type { ArtifactSummary as SDKArtifactSummary, ArtifactEntry as SDKArtifactEntry } from "@opencode-ai/sdk/v2"
+import type { ArtifactSummary, ArtifactEntry } from "@opencode-ai/core/artifact"
 
 const CONTENT_PREVIEW_MAX = 2000
 
@@ -14,15 +14,13 @@ type View = { type: "list" } | { type: "content"; key: string; version: number }
 export function ArtifactPreview() {
   const dialog = useDialog()
   const { theme } = useTheme()
-  const sdk = useSDK()
+  const { artifact } = useInternalServices()
   const [view, setView] = createSignal<View>({ type: "list" })
 
   const [list] = createResource(
     () => view().type === "list",
     async () => {
-      const result = await sdk.client.v2.artifact.list({ keyPrefix: "" })
-      if (result.error) throw new Error(`HTTP ${result.response.status}: ${result.error.message}`)
-      return result.data ?? []
+      return artifact.list("")
     },
   )
 
@@ -34,9 +32,7 @@ export function ArtifactPreview() {
 
   const [entry] = createResource(contentKey, async (key) => {
     const [k, v] = key.split(":")
-    const result = await sdk.client.v2.artifact.getVersion({ key: k, version: v })
-    if (result.error) throw new Error(`HTTP ${result.response.status}: ${result.error.message}`)
-    return result.data
+    return artifact.get(k, Number(v))
   })
 
   const [showFull, setShowFull] = createSignal(false)
@@ -44,7 +40,7 @@ export function ArtifactPreview() {
   const options = createMemo(() => {
     const items = list()
     if (!items) return []
-    const byKey = new Map<string, SDKArtifactSummary[]>()
+    const byKey = new Map<string, ArtifactSummary[]>()
     for (const item of items) {
       const group = byKey.get(item.key) ?? []
       group.push(item)
@@ -54,10 +50,10 @@ export function ArtifactPreview() {
     for (const [key, versions] of byKey) {
       for (const v of versions) {
         result.push({
-          title: `v${Number(v.version)} — ${new Date(Number(v.timeCreated)).toLocaleString()}`,
-          value: `${key}:${Number(v.version)}`,
+          title: `v${v.version} — ${new Date(v.timeCreated).toLocaleString()}`,
+          value: `${key}:${v.version}`,
           category: key,
-          footer: v.truncated ? "truncated" : `${Number(v.size)}B`,
+          footer: v.truncated ? "truncated" : `${v.size}B`,
         })
       }
     }
@@ -87,6 +83,7 @@ export function ArtifactPreview() {
               setView({ type: "list" })
               setShowFull(false)
             }}
+            onClose={() => dialog.clear()}
           />
         </Show>
       }
@@ -140,10 +137,11 @@ export function ArtifactPreview() {
 }
 
 function ContentDisplay(props: {
-  entry: { loading: boolean; error?: unknown; latest?: SDKArtifactEntry | null }
+  entry: { loading: boolean; error?: unknown; latest?: ArtifactEntry | null }
   showFull: boolean
   onToggle: () => void
   onBack: () => void
+  onClose: () => void
 }) {
   const { theme } = useTheme()
   const dialog = useDialog()
@@ -153,11 +151,16 @@ function ContentDisplay(props: {
     <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1} flexDirection="column">
       <box flexDirection="row" justifyContent="space-between">
         <text fg={theme.text} attributes={TextAttributes.BOLD}>
-          {data() ? `${data()?.key} v${Number(data()?.version ?? 0)}` : "Artifact"}
+          {data() ? `${data()?.key} v${data()?.version ?? 0}` : "Artifact"}
         </text>
-        <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
-          esc
-        </text>
+        <box flexDirection="row" gap={2}>
+          <text fg={theme.textMuted} onMouseUp={props.onClose}>
+            close
+          </text>
+          <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
+            esc
+          </text>
+        </box>
       </box>
       <Show when={!props.entry.loading} fallback={<text fg={theme.textMuted}>Loading...</text>}>
         <Show when={!props.entry.error} fallback={<text fg={theme.error}>Failed to load artifact content</text>}>
@@ -165,11 +168,11 @@ function ContentDisplay(props: {
             {(d) => (
               <box flexDirection="column" gap={1} paddingBottom={1}>
                 <box flexDirection="row" gap={2} paddingBottom={1}>
-                  <text fg={theme.textMuted}>Size: {Number(d().size)}B</text>
+                  <text fg={theme.textMuted}>Size: {d().size}B</text>
                   <Show when={d().truncated}>
                     <text fg={theme.warning}>Truncated</text>
                   </Show>
-                  <text fg={theme.textMuted}>{new Date(Number(d().timeCreated)).toLocaleString()}</text>
+                  <text fg={theme.textMuted}>{new Date(d().timeCreated).toLocaleString()}</text>
                 </box>
                 <box
                   flexGrow={1}
@@ -192,12 +195,18 @@ function ContentDisplay(props: {
                     <Button variant="secondary" onMouseUp={props.onBack}>
                       Back
                     </Button>
+                    <Button variant="secondary" onMouseUp={props.onClose}>
+                      Close
+                    </Button>
                   </box>
                 </Show>
                 <Show when={!d().truncated}>
                   <box paddingTop={1}>
                     <Button variant="secondary" onMouseUp={props.onBack}>
                       Back
+                    </Button>
+                    <Button variant="secondary" onMouseUp={props.onClose}>
+                      Close
                     </Button>
                   </box>
                 </Show>
