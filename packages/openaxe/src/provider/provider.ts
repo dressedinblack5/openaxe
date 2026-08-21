@@ -1369,23 +1369,25 @@ export const layer = Layer.effect(
           for (const id of cfg.enabled_providers) configuredIds.add(id)
         }
 
-        const catalog: Record<string, Info> = {}
-        const database: Record<string, Info> = {}
+        const catalog: Record<ProviderV2.ID, Info> = {}
+        const database: Record<ProviderV2.ID, Info> = {}
         for (const [id, raw] of Object.entries(modelsDev)) {
           if (configuredIds.has(id)) {
-            catalog[id] = fromModelsDevProvider(raw)
-            database[id] = toPublicInfo(catalog[id])
+            const pid = ProviderV2.ID.make(id)
+            catalog[pid] = fromModelsDevProvider(raw)
+            database[pid] = toPublicInfo(catalog[pid])
           }
         }
 
         // Helper to lazily convert a provider from raw models-dev data
         function ensureDatabase(id: string): Info | undefined {
-          if (database[id]) return database[id]
+          const pid = ProviderV2.ID.make(id)
+          if (database[pid]) return database[pid]
           const raw = modelsDev[id]
           if (!raw) return undefined
-          catalog[id] = fromModelsDevProvider(raw)
-          database[id] = toPublicInfo(catalog[id])
-          return database[id]
+          catalog[pid] = fromModelsDevProvider(raw)
+          database[pid] = toPublicInfo(catalog[pid])
+          return database[pid]
         }
 
         const providers: Record<ProviderV2.ID, Info> = {} as Record<ProviderV2.ID, Info>
@@ -1489,7 +1491,8 @@ export const layer = Layer.effect(
 
         // extend database from config
         for (const [providerID, provider] of configProviders) {
-          const existing = database[providerID]
+          const pid = ProviderV2.ID.make(providerID)
+          const existing = database[pid]
           const parsed: Info = {
             id: ProviderV2.ID.make(providerID),
             name: provider.name ?? existing?.name ?? providerID,
@@ -1579,7 +1582,8 @@ export const layer = Layer.effect(
             )
             parsed.models[modelID] = parsedModel
           }
-          database[providerID] = parsed
+          database[pid] = parsed
+          providers[pid] = mergeDeep(providers[pid] ?? database[pid], parsed) as Info
         }
 
         // load env — check raw modelsDev so providers discovered via env vars
@@ -1642,7 +1646,7 @@ export const layer = Layer.effect(
           const options = yield* Effect.promise(() =>
             plugin.auth!.loader!(
               () => bridge.promise(auth.get(providerID).pipe(Effect.orDie)) as Promise<Auth.Info>,
-              toPublicInfo(database[plugin.auth!.provider]),
+              toPublicInfo(database[ProviderV2.ID.make(plugin.auth!.provider)]),
             ),
           )
           const opts = options ?? {}
@@ -1779,8 +1783,9 @@ export const layer = Layer.effect(
 
         // Prune catalog to only active providers
         for (const id of Object.keys(catalog)) {
-          if (!providers[ProviderV2.ID.make(id)]) {
-            delete catalog[id]
+          const pid = ProviderV2.ID.make(id)
+          if (!providers[pid]) {
+            delete catalog[pid]
           }
         }
         return {
