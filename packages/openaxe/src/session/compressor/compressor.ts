@@ -76,13 +76,13 @@ export const layer = Layer.effect(
         Effect.tapError(() =>
           Effect.logWarning("compressor: model not found", { providerID: input.providerID, modelID: input.modelID }),
         ),
-        Effect.catch(() => Effect.succeed(undefined)),
+        Effect.catch(() => Effect.void),
       )
       if (!model) return emptyResult
 
       const info = yield* provider.getProvider(ProviderV2.ID.make(input.providerID)).pipe(
         Effect.tapError(() => Effect.logWarning("compressor: provider not found", { providerID: input.providerID })),
-        Effect.catch(() => Effect.succeed(undefined)),
+        Effect.catch(() => Effect.void),
       )
       if (!info) return emptyResult
 
@@ -132,12 +132,12 @@ Output JSON:
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
           body,
         }),
-      ).pipe(Effect.catch(() => Effect.succeed(undefined)))
+      ).pipe(Effect.catch(() => Effect.void))
 
       if (!response) return emptyResult
 
       const data = yield* Effect.tryPromise<any>(() => response.json()).pipe(
-        Effect.catch(() => Effect.succeed(undefined)),
+        Effect.catch(() => Effect.void),
       )
       if (!data) return emptyResult
 

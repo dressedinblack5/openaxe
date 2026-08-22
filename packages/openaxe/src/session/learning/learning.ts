@@ -86,13 +86,13 @@ If nothing worth learning, return empty arrays.`
 
           const model = yield* provider.getModel(providerID, modelID).pipe(
             Effect.tapError(() => Effect.logWarning("learning: model not found", { providerID, modelID })),
-            Effect.catch(() => Effect.succeed(undefined)),
+            Effect.catch(() => Effect.void),
           )
           if (!model) continue
 
           const language = yield* provider.getLanguage(model).pipe(
             Effect.tapError(() => Effect.logWarning("learning: language model init failed", { providerID, modelID })),
-            Effect.catch(() => Effect.succeed(undefined)),
+            Effect.catch(() => Effect.void),
           )
           if (!language) continue
 

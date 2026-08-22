@@ -349,7 +349,7 @@ export const layer = Layer.effect(
         const runtime = yield* Codegraph.ensureCodegraphRuntime().pipe(
           Effect.catch((error) => {
             Effect.logWarning("codegraph runtime unavailable", { error: String(error) }).pipe(Effect.runFork)
-            return Effect.succeed(undefined)
+            return Effect.void
           }),
         )
         if (runtime) command = [...runtime, "serve", "--mcp"]

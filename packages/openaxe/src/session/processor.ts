@@ -1142,8 +1142,8 @@ export const layer = Layer.effect(
                 yield* Effect.logError("No fallback model available for provider", { providerID })
                 // Try to get default model as last resort - can fail with NoProvidersError/NoModelsError
                 const defaultModelResult = yield* provider.defaultModel().pipe(
-                  Effect.catchTag("ProviderNoProvidersError", () => Effect.succeed(undefined)),
-                  Effect.catchTag("ProviderNoModelsError", () => Effect.succeed(undefined)),
+                  Effect.catchTag("ProviderNoProvidersError", () => Effect.void),
+                  Effect.catchTag("ProviderNoModelsError", () => Effect.void),
                 )
                 if (!defaultModelResult) {
                   yield* Effect.fail(new Error("No fallback model available"))
