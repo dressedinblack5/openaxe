@@ -466,7 +466,8 @@ export function Prompt(props: PromptProps) {
               // if the virtual text is deleted, remove the part
               if (newStart === -1) return null
 
-              const newEnd = newStart + virtualText.length
+              const newOffset = promptOffsetWidth(normalized.slice(0, newStart))
+              const newEnd = newOffset + promptOffsetWidth(virtualText)
 
               if (part.type === "file" && part.source?.text) {
                 return {
@@ -475,7 +476,7 @@ export function Prompt(props: PromptProps) {
                     ...part.source,
                     text: {
                       ...part.source.text,
-                      start: newStart,
+                      start: newOffset,
                       end: newEnd,
                     },
                   },
@@ -487,7 +488,7 @@ export function Prompt(props: PromptProps) {
                   ...part,
                   source: {
                     ...part.source,
-                    start: newStart,
+                    start: newOffset,
                     end: newEnd,
                   },
                 }
@@ -1054,15 +1055,23 @@ export function Prompt(props: PromptProps) {
 
     if (store.mode === "shell") {
       move.startSubmit()
-      void sdk.client.session.shell({
-        sessionID,
-        agent: agent.name,
-        model: {
-          providerID: selectedModel.providerID,
-          modelID: selectedModel.modelID,
-        },
-        command: inputText,
-      })
+      void sdk.client.session
+        .shell({
+          sessionID,
+          agent: agent.name,
+          model: {
+            providerID: selectedModel.providerID,
+            modelID: selectedModel.modelID,
+          },
+          command: inputText,
+        })
+        .catch((error) => {
+          toast.show({
+            title: "Failed to run shell command",
+            message: errorMessage(error),
+            variant: "error",
+          })
+        })
       setStore("mode", "normal")
     } else if (
       inputText.startsWith("/") &&
@@ -1076,15 +1085,23 @@ export function Prompt(props: PromptProps) {
       const restOfInput = firstLineEnd === -1 ? "" : inputText.slice(firstLineEnd + 1)
       const args = firstLineArgs.join(" ") + (restOfInput ? "\n" + restOfInput : "")
 
-      void sdk.client.session.command({
-        sessionID,
-        command: command.slice(1),
-        arguments: args,
-        agent: agent.name,
-        model: `${selectedModel.providerID}/${selectedModel.modelID}`,
-        variant,
-        parts: nonTextParts.filter((x) => x.type === "file"),
-      })
+      void sdk.client.session
+        .command({
+          sessionID,
+          command: command.slice(1),
+          arguments: args,
+          agent: agent.name,
+          model: `${selectedModel.providerID}/${selectedModel.modelID}`,
+          variant,
+          parts: nonTextParts.filter((x) => x.type === "file"),
+        })
+        .catch((error) => {
+          toast.show({
+            title: "Failed to run command",
+            message: errorMessage(error),
+            variant: "error",
+          })
+        })
     } else {
       move.startSubmit()
       sdk.client.session
@@ -1227,7 +1244,7 @@ export function Prompt(props: PromptProps) {
       return x.mime.startsWith("image/")
     }).length
     const virtualText = pdf ? `[PDF ${count + 1}]` : `[Image ${count + 1}]`
-    const extmarkEnd = extmarkStart + virtualText.length
+    const extmarkEnd = extmarkStart + promptOffsetWidth(virtualText)
     const textToInsert = virtualText + " "
 
     input.insertText(textToInsert)

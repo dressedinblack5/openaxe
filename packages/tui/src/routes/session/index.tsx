@@ -573,11 +573,18 @@ export function Session() {
           })
           return
         }
-        void sdk.client.session.summarize({
-          sessionID: route.sessionID,
-          modelID: selectedModel.modelID,
-          providerID: selectedModel.providerID,
-        })
+        void sdk.client.session
+          .summarize({
+            sessionID: route.sessionID,
+            modelID: selectedModel.modelID,
+            providerID: selectedModel.providerID,
+          })
+          .catch((error) => {
+            toast.show({
+              message: error instanceof Error ? error.message : "Failed to summarize session",
+              variant: "error",
+            })
+          })
         dialog.clear()
       },
     },
