@@ -77,7 +77,7 @@ export function DiffViewerFileTree(props: DiffViewerFileTreeProps) {
                 const prefix = () => fileTreeRowPrefix(rows(), index(), row, props.expandedNodes)
                 const status = () => fileTreeRowStatus(row, props.files, reviewed())
                 const name = () =>
-                  Locale.truncate(row.name, Math.max(1, props.width - FILE_TREE_STATUS_WIDTH - prefix().length))
+                  Locale.truncate(row.name, Math.max(1, props.width - FILE_TREE_STATUS_WIDTH - Bun.stringWidth(prefix())))
                 return (
                   <box
                     flexDirection="row"

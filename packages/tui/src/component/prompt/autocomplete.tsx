@@ -462,11 +462,11 @@ export function Autocomplete(props: {
 
     results.sort((a, b) => a.display.localeCompare(b.display))
 
-    const max = results.slice().sort((a, b) => b.display.length - a.display.length)[0]?.display.length
-    if (!max) return results
+    const maxWidth = Math.max(0, ...results.map((item) => Bun.stringWidth(item.display)))
+    if (!maxWidth) return results
     return results.map((item) => ({
       ...item,
-      display: item.display.padEnd(max + 2),
+      display: item.display + " ".repeat(maxWidth - Bun.stringWidth(item.display) + 2),
     }))
   })
 
