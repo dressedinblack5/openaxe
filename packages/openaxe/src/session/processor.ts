@@ -13,8 +13,7 @@ import { Learning } from "./learning/learning"
 import { Session } from "./session"
 import { LLM } from "./llm"
 import { MessageV2 } from "./message-v2"
-import { isOverflow } from "./overflow"
-import { TokenEstimator } from "./token-estimator"
+import { isOverBudget } from "./overflow"
 import { PartID } from "./schema"
 import type { SessionID } from "./schema"
 import { SessionRetry } from "./retry"
@@ -129,7 +128,6 @@ export const layer = Layer.effect(
     const flags = yield* RuntimeFlags.Service
     const database = yield* Database.Service
     const learning = yield* Effect.serviceOption(Learning.Service)
-    const tokenEstimator = yield* TokenEstimator.Service
 
     const create = Effect.fn("SessionProcessor.create")(function* (input: Input) {
       // Pre-capture snapshot before the LLM stream starts. The AI SDK
@@ -730,12 +728,6 @@ export const layer = Layer.effect(
             ctx.assistantMessage.finish = value.reason
             ctx.assistantMessage.cost += usage.cost
             ctx.assistantMessage.tokens = usage.tokens
-            yield* tokenEstimator.recordUsage(ctx.sessionID, {
-              input: usage.tokens.input,
-              output: usage.tokens.output,
-              cacheRead: usage.tokens.cache.read,
-              cacheWrite: usage.tokens.cache.write,
-            })
             yield* session.updatePart({
               id: PartID.ascending(),
               reason: value.reason,
@@ -769,7 +761,7 @@ export const layer = Layer.effect(
               .pipe(Effect.ignore, Effect.forkIn(scope))
             if (
               !ctx.assistantMessage.summary &&
-              isOverflow({ cfg: yield* config.get(), tokens: usage.tokens, model: ctx.model })
+              isOverBudget({ cfg: yield* config.get(), tokens: usage.tokens, model: ctx.model, outputTokenMax: flags.outputTokenMax })
             ) {
               ctx.needsCompaction = true
             }
@@ -1212,7 +1204,6 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Database.defaultLayer),
     Layer.provide(EventV2Bridge.defaultLayer),
     Layer.provide(Learning.defaultLayer),
-    Layer.provide(TokenEstimator.defaultLayer),
   ),
 )
 
@@ -1232,7 +1223,6 @@ export const node = LayerNode.make(layer, [
   RuntimeFlags.node,
   Database.node,
   Learning.node,
-  TokenEstimator.node,
 ])
 
 export * as SessionProcessor from "./processor"

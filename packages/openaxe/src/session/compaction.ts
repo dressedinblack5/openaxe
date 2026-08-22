@@ -16,12 +16,11 @@ import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
 import { Global } from "@opencode-ai/core/global"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import { TokenEstimator } from "./token-estimator"
 
 import { Effect, Layer, Context, Option } from "effect"
 import { makeUnsafe } from "effect/DateTime"
 import { InstanceState } from "@/effect/instance-state"
-import { isOverflow as overflow, usable } from "./overflow"
+import { isOverBudget, usable } from "./overflow"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { EventV2Bridge } from "@/event-v2-bridge"
@@ -192,9 +191,10 @@ export const layer = Layer.effect(
     const events = yield* EventV2Bridge.Service
     const flags = yield* RuntimeFlags.Service
     const skill = yield* Skill.Service
-    const tokenEstimator = yield* TokenEstimator.Service
     const fs = yield* FSUtil.Service
     const background = yield* BackgroundCompaction.Service
+
+    const outputTokenMax = (yield* RuntimeFlags.Service).outputTokenMax
 
     const isOverflow = Effect.fn("SessionCompaction.isOverflow")(function* (input: {
       tokens: SessionV1.Assistant["tokens"]
@@ -202,24 +202,11 @@ export const layer = Layer.effect(
       sessionID?: SessionID
     }) {
       const cfg = yield* config.get()
-
-      if (input.sessionID && cfg.compaction?.cacheAware?.enabled) {
-        const estimate = yield* tokenEstimator.getEstimate(input.sessionID)
-        const totalTokens = estimate.serverReported + estimate.estimatedDelta
-
-        const usableTokens = usable({ cfg, model: input.model, outputTokenMax: flags.outputTokenMax })
-        const threshold = cfg.compaction?.threshold
-          ? parseThreshold(cfg.compaction.threshold, usableTokens)
-          : usableTokens
-
-        return totalTokens >= threshold
-      }
-
-      return overflow({
+      return isOverBudget({
         cfg,
         tokens: input.tokens,
         model: input.model,
-        outputTokenMax: flags.outputTokenMax,
+        outputTokenMax,
       })
     })
 
@@ -804,7 +791,6 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(EventV2Bridge.defaultLayer),
     Layer.provide(Compressor.defaultLayer),
     Layer.provide(Skill.defaultLayer),
-    Layer.provide(TokenEstimator.defaultLayer),
     Layer.provide(FSUtil.defaultLayer),
     Layer.provide(BackgroundCompaction.defaultLayer),
   ),
@@ -821,7 +807,6 @@ export const node = LayerNode.make(layer, [
   RuntimeFlags.node,
   Compressor.node,
   Skill.node,
-  TokenEstimator.node,
   FSUtil.node,
   BackgroundCompaction.node,
 ])

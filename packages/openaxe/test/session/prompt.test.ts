@@ -35,7 +35,7 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import { AppProcess } from "@opencode-ai/core/process"
 import { SessionCompaction } from "../../src/session/compaction"
 import { BackgroundCompaction } from "../../src/session/compaction/background"
-import { TokenEstimator } from "../../src/session/token-estimator"
+
 import { SessionSummary } from "../../src/session/summary"
 import { Instruction } from "../../src/session/instruction"
 import { SessionProcessor } from "../../src/session/processor"
@@ -202,7 +202,6 @@ function makePrompt(input?: { mcpInstructions?: MCP.ServerInstructions[]; proces
     Database.defaultLayer,
     EventV2Bridge.defaultLayer,
     AppProcess.defaultLayer,
-    TokenEstimator.defaultLayer,
     BackgroundCompaction.defaultLayer,
   ).pipe(Layer.provideMerge(infra))
   const question = Question.layer.pipe(Layer.provideMerge(deps))
