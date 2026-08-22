@@ -7,6 +7,7 @@ import { isAbsolute, join, relative } from "path"
 import { Effect, Schema, Semaphore } from "effect"
 import type { Context } from "./tool"
 import { define } from "./tool"
+import { usesPatchModel } from "./apply_patch"
 import { LSP } from "@/lsp/lsp"
 import { createTwoFilesPatch, diffLines } from "diff"
 import DESCRIPTION from "./edit.txt"
@@ -57,8 +58,7 @@ export const Parameters = Schema.Struct({
 })
 
 export const EditTool = define(
-  "edit",
-  Effect.gen(function* () {
+  "edit",  Effect.gen(function* () {
     const lsp = yield* LSP.Service
     const afs = yield* FSUtil.Service
     const format = yield* Format.Service
@@ -211,6 +211,9 @@ export const EditTool = define(
         }),
     }
   }),
+  {
+    available: ({ modelID }) => modelID === undefined || !usesPatchModel(modelID),
+  },
 )
 
 export type Replacer = (content: string, find: string) => Generator<string, void, unknown>

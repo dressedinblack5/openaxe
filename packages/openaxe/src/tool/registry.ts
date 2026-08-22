@@ -16,7 +16,7 @@ import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
-import type { Def, InferDef } from "./tool"
+import type { Def, Descriptor, InferDef, Info } from "./tool"
 import { init } from "./tool"
 import { Config } from "@/config/config"
 import { type ToolContext, type ToolDefinition } from "@opencode-ai/plugin"
@@ -26,7 +26,8 @@ import z from "zod"
 import { Plugin } from "../plugin"
 import { Provider } from "@/provider/provider"
 
-import { WebSearchTool } from "./websearch"
+import { WebSearchTool, webSearchEnabled } from "./websearch"
+
 import { ShellTool } from "./shell/shell"
 import { LspTool } from "./lsp"
 import { DiscoveryCache } from "./discovery-cache"
@@ -63,19 +64,49 @@ import { SkillWriteV1Tool } from "./skill-write"
 import { ToolSearchTool } from "./tool-search"
 import { KanbanSwarmTool } from "./kanban-swarm"
 
-export function webSearchEnabled(providerID: ProviderV2.ID, flags = { exa: false, parallel: false }) {
-  return providerID === ProviderV2.ID.opencode || flags.exa || flags.parallel
+export { webSearchEnabled }
+
+function pick(entries: BuiltinEntry[], id: string): Def {
+  const found = entries.find((entry) => entry.def.id === id)
+  if (!found) throw new Error(`builtin tool "${id}" is missing from the registry manifest`)
+  return found.def
 }
 
 type TaskDef = InferDef<typeof TaskTool>
 type ReadDef = InferDef<typeof ReadTool>
 
+type BuiltinEntry = { def: Def; available?: Descriptor["available"] }
+
 type State = {
   custom: Def[]
-  builtin: Def[]
-  task: TaskDef
-  read: ReadDef
+  builtin: BuiltinEntry[]
 }
+
+// Manifest position IS provider-visible tool order (Record insertion order
+// reaches the model's tool list). Adding a tool = adding exactly one line here.
+const manifest = [
+  InvalidTool,
+  QuestionTool,
+  ReadTool,
+  GlobTool,
+  GrepTool,
+  EditTool,
+  WriteTool,
+  TaskTool,
+  WebFetchTool,
+  TodoWriteTool,
+  WebSearchTool,
+  SkillTool,
+  ApplyPatchTool,
+  LspTool,
+  ShellTool,
+  KanbanTool,
+  KanbanSwarmTool,
+  SessionSearchTool,
+  SkillWriteV1Tool,
+  ToolSearchTool,
+  PlanExitTool,
+]
 
 export interface Interface {
   readonly ids: () => Effect.Effect<string[]>
@@ -95,28 +126,11 @@ export const layer = Layer.effect(
     const truncate = yield* Truncate.Service
     const flags = yield* RuntimeFlags.Service
 
-    const invalid = yield* InvalidTool
-    const task = yield* TaskTool
-    const read = yield* ReadTool
-    const question = yield* QuestionTool
-    const todo = yield* TodoWriteTool
-    const lsptool = yield* LspTool
-    const plan = yield* PlanExitTool
-    const webfetch = yield* WebFetchTool
-    const websearch = yield* WebSearchTool
-    const globtool = yield* GlobTool
-    const writetool = yield* WriteTool
-    const edit = yield* EditTool
-    const greptool = yield* GrepTool
-    const patchtool = yield* ApplyPatchTool
-    const shell = yield* ShellTool
-    const skilltool = yield* SkillTool
-const kanban = yield* KanbanTool
-        const kanbanSwarm = yield* KanbanSwarmTool
-        const sessionSearch = yield* SessionSearchTool
-    const skillWrite = yield* SkillWriteV1Tool
-    const toolSearch = yield* ToolSearchTool
-    const agent = yield* Agent.Service
+    const infos: Info[] = yield* Effect.all(manifest)
+    const defs: Def[] = yield* Effect.forEach(infos, (info) => init(info))
+    // Zip descriptors back onto their resolved defs by index — Effect.all
+    // returns fresh objects, the attached `available` lives on the manifest.
+    const entries: BuiltinEntry[] = defs.map((def, i) => ({ def, available: manifest[i].available }))
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("ToolRegistry.state")(function* (ctx) {
@@ -155,7 +169,7 @@ const kanban = yield* KanbanTool
                 const output = typeof result === "string" ? result : result.output
                 const metadata = typeof result === "string" ? {} : (result.metadata ?? {})
                 const attachments = typeof result === "string" ? undefined : result.attachments
-                const info = yield* agent.get(toolCtx.agent)
+                const info = yield* agents.get(toolCtx.agent)
                 const out = yield* truncate.output(output, {}, info)
                 return {
                   title: typeof result === "string" ? "" : (result.title ?? ""),
@@ -309,67 +323,17 @@ const kanban = yield* KanbanTool
           }
         }
 
-        yield* config.get()
-        const questionEnabled = ["app", "cli", "desktop"].includes(flags.client) || flags.enableQuestionTool
-
-        const tool = yield* Effect.all({
-          invalid: init(invalid),
-          read: init(read),
-          glob: init(globtool),
-          grep: init(greptool),
-          edit: init(edit),
-          write: init(writetool),
-          task: init(task),
-          fetch: init(webfetch),
-          todo: init(todo),
-          search: init(websearch),
-          skill: init(skilltool),
-          patch: init(patchtool),
-          question: init(question),
-          lsp: init(lsptool),
-          plan: init(plan),
-          shell: init(shell),
-          kanban: init(kanban),
-          kanbanSwarm: init(kanbanSwarm),
-          sessionSearch: init(sessionSearch),
-          skillWrite: init(skillWrite),
-          toolSearch: init(toolSearch),
-        })
-
+        const select = { flags }
         return {
           custom,
-          builtin: [
-            tool.invalid,
-            ...(questionEnabled ? [tool.question] : []),
-            tool.read,
-            tool.glob,
-            tool.grep,
-            tool.edit,
-            tool.write,
-            tool.task,
-            tool.fetch,
-            tool.todo,
-            tool.search,
-            tool.skill,
-            tool.patch,
-            tool.lsp,
-            tool.shell,
-            tool.kanban,
-            tool.kanbanSwarm,
-            tool.sessionSearch,
-            tool.skillWrite,
-            tool.toolSearch,
-            ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
-          ],
-          task: tool.task,
-          read: tool.read,
+          builtin: entries.filter((entry) => entry.available?.(select) ?? true),
         }
       }),
     )
 
     const all: Interface["all"] = Effect.fn("ToolRegistry.all")(function* () {
       const s = yield* InstanceState.get(state)
-      return [...s.builtin, ...s.custom] as Def[]
+      return [...s.builtin.map((entry) => entry.def), ...s.custom] as Def[]
     })
 
     const ids: Interface["ids"] = Effect.fn("ToolRegistry.ids")(function* () {
@@ -392,18 +356,12 @@ const kanban = yield* KanbanTool
     })
 
     const tools: Interface["tools"] = Effect.fn("ToolRegistry.tools")(function* (input) {
-      const filtered = (yield* all()).filter((tool) => {
-        if (tool.id === WebSearchTool.id) {
-          return webSearchEnabled(input.providerID, { exa: flags.enableExa, parallel: flags.enableParallel })
-        }
-
-        const usePatch =
-          input.modelID.includes("gpt-") && !input.modelID.includes("oss") && !input.modelID.includes("gpt-4")
-        if (tool.id === ApplyPatchTool.id) return usePatch
-        if (tool.id === EditTool.id || tool.id === WriteTool.id) return !usePatch
-
-        return true
-      })
+      const s = yield* InstanceState.get(state)
+      const select = { flags, providerID: input.providerID, modelID: input.modelID }
+      const filtered: Def[] = [
+        ...s.builtin.filter((entry) => entry.available?.(select) ?? true).map((entry) => entry.def),
+        ...s.custom,
+      ]
 
       return yield* Effect.forEach(
         filtered,
@@ -435,7 +393,10 @@ const kanban = yield* KanbanTool
 
     const named: Interface["named"] = Effect.fn("ToolRegistry.named")(function* () {
       const s = yield* InstanceState.get(state)
-      return { task: s.task, read: s.read }
+      return {
+        task: pick(s.builtin, TaskTool.id) as TaskDef,
+        read: pick(s.builtin, ReadTool.id) as ReadDef,
+      }
     })
 
     return Service.of({ ids, all, named, tools })

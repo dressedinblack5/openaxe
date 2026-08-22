@@ -19,6 +19,10 @@ export const Parameters = Schema.Struct({
   patchText: Schema.String.annotate({ description: "The full patch text that describes all changes to be made" }),
 })
 
+export function usesPatchModel(modelID: string) {
+  return modelID.includes("gpt-") && !modelID.includes("oss") && !modelID.includes("gpt-4")
+}
+
 export const ApplyPatchTool = define(
   "apply_patch",
   Effect.gen(function* () {
@@ -305,4 +309,7 @@ export const ApplyPatchTool = define(
       execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) => run(params, ctx).pipe(Effect.orDie),
     }
   }),
+  {
+    available: ({ modelID }) => modelID === undefined || usesPatchModel(modelID),
+  },
 )

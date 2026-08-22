@@ -3,6 +3,7 @@ import { isAbsolute, join, relative } from "path"
 import { Effect } from "effect"
 import type { Context } from "./tool"
 import { define } from "./tool"
+import { usesPatchModel } from "./apply_patch"
 import { LSP } from "@/lsp/lsp"
 import { createTwoFilesPatch } from "diff"
 import DESCRIPTION from "./write.txt"
@@ -100,4 +101,7 @@ export const WriteTool = define(
         }).pipe(Effect.orDie),
     }
   }),
+  {
+    available: ({ modelID }) => modelID === undefined || !usesPatchModel(modelID),
+  },
 )

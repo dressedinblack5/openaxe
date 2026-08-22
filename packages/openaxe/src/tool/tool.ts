@@ -6,6 +6,23 @@ import type { SessionID, MessageID } from "../session/schema"
 import type { Interface } from "./truncate"
 import { Service } from "./truncate"
 import { Agent } from "@/agent/agent"
+import type { RuntimeFlags } from "@/effect/runtime-flags"
+import type { ProviderV2 } from "@opencode-ai/core/provider"
+import type { ModelV2 } from "@opencode-ai/core/model"
+
+/**
+ * Judged at registry build time with only `flags`, then again per-model in
+ * `tools()`. Predicates must tolerate the narrower form.
+ */
+export interface Availability {
+  flags: RuntimeFlags.Info
+  providerID?: ProviderV2.ID
+  modelID?: ModelV2.ID
+}
+
+export interface Descriptor {
+  available: (input: Availability) => boolean
+}
 
 interface Metadata {
   [key: string]: any
@@ -152,7 +169,8 @@ export function define<
 >(
   id: ID,
   init: Effect.Effect<Init<Parameters, Result>, never, R>,
-): Effect.Effect<Info<Parameters, Result>, never, R | Service | Agent.Service> & { id: ID } {
+  descriptor?: Partial<Descriptor>,
+): (Effect.Effect<Info<Parameters, Result>, never, R | Service | Agent.Service> & { id: ID }) & Partial<Descriptor> {
   return Object.assign(
     Effect.gen(function* () {
       const resolved = yield* init
@@ -161,6 +179,7 @@ export function define<
       return { id, init: wrap(id, resolved, truncate, agents) }
     }),
     { id },
+    descriptor,
   )
 }
 
