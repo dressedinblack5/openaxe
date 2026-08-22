@@ -98,13 +98,27 @@ const kinds = [
 
 const BROKEN_TTL = 300_000 // 5 minutes before retrying a failed LSP server
 
+/** Client key used consistently across maps (broken, used, spawning). */
+function clientKey(root: string, serverID: string): string {
+  return `${root}#${serverID}`
+}
+
+/** Check if a (root, serverID) pair is broken and within TTL; clean up if expired. */
+function checkBroken(s: State, root: string, serverID: string): boolean {
+  const key = clientKey(root, serverID)
+  const brokenAt = s.broken.get(key)
+  if (brokenAt && Date.now() - brokenAt < BROKEN_TTL) return true
+  if (brokenAt) s.broken.delete(key)
+  return false
+}
+
 export function selectIdleKeys(
   clients: { root: string; serverID: string }[],
   used: Map<string, number>,
   now: number,
   ttl: number,
 ) {
-  return clients.filter((c) => now - (used.get(c.root + c.serverID) ?? now) > ttl).map((c) => c.root + c.serverID)
+  return clients.filter((c) => now - (used.get(clientKey(c.root, c.serverID)) ?? now) > ttl).map((c) => clientKey(c.root, c.serverID))
 }
 
 const filterExperimentalServers = (servers: Record<string, ServerInfo>, flags: RuntimeFlags.Info) => {
@@ -233,9 +247,9 @@ export const layer = Layer.effect(
           if (keys.length === 0) return
           const keySet = new Set(keys)
           yield* Effect.promise(() =>
-            Promise.all(s.clients.filter((c) => keySet.has(c.root + c.serverID)).map((c) => c.shutdown().catch(() => {}))),
+            Promise.all(s.clients.filter((c) => keySet.has(clientKey(c.root, c.serverID))).map((c) => c.shutdown().catch(() => {}))),
           )
-          s.clients = s.clients.filter((c) => !keySet.has(c.root + c.serverID))
+          s.clients = s.clients.filter((c) => !keySet.has(clientKey(c.root, c.serverID)))
           for (const key of keySet) {
             s.broken.delete(key)
             s.used.delete(key)
@@ -298,10 +312,7 @@ export const layer = Layer.effect(
 
           const root = await server.root(file, ctx)
           if (!root) continue
-          const brokenKey = root + server.id
-          const brokenAt = s.broken.get(brokenKey)
-          if (brokenAt && Date.now() - brokenAt < BROKEN_TTL) continue
-          if (brokenAt) s.broken.delete(brokenKey)
+          if (checkBroken(s, root, server.id)) continue
 
           const match = s.clients.find((x) => x.root === root && x.serverID === server.id)
           if (match) {
@@ -310,7 +321,7 @@ export const layer = Layer.effect(
           }
 
           // Race-condition-free spawn deduplication using atomic check-and-set
-          const spawnKey = root + server.id
+          const spawnKey = clientKey(root, server.id)
           let task = s.spawning.get(spawnKey)
           if (!task) {
             task = schedule(server, root, spawnKey)
@@ -335,7 +346,7 @@ export const layer = Layer.effect(
       yield* Effect.forEach(Array.from({ length: clients.updated }), () => events.publish(Event.Updated, {}), {
         discard: true,
       })
-      for (const client of clients.result) s.used.set(client.root + client.serverID, Date.now())
+      for (const client of clients.result) s.used.set(clientKey(client.root, client.serverID), Date.now())
       return clients.result
     })
 
@@ -346,7 +357,7 @@ export const layer = Layer.effect(
 
     const runAll = Effect.fnUntraced(function* <T>(fn: (client: ClientInfo) => Promise<T>) {
       const s = yield* InstanceState.get(state)
-      for (const client of s.clients) s.used.set(client.root + client.serverID, Date.now())
+      for (const client of s.clients) s.used.set(clientKey(client.root, client.serverID), Date.now())
       return yield* Effect.promise(() => Promise.all(s.clients.map((x) => fn(x))))
     })
 
@@ -378,10 +389,7 @@ export const layer = Layer.effect(
           if (server.extensions.length && !server.extensions.includes(extension)) continue
           const root = await server.root(file, ctx)
           if (!root) continue
-          const brokenKey = root + server.id
-          const brokenAt = s.broken.get(brokenKey)
-          if (brokenAt && Date.now() - brokenAt < BROKEN_TTL) continue
-          if (brokenAt) s.broken.delete(brokenKey)
+          if (checkBroken(s, root, server.id)) continue
           return true
         }
         return false

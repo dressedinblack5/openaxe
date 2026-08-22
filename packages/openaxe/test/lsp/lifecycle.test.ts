@@ -135,8 +135,8 @@ describe("LSP idle pruning", () => {
   test("selectIdleKeys returns keys idle past the TTL and excludes recently-used", () => {
     const now = 1_000_000
     const used = new Map([
-      ["ats", now - 1_000_000], // idle 1M ms > 60s TTL
-      ["bts", now - 1_000], // used 1s ago < 60s TTL
+      ["a#ts", now - 1_000_000], // idle 1M ms > 60s TTL
+      ["b#ts", now - 1_000], // used 1s ago < 60s TTL
     ])
     const result = LSP.selectIdleKeys(
       [
@@ -147,12 +147,12 @@ describe("LSP idle pruning", () => {
       now,
       60_000,
     )
-    expect(result).toEqual(["ats"])
+    expect(result).toEqual(["a#ts"])
   })
 
   test("selectIdleKeys returns empty when no client is idle", () => {
     const now = 1_000_000
-    const used = new Map([["ats", now - 10_000]])
+    const used = new Map([["a#ts", now - 10_000]])
     const result = LSP.selectIdleKeys([{ root: "a", serverID: "ts" }], used, now, 60_000)
     expect(result).toEqual([])
   })
