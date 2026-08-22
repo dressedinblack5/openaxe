@@ -62,10 +62,7 @@ describe("tool.registry v1 bridges", () => {
       const kanban = all.find((tool) => tool.id === "kanban")
       if (!kanban) throw new Error("kanban tool not found")
 
-      const boardResult = yield* kanban.execute(
-        { operation: "create_board", title: "Swarm board" },
-        toolContext(agent),
-      )
+      const boardResult = yield* kanban.execute({ operation: "create_board", title: "Swarm board" }, toolContext(agent))
       expect(boardResult.output).toContain("Board")
       expect(boardResult.output).toContain("Swarm board")
 

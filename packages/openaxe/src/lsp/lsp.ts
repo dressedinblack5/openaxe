@@ -233,7 +233,9 @@ export const layer = Layer.effect(
           if (keys.length === 0) return
           const keySet = new Set(keys)
           yield* Effect.promise(() =>
-            Promise.all(s.clients.filter((c) => keySet.has(c.root + c.serverID)).map((c) => c.shutdown().catch(() => {}))),
+            Promise.all(
+              s.clients.filter((c) => keySet.has(c.root + c.serverID)).map((c) => c.shutdown().catch(() => {})),
+            ),
           )
           s.clients = s.clients.filter((c) => !keySet.has(c.root + c.serverID))
           for (const key of keySet) {

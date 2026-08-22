@@ -36,7 +36,11 @@ const instructionLayer = (
   )
 
 const provideInstruction =
-  (global: Partial<Global.Interface>, flags?: Partial<RuntimeFlags.Info>, configOverride?: Layer.Layer<Config.Service>) =>
+  (
+    global: Partial<Global.Interface>,
+    flags?: Partial<RuntimeFlags.Info>,
+    configOverride?: Layer.Layer<Config.Service>,
+  ) =>
   <A, E, R>(self: Effect.Effect<A, E, R>) =>
     self.pipe(Effect.provide(instructionLayer(global, flags, configOverride)))
 

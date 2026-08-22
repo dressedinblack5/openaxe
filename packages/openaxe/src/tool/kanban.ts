@@ -9,9 +9,13 @@ export const Parameters = Schema.Struct({
   operation: Schema.Literals(["create_board", "create_card", "update_card", "list_cards", "get_board"]).annotate({
     description: "The kanban operation to perform",
   }),
-  boardId: Schema.optional(Schema.String).annotate({ description: "Board id (required for create_card, list_cards, get_board)" }),
+  boardId: Schema.optional(Schema.String).annotate({
+    description: "Board id (required for create_card, list_cards, get_board)",
+  }),
   cardId: Schema.optional(Schema.String).annotate({ description: "Card id (required for update_card)" }),
-  title: Schema.optional(Schema.String).annotate({ description: "Board or card title (required for create_board, create_card)" }),
+  title: Schema.optional(Schema.String).annotate({
+    description: "Board or card title (required for create_board, create_card)",
+  }),
   description: Schema.optional(Schema.String).annotate({ description: "Card description" }),
   status: Schema.optional(Status).annotate({ description: "Card status" }),
   priority: Schema.optional(Schema.Int).annotate({ description: "Card priority" }),
@@ -19,7 +23,9 @@ export const Parameters = Schema.Struct({
   workerSessionId: Schema.optional(Schema.String).annotate({
     description: "Session id of the subagent working on the card",
   }),
-  parentId: Schema.optional(Schema.String).annotate({ description: "Parent card id (root -> worker -> verifier hierarchies)" }),
+  parentId: Schema.optional(Schema.String).annotate({
+    description: "Parent card id (root -> worker -> verifier hierarchies)",
+  }),
   verification: Schema.optional(Schema.Json).annotate({ description: "Verification result attached to the card" }),
   rootSessionId: Schema.optional(Schema.String).annotate({
     description: "Root session id. Defaults to the current session.",
@@ -72,8 +78,7 @@ export const KanbanTool = define<typeof Parameters, Metadata, Kanban.Service>(
 
         switch (params.operation) {
           case "create_board": {
-            if (!params.title)
-              return yield* Effect.fail(new Error("kanban create_board requires a title"))
+            if (!params.title) return yield* Effect.fail(new Error("kanban create_board requires a title"))
             const board = yield* kanban.createBoard({
               rootSessionId: params.rootSessionId ?? ctx.sessionID,
               title: params.title,

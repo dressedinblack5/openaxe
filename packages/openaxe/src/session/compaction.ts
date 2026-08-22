@@ -291,9 +291,12 @@ export const layer = Layer.effect(
       if (!cfg.compaction?.prune) return
       yield* Effect.logInfo("pruning")
 
-      const msgs = yield* session
-        .messages({ sessionID: input.sessionID })
-        .pipe(Effect.catchIf((error): error is NotFoundError => NotFoundError.isInstance(error), () => Effect.void))
+      const msgs = yield* session.messages({ sessionID: input.sessionID }).pipe(
+        Effect.catchIf(
+          (error): error is NotFoundError => NotFoundError.isInstance(error),
+          () => Effect.void,
+        ),
+      )
       if (!msgs) return
 
       let total = 0
@@ -338,9 +341,12 @@ export const layer = Layer.effect(
     }) {
       const cfg = yield* config.get()
       if (!cfg.compaction?.toolBudgeting?.enabled) return
-      const msgs = yield* session
-        .messages({ sessionID: input.sessionID })
-        .pipe(Effect.catchIf((error): error is NotFoundError => NotFoundError.isInstance(error), () => Effect.void))
+      const msgs = yield* session.messages({ sessionID: input.sessionID }).pipe(
+        Effect.catchIf(
+          (error): error is NotFoundError => NotFoundError.isInstance(error),
+          () => Effect.void,
+        ),
+      )
       if (!msgs) return
 
       const protectChars = cfg.compaction?.toolBudgeting?.protectChars ?? TOOL_OUTPUT_PROTECT

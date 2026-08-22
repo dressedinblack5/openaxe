@@ -136,9 +136,7 @@ Output JSON:
 
       if (!response) return emptyResult
 
-      const data = yield* Effect.tryPromise<any>(() => response.json()).pipe(
-        Effect.catch(() => Effect.void),
-      )
+      const data = yield* Effect.tryPromise<any>(() => response.json()).pipe(Effect.catch(() => Effect.void))
       if (!data) return emptyResult
 
       const text: string | undefined = data.choices?.[0]?.message?.content ?? data.content

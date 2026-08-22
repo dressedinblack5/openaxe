@@ -54,7 +54,7 @@ const model = (providerID: ProviderV2.ID, modelID: ModelV2.ID, context: number):
   family: "test",
   capabilities: {
     temperature: true,
-      speed: false,
+    speed: false,
     reasoning: false,
     attachment: false,
     toolcall: true,

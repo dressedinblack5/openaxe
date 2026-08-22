@@ -73,7 +73,9 @@ const copyMessage = (
     const newID = MessageID.ascending()
     idMap.set(msg.info.id, newID)
     const parentID =
-      msg.info.role === "assistant" && msg.info.parentID ? (idMap.get(msg.info.parentID) ?? msg.info.parentID) : undefined
+      msg.info.role === "assistant" && msg.info.parentID
+        ? (idMap.get(msg.info.parentID) ?? msg.info.parentID)
+        : undefined
     yield* session.updateMessage({
       ...msg.info,
       sessionID,
@@ -144,15 +146,20 @@ const appendConflictMessage = (
  * fork_point_message_id set) containing copies of the messages from the fork
  * point onward. Fails with a typed error if the message does not exist.
  */
-export const fork = (
-  input: { sessionID: SessionID; atMessage: MessageID; name?: string },
-): Effect.Effect<ForkResult, ForkMergeError, Session.Service | Database.Service> =>
+export const fork = (input: {
+  sessionID: SessionID
+  atMessage: MessageID
+  name?: string
+}): Effect.Effect<ForkResult, ForkMergeError, Session.Service | Database.Service> =>
   Effect.gen(function* () {
     const session = yield* Session.Service
     yield* session.get(input.sessionID).pipe(catchNotFound(input.sessionID))
     const msgs = yield* session.messages({ sessionID: input.sessionID }).pipe(catchNotFound(input.sessionID))
     const at = msgs.findIndex((m) => m.info.id === input.atMessage)
-    if (at === -1) return yield* new ForkMergeError({ message: `Message not found: ${input.atMessage} in session ${input.sessionID}` })
+    if (at === -1)
+      return yield* new ForkMergeError({
+        message: `Message not found: ${input.atMessage} in session ${input.sessionID}`,
+      })
 
     const created = yield* session.create({
       parentID: input.sessionID,
@@ -173,11 +180,7 @@ export const fork = (
  * messages are appended cleanly. Messages before the fork point in either
  * session are never modified.
  */
-export const merge = (input: {
-  sourceSessionID: SessionID
-  targetSessionID: SessionID
-  strategy?: MergeStrategy
-}) =>
+export const merge = (input: { sourceSessionID: SessionID; targetSessionID: SessionID; strategy?: MergeStrategy }) =>
   Effect.gen(function* () {
     // ponytail: only last-write-wins is implemented; "3way" is an accepted alias.
     const session = yield* Session.Service
@@ -234,5 +237,11 @@ export const merge = (input: {
       appended++
     }
 
-    return { sourceSessionID: input.sourceSessionID, targetSessionID: input.targetSessionID, conflicts, appended, identical } satisfies MergeResult
+    return {
+      sourceSessionID: input.sourceSessionID,
+      targetSessionID: input.targetSessionID,
+      conflicts,
+      appended,
+      identical,
+    } satisfies MergeResult
   })

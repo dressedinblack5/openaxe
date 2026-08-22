@@ -111,9 +111,9 @@ export const layer = Layer.effect(
     const patchtool = yield* ApplyPatchTool
     const shell = yield* ShellTool
     const skilltool = yield* SkillTool
-const kanban = yield* KanbanTool
-        const kanbanSwarm = yield* KanbanSwarmTool
-        const sessionSearch = yield* SessionSearchTool
+    const kanban = yield* KanbanTool
+    const kanbanSwarm = yield* KanbanSwarmTool
+    const sessionSearch = yield* SessionSearchTool
     const skillWrite = yield* SkillWriteV1Tool
     const toolSearch = yield* ToolSearchTool
     const agent = yield* Agent.Service
@@ -151,7 +151,9 @@ const kanban = yield* KanbanTool
                   directory: ctx.directory,
                   worktree: ctx.worktree,
                 }
-                const result = yield* Effect.promise(() => def.execute(args as z.infer<z.ZodObject<z.ZodRawShape>>, pluginCtx))
+                const result = yield* Effect.promise(() =>
+                  def.execute(args as z.infer<z.ZodObject<z.ZodRawShape>>, pluginCtx),
+                )
                 const output = typeof result === "string" ? result : result.output
                 const metadata = typeof result === "string" ? {} : (result.metadata ?? {})
                 const attachments = typeof result === "string" ? undefined : result.attachments
@@ -553,8 +555,9 @@ function normalizeZodJsonSchema(value: unknown): unknown {
   if (typeof value !== "object" || value === null) return value
   return Object.fromEntries(
     Object.entries(value)
-      .filter((entry) =>
-        !((entry[0] === "exclusiveMaximum" || entry[0] === "exclusiveMinimum") && typeof entry[1] === "boolean"),
+      .filter(
+        (entry) =>
+          !((entry[0] === "exclusiveMaximum" || entry[0] === "exclusiveMinimum") && typeof entry[1] === "boolean"),
       )
       .map(([key, item]) => [key, normalizeZodJsonSchema(item)]),
   )

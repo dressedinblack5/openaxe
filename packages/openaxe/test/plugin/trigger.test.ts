@@ -44,9 +44,7 @@ const filteredConfig = Layer.effect(
           const info = yield* original.get()
           return {
             ...info,
-            plugin_origins: info.plugin_origins?.filter(
-              (p) => p.scope === "local",
-            ),
+            plugin_origins: info.plugin_origins?.filter((p) => p.scope === "local"),
           }
         }),
     })

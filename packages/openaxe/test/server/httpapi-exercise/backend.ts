@@ -14,10 +14,7 @@ type CallOptions = {
 export function call(scenario: ActiveScenario, ctx: SeededContext<unknown>, options: CallOptions = {}) {
   return Effect.promise(async () => {
     const modules = await runtime()
-    return capture(
-      await app(modules, options).request(toRequest(scenario, ctx)),
-      scenario.capture,
-    )
+    return capture(await app(modules, options).request(toRequest(scenario, ctx)), scenario.capture)
   })
 }
 
@@ -52,9 +49,7 @@ const appCache: Partial<Record<string, CachedApp>> = {}
 export async function disposeApps() {
   const apps = Object.values(appCache)
   for (const key of Object.keys(appCache)) delete appCache[key]
-  await Promise.all(
-    apps.flatMap((app) => (app === undefined ? [] : [app.dispose()])),
-  )
+  await Promise.all(apps.flatMap((app) => (app === undefined ? [] : [app.dispose()])))
 }
 
 function app(modules: Runtime, options: CallOptions) {
@@ -96,11 +91,7 @@ function toRequest(scenario: ActiveScenario, ctx: SeededContext<unknown>) {
   })
 }
 
-function toAuthProbeRequest(
-  scenario: ActiveScenario,
-  credentials: "missing" | "valid",
-  signal: AbortSignal,
-) {
+function toAuthProbeRequest(scenario: ActiveScenario, credentials: "missing" | "valid", signal: AbortSignal) {
   const spec = scenario.authProbe ?? {
     path: authProbePath(scenario.path),
     body: scenario.method === "GET" ? undefined : {},

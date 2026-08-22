@@ -9,10 +9,10 @@ async function time(label: string, fn: () => Promise<unknown>) {
 
 async function measure() {
   console.log("\n=== EAGER command imports (loaded at index.ts top level) ===\n")
-  
+
   await time(`yargs`, () => import("yargs"))
   await time(`yargs/helpers`, () => import("yargs/helpers"))
-  
+
   // eager commands
   await time(`@/cli/cmd/generate`, () => import("@/cli/cmd/generate"))
   await time(`@/cli/cmd/upgrade`, () => import("@/cli/cmd/upgrade"))
@@ -28,13 +28,13 @@ async function measure() {
   await time(`@/cli/cmd/session`, () => import("@/cli/cmd/session"))
   await time(`@/cli/cmd/db`, () => import("@/cli/cmd/db"))
   await time(`@/cli/cmd/plugin`, () => import("@/cli/cmd/plugin"))
-  
+
   // other eager modules
   await time(`@/cli/error`, () => import("@/cli/error"))
   await time(`@/cli/lazy-command`, () => import("@/cli/lazy-command"))
   await time(`@opencode-ai/core/installation/version`, () => import("@opencode-ai/core/installation/version"))
   await time(`@/util/error`, () => import("@/util/error"))
-  
+
   // cli/ui import already measured
   await time(`@/cli/ui`, () => import("@/cli/ui"))
 }

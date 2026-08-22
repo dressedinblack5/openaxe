@@ -41,16 +41,16 @@ export const ShellTool = define(
       description: DESCRIPTION,
       parameters: Parameters,
       execute: (
-          params: {
-            command: string
-            workdir?: string
-            timeout?: number
-            shell?: string
-            stdin?: string
-            env?: Record<string, string>
-          },
-          ctx: Context,
-        ) =>
+        params: {
+          command: string
+          workdir?: string
+          timeout?: number
+          shell?: string
+          stdin?: string
+          env?: Record<string, string>
+        },
+        ctx: Context,
+      ) =>
         Effect.gen(function* () {
           const ins = yield* InstanceState.context
           const cwd = params.workdir

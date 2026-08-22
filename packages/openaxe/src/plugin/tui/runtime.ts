@@ -241,11 +241,7 @@ function resolveRoot(root: string) {
   return path.resolve(process.cwd(), root)
 }
 
-function createThemeInstaller(
-  meta: ConfigPlugin.Origin,
-  root: string,
-  plugin: PluginEntry,
-): TuiTheme["install"] {
+function createThemeInstaller(meta: ConfigPlugin.Origin, root: string, plugin: PluginEntry): TuiTheme["install"] {
   return async (file) => {
     const src = Filesystem.resolveFilePath(root, file)
     const name = path.basename(src, path.extname(src))
@@ -993,27 +989,27 @@ export async function init(input: {
   disposeTimeoutMs?: number
 }) {
   const cwd = process.cwd()
-  
+
   if (loaded && dir === cwd) {
     return loaded
   }
-  
+
   if (initLock) {
     await initLock
     if (loaded && dir === cwd) {
       return loaded
     }
   }
-  
+
   if (loaded) {
     await dispose()
   }
-  
+
   const loadPromise = load({ ...input, runtime: input.runtime ?? createPluginRuntime() })
   dir = cwd
   initLock = loadPromise
   loaded = loadPromise
-  
+
   try {
     await loadPromise
   } finally {
@@ -1021,7 +1017,7 @@ export async function init(input: {
       initLock = null
     }
   }
-  
+
   return loaded
 }
 

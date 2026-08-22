@@ -59,19 +59,13 @@ const cli = yargs(args)
   .usage("")
   .completion("completion", "generate shell completion script")
   .command(
-    lazyCommand("embed", "embedding tools", undefined, () =>
-      import("./cli/cmd/embed").then((m) => m.EmbedCommand),
-    ),
+    lazyCommand("embed", "embedding tools", undefined, () => import("./cli/cmd/embed").then((m) => m.EmbedCommand)),
   )
   .command(
-    lazyCommand("kb", "build project knowledge base", undefined, () =>
-      import("./cli/cmd/kb").then((m) => m.KbCommand),
-    ),
+    lazyCommand("kb", "build project knowledge base", undefined, () => import("./cli/cmd/kb").then((m) => m.KbCommand)),
   )
   .command(
-    lazyCommand("skill", "manage skills", undefined, () =>
-      import("./cli/cmd/skill").then((m) => m.SkillCommand),
-    ),
+    lazyCommand("skill", "manage skills", undefined, () => import("./cli/cmd/skill").then((m) => m.SkillCommand)),
   )
   .command(
     lazyCommand("reflection", "error pattern reflection", undefined, () =>

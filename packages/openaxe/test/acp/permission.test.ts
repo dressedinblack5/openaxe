@@ -142,7 +142,9 @@ describe("acp permissions", () => {
     const harness = createHarness()
     await createSession(harness.session, "ses_a")
 
-    void harness.subscription.handle(permissionAsked("ses_a", "perm_1", { tool: { messageID: "msg_1", callID: "call_1" } }))
+    void harness.subscription.handle(
+      permissionAsked("ses_a", "perm_1", { tool: { messageID: "msg_1", callID: "call_1" } }),
+    )
 
     await pollUntil(() => harness.replies.length === 1, "permission was never replied")
 

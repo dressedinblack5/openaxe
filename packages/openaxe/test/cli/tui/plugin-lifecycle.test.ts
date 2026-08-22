@@ -107,9 +107,9 @@ test("rolls back failed plugin and continues loading next", async () => {
   try {
     await TuiPluginRuntime.init({ api: createTuiPluginApi(), config })
     // bad plugin's onDispose ran during rollback
-     expect(fs.readFile(tmp.extra.badMarker, "utf8")).resolves.toBe("cleaned")
+    expect(fs.readFile(tmp.extra.badMarker, "utf8")).resolves.toBe("cleaned")
     // good plugin still loaded
-     expect(fs.readFile(tmp.extra.goodMarker, "utf8")).resolves.toBe("called")
+    expect(fs.readFile(tmp.extra.goodMarker, "utf8")).resolves.toBe("called")
   } finally {
     await TuiPluginRuntime.dispose()
     restore()

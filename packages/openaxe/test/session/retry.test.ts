@@ -196,51 +196,51 @@ describe("session.retry.retryable", () => {
 
   test("retries 500 errors even when isRetryable is false", () => {
     const error = new SessionV1.APIError({
-        message: "Internal server error",
-        isRetryable: false,
-        statusCode: 500,
-        responseBody: '{"type":"api_error","message":"Internal server error"}',
-      }).toObject() as SessionRetry.Err
+      message: "Internal server error",
+      isRetryable: false,
+      statusCode: 500,
+      responseBody: '{"type":"api_error","message":"Internal server error"}',
+    }).toObject() as SessionRetry.Err
 
     expect(SessionRetry.retryable(error, retryProvider)).toEqual({ message: "Internal server error" })
   })
 
   test("retries 502 bad gateway errors", () => {
     const error = new SessionV1.APIError({
-        message: "Bad gateway",
-        isRetryable: false,
-        statusCode: 502,
-      }).toObject() as SessionRetry.Err
+      message: "Bad gateway",
+      isRetryable: false,
+      statusCode: 502,
+    }).toObject() as SessionRetry.Err
 
     expect(SessionRetry.retryable(error, retryProvider)).toEqual({ message: "Bad gateway" })
   })
 
   test("retries 503 service unavailable errors", () => {
     const error = new SessionV1.APIError({
-        message: "Service unavailable",
-        isRetryable: false,
-        statusCode: 503,
-      }).toObject() as SessionRetry.Err
+      message: "Service unavailable",
+      isRetryable: false,
+      statusCode: 503,
+    }).toObject() as SessionRetry.Err
 
     expect(SessionRetry.retryable(error, retryProvider)).toEqual({ message: "Service unavailable" })
   })
 
   test("does not retry 4xx errors when isRetryable is false", () => {
     const error = new SessionV1.APIError({
-        message: "Bad request",
-        isRetryable: false,
-        statusCode: 400,
-      }).toObject() as SessionRetry.Err
+      message: "Bad request",
+      isRetryable: false,
+      statusCode: 400,
+    }).toObject() as SessionRetry.Err
 
     expect(SessionRetry.retryable(error, retryProvider)).toBeUndefined()
   })
 
   test("retries ZlibError decompression failures", () => {
     const error = new SessionV1.APIError({
-        message: "Response decompression failed",
-        isRetryable: true,
-        metadata: { code: "ZlibError" },
-      }).toObject() as SessionRetry.Err
+      message: "Response decompression failed",
+      isRetryable: true,
+      metadata: { code: "ZlibError" },
+    }).toObject() as SessionRetry.Err
 
     const retryable = SessionRetry.retryable(error, retryProvider)
     expect(retryable).toBeDefined()
@@ -249,14 +249,14 @@ describe("session.retry.retryable", () => {
 
   test("maps free limits to Go upsell action", () => {
     const error = new SessionV1.APIError({
-        message: "Free usage exceeded",
-        isRetryable: true,
-        statusCode: 429,
-        responseBody: JSON.stringify({
-          type: "error",
-          error: { type: "FreeUsageLimitError", message: "Free usage exceeded" },
-        }),
-      }).toObject() as SessionRetry.Err
+      message: "Free usage exceeded",
+      isRetryable: true,
+      statusCode: 429,
+      responseBody: JSON.stringify({
+        type: "error",
+        error: { type: "FreeUsageLimitError", message: "Free usage exceeded" },
+      }),
+    }).toObject() as SessionRetry.Err
 
     expect(SessionRetry.retryable(error, "opencode")).toEqual({
       message: SessionRetry.GO_UPSELL_MESSAGE,
@@ -273,24 +273,24 @@ describe("session.retry.retryable", () => {
 
   test("maps Go subscription limits to workspace PAYG upsell", () => {
     const error = new SessionV1.APIError({
-        message: "Subscription quota exceeded. You can continue using free models.",
-        isRetryable: true,
-        statusCode: 429,
-        responseHeaders: {
-          "retry-after": "19380",
+      message: "Subscription quota exceeded. You can continue using free models.",
+      isRetryable: true,
+      statusCode: 429,
+      responseHeaders: {
+        "retry-after": "19380",
+      },
+      responseBody: JSON.stringify({
+        type: "error",
+        error: {
+          type: "GoUsageLimitError",
+          message: "Subscription quota exceeded. You can continue using free models.",
         },
-        responseBody: JSON.stringify({
-          type: "error",
-          error: {
-            type: "GoUsageLimitError",
-            message: "Subscription quota exceeded. You can continue using free models.",
-          },
-          metadata: {
-            workspace: "wrk_01K6XGM22R6FM8JVABE9XDQXGH",
-            limitName: "5 hour",
-          },
-        }),
-      }).toObject() as SessionRetry.Err
+        metadata: {
+          workspace: "wrk_01K6XGM22R6FM8JVABE9XDQXGH",
+          limitName: "5 hour",
+        },
+      }),
+    }).toObject() as SessionRetry.Err
 
     expect(SessionRetry.retryable(error, "opencode-go")).toEqual({
       message:
@@ -309,23 +309,23 @@ describe("session.retry.retryable", () => {
 
   test("maps Go subscription limits without limit metadata", () => {
     const error = new SessionV1.APIError({
-        message: "Subscription quota exceeded. You can continue using free models.",
-        isRetryable: true,
-        statusCode: 429,
-        responseHeaders: {
-          "retry-after": "900",
+      message: "Subscription quota exceeded. You can continue using free models.",
+      isRetryable: true,
+      statusCode: 429,
+      responseHeaders: {
+        "retry-after": "900",
+      },
+      responseBody: JSON.stringify({
+        type: "error",
+        error: {
+          type: "GoUsageLimitError",
+          message: "Subscription quota exceeded. You can continue using free models.",
         },
-        responseBody: JSON.stringify({
-          type: "error",
-          error: {
-            type: "GoUsageLimitError",
-            message: "Subscription quota exceeded. You can continue using free models.",
-          },
-          metadata: {
-            workspace: "wrk_01K6XGM22R6FM8JVABE9XDQXGH",
-          },
-        }),
-      }).toObject() as SessionRetry.Err
+        metadata: {
+          workspace: "wrk_01K6XGM22R6FM8JVABE9XDQXGH",
+        },
+      }),
+    }).toObject() as SessionRetry.Err
 
     expect(SessionRetry.retryable(error, "opencode-go")?.action?.message).toBe(
       "Usage limit reached. It will reset in 15 minutes. To continue using this model now, enable usage from your available balance",
@@ -373,10 +373,10 @@ describe("session.message-v2.fromError", () => {
 
   test("ECONNRESET socket error is retryable", () => {
     const error = new SessionV1.APIError({
-        message: "Connection reset by server",
-        isRetryable: true,
-        metadata: { code: "ECONNRESET", message: "The socket connection was closed unexpectedly" },
-      }).toObject() as SessionRetry.Err
+      message: "Connection reset by server",
+      isRetryable: true,
+      metadata: { code: "ECONNRESET", message: "The socket connection was closed unexpectedly" },
+    }).toObject() as SessionRetry.Err
 
     const retryable = SessionRetry.retryable(error, retryProvider)
     expect(retryable).toBeDefined()

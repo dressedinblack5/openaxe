@@ -43,7 +43,7 @@ const provider: Provider.Info = {
       family: "test",
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: true,
         attachment: false,
         toolcall: true,
@@ -81,7 +81,7 @@ const provider: Provider.Info = {
       family: "test",
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: false,
         attachment: false,
         toolcall: true,
@@ -115,7 +115,7 @@ const provider: Provider.Info = {
       family: "test",
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: true,
         attachment: false,
         toolcall: true,

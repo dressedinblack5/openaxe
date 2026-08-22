@@ -154,11 +154,11 @@ describe("run runtime boot", () => {
 
   test("reads diff style and falls back to auto", async () => {
     spyOn(TuiConfig, "get").mockResolvedValue(config({ diff_style: "stacked" }))
-     expect(resolveDiffStyle()).resolves.toBe("stacked")
+    expect(resolveDiffStyle()).resolves.toBe("stacked")
 
     mock.restore()
     spyOn(TuiConfig, "get").mockRejectedValue(new Error("boom"))
-     expect(resolveDiffStyle()).resolves.toBe("auto")
+    expect(resolveDiffStyle()).resolves.toBe("auto")
   })
 
   test("prefers configured providers for model selector data", async () => {
@@ -217,7 +217,7 @@ describe("run runtime boot", () => {
       }),
     )
 
-     expect(resolveModelInfo(sdk, "/workspace", { providerID: "openai", modelID: "gpt-5" })).resolves.toEqual({
+    expect(resolveModelInfo(sdk, "/workspace", { providerID: "openai", modelID: "gpt-5" })).resolves.toEqual({
       providers: configured.providers,
       variants: ["high", "minimal"],
       limits: {
@@ -272,7 +272,7 @@ describe("run runtime boot", () => {
       }),
     )
 
-     expect(resolveModelInfo(sdk, "/workspace", { providerID: "openai", modelID: "gpt-5" })).resolves.toEqual({
+    expect(resolveModelInfo(sdk, "/workspace", { providerID: "openai", modelID: "gpt-5" })).resolves.toEqual({
       providers: data.all,
       variants: ["high", "minimal"],
       limits: {

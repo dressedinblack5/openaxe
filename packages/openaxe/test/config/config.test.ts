@@ -442,63 +442,67 @@ test("loads project config from Cygwin paths on Windows", async () => {
   })
 }, 120_000)
 
-it.instance("ignores legacy tui keys in openaxe config", () =>
-  Effect.gen(function* () {
-    const test = yield* TestInstance
-    yield* writeConfigEffect(test.directory, {
-      $schema: "https://opencode.ai/config.json",
-      model: "test/model",
-      theme: "legacy",
-      tui: { scroll_speed: 4 },
-    })
+it.instance(
+  "ignores legacy tui keys in openaxe config",
+  () =>
+    Effect.gen(function* () {
+      const test = yield* TestInstance
+      yield* writeConfigEffect(test.directory, {
+        $schema: "https://opencode.ai/config.json",
+        model: "test/model",
+        theme: "legacy",
+        tui: { scroll_speed: 4 },
+      })
 
-    const config = yield* Config.use.get()
-    expect(config.model).toBe("test/model")
-    expect((config as Record<string, unknown>).theme).toBeUndefined()
-    expect((config as Record<string, unknown>).tui).toBeUndefined()
-  }),
+      const config = yield* Config.use.get()
+      expect(config.model).toBe("test/model")
+      expect((config as Record<string, unknown>).theme).toBeUndefined()
+      expect((config as Record<string, unknown>).tui).toBeUndefined()
+    }),
   120_000,
 )
 
-it.effect("configBoundary stops upward config traversal", () =>
-  Effect.gen(function* () {
-    const root = yield* tmpdirScoped()
-    const global = yield* tmpdirScoped()
-    const mid = path.join(root, "mid")
-    const directory = path.join(mid, "proj")
-    yield* Effect.all([
-      writeConfigEffect(root, {
-        $schema: "https://opencode.ai/config.json",
-        logLevel: "INFO",
-        agent: { top: { model: "top/model" } },
-      }),
-      writeConfigEffect(mid, {
-        $schema: "https://opencode.ai/config.json",
-        configBoundary: true,
-        snapshot: false,
-        shell: "/bin/zsh",
-      }),
-      writeConfigEffect(directory, {
-        $schema: "https://opencode.ai/config.json",
-        shell: "/bin/bash",
-      }),
-    ])
-    return yield* withGlobalConfigDir(
-      global,
-      withInstanceDir(
-        directory,
-        Effect.gen(function* () {
-          const config = yield* Config.use.get()
-          // Configs above the boundary file are dropped; the boundary file itself and deeper ones load.
-          expect((config as Record<string, unknown>).logLevel).toBeUndefined()
-          expect((config as Record<string, unknown>).configBoundary).toBeUndefined()
-          expect(config.snapshot).toBe(false)
-          expect(config.shell).toBe("/bin/bash")
-          expect(config.agent).not.toHaveProperty("top")
+it.effect(
+  "configBoundary stops upward config traversal",
+  () =>
+    Effect.gen(function* () {
+      const root = yield* tmpdirScoped()
+      const global = yield* tmpdirScoped()
+      const mid = path.join(root, "mid")
+      const directory = path.join(mid, "proj")
+      yield* Effect.all([
+        writeConfigEffect(root, {
+          $schema: "https://opencode.ai/config.json",
+          logLevel: "INFO",
+          agent: { top: { model: "top/model" } },
         }),
-      ),
-    )
-  }),
+        writeConfigEffect(mid, {
+          $schema: "https://opencode.ai/config.json",
+          configBoundary: true,
+          snapshot: false,
+          shell: "/bin/zsh",
+        }),
+        writeConfigEffect(directory, {
+          $schema: "https://opencode.ai/config.json",
+          shell: "/bin/bash",
+        }),
+      ])
+      return yield* withGlobalConfigDir(
+        global,
+        withInstanceDir(
+          directory,
+          Effect.gen(function* () {
+            const config = yield* Config.use.get()
+            // Configs above the boundary file are dropped; the boundary file itself and deeper ones load.
+            expect((config as Record<string, unknown>).logLevel).toBeUndefined()
+            expect((config as Record<string, unknown>).configBoundary).toBeUndefined()
+            expect(config.snapshot).toBe(false)
+            expect(config.shell).toBe("/bin/bash")
+            expect(config.agent).not.toHaveProperty("top")
+          }),
+        ),
+      )
+    }),
   120_000,
 )
 
@@ -1975,7 +1979,7 @@ test("parseManagedPlist strips MDM metadata keys", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(
+      ConfigManaged.parseManagedPlist(
         JSON.stringify({
           PayloadDisplayName: "OpenCode Managed",
           PayloadIdentifier: "ai.opencode.managed.test",
@@ -2003,7 +2007,7 @@ test("parseManagedPlist parses server settings", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(
+      ConfigManaged.parseManagedPlist(
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           server: { hostname: "127.0.0.1", mdns: false },
@@ -2023,7 +2027,7 @@ test("parseManagedPlist parses permission rules", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(
+      ConfigManaged.parseManagedPlist(
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           permission: {
@@ -2053,7 +2057,7 @@ test("parseManagedPlist parses enabled_providers", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(
+      ConfigManaged.parseManagedPlist(
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           enabled_providers: ["anthropic", "google"],
@@ -2070,7 +2074,7 @@ test("parseManagedPlist handles empty config", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(JSON.stringify({ $schema: "https://opencode.ai/config.json" })),
+      ConfigManaged.parseManagedPlist(JSON.stringify({ $schema: "https://opencode.ai/config.json" })),
       "test:mobileconfig",
     ),
     "test:mobileconfig",

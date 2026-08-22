@@ -19,11 +19,17 @@ export function emit(event: string, data: unknown) {
   postMessage(JSON.stringify({ type: "rpc.event", event, data }))
 }
 
-export function client<T extends Definition>(target: {
-  postMessage: (data: string) => void | null
-  onmessage: ((this: Worker, ev: MessageEvent) => any) | null
-}, options?: { requestTimeout?: number; cleanupInterval?: number }) {
-  const pending = new Map<number, { resolve: (result: any) => void; reject: (error: Error) => void; timestamp: number }>()
+export function client<T extends Definition>(
+  target: {
+    postMessage: (data: string) => void | null
+    onmessage: ((this: Worker, ev: MessageEvent) => any) | null
+  },
+  options?: { requestTimeout?: number; cleanupInterval?: number },
+) {
+  const pending = new Map<
+    number,
+    { resolve: (result: any) => void; reject: (error: Error) => void; timestamp: number }
+  >()
   const listeners = new Map<string, Set<(data: any) => void>>()
   let id = 0
   const requestTimeout = options?.requestTimeout ?? DEFAULT_REQUEST_TIMEOUT

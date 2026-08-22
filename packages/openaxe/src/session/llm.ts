@@ -244,7 +244,11 @@ const live: Layer.Layer<
           topP: prepared.params.topP,
           topK: prepared.params.topK,
           maxOutputTokens: prepared.params.maxOutputTokens,
-          providerOptions: ProviderTransform.providerOptions(input.model, prepared.params.options),
+          providerOptions: ProviderTransform.options({
+            model: input.model,
+            sessionID: input.sessionID,
+            providerOptions: prepared.params.options,
+          }),
           headers: prepared.headers,
           abort: input.abort,
         })

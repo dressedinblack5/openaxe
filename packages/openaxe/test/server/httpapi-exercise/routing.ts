@@ -69,13 +69,14 @@ export function matches(options: Options, scenario: Scenario) {
 
 export function selectedScenarios(options: Options, scenarios: Scenario[]) {
   const included = scenarios.filter((scenario) => matches(options, scenario))
-  const candidates = options.mode === "effect"
-    ? included.map((s) =>
-        s.kind === "active" && s.skipEffect
-          ? { kind: "todo" as const, method: s.method, path: s.path, name: s.name, reason: "Skipped in effect mode" }
-          : s,
-      )
-    : included
+  const candidates =
+    options.mode === "effect"
+      ? included.map((s) =>
+          s.kind === "active" && s.skipEffect
+            ? { kind: "todo" as const, method: s.method, path: s.path, name: s.name, reason: "Skipped in effect mode" }
+            : s,
+        )
+      : included
   const start = options.startAt ? candidates.findIndex((scenario) => matchesName(options.startAt!, scenario)) : 0
   const end = options.stopAt
     ? candidates.findIndex((scenario) => matchesName(options.stopAt!, scenario))

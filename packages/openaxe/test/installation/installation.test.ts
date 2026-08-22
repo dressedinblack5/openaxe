@@ -76,40 +76,32 @@ describe("installation", () => {
         }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.5.0" }))).effect(
-      "reads npm version via GitHub API",
-      () =>
-        Effect.gen(function* () {
-          const result = yield* Installation.use.latest("npm")
-          expect(result).toBe("1.5.0")
-        }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.5.0" }))).effect("reads npm version via GitHub API", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.use.latest("npm")
+        expect(result).toBe("1.5.0")
+      }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.6.0" }))).effect(
-      "reads bun version via GitHub API",
-      () =>
-        Effect.gen(function* () {
-          const result = yield* Installation.use.latest("bun")
-          expect(result).toBe("1.6.0")
-        }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.6.0" }))).effect("reads bun version via GitHub API", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.use.latest("bun")
+        expect(result).toBe("1.6.0")
+      }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.7.0" }))).effect(
-      "reads pnpm version via GitHub API",
-      () =>
-        Effect.gen(function* () {
-          const result = yield* Installation.use.latest("pnpm")
-          expect(result).toBe("1.7.0")
-        }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.7.0" }))).effect("reads pnpm version via GitHub API", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.use.latest("pnpm")
+        expect(result).toBe("1.7.0")
+      }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ tag_name: "v2.3.4" }))).effect(
-      "reads scoop version via GitHub API",
-      () =>
-        Effect.gen(function* () {
-          const result = yield* Installation.use.latest("scoop")
-          expect(result).toBe("2.3.4")
-        }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v2.3.4" }))).effect("reads scoop version via GitHub API", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.use.latest("scoop")
+        expect(result).toBe("2.3.4")
+      }),
     )
 
     testEffect(testLayer(() => jsonResponse({ tag_name: "v3.4.5" }))).effect(
@@ -145,7 +137,8 @@ describe("installation", () => {
       testLayer(
         () => jsonResponse({}), // HTTP not used for tap formula
         (cmd, args) => {
-          if (cmd === "brew" && args.includes("dressedinblack5/tap/openaxe") && args.includes("--formula")) return "openaxe"
+          if (cmd === "brew" && args.includes("dressedinblack5/tap/openaxe") && args.includes("--formula"))
+            return "openaxe"
           if (cmd === "brew" && args.includes("--json=v2")) return brewInfoJson
           return ""
         },

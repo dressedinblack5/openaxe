@@ -286,8 +286,6 @@ export function RunFooterView(props: RunFooterViewProps) {
   const question = () => derived().question
   const promptView = () => derived().promptView
 
-
-
   const openModel = () => {
     setRoute({ type: "model" })
     props.onSubagentSelect?.(undefined)

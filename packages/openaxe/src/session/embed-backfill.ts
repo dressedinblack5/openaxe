@@ -29,9 +29,10 @@ export type BackfillResult = {
   readonly skipped: number
 }
 
-export const run = (
-  input: { projectId?: string; batchSize?: number },
-): Effect.Effect<BackfillResult, BackfillError, Database.Service> =>
+export const run = (input: {
+  projectId?: string
+  batchSize?: number
+}): Effect.Effect<BackfillResult, BackfillError, Database.Service> =>
   Effect.gen(function* () {
     const embedding = yield* Effect.serviceOption(Embedding.Service)
     if (Option.isNone(embedding)) {
@@ -61,21 +62,26 @@ export const run = (
       skipped += batch.length - entries.length
 
       if (entries.length > 0) {
-        const embeddedVectors = yield* embedding.value.embed(entries.map((entry) => entry.text)).pipe(
-          Effect.mapError(
-            (error): BackfillError => new BackfillError({ message: `embedding failed: ${errorMessage(error)}` }),
-          ),
-        )
+        const embeddedVectors = yield* embedding.value
+          .embed(entries.map((entry) => entry.text))
+          .pipe(
+            Effect.mapError(
+              (error): BackfillError => new BackfillError({ message: `embedding failed: ${errorMessage(error)}` }),
+            ),
+          )
         for (let i = 0; i < entries.length; i++) {
           const vectorValue = embeddedVectors.vectors[i]
           if (vectorValue === undefined) continue
-          yield* vector.value.insert("session_message", entries[i].id, vectorValue, {
-            sessionId: entries[i].sessionId,
-          }).pipe(
-            Effect.mapError(
-              (error): BackfillError => new BackfillError({ message: `vector insert failed: ${errorMessage(error)}` }),
-            ),
-          )
+          yield* vector.value
+            .insert("session_message", entries[i].id, vectorValue, {
+              sessionId: entries[i].sessionId,
+            })
+            .pipe(
+              Effect.mapError(
+                (error): BackfillError =>
+                  new BackfillError({ message: `vector insert failed: ${errorMessage(error)}` }),
+              ),
+            )
           // Mark the row durable so `vector IS NULL` skips it on re-runs.
           yield* db
             .update(SessionMessageTable)
@@ -95,11 +101,7 @@ const nextBatch = (
   db: Database.Interface["db"],
   projectId: string | undefined,
   limit: number,
-): Effect.Effect<
-  ReadonlyArray<{ id: string; session_id: string; type: string; data: unknown }>,
-  never,
-  never
-> => {
+): Effect.Effect<ReadonlyArray<{ id: string; session_id: string; type: string; data: unknown }>, never, never> => {
   const base = db
     .select({
       id: SessionMessageTable.id,
@@ -135,7 +137,8 @@ const embeddableText = (type: string, data: unknown): string | undefined => {
   if (!isRecord(data)) return undefined
   if (type === "shell") return typeof data.command === "string" ? data.command : undefined
   if (type === "compaction") return typeof data.summary === "string" ? data.summary : undefined
-  if (type === "user" || type === "system" || type === "synthetic") return typeof data.text === "string" ? data.text : undefined
+  if (type === "user" || type === "system" || type === "synthetic")
+    return typeof data.text === "string" ? data.text : undefined
   return undefined
 }
 

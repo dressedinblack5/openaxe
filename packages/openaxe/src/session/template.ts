@@ -60,9 +60,7 @@ export const loadTemplate = (directory: string, name: string) =>
 const modelRef = (input: string) => {
   const [ref, variant] = input.split("@")
   const { providerID, modelID } = ModelV2.parse(ref)
-  return variant
-    ? { id: modelID, providerID, variant: ModelV2.VariantID.make(variant) }
-    : { id: modelID, providerID }
+  return variant ? { id: modelID, providerID, variant: ModelV2.VariantID.make(variant) } : { id: modelID, providerID }
 }
 
 export const createFromTemplate = (input: { template: ConfigTemplate.SessionTemplate; directory: string }) =>

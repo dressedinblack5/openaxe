@@ -68,7 +68,16 @@ const mockSessionLayer = Layer.mock(Session.Service, {
     } as any),
 }) as any
 
-const root = LayerNode.group([ToolRegistry.node, Agent.node, SessionPrompt.node, Session.node, BackgroundJob.node, Kanban.node, Database.node, SessionProjector.node])
+const root = LayerNode.group([
+  ToolRegistry.node,
+  Agent.node,
+  SessionPrompt.node,
+  Session.node,
+  BackgroundJob.node,
+  Kanban.node,
+  Database.node,
+  SessionProjector.node,
+])
 const replacements = [
   LayerNode.replace(Config.node, configLayer),
   LayerNode.replace(RuntimeFlags.node, RuntimeFlags.layer()),
@@ -111,26 +120,38 @@ const toolContext = (agent: string) =>
       promptOps: {
         cancel: () => Effect.void,
         resolvePromptParts: (template: string) => Effect.succeed([{ type: "text", text: template }]),
-        prompt: (input: { sessionID: SessionID; model: { modelID: string; providerID: string }; agent: string; variant?: string; parts: { type: string; text: string }[] }) => Effect.succeed({
-          info: {
-            id: MessageID.make("test"),
-            role: "assistant",
-            sessionID: input.sessionID,
-            time: { created: Date.now() },
-            modelID: input.model.modelID,
-            providerID: input.model.providerID,
-            agent: input.agent,
-            variant: input.variant,
-            path: { cwd: "/tmp", root: "/tmp" },
-            cost: 0,
-            tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
-          },
-          parts: [{ type: "text", text: "Task completed successfully" }],
-        }),
+        prompt: (input: {
+          sessionID: SessionID
+          model: { modelID: string; providerID: string }
+          agent: string
+          variant?: string
+          parts: { type: string; text: string }[]
+        }) =>
+          Effect.succeed({
+            info: {
+              id: MessageID.make("test"),
+              role: "assistant",
+              sessionID: input.sessionID,
+              time: { created: Date.now() },
+              modelID: input.model.modelID,
+              providerID: input.model.providerID,
+              agent: input.agent,
+              variant: input.variant,
+              path: { cwd: "/tmp", root: "/tmp" },
+              cost: 0,
+              tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+            },
+            parts: [{ type: "text", text: "Task completed successfully" }],
+          }),
       } satisfies {
         cancel: (sessionID: SessionID) => Effect.Effect<void>
         resolvePromptParts: (template: string) => Effect.Effect<{ type: string; text: string }[]>
-        prompt: (input: { sessionID: SessionID; model: { modelID: string; providerID: string }; agent: string; parts: { type: string; text: string }[] }) => Effect.Effect<{ info: any; parts: { type: string; text: string }[] }>
+        prompt: (input: {
+          sessionID: SessionID
+          model: { modelID: string; providerID: string }
+          agent: string
+          parts: { type: string; text: string }[]
+        }) => Effect.Effect<{ info: any; parts: { type: string; text: string }[] }>
       },
     },
   }) satisfies Tool.Context
@@ -247,8 +268,8 @@ describe("kanban-swarm tool", () => {
         },
         toolContext(agent),
       )
-expect(completeResult.title).toContain("Completed verifier")
-expect(completeResult.output).toContain("Verify worker output")
+      expect(completeResult.title).toContain("Completed verifier")
+      expect(completeResult.output).toContain("Verify worker output")
 
       // Verify card status is updated to done
       const updatedCard = yield* kanbanService.getBoard(boardId).pipe(
@@ -262,44 +283,42 @@ expect(completeResult.output).toContain("Verify worker output")
     }),
   )
 
-  itDepth.instance(
-    "create_worker fails when the session is at the subagent_depth_limit",
-    () =>
-      Effect.gen(function* () {
-        const sessions = yield* Session.Service
-        const registry = yield* ToolRegistry.Service
-        const kanbanSwarm = (yield* registry.all()).find((tool) => tool.id === "kanban-swarm")
-        if (!kanbanSwarm) throw new Error("kanban-swarm tool not found")
+  itDepth.instance("create_worker fails when the session is at the subagent_depth_limit", () =>
+    Effect.gen(function* () {
+      const sessions = yield* Session.Service
+      const registry = yield* ToolRegistry.Service
+      const kanbanSwarm = (yield* registry.all()).find((tool) => tool.id === "kanban-swarm")
+      if (!kanbanSwarm) throw new Error("kanban-swarm tool not found")
 
-        const chat = yield* sessions.create({ title: "root" })
-        const child = yield* sessions.create({ parentID: chat.id, title: "child" })
+      const chat = yield* sessions.create({ title: "root" })
+      const child = yield* sessions.create({ parentID: chat.id, title: "child" })
 
-        const exit = yield* kanbanSwarm
-          .execute(
-            {
-              operation: "create_worker",
-              boardId: "board-1",
-              title: "worker",
-              prompt: "work",
-              subagent_type: "explore",
-            },
-            {
-              sessionID: child.id,
-              messageID: MessageID.make("msg_kanban_swarm_depth"),
-              agent: "build",
-              abort: new AbortController().signal,
-              messages: [],
-              metadata: () => Effect.void,
-              ask: () => Effect.void,
-            },
-          )
-          .pipe(Effect.exit)
+      const exit = yield* kanbanSwarm
+        .execute(
+          {
+            operation: "create_worker",
+            boardId: "board-1",
+            title: "worker",
+            prompt: "work",
+            subagent_type: "explore",
+          },
+          {
+            sessionID: child.id,
+            messageID: MessageID.make("msg_kanban_swarm_depth"),
+            agent: "build",
+            abort: new AbortController().signal,
+            messages: [],
+            metadata: () => Effect.void,
+            ask: () => Effect.void,
+          },
+        )
+        .pipe(Effect.exit)
 
-        expect(Exit.isFailure(exit)).toBe(true)
-        if (Exit.isFailure(exit)) {
-          expect(String(Cause.squash(exit.cause))).toContain("Subagent depth limit reached (1)")
-        }
-        expect(yield* sessions.children(chat.id)).toHaveLength(1)
-      }),
+      expect(Exit.isFailure(exit)).toBe(true)
+      if (Exit.isFailure(exit)) {
+        expect(String(Cause.squash(exit.cause))).toContain("Subagent depth limit reached (1)")
+      }
+      expect(yield* sessions.children(chat.id)).toHaveLength(1)
+    }),
   )
 })

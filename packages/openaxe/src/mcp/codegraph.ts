@@ -13,8 +13,7 @@ function pkgSuffix() {
 }
 
 function bundleCommand(bundleRoot: string): string[] | undefined {
-  const nodeBin =
-    process.platform === "win32" ? path.join(bundleRoot, "node.exe") : path.join(bundleRoot, "node")
+  const nodeBin = process.platform === "win32" ? path.join(bundleRoot, "node.exe") : path.join(bundleRoot, "node")
   const entry = path.join(bundleRoot, "lib", "dist", "bin", "codegraph.js")
   if (!existsSync(nodeBin) || !existsSync(entry)) return undefined
   // Mirror the platform shim: run the bundled node against the bundled entry.

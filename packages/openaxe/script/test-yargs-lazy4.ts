@@ -14,13 +14,13 @@ cli.command({
     return y.command({
       command: "sub",
       describe: "a subcommand",
-      handler: () => {}
+      handler: () => {},
     })
   },
-  handler: () => {}
+  handler: () => {},
 })
 
-// Light command 
+// Light command
 cli.command({
   command: "light",
   describe: "a light command",
@@ -28,7 +28,7 @@ cli.command({
     lightBuilderCalled = true
     return y
   },
-  handler: () => {}
+  handler: () => {},
 })
 
 await cli.parse(["--help"], (_err: unknown, _argv: unknown, _output: string | undefined) => {})
@@ -46,10 +46,10 @@ cli2.command({
     return y.command({
       command: "sub",
       describe: "a subcommand",
-      handler: () => {}
+      handler: () => {},
     })
   },
-  handler: () => {}
+  handler: () => {},
 })
 await cli2.parse(["heavy", "--help"], (_err: unknown, _argv: unknown, _output: string | undefined) => {})
 process.stderr.write(`\nheavy builder called for 'heavy --help': ${heavyBuilderCalled}\n`)

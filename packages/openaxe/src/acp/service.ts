@@ -891,22 +891,23 @@ function sendAvailableCommands(
   snapshot: Directory.Snapshot,
 ) {
   if (!connection) return Effect.void
-  return Effect.promise(() =>
-    new Promise<void>((resolve) => {
-      setTimeout(() => {
-        void connection.sessionUpdate({
-          sessionId,
-          update: {
-            sessionUpdate: "available_commands_update",
-            availableCommands: snapshot.availableCommands.map((command) => ({
-              name: command.name,
-              description: command.description ?? "",
-            })),
-          },
-        })
-        resolve()
-      }, 0)
-    }),
+  return Effect.promise(
+    () =>
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          void connection.sessionUpdate({
+            sessionId,
+            update: {
+              sessionUpdate: "available_commands_update",
+              availableCommands: snapshot.availableCommands.map((command) => ({
+                name: command.name,
+                description: command.description ?? "",
+              })),
+            },
+          })
+          resolve()
+        }, 0)
+      }),
   )
 }
 

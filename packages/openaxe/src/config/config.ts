@@ -295,8 +295,7 @@ export const layer = Layer.effect(
             multimodal: {
               model: "google/gemini-3.5-flash",
               mode: "subagent",
-              description:
-                "Analyzes media files (PDFs, images, diagrams) that require interpretation beyond raw text.",
+              description: "Analyzes media files (PDFs, images, diagrams) that require interpretation beyond raw text.",
             },
             oracle: {
               model: "google/gemini-3.1-pro",
@@ -519,11 +518,7 @@ export const layer = Layer.effect(
 
         for (const dir of directories) {
           // configBoundary stops upward traversal: skip directories at-or-above the boundary file's directory.
-          if (
-            boundaryDir &&
-            FSUtil.contains(path.dirname(dir), boundaryDir) &&
-            path.dirname(dir) !== boundaryDir
-          ) {
+          if (boundaryDir && FSUtil.contains(path.dirname(dir), boundaryDir) && path.dirname(dir) !== boundaryDir) {
             break
           }
           if (dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR) {

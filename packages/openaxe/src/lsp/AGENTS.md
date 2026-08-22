@@ -27,19 +27,19 @@ src/lsp/
 
 ## Key Operations
 
-| Operation | LSP Request |
-|---|---|
-| `goToDefinition` | `textDocument/definition` |
-| `findReferences` | `textDocument/references` |
-| `hover` | `textDocument/hover` |
-| `documentSymbol` | `textDocument/documentSymbol` |
-| `workspaceSymbol` | `workspace/symbol` |
-| `codeAction` | `textDocument/codeAction` |
+| Operation         | LSP Request                                      |
+| ----------------- | ------------------------------------------------ |
+| `goToDefinition`  | `textDocument/definition`                        |
+| `findReferences`  | `textDocument/references`                        |
+| `hover`           | `textDocument/hover`                             |
+| `documentSymbol`  | `textDocument/documentSymbol`                    |
+| `workspaceSymbol` | `workspace/symbol`                               |
+| `codeAction`      | `textDocument/codeAction`                        |
 | `applyCodeAction` | `textDocument/codeAction` (resolve) + apply edit |
-| `rename` | `textDocument/rename` |
-| `completion` | `textDocument/completion` |
-| `formatting` | `textDocument/formatting` |
-| ...and 13 more | |
+| `rename`          | `textDocument/rename`                            |
+| `completion`      | `textDocument/completion`                        |
+| `formatting`      | `textDocument/formatting`                        |
+| ...and 13 more    |                                                  |
 
 ## Auto-Verification
 

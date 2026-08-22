@@ -139,7 +139,7 @@ describe("ProviderTransform.options - zai/zhipuai thinking", () => {
       name: "GLM 4.6",
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -225,7 +225,7 @@ describe("ProviderTransform.options - google thinkingConfig gating", () => {
       name: "Gemini 2.0 Flash",
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning,
         attachment: true,
         toolcall: true,
@@ -292,7 +292,7 @@ describe("ProviderTransform.options - gpt-5 textVerbosity", () => {
       name: apiId,
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -457,7 +457,7 @@ describe("ProviderTransform.options - gpt-5 reasoningEffort", () => {
       name: apiId,
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -527,7 +527,7 @@ describe("ProviderTransform.options - gateway", () => {
       name: id,
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -574,7 +574,7 @@ describe("ProviderTransform.providerOptions", () => {
       name: "Test Model",
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -1536,7 +1536,7 @@ describe("ProviderTransform.message - DeepSeek reasoning content", () => {
         name: "DeepSeek Chat",
         capabilities: {
           temperature: true,
-      speed: false,
+          speed: false,
           reasoning: true,
           attachment: false,
           toolcall: true,
@@ -1599,7 +1599,7 @@ describe("ProviderTransform.message - DeepSeek reasoning content", () => {
         name: "GPT-4",
         capabilities: {
           temperature: true,
-      speed: false,
+          speed: false,
           reasoning: false,
           attachment: true,
           toolcall: true,
@@ -2453,7 +2453,7 @@ describe("ProviderTransform.message - providerOptions key remapping", () => {
       name: "Test Model",
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: false,
         attachment: true,
         toolcall: true,
@@ -2637,7 +2637,7 @@ describe("ProviderTransform.message - cache control on gateway", () => {
       name: "Claude Sonnet 4",
       capabilities: {
         temperature: true,
-      speed: false,
+        speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,
@@ -4495,7 +4495,7 @@ describe("ProviderTransform.providerOptions - ai-gateway-provider", () => {
       },
       capabilities: {
         temperature: false,
-      speed: false,
+        speed: false,
         reasoning: true,
         attachment: true,
         toolcall: true,

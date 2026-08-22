@@ -47,12 +47,10 @@ export const layer = Layer.effect(
           ["project", project],
         ] as const,
         ([name, s]) =>
-          s
-            .init()
-            .pipe(
-              Effect.catchCause((cause) => Effect.logWarning("init failed", { cause })),
-              Effect.tap(() => Effect.sync(() => mark(`boot-init:${name}`))),
-            ),
+          s.init().pipe(
+            Effect.catchCause((cause) => Effect.logWarning("init failed", { cause })),
+            Effect.tap(() => Effect.sync(() => mark(`boot-init:${name}`))),
+          ),
         { concurrency: "unbounded", discard: true },
       ).pipe(Effect.withSpan("InstanceBootstrap.init"))
     }).pipe(Effect.withSpan("InstanceBootstrap"))

@@ -91,8 +91,8 @@ function withSh<A, E, R>(fx: () => Effect.Effect<A, E, R>) {
         if (prev === undefined) delete process.env.SHELL
         else process.env.SHELL = prev
         Shell.preferred.reset()
-  }),
-)
+      }),
+  )
 }
 
 function toolPart(parts: SessionV1.Part[]) {
@@ -336,8 +336,6 @@ const writeText = Effect.fn("test.writeText")(function* (file: string, text: str
   const fs = yield* FSUtil.Service
   yield* fs.writeWithDirs(file, text)
 })
-
-
 
 const writeConfig = Effect.fn("test.writeConfig")(function* (dir: string, config: Partial<ConfigV1.Info>) {
   yield* writeText(
@@ -1189,7 +1187,7 @@ raceNoLLMServer.instance(
         expect(lastAssistant.info.parentID).toBe(lastUser?.info.id)
       }
     }),
-    { config: cfg },
+  { config: cfg },
   30_000,
 )
 
@@ -1339,72 +1337,76 @@ it.instance("concurrent loop callers all receive same error result", () =>
   }),
 )
 
-it.instance("prompt submitted during an active run is included in the next LLM input", () =>
-  Effect.gen(function* () {
-    const { llm } = yield* useServerConfig(providerCfg)
-    const gate = yield* Deferred.make<void>()
-    const prompt = yield* SessionPrompt.Service
-    const sessions = yield* Session.Service
-    const chat = yield* sessions.create({ title: "Pinned" })
+it.instance(
+  "prompt submitted during an active run is included in the next LLM input",
+  () =>
+    Effect.gen(function* () {
+      const { llm } = yield* useServerConfig(providerCfg)
+      const gate = yield* Deferred.make<void>()
+      const prompt = yield* SessionPrompt.Service
+      const sessions = yield* Session.Service
+      const chat = yield* sessions.create({ title: "Pinned" })
 
-    yield* llm.hold("first", deferredAsPromise(gate))
-    yield* llm.text("second")
+      yield* llm.hold("first", deferredAsPromise(gate))
+      yield* llm.text("second")
 
-    const a = yield* prompt
-      .prompt({
-        sessionID: chat.id,
-        agent: "build",
-        model: ref,
-        parts: [{ type: "text", text: "first" }],
-      })
-      .pipe(Effect.forkChild)
+      const a = yield* prompt
+        .prompt({
+          sessionID: chat.id,
+          agent: "build",
+          model: ref,
+          parts: [{ type: "text", text: "first" }],
+        })
+        .pipe(Effect.forkChild)
 
-    yield* llm.wait(1)
-    yield* waitForBusy(chat.id)
+      yield* llm.wait(1)
+      yield* waitForBusy(chat.id)
 
-    const id = MessageID.ascending()
-    const b = yield* prompt
-      .prompt({
-        sessionID: chat.id,
-        messageID: id,
-        agent: "build",
-        model: ref,
-        parts: [{ type: "text", text: "second" }],
-      })
-      .pipe(Effect.forkChild)
+      const id = MessageID.ascending()
+      const b = yield* prompt
+        .prompt({
+          sessionID: chat.id,
+          messageID: id,
+          agent: "build",
+          model: ref,
+          parts: [{ type: "text", text: "second" }],
+        })
+        .pipe(Effect.forkChild)
 
-    yield* pollWithTimeout(
-      sessions
-        .messages({ sessionID: chat.id })
-        .pipe(
-          Effect.map((msgs) => (msgs.some((msg) => msg.info.role === "user" && msg.info.id === id) ? true : undefined)),
-        ),
-      "timed out waiting for second prompt to save",
-    )
+      yield* pollWithTimeout(
+        sessions
+          .messages({ sessionID: chat.id })
+          .pipe(
+            Effect.map((msgs) =>
+              msgs.some((msg) => msg.info.role === "user" && msg.info.id === id) ? true : undefined,
+            ),
+          ),
+        "timed out waiting for second prompt to save",
+      )
 
-    yield* Deferred.succeed(gate, void 0)
+      yield* Deferred.succeed(gate, void 0)
 
-    const [ea, eb] = yield* Effect.all([Fiber.await(a), Fiber.await(b)])
-    expect(Exit.isSuccess(ea)).toBe(true)
-    expect(Exit.isSuccess(eb)).toBe(true)
-    expect(yield* llm.calls).toBe(2)
+      const [ea, eb] = yield* Effect.all([Fiber.await(a), Fiber.await(b)])
+      expect(Exit.isSuccess(ea)).toBe(true)
+      expect(Exit.isSuccess(eb)).toBe(true)
+      expect(yield* llm.calls).toBe(2)
 
-    const msgs = yield* sessions.messages({ sessionID: chat.id })
-    const assistants = msgs.filter((msg) => msg.info.role === "assistant")
-    expect(assistants).toHaveLength(2)
-    const last = assistants.at(-1)
-    if (!last || last.info.role !== "assistant") throw new Error("expected second assistant")
-    expect(last.info.parentID).toBe(id)
-    expect(last.parts.some((part) => part.type === "text" && part.text === "second")).toBe(true)
+      const msgs = yield* sessions.messages({ sessionID: chat.id })
+      const assistants = msgs.filter((msg) => msg.info.role === "assistant")
+      expect(assistants).toHaveLength(2)
+      const last = assistants.at(-1)
+      if (!last || last.info.role !== "assistant") throw new Error("expected second assistant")
+      expect(last.info.parentID).toBe(id)
+      expect(last.parts.some((part) => part.type === "text" && part.text === "second")).toBe(true)
 
-    const inputs = yield* llm.inputs
-    expect(inputs).toHaveLength(2)
-    const messages = inputs.at(-1)?.messages
-    if (!Array.isArray(messages)) throw new Error("expected LLM messages")
-    // ponytail: AI SDK internally appends \\n\\n to single text parts during message conversion;
-    // match loosely instead of exact equality (the LLM handles whitespace identically)
-    expect(messages.at(-1)).toMatchObject({ role: "user", content: expect.stringContaining("second") })
-  }),
+      const inputs = yield* llm.inputs
+      expect(inputs).toHaveLength(2)
+      const messages = inputs.at(-1)?.messages
+      if (!Array.isArray(messages)) throw new Error("expected LLM messages")
+      // ponytail: AI SDK internally appends \\n\\n to single text parts during message conversion;
+      // match loosely instead of exact equality (the LLM handles whitespace identically)
+      expect(messages.at(-1)).toMatchObject({ role: "user", content: expect.stringContaining("second") })
+    }),
   30_000,
 )
 
@@ -2299,12 +2301,14 @@ noLLMServer.instance(
         const err = Cause.squash(exit.cause) as { name: string; data: { message: string } }
         expect(err).not.toBeInstanceOf(TypeError)
         // Check for wire format error from EventError.unknown()
-        expect(err).toEqual(expect.objectContaining({
-          name: "UnknownError",
-          data: expect.objectContaining({
-            message: expect.stringContaining('Agent not found: "nonexistent-agent-xyz"'),
+        expect(err).toEqual(
+          expect.objectContaining({
+            name: "UnknownError",
+            data: expect.objectContaining({
+              message: expect.stringContaining('Agent not found: "nonexistent-agent-xyz"'),
+            }),
           }),
-        }))
+        )
         expect(err.data.message).toContain('Agent not found: "nonexistent-agent-xyz"')
       }
     }),
@@ -2330,12 +2334,14 @@ noLLMServer.instance(
       expect(Exit.isFailure(exit)).toBe(true)
       if (Exit.isFailure(exit)) {
         const err = Cause.squash(exit.cause) as { name: string; data: { message: string } }
-        expect(err).toEqual(expect.objectContaining({
-          name: "UnknownError",
-          data: expect.objectContaining({
-            message: expect.stringContaining("build"),
+        expect(err).toEqual(
+          expect.objectContaining({
+            name: "UnknownError",
+            data: expect.objectContaining({
+              message: expect.stringContaining("build"),
+            }),
           }),
-        }))
+        )
         expect(err.data.message).toContain("build")
       }
     }),
@@ -2361,12 +2367,14 @@ noLLMServer.instance(
       if (Exit.isFailure(exit)) {
         const err = Cause.squash(exit.cause) as { name: string; data: { message: string } }
         expect(err).not.toBeInstanceOf(TypeError)
-        expect(err).toEqual(expect.objectContaining({
-          name: "UnknownError",
-          data: expect.objectContaining({
-            message: expect.stringContaining('Command not found: "nonexistent-command-xyz"'),
+        expect(err).toEqual(
+          expect.objectContaining({
+            name: "UnknownError",
+            data: expect.objectContaining({
+              message: expect.stringContaining('Command not found: "nonexistent-command-xyz"'),
+            }),
           }),
-        }))
+        )
         expect(err.data.message).toContain('Command not found: "nonexistent-command-xyz"')
         expect(err.data.message).toContain("init")
       }

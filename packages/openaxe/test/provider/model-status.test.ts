@@ -38,7 +38,7 @@ describe("provider model status schemas", () => {
         name: "Test Model",
         capabilities: {
           temperature: true,
-      speed: false,
+          speed: false,
           reasoning: false,
           attachment: false,
           toolcall: true,

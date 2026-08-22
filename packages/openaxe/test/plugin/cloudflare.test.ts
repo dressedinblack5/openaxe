@@ -25,7 +25,7 @@ function makeHookInput(overrides: { providerID?: string; apiId?: string; reasoni
       capabilities: {
         reasoning: overrides.reasoning ?? true,
         temperature: false,
-      speed: false,
+        speed: false,
         attachment: true,
         toolcall: true,
         input: { text: true, audio: false, image: false, video: false, pdf: false },

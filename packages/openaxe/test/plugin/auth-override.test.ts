@@ -40,10 +40,7 @@ function pluginLayer(directory: string, plugins: string[]) {
 
 function layer(directory: string, plugins: string[]) {
   const pl = pluginLayer(directory, plugins)
-  return Layer.mergeAll(
-    ProviderAuth.layer.pipe(Layer.provide(Auth.defaultLayer), Layer.provide(pl)),
-    pl,
-  )
+  return Layer.mergeAll(ProviderAuth.layer.pipe(Layer.provide(Auth.defaultLayer), Layer.provide(pl)), pl)
 }
 
 describe("plugin.auth-override", () => {

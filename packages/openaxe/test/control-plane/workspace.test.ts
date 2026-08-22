@@ -132,7 +132,9 @@ async function initGitRepo(dir: string) {
 
 const startWorkspaceSyncingWithFlag = (projectID: ProjectV2.ID, experimentalWorkspaces: boolean) =>
   Effect.runPromise(
-    (Workspace.use.startWorkspaceSyncing(projectID) as any).pipe(Effect.provide(workspaceLayer(experimentalWorkspaces))),
+    (Workspace.use.startWorkspaceSyncing(projectID) as any).pipe(
+      Effect.provide(workspaceLayer(experimentalWorkspaces)),
+    ),
   )
 
 function captureGlobalEvents() {
@@ -386,12 +388,12 @@ describe("workspace CRUD", () => {
         const workspace = yield* Workspace.Service
         expect(yield* workspace.get(WorkspaceV2.ID.ascending("wrk_missing_get"))).toBeUndefined()
       }),
-  { git: true },
-  120_000,
-)
+    { git: true },
+    120_000,
+  )
 
-it.instance(
-  "list maps database rows, filters by project, and sorts by id",
+  it.instance(
+    "list maps database rows, filters by project, and sorts by id",
     () =>
       Effect.gen(function* () {
         const instance = yield* requireInstance
@@ -1698,7 +1700,7 @@ describe("workspace waitForSync", () => {
           `Timed out waiting for sync fence: {"${sessionID}":1}`,
         )
       }),
-      { git: true },
-      15000,
+    { git: true },
+    15000,
   )
 })

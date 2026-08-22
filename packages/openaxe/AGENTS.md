@@ -47,36 +47,36 @@ packages/openaxe/
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| CLI entry point / yargs | `src/index.ts` | 22 lazy-loaded commands |
-| CLI command implementations | `src/cli/cmd/` | Per-command modules |
-| Run command engine | `src/cli/cmd/run/` | Complex execution logic |
-| Session runner | `src/session/` | Durable session orchestration |
-| LLM dispatch | `src/session/llm.ts` + `src/session/llm/` | AI SDK / native runtime |
-| Tool system | `src/tool/` | Registry, execution |
-| HTTP API | `src/server/` | HttpApi groups + handlers |
-| Plugin loading | `src/plugin/` | Install, resolve, npm |
-| Config | `src/config/` | Agent/model/command config |
-| ACP protocol | `src/acp/` | Agent Client Protocol |
-| Effect services | `src/effect/` | Runtime, InstanceState, Bridge |
-| Tests | `test/` | Per-module test dirs |
-| Test helpers | `test/lib/` | testEffect, llm server |
-| LSP native client | `src/lsp/` | Effect-based LSP, 17 tool operations, 30+ builtin servers |
-| Effect migration specs | `specs/effect/migration.md` | Compact pattern reference |
+| Task                        | Location                                  | Notes                                                     |
+| --------------------------- | ----------------------------------------- | --------------------------------------------------------- |
+| CLI entry point / yargs     | `src/index.ts`                            | 22 lazy-loaded commands                                   |
+| CLI command implementations | `src/cli/cmd/`                            | Per-command modules                                       |
+| Run command engine          | `src/cli/cmd/run/`                        | Complex execution logic                                   |
+| Session runner              | `src/session/`                            | Durable session orchestration                             |
+| LLM dispatch                | `src/session/llm.ts` + `src/session/llm/` | AI SDK / native runtime                                   |
+| Tool system                 | `src/tool/`                               | Registry, execution                                       |
+| HTTP API                    | `src/server/`                             | HttpApi groups + handlers                                 |
+| Plugin loading              | `src/plugin/`                             | Install, resolve, npm                                     |
+| Config                      | `src/config/`                             | Agent/model/command config                                |
+| ACP protocol                | `src/acp/`                                | Agent Client Protocol                                     |
+| Effect services             | `src/effect/`                             | Runtime, InstanceState, Bridge                            |
+| Tests                       | `test/`                                   | Per-module test dirs                                      |
+| Test helpers                | `test/lib/`                               | testEffect, llm server                                    |
+| LSP native client           | `src/lsp/`                                | Effect-based LSP, 17 tool operations, 30+ builtin servers |
+| Effect migration specs      | `specs/effect/migration.md`               | Compact pattern reference                                 |
 
 ## CODE MAP
 
-| Symbol | Type | Location | Role |
-|--------|------|----------|------|
-| `src/index.ts` | Entry | `src/index.ts` | yargs bootstrap, 22 lazy commands |
-| `lazyCommand` | Function | `src/cli/lazy-command.ts` | Lazy-load yargs subcommand |
-| `bootstrap` | Export | `src/cli/bootstrap.ts` | Application bootstrap |
-| `Config` | Export | `src/config/config.ts` | Configuration service |
-| `Server` | Export | `src/server/server.ts` | HTTP server setup |
-| `Session` | Service | `src/session/` | Session orchestration |
-| `LLM` | Service | `src/session/llm.ts` | LLM request dispatch |
-| `PluginLoader` | Service | `src/plugin/` | Plugin loading lifecycle |
+| Symbol         | Type     | Location                  | Role                              |
+| -------------- | -------- | ------------------------- | --------------------------------- |
+| `src/index.ts` | Entry    | `src/index.ts`            | yargs bootstrap, 22 lazy commands |
+| `lazyCommand`  | Function | `src/cli/lazy-command.ts` | Lazy-load yargs subcommand        |
+| `bootstrap`    | Export   | `src/cli/bootstrap.ts`    | Application bootstrap             |
+| `Config`       | Export   | `src/config/config.ts`    | Configuration service             |
+| `Server`       | Export   | `src/server/server.ts`    | HTTP server setup                 |
+| `Session`      | Service  | `src/session/`            | Session orchestration             |
+| `LLM`          | Service  | `src/session/llm.ts`      | LLM request dispatch              |
+| `PluginLoader` | Service  | `src/plugin/`             | Plugin loading lifecycle          |
 
 ## COMMANDS
 
@@ -261,30 +261,30 @@ src/lsp/
 
 ## LSP service methods (`src/lsp/lsp.ts` — `Interface`)
 
-| Method | LSP Request | Returns |
-|--------|-------------|---------|
-| `init` | — | `void` (loads config, builds server map) |
-| `status` | — | `Status[]` (server id + connected/error) |
-| `hasClients` | — | `boolean` (any server matches file extension) |
-| `touchFile` | `textDocument/didOpen` + `didChange` | `void` (opens file, optionally waits for diagnostics) |
-| `diagnostics` | — | `Record<string, Diagnostic[]>` (all current diagnostics) |
-| `hover` | `textDocument/hover` | Markdown content |
-| `definition` | `textDocument/definition` | Location[] |
-| `references` | `textDocument/references` | Location[] |
-| `implementation` | `textDocument/implementation` | Location[] |
-| `documentSymbol` | `textDocument/documentSymbol` | DocumentSymbol[] or Symbol[] |
-| `workspaceSymbol` | `workspace/symbol` | Symbol[] |
-| `prepareCallHierarchy` | `textDocument/prepareCallHierarchy` | CallHierarchyItem[] |
-| `incomingCalls` / `outgoingCalls` | `callHierarchy/incomingCalls` / `outgoingCalls` | CallHierarchyIncomingCall[] / OutgoingCall[] |
-| `codeAction` | `textDocument/codeAction` | Command[] |
-| `applyCodeAction` | `textDocument/codeAction` (resolve) + apply edit | any[] |
-| `rename` | `textDocument/rename` | WorkspaceEdit |
-| `prepareRename` | `textDocument/prepareRename` | Range \| null |
-| `typeDefinition` | `textDocument/typeDefinition` | Location[] |
-| `signatureHelp` | `textDocument/signatureHelp` | SignatureHelp |
-| `completion` | `textDocument/completion` | CompletionItem[] |
-| `formatting` | `textDocument/formatting` | TextEdit[] |
-| `removeClients` | — | `void` (shutdown + clear state) |
+| Method                            | LSP Request                                      | Returns                                                  |
+| --------------------------------- | ------------------------------------------------ | -------------------------------------------------------- |
+| `init`                            | —                                                | `void` (loads config, builds server map)                 |
+| `status`                          | —                                                | `Status[]` (server id + connected/error)                 |
+| `hasClients`                      | —                                                | `boolean` (any server matches file extension)            |
+| `touchFile`                       | `textDocument/didOpen` + `didChange`             | `void` (opens file, optionally waits for diagnostics)    |
+| `diagnostics`                     | —                                                | `Record<string, Diagnostic[]>` (all current diagnostics) |
+| `hover`                           | `textDocument/hover`                             | Markdown content                                         |
+| `definition`                      | `textDocument/definition`                        | Location[]                                               |
+| `references`                      | `textDocument/references`                        | Location[]                                               |
+| `implementation`                  | `textDocument/implementation`                    | Location[]                                               |
+| `documentSymbol`                  | `textDocument/documentSymbol`                    | DocumentSymbol[] or Symbol[]                             |
+| `workspaceSymbol`                 | `workspace/symbol`                               | Symbol[]                                                 |
+| `prepareCallHierarchy`            | `textDocument/prepareCallHierarchy`              | CallHierarchyItem[]                                      |
+| `incomingCalls` / `outgoingCalls` | `callHierarchy/incomingCalls` / `outgoingCalls`  | CallHierarchyIncomingCall[] / OutgoingCall[]             |
+| `codeAction`                      | `textDocument/codeAction`                        | Command[]                                                |
+| `applyCodeAction`                 | `textDocument/codeAction` (resolve) + apply edit | any[]                                                    |
+| `rename`                          | `textDocument/rename`                            | WorkspaceEdit                                            |
+| `prepareRename`                   | `textDocument/prepareRename`                     | Range \| null                                            |
+| `typeDefinition`                  | `textDocument/typeDefinition`                    | Location[]                                               |
+| `signatureHelp`                   | `textDocument/signatureHelp`                     | SignatureHelp                                            |
+| `completion`                      | `textDocument/completion`                        | CompletionItem[]                                         |
+| `formatting`                      | `textDocument/formatting`                        | TextEdit[]                                               |
+| `removeClients`                   | —                                                | `void` (shutdown + clear state)                          |
 
 ## Tool integration (`src/tool/lsp.ts`)
 

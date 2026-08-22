@@ -97,9 +97,7 @@ const scenarios: Scenario[] = [
         Effect.gen(function* () {
           object(body)
           check(body.username === "httpapi-global", "global config update should return patched config")
-          const text = yield* Effect.promise(() =>
-            Bun.file(path.join(exerciseConfigDirectory, "openaxe.jsonc")).text(),
-          )
+          const text = yield* Effect.promise(() => Bun.file(path.join(exerciseConfigDirectory, "openaxe.jsonc")).text())
           check(text.includes('"username": "httpapi-global"'), "global config update should write isolated config file")
         }),
       "status",
@@ -1708,7 +1706,11 @@ const scenarios: Scenario[] = [
   http.protected
     .post("/memory", "memory.set")
     .mutating()
-    .at((ctx) => ({ path: "/memory", headers: ctx.headers(), body: { key: "test-key", value: "test-value", scope: "session", source: "agent" } }))
+    .at((ctx) => ({
+      path: "/memory",
+      headers: ctx.headers(),
+      body: { key: "test-key", value: "test-value", scope: "session", source: "agent" },
+    }))
     .json(200, (body) => {
       object(body)
       check(body.key === "test-key", "should return set memory entry")
@@ -1747,7 +1749,11 @@ const scenarios: Scenario[] = [
   http.protected
     .post("/api/artifact", "artifact.store")
     .mutating()
-    .at((ctx) => ({ path: "/api/artifact", headers: ctx.headers(), body: { key: "test-artifact-new", content: "test content" } }))
+    .at((ctx) => ({
+      path: "/api/artifact",
+      headers: ctx.headers(),
+      body: { key: "test-artifact-new", content: "test content" },
+    }))
     .json(200, (body) => {
       object(body)
       check(body.key === "test-artifact-new", "should return stored artifact")
@@ -1791,13 +1797,9 @@ const main = Effect.gen(function* () {
 
   if (options.fromScenario) {
     const name = options.fromScenario
-    const exact = selected.find(
-      (s) => s.name === name || `${s.method} ${s.path}` === name,
-    )
+    const exact = selected.find((s) => s.name === name || `${s.method} ${s.path}` === name)
     if (exact) {
-      console.log(
-        `${color.cyan}--from-scenario: running "${exact.name}" (${exact.method} ${exact.path})${color.reset}`,
-      )
+      console.log(`${color.cyan}--from-scenario: running "${exact.name}" (${exact.method} ${exact.path})${color.reset}`)
     } else {
       console.log(
         `${color.yellow}--from-scenario: no exact match for "${name}", running ${selected.length} matched scenario(s)${color.reset}`,

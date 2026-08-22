@@ -206,7 +206,12 @@ export function withCliFixture<A, E>(
         catch: () => undefined,
       }),
       { times: 30, delay: "100 millis" },
-    ).pipe(Effect.timeoutOrElse({ duration: "10 seconds", orElse: () => Effect.fail(new Error("test LLM server never became ready")) }))
+    ).pipe(
+      Effect.timeoutOrElse({
+        duration: "10 seconds",
+        orElse: () => Effect.fail(new Error("test LLM server never became ready")),
+      }),
+    )
 
     const home = yield* fs.makeTempDirectory({ prefix: "oc-cli-" })
     yield* Effect.addFinalizer(() =>
@@ -248,7 +253,16 @@ export function withCliFixture<A, E>(
             command: err.command,
             exitCode: err.exitCode ?? -1,
             stdout: Buffer.alloc(0),
-            stderr: Buffer.from((err.stderr ?? String(err.cause instanceof Error ? err.cause.message : typeof err.cause === "string" ? err.cause : err.message)) + "\n"),
+            stderr: Buffer.from(
+              (err.stderr ??
+                String(
+                  err.cause instanceof Error
+                    ? err.cause.message
+                    : typeof err.cause === "string"
+                      ? err.cause
+                      : err.message,
+                )) + "\n",
+            ),
             stdoutTruncated: false,
             stderrTruncated: false,
           } satisfies AppProcess.RunResult),
@@ -327,92 +341,100 @@ export function withCliFixture<A, E>(
 
     const serve: (opts?: ServeOpts) => Effect.Effect<ServeHandle, Error, Scope.Scope> = Effect.fn("opencode.serve")(
       function* (opts?: ServeOpts) {
-      const argv = ["serve"]
-      // Default port 0 — let the OS pick a free port, parse the actual one
-      // off stdout. Hard-coded ports flake under parallel tests.
-      argv.push("--port", String(opts?.port ?? 0))
-      if (opts?.hostname) argv.push("--hostname", opts.hostname)
-      if (opts?.extraArgs) argv.push(...opts.extraArgs)
+        const argv = ["serve"]
+        // Default port 0 — let the OS pick a free port, parse the actual one
+        // off stdout. Hard-coded ports flake under parallel tests.
+        argv.push("--port", String(opts?.port ?? 0))
+        if (opts?.hostname) argv.push("--hostname", opts.hostname)
+        if (opts?.extraArgs) argv.push(...opts.extraArgs)
 
-      // Acquire the subprocess; release sends SIGTERM and awaits exit on
-      // scope close. Wrapped in Effect.ignore so a flaky kill doesn't surface
-      // as a finalizer error during test teardown.
-      const proc = yield* Effect.acquireRelease(
-        Effect.sync(() =>
-          Bun.spawn(["bun", "run", "--conditions=browser", cliEntry, ...argv], {
-            cwd: home,
-            env: { ...process.env, ...env, ...opts?.env },
-            stdout: "pipe",
-            stderr: "pipe",
-          }),
-        ),
-        (p) =>
-          Effect.promise(() => {
-            p.kill()
-            return p.exited
-          }).pipe(Effect.ignore),
-      )
+        // Acquire the subprocess; release sends SIGTERM and awaits exit on
+        // scope close. Wrapped in Effect.ignore so a flaky kill doesn't surface
+        // as a finalizer error during test teardown.
+        const proc = yield* Effect.acquireRelease(
+          Effect.sync(() =>
+            Bun.spawn(["bun", "run", "--conditions=browser", cliEntry, ...argv], {
+              cwd: home,
+              env: { ...process.env, ...env, ...opts?.env },
+              stdout: "pipe",
+              stderr: "pipe",
+            }),
+          ),
+          (p) =>
+            Effect.promise(() => {
+              p.kill()
+              return p.exited
+            }).pipe(Effect.ignore),
+        )
 
-      // Tail buffer so timeout failures can include stderr context. The fork
-      // also keeps the OS pipe buffer from filling and wedging the child.
-      const stderrChunks: string[] = []
-      yield* forkStderrDrain(proc.stderr, stderrChunks)
+        // Tail buffer so timeout failures can include stderr context. The fork
+        // also keeps the OS pipe buffer from filling and wedging the child.
+        const stderrChunks: string[] = []
+        yield* forkStderrDrain(proc.stderr, stderrChunks)
 
-      // Watch stdout line-by-line for the listening sentinel. Format
-      // (see src/cli/cmd/serve.ts):
-      //   "opencode server listening on http://<host>:<port>"
-      const readyRe = /listening on (http:\/\/([^\s:]+):(\d+))/
-      const readyDeferred = yield* Deferred.make<{ url: string; hostname: string; port: number }>()
-      yield* Effect.forkScoped(
-        fromBunStream("stdout", () => proc.stdout).pipe(
-          Stream.decodeText(),
-          Stream.splitLines,
-          Stream.runForEach((line) => {
-            const m = line.match(readyRe)
-            return m ? Deferred.succeed(readyDeferred, { url: m[1], hostname: m[2], port: Number(m[3]) }) : Effect.void
-          }),
-          Effect.ignore({ log: true }),
-        ),
-      )
+        // Watch stdout line-by-line for the listening sentinel. Format
+        // (see src/cli/cmd/serve.ts):
+        //   "opencode server listening on http://<host>:<port>"
+        const readyRe = /listening on (http:\/\/([^\s:]+):(\d+))/
+        const readyDeferred = yield* Deferred.make<{ url: string; hostname: string; port: number }>()
+        yield* Effect.forkScoped(
+          fromBunStream("stdout", () => proc.stdout).pipe(
+            Stream.decodeText(),
+            Stream.splitLines,
+            Stream.runForEach((line) => {
+              const m = line.match(readyRe)
+              return m
+                ? Deferred.succeed(readyDeferred, { url: m[1], hostname: m[2], port: Number(m[3]) })
+                : Effect.void
+            }),
+            Effect.ignore({ log: true }),
+          ),
+        )
 
-      const readyTimeoutMs = opts?.readyTimeoutMs ?? 15_000
-      const match = yield* Deferred.await(readyDeferred).pipe(
-        Effect.timeoutOrElse({
-          duration: Duration.millis(readyTimeoutMs),
-          orElse: () =>
-            Effect.fail(
-              new Error(
-                `opencode serve did not become ready within ${readyTimeoutMs}ms\n` +
-                  `stderr (last 2000):\n${stderrChunks.join("").slice(-2000)}`,
+        const readyTimeoutMs = opts?.readyTimeoutMs ?? 15_000
+        const match = yield* Deferred.await(readyDeferred).pipe(
+          Effect.timeoutOrElse({
+            duration: Duration.millis(readyTimeoutMs),
+            orElse: () =>
+              Effect.fail(
+                new Error(
+                  `opencode serve did not become ready within ${readyTimeoutMs}ms\n` +
+                    `stderr (last 2000):\n${stderrChunks.join("").slice(-2000)}`,
+                ),
               ),
-            ),
-        }),
-      )
+          }),
+        )
 
-      // Wait for health endpoint to ensure all routes are ready
-      yield* Effect.retry(
-        Effect.tryPromise({
-          try: async () => {
-            const res = await fetch(`${match.url}/global/health`, { signal: AbortSignal.timeout(1000) })
-            if (!res.ok) throw new Error(`health check failed: ${res.status}`)
-            const json = await res.json()
-            if (json.healthy !== true) throw new Error(`health check returned unhealthy`)
+        // Wait for health endpoint to ensure all routes are ready
+        yield* Effect.retry(
+          Effect.tryPromise({
+            try: async () => {
+              const res = await fetch(`${match.url}/global/health`, { signal: AbortSignal.timeout(1000) })
+              if (!res.ok) throw new Error(`health check failed: ${res.status}`)
+              const json = await res.json()
+              if (json.healthy !== true) throw new Error(`health check returned unhealthy`)
+            },
+            catch: (e) => (e instanceof Error ? e : new Error(String(e))),
+          }),
+          { times: 20, delay: "250 millis" },
+        ).pipe(
+          Effect.timeoutOrElse({
+            duration: "10 seconds",
+            orElse: () => Effect.fail(new Error("health endpoint never became ready")),
+          }),
+        )
+
+        return {
+          url: match.url,
+          hostname: match.hostname,
+          port: match.port,
+          kill: () => {
+            proc.kill()
           },
-          catch: (e) => e instanceof Error ? e : new Error(String(e)),
-        }),
-        { times: 20, delay: "250 millis" },
-      ).pipe(Effect.timeoutOrElse({ duration: "10 seconds", orElse: () => Effect.fail(new Error("health endpoint never became ready")) }))
-
-      return {
-        url: match.url,
-        hostname: match.hostname,
-        port: match.port,
-        kill: () => {
-          proc.kill()
-        },
-        exited: proc.exited,
-      } satisfies ServeHandle
-    })
+          exited: proc.exited,
+        } satisfies ServeHandle
+      },
+    )
 
     const acp = Effect.fn("opencode.acp")(function* (opts?: AcpOpts) {
       const argv = ["acp"]

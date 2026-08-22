@@ -277,7 +277,9 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
           case "git": {
             const root = yield* sourceRoot()
             if (!root) {
-              return yield* new UpgradeFailedError({ stderr: "Source checkout not found — install openaxe from source first" })
+              return yield* new UpgradeFailedError({
+                stderr: "Source checkout not found — install openaxe from source first",
+              })
             }
             const pull = yield* run(["git", "pull", "--ff-only"], { cwd: root })
             if (pull.code !== 0) {

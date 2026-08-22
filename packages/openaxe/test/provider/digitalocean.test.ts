@@ -12,9 +12,7 @@ const overriddenConfig = ConfigProvider.orElse(
   ConfigProvider.fromEnv(),
 )
 
-const it = testEffect(
-  Provider.defaultLayer.pipe(Layer.provide(ConfigProvider.layer(overriddenConfig))),
-)
+const it = testEffect(Provider.defaultLayer.pipe(Layer.provide(ConfigProvider.layer(overriddenConfig))))
 
 const withEnv = <A, E, R>(values: Record<string, string>, effect: Effect.Effect<A, E, R>) =>
   Effect.acquireUseRelease(

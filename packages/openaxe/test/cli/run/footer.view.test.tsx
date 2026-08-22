@@ -170,9 +170,7 @@ async function renderFooter(
   } = {},
 ) {
   const [view] = createSignal<FooterView>({ type: "prompt" })
-  const [subagents] = createSignal(
-    input.subagents ?? { tabs: [], details: {}, permissions: [], questions: [] },
-  )
+  const [subagents] = createSignal(input.subagents ?? { tabs: [], details: {}, permissions: [], questions: [] })
   const state = footerState(input.state)()
   const config = input.tuiConfig ?? tuiConfig
   let offKeymap: (() => void) | undefined

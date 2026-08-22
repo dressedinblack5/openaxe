@@ -69,9 +69,7 @@ describe("GitLab Duo", () => {
           const provider = yield* Provider.Service
           const providers = yield* provider.list()
           expect(providers[GITLAB]).toBeDefined()
-          expect(providers[GITLAB].options?.aiGatewayHeaders?.["anthropic-beta"]).toContain(
-            "context-1m-2025-08-07",
-          )
+          expect(providers[GITLAB].options?.aiGatewayHeaders?.["anthropic-beta"]).toContain("context-1m-2025-08-07")
         }),
       ),
     { config: {} },
@@ -91,7 +89,13 @@ describe("GitLab Duo", () => {
           expect(providers[GITLAB].options?.featureFlags?.duo_agent_platform_agentic_chat).toBe(true)
         }),
       ),
-    { config: { provider: { gitlab: { options: { featureFlags: { duo_agent_platform_agentic_chat: true, duo_agent_platform: true } } } } } },
+    {
+      config: {
+        provider: {
+          gitlab: { options: { featureFlags: { duo_agent_platform_agentic_chat: true, duo_agent_platform: true } } },
+        },
+      },
+    },
     60000,
   )
 })
@@ -122,7 +126,7 @@ describe("GitLab Duo: workflow model routing", () => {
             limit: { context: 200000, output: 64000 },
             capabilities: {
               temperature: false,
-      speed: false,
+              speed: false,
               reasoning: true,
               attachment: true,
               toolcall: true,
@@ -185,7 +189,13 @@ describe("GitLab Duo: workflow model routing", () => {
           expect(model.options).toBeDefined()
         }),
       ),
-    { config: { provider: { gitlab: { options: { featureFlags: { duo_agent_platform_agentic_chat: true, duo_agent_platform: true } } } } } },
+    {
+      config: {
+        provider: {
+          gitlab: { options: { featureFlags: { duo_agent_platform_agentic_chat: true, duo_agent_platform: true } } },
+        },
+      },
+    },
     60000,
   )
 })

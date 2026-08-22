@@ -32,7 +32,13 @@ export const SkillListCommand = effectCmd({
     const skills = yield* skill.all()
     const sorted = [...skills].sort((a, b) => a.name.localeCompare(b.name))
     if (args.json) {
-      console.log(JSON.stringify(sorted.map((s) => ({ name: s.name, description: s.description, location: s.location })), null, 2))
+      console.log(
+        JSON.stringify(
+          sorted.map((s) => ({ name: s.name, description: s.description, location: s.location })),
+          null,
+          2,
+        ),
+      )
       return
     }
     if (sorted.length === 0) {

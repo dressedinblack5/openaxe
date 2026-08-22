@@ -142,7 +142,10 @@ If nothing worth learning, return empty arrays.`
 
       const updates = Array.isArray(parsed.skillUpdates) ? parsed.skillUpdates : []
       const observations = Array.isArray(parsed.observations) ? parsed.observations : []
-      yield* Effect.logInfo("learning: review done", { skillUpdateCount: updates.length, observationCount: observations.length })
+      yield* Effect.logInfo("learning: review done", {
+        skillUpdateCount: updates.length,
+        observationCount: observations.length,
+      })
 
       // ponytail: persist to JSONL, add read API when consumed
       if (updates.length > 0 || observations.length > 0) {
@@ -179,11 +182,19 @@ If nothing worth learning, return empty arrays.`
       const file = path.join(dir, "reviews.jsonl")
       if (!fs.existsSync(file)) return []
       let content: string
-      try { content = fs.readFileSync(file, "utf-8") } catch { return [] }
+      try {
+        content = fs.readFileSync(file, "utf-8")
+      } catch {
+        return []
+      }
       if (!content) return []
       const entries: ReviewEntry[] = []
       for (const line of content.split("\n").filter(Boolean)) {
-        try { entries.push(JSON.parse(line)) } catch { continue }
+        try {
+          entries.push(JSON.parse(line))
+        } catch {
+          continue
+        }
       }
       return entries
     })

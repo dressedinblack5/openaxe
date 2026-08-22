@@ -195,7 +195,8 @@ export function retryable(error: Err, provider: string) {
         apiErr.responseBody?.toLowerCase().includes("insufficient_credits") ||
         apiErr.responseBody?.toLowerCase().includes("quota exceeded") ||
         apiErr.responseBody?.toLowerCase().includes("quota_exceeded") ||
-        apiErr.responseBody?.toLowerCase().includes("billing") && apiErr.responseBody?.toLowerCase().includes("exceeded") ||
+        (apiErr.responseBody?.toLowerCase().includes("billing") &&
+          apiErr.responseBody?.toLowerCase().includes("exceeded")) ||
         apiErr.message?.toLowerCase().includes("insufficient balance") ||
         apiErr.message?.toLowerCase().includes("quota exceeded") ||
         apiErr.message?.toLowerCase().includes("out of credits")
