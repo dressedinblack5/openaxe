@@ -40,7 +40,7 @@ export function ArtifactPreview() {
   const options = createMemo(() => {
     const items = list()
     if (!items) return []
-    const byKey = new Map<string, SDKArtifactSummary[]>()
+    const byKey = new Map<string, ArtifactSummary[]>()
     for (const item of items) {
       const group = byKey.get(item.key) ?? []
       group.push(item)
@@ -50,10 +50,10 @@ export function ArtifactPreview() {
     for (const [key, versions] of byKey) {
       for (const v of versions) {
         result.push({
-          title: `v${Number(v.version)} — ${new Date(Number(v.timeCreated)).toLocaleString()}`,
-          value: `${key}:${Number(v.version)}`,
+          title: `v${v.version} — ${new Date(v.timeCreated).toLocaleString()}`,
+          value: `${key}:${v.version}`,
           category: key,
-          footer: v.truncated ? "truncated" : `${Number(v.size)}B`,
+          footer: v.truncated ? "truncated" : `${v.size}B`,
         })
       }
     }
@@ -168,7 +168,7 @@ function ContentDisplay(props: {
             {(d) => (
               <box flexDirection="column" gap={1} paddingBottom={1}>
                 <box flexDirection="row" gap={2} paddingBottom={1}>
-                  <text fg={theme.textMuted}>Size: {Number(d().size)}B</text>
+                  <text fg={theme.textMuted}>Size: {d().size}B</text>
                   <Show when={d().truncated}>
                     <text fg={theme.warning}>Truncated</text>
                   </Show>
