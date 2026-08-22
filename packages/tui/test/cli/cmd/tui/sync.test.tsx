@@ -44,6 +44,7 @@ describe("tui sync", () => {
     const { app, emit, project, sync } = await mount(undefined, tmp.path)
 
     try {
+      await wait(() => sync.data.vcs?.branch !== undefined)
       expect(sync.data.vcs?.branch).toBe("main")
 
       project.workspace.set("ws_a")
