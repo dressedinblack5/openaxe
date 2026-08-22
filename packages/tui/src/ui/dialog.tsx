@@ -82,20 +82,27 @@ function init() {
   })
 
   let focus: Renderable | null
+  function contains(item: Renderable, target: Renderable): boolean {
+    if (item === target) return true
+    return item.getChildren().some((child) => contains(child, target))
+  }
+  function firstFocusable(item: Renderable): Renderable | undefined {
+    if (item.focusable) return item
+    for (const child of item.getChildren()) {
+      const found = firstFocusable(child)
+      if (found) return found
+    }
+    return undefined
+  }
   function refocus() {
     setTimeout(() => {
-      if (!focus) return
-      if (focus.isDestroyed) return
-      function find(item: Renderable) {
-        for (const child of item.getChildren()) {
-          if (child === focus) return true
-          if (find(child)) return true
-        }
-        return false
+      if (focus && !focus.isDestroyed && contains(renderer.root, focus)) {
+        focus.focus()
+        return
       }
-      const found = find(renderer.root)
-      if (!found) return
-      focus.focus()
+      // Captured renderable was destroyed while the dialog was open — fall back to any
+      // focusable renderable (usually the prompt) instead of leaving keyboard dead.
+      firstFocusable(renderer.root)?.focus()
     }, 1)
   }
 
