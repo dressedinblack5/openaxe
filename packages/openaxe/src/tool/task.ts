@@ -13,6 +13,7 @@ import { ancestorDepth, deriveSubagentSessionPermission } from "../agent/subagen
 import type { SessionPrompt } from "../session/prompt"
 import { Config } from "@/config/config"
 import { parseModel } from "@/provider/provider"
+import { Permission } from "@/permission"
 import { Effect, Exit, Schema, Scope } from "effect"
 import { EffectBridge } from "@/effect/bridge"
 import { RuntimeFlags } from "@/effect/runtime-flags"
@@ -352,6 +353,21 @@ export const TaskTool = define(
       parameters: Parameters,
       jsonSchema: flags.experimentalBackgroundSubagents ? undefined : ToolJsonSchema.fromSchema(BaseParameters),
       execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Context) => run(params, ctx).pipe(Effect.orDie),
+      describe: (caller: Agent.Info) =>
+        Effect.gen(function* () {
+          const items = (yield* agent.list()).filter((item) => item.mode !== "primary")
+          const filtered = items.filter(
+            (item) => Permission.evaluate("task", item.name, caller.permission).action !== "deny",
+          )
+          const list = filtered.toSorted((a, b) => a.name.localeCompare(b.name))
+          const description = list
+            .map(
+              (item) =>
+                `- ${item.name}: ${item.description ?? "This subagent should only be called manually by the user."}`,
+            )
+            .join("\n")
+          return ["Available agent types and the tools they have access to:", description].join("\n")
+        }),
     }
   }),
 )

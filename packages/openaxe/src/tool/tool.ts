@@ -75,6 +75,12 @@ export interface Def<
   jsonSchema?: JSONSchema7
   execute(args: Schema.Schema.Type<Parameters>, ctx: Context): Effect.Effect<ExecuteResult<M>>
   formatValidationError?(error: unknown): string
+  /**
+   * Appends caller-specific text to the tool's description when the registry
+   * builds the per-model tool map. Runs after the `tool.definition` plugin
+   * hook, so plugins see only the base description.
+   */
+  describe?(agent: Agent.Info): Effect.Effect<string>
 }
 export type DefWithoutID<
   Parameters extends Schema.Decoder<unknown> = Schema.Decoder<unknown>,

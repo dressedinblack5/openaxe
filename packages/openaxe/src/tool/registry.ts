@@ -340,21 +340,6 @@ export const layer = Layer.effect(
       return (yield* all()).map((tool) => tool.id)
     })
 
-    const describeTask = Effect.fn("ToolRegistry.describeTask")(function* (agent: Agent.Info) {
-      const items = (yield* agents.list()).filter((item) => item.mode !== "primary")
-      const filtered = items.filter(
-        (item) => Permission.evaluate("task", item.name, agent.permission).action !== "deny",
-      )
-      const list = filtered.toSorted((a, b) => a.name.localeCompare(b.name))
-      const description = list
-        .map(
-          (item) =>
-            `- ${item.name}: ${item.description ?? "This subagent should only be called manually by the user."}`,
-        )
-        .join("\n")
-      return ["Available agent types and the tools they have access to:", description].join("\n")
-    })
-
     const tools: Interface["tools"] = Effect.fn("ToolRegistry.tools")(function* (input) {
       const s = yield* InstanceState.get(state)
       const select = { flags, providerID: input.providerID, modelID: input.modelID }
@@ -376,11 +361,10 @@ export const layer = Layer.effect(
             output.parameters === tool.parameters || output.jsonSchema !== tool.jsonSchema
               ? output.jsonSchema
               : undefined
+          const extra = tool.describe ? yield* tool.describe(input.agent) : undefined
           return {
             id: tool.id,
-            description: [output.description, tool.id === TaskTool.id ? yield* describeTask(input.agent) : undefined]
-              .filter(Boolean)
-              .join("\n"),
+            description: [output.description, extra].filter(Boolean).join("\n"),
             parameters: output.parameters,
             jsonSchema,
             execute: (args: unknown, toolCtx: unknown) => tool.execute(args as never, toolCtx as never),
