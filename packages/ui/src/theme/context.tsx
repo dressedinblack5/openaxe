@@ -4,6 +4,7 @@ import { createEffect, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createSimpleContext } from "../context/helper"
+import { showToast } from "../components/toast"
 import oc2ThemeJson from "./themes/oc-2.json"
 import { resolveThemeVariant, themeToCss } from "./resolve"
 import { resolveThemeVariantV2, themeV2ToCss } from "./v2/resolve"
@@ -211,6 +212,10 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
           const theme = mod.default
           setStore("themes", next, theme)
           return theme
+        })
+        .catch(() => {
+          showToast({ description: `Failed to load theme "${next}"`, variant: "error" })
+          return undefined
         })
         .finally(() => {
           loads.delete(next)
