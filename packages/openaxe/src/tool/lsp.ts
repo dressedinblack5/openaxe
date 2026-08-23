@@ -216,7 +216,7 @@ export const LspTool = define(
               case "completion": return lsp.completion(input as { file: string; line: number; character: number }) as Effect.Effect<unknown[], never, never>
               case "formatting": return lsp.formatting(input as { file: string; tabSize?: number; insertSpaces?: boolean }) as Effect.Effect<unknown[], never, never>
               case "applyCodeAction": return lsp.applyCodeAction(input as { file: string; line: number; character: number; title: string; range?: LspRange }) as Effect.Effect<unknown[], never, never>
-              default: throw new Error(`Unhandled LSP operation: ${opName}`)
+              default: throw new Error(`Unhandled LSP operation: ${String(opName)}`)
             }
           }
           const result: unknown[] = yield* callLsp(opName, input)

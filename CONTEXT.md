@@ -48,6 +48,10 @@ The durable transition that removes an **Admitted Prompt** from pending input an
 **Provider Turn**:
 One request to a model provider and the response projected from that request.
 
+**Context Budget**:
+The single size judgment deciding whether projected conversation content has exceeded the configured compaction threshold. Every overflow decision consults it; consultation sites differ only in the action they take on the answer.
+_Avoid_: Overflow check, cache-aware mode
+
 **Session Drain**:
 One process-local execution span that promotes eligible input and runs required **Provider Turns** until no immediate continuation remains. A Session Drain has no durable identity or transcript boundary.
 
@@ -123,6 +127,7 @@ The host-supplied environment overlay applied by the server when creating a PTY,
 - Existing tool-managed output paths survive generic bounding. A fallback file retains exactly the complete projected text received by the Tool Registry and never claims to reconstruct output already discarded by tool-specific shaping.
 - **Managed Tool Output Files** use globally unique names in one shared flat directory. Their absolute paths are readable and searchable by ordinary tools; other absolute paths remain outside Location-scoped filesystem authority.
 - Provider-executed tool results remain provider-native transcript facts outside generic Tool Registry bounding. Their context control requires provider-aware pruning or compaction because some providers require exact structured round-trip payloads.
+- The mid-stream verdict that cuts a running **Provider Turn** and the pre-turn gate that enqueues automatic compaction both consult the same **Context Budget**; they share one size judgment and differ only in their actions.
 
 ## Example dialogue
 

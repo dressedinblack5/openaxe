@@ -327,3 +327,17 @@ bun run script/stats.ts
 | `scripts/release` | Release shell script |
 | `packages/cli/script/build.ts` | Build lildax binaries |
 | `packages/cli/script/publish.ts` | Publish npm packages |
+
+## Agent skills
+
+### Issue tracker
+
+GitHub issues on dressedinblack5/openaxe via `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.

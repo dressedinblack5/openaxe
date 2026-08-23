@@ -203,7 +203,10 @@ export function retryable(error: Err, provider: string) {
         return undefined
       }
       const apiMsg = apiErr.message
-      return { message: apiMsg?.includes("Overloaded") ? "Provider is overloaded" : (apiMsg ?? "") }
+      const lowerApiMsg = apiMsg?.toLowerCase() ?? ""
+      return {
+        message: lowerApiMsg.includes("overloaded") ? "Provider is overloaded" : (apiMsg ?? ""),
+      }
     }
   }
 
@@ -215,7 +218,8 @@ export function retryable(error: Err, provider: string) {
       lower.includes("rate increased too quickly") ||
       lower.includes("rate limit") ||
       lower.includes("too many requests") ||
-      lower.includes("worker local total request limit reached")
+      lower.includes("worker local total request limit reached") ||
+      lower.includes("service temporarily overloaded")
     ) {
       return { message: msg }
     }
