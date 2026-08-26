@@ -2,6 +2,7 @@ import { Effect, Schema, Scope, Exit } from "effect"
 import { Kanban } from "@opencode-ai/core/kanban/kanban"
 import type { Context, DefWithoutID, ExecuteResult } from "./tool"
 import { define } from "./tool"
+import { CardFields, renderCard } from "./kanban"
 import { Session } from "@/session/session"
 import { SessionID, MessageID } from "@/session/schema"
 import { SessionPrompt } from "@/session/prompt"
@@ -23,8 +24,6 @@ export interface KanbanSwarmPromptOps {
   prompt(input: SessionPrompt.PromptInput): Effect.Effect<SessionV1.WithParts>
 }
 
-const Status = Schema.Literals(["backlog", "todo", "in_progress", "done", "blocked"])
-
 export const Parameters = Schema.Struct({
   operation: Schema.Literals(["create_worker", "create_verifier", "complete_worker", "complete_verifier"]).annotate({
     description: "The kanban swarm operation to perform",
@@ -41,19 +40,7 @@ export const Parameters = Schema.Struct({
   subagent_type: Schema.optional(Schema.String).annotate({
     description: "The type of specialized agent to use (required for create_worker, create_verifier)",
   }),
-  status: Schema.optional(Status).annotate({ description: "Card status" }),
-  priority: Schema.optional(Schema.Int).annotate({ description: "Card priority" }),
-  position: Schema.optional(Schema.Int).annotate({ description: "Card ordering position" }),
-  workerSessionId: Schema.optional(Schema.String).annotate({
-    description: "Session id of the subagent working on the card",
-  }),
-  parentId: Schema.optional(Schema.String).annotate({
-    description: "Parent card id (root -> worker -> verifier hierarchies)",
-  }),
-  verification: Schema.optional(Schema.Json).annotate({ description: "Verification result attached to the card" }),
-  rootSessionId: Schema.optional(Schema.String).annotate({
-    description: "Root session id. Defaults to the current session.",
-  }),
+  ...CardFields,
   background: Schema.optional(Schema.Boolean).annotate({ description: "Run the subagent in the background" }),
 })
 
@@ -66,23 +53,6 @@ type Metadata = {
   parentCardId?: string
   model?: { modelID: string; providerID: string }
   parentSessionId?: string
-}
-
-function renderCard(card: Kanban.Card): string {
-  const lines = [
-    `Card ${card.id}`,
-    `  board: ${card.boardId}`,
-    `  title: ${card.title}`,
-    `  status: ${card.status}`,
-    `  priority: ${card.priority}`,
-    `  position: ${card.position}`,
-  ]
-  if (card.description) lines.push(`  description: ${card.description}`)
-  if (card.workerSessionId) lines.push(`  worker session: ${card.workerSessionId}`)
-  if (card.parentId) lines.push(`  parent: ${card.parentId}`)
-  if (card.verification !== null && card.verification !== undefined)
-    lines.push(`  verification: ${JSON.stringify(card.verification)}`)
-  return lines.join("\n")
 }
 
 export const KanbanSwarmTool = define(

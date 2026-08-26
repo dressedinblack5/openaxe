@@ -5,18 +5,7 @@ import { define } from "./tool"
 
 const Status = Schema.Literals(["backlog", "todo", "in_progress", "done", "blocked"])
 
-export const Parameters = Schema.Struct({
-  operation: Schema.Literals(["create_board", "create_card", "update_card", "list_cards", "get_board"]).annotate({
-    description: "The kanban operation to perform",
-  }),
-  boardId: Schema.optional(Schema.String).annotate({
-    description: "Board id (required for create_card, list_cards, get_board)",
-  }),
-  cardId: Schema.optional(Schema.String).annotate({ description: "Card id (required for update_card)" }),
-  title: Schema.optional(Schema.String).annotate({
-    description: "Board or card title (required for create_board, create_card)",
-  }),
-  description: Schema.optional(Schema.String).annotate({ description: "Card description" }),
+export const CardFields = {
   status: Schema.optional(Status).annotate({ description: "Card status" }),
   priority: Schema.optional(Schema.Int).annotate({ description: "Card priority" }),
   position: Schema.optional(Schema.Int).annotate({ description: "Card ordering position" }),
@@ -30,13 +19,28 @@ export const Parameters = Schema.Struct({
   rootSessionId: Schema.optional(Schema.String).annotate({
     description: "Root session id. Defaults to the current session.",
   }),
+}
+
+export const Parameters = Schema.Struct({
+  operation: Schema.Literals(["create_board", "create_card", "update_card", "list_cards", "get_board"]).annotate({
+    description: "The kanban operation to perform",
+  }),
+  boardId: Schema.optional(Schema.String).annotate({
+    description: "Board id (required for create_card, list_cards, get_board)",
+  }),
+  cardId: Schema.optional(Schema.String).annotate({ description: "Card id (required for update_card)" }),
+  title: Schema.optional(Schema.String).annotate({
+    description: "Board or card title (required for create_board, create_card)",
+  }),
+  description: Schema.optional(Schema.String).annotate({ description: "Card description" }),
+  ...CardFields,
 })
 
 type Metadata = {
   operation: string
 }
 
-function renderCard(card: Kanban.Card): string {
+export function renderCard(card: Kanban.Card): string {
   const lines = [
     `Card ${card.id}`,
     `  board: ${card.boardId}`,
