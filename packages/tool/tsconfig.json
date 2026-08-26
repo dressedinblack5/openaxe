@@ -3,8 +3,6 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "target": "ES2024",
-    "lib": ["ES2024"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -15,6 +13,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "downlevelIteration": true,
     "paths": {
       "@openaxe/tool/*": ["./src/*"]
     }
