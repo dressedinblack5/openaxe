@@ -30,14 +30,10 @@ export const ContextScope = {
 
   equals: (a: ContextScope, b: ContextScope): boolean => {
     if (a._tag !== b._tag) return false
-    switch (a._tag) {
-      case "ProjectScope":
-        return a.dir === (b as ProjectScope).dir
-      case "WorkspaceScope":
-        return a.workspaceId === (b as WorkspaceScope).workspaceId
-      case "PluginScope":
-        return a.pluginId === (b as PluginScope).pluginId
-    }
+    if (a._tag === "ProjectScope") return a.dir === b.dir
+    if (a._tag === "WorkspaceScope") return a.workspaceId === b.workspaceId
+    if (a._tag === "PluginScope") return a.pluginId === b.pluginId
+    return false
   },
 
   hash: (scope: ContextScope): string => {
@@ -48,6 +44,8 @@ export const ContextScope = {
         return `workspace:${scope.workspaceId}`
       case "PluginScope":
         return `plugin:${scope.pluginId}`
+      default:
+        return `unknown:${scope._tag}`
     }
   },
 

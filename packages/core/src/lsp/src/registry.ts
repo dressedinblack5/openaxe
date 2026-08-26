@@ -1,22 +1,14 @@
-import { Effect, Layer, Context, HashMap } from "effect"
+import { HashMap } from "effect"
 import {
   ServerDefinition,
   ServerRegistry,
-  ServerHandle,
-  DownloadStrategy,
-  RuntimeFlags,
-  InstanceContext,
-  ServerSpawnError,
 } from "./types"
-import { ChildProcess } from "node:child_process"
 import { Filesystem } from "@opencode-ai/core/util/filesystem"
 import { Global } from "@opencode-ai/core/global"
 import { Npm } from "@opencode-ai/core/npm"
 import { Process } from "@opencode-ai/core/util/process"
 import { Module } from "@opencode-ai/core/util/module"
-import { Archive } from "@opencode-ai/core/util/archive"
 import path from "path"
-import os from "os"
 import fs from "fs/promises"
 
 /**
@@ -27,7 +19,7 @@ import fs from "fs/promises"
 const pathExists = async (p: string) =>
   fs.stat(p).then(() => true).catch(() => false)
 
-const run = (cmd: string[], opts: Process.RunOptions = {}) =>
+const _run = (cmd: string[], opts: Process.RunOptions = {}) =>
   Process.run(cmd, { ...opts, nothrow: true })
 
 const output = (cmd: string[], opts: Process.RunOptions = {}) =>
@@ -53,30 +45,6 @@ const NearestRoot = (includePatterns: string[], excludePatterns?: string[]): Ser
     const first = await files.next()
     await files.return()
     if (!first.value) return ctx.directory
-    return path.dirname(first.value)
-  }
-}
-
-const StrictNearestRoot = (includePatterns: string[], excludePatterns?: string[]): ServerDefinition["root"] => {
-  return async (file, ctx) => {
-    if (excludePatterns) {
-      const excludedFiles = Filesystem.up({
-        targets: excludePatterns,
-        start: path.dirname(file),
-        stop: ctx.directory,
-      })
-      const excluded = await excludedFiles.next()
-      await excludedFiles.return()
-      if (excluded.value) return undefined
-    }
-    const files = Filesystem.up({
-      targets: includePatterns,
-      start: path.dirname(file),
-      stop: ctx.directory,
-    })
-    const first = await files.next()
-    await files.return()
-    if (!first.value) return undefined
     return path.dirname(first.value)
   }
 }
@@ -480,7 +448,7 @@ export const BuiltinServers: ReadonlyArray<ServerDefinition> = [
  */
 
 export const makeServerRegistry = (initialServers: ReadonlyArray<ServerDefinition> = []): ServerRegistry => {
-  const servers = new HashMap.HashMap<string, ServerDefinition>()
+  let servers = new HashMap.HashMap<string, ServerDefinition>()
   for (const server of initialServers) {
     servers = HashMap.set(servers, server.id, server)
   }

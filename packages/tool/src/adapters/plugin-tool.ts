@@ -50,7 +50,7 @@ export const fromZodTool = <Args extends z.ZodRawShape>(
     description: zodTool.description,
     parameters,
     output,
-    jsonSchema: jsonSchema as any, // Type assertion for compatibility
+    jsonSchema,
     execute: (args, context) =>
       Effect.gen(function* () {
         // Bridge Effect context to Promise-based plugin context
@@ -89,10 +89,10 @@ export const toZodTool = <P extends Schema.Schema<unknown>, O extends Schema.Sch
   return {
     id: unified.id,
     description: unified.description,
-    args: {} as any, // Cannot reconstruct Zod from Effect Schema
+    args: {} as z.ZodRawShape, // Cannot reconstruct Zod from Effect Schema
     execute: async (args, context) => {
       const result = await Effect.runPromise(
-        unified.execute(args as any, context)
+        unified.execute(args as Schema.Schema.Type<P>, context)
       )
       // Convert to string or ToolExecutionResult
       return typeof result === "string" ? result : JSON.stringify(result)

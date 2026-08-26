@@ -1,4 +1,4 @@
-import { Effect, Layer, Context } from "effect"
+import { Layer, Context } from "effect"
 import { ServerCapabilities, TextDocumentSyncKind } from "./types"
 
 /**
@@ -42,7 +42,7 @@ export const makeCapabilityRegistry = (): CapabilityRegistry => ({
   getTextDocumentSyncKind(capabilities: ServerCapabilities): TextDocumentSyncKind | undefined {
     if (!capabilities.textDocumentSync) return undefined
     if (typeof capabilities.textDocumentSync === "number") return capabilities.textDocumentSync
-    return (capabilities.textDocumentSync as any).change
+    return capabilities.textDocumentSync.change
   },
 
   hasDiagnosticProvider(capabilities: ServerCapabilities): boolean {

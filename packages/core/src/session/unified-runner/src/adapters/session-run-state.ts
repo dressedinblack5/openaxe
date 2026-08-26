@@ -1,9 +1,9 @@
-import { Effect, Layer, Context, Scope, Latch } from "effect"
+import { Effect, Layer, Scope, Latch } from "effect"
 import { SessionRunState, Session } from "@opencode-ai/openaxe/session"
-import { SessionSchema, SessionID, SessionV1 } from "@opencode-ai/schema"
+import { SessionID, SessionV1 } from "@opencode-ai/schema"
 import { BackgroundJob } from "@opencode-ai/openaxe/background/job"
 import { SessionStatus } from "@opencode-ai/openaxe/session/status"
-import { UnifiedRunnerInterface, SessionEventSubscriberInterface, RunnerState } from "../types"
+import { UnifiedRunnerInterface, SessionEventSubscriberInterface } from "../types"
 import { InstanceState } from "@opencode-ai/openaxe/effect/instance-state"
 import { Runner } from "@opencode-ai/openaxe/effect/runner"
 

@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { SessionEvent, SessionID, SessionMessageID, Location } from "@opencode-ai/schema"
+import { SessionEvent, SessionID, SessionMessageID } from "@opencode-ai/schema"
 
 /**
  * Unified Session Runner types
@@ -163,22 +163,15 @@ export interface UnifiedRunnerRunResult {
   readonly step: number
 }
 
-export interface UnifiedRunnerError extends Error {
-  readonly _tag: "UnifiedRunnerError"
-  readonly sessionID: SessionID
-  readonly cause?: Error
-}
-
 export class UnifiedRunnerError extends Schema.TaggedErrorClass<UnifiedRunnerError>()(
   "UnifiedRunnerError",
   {
     sessionID: SessionID,
-    message: Schema.String,
     cause: Schema.Unknown.pipe(Schema.optional),
   },
 ) {
   override get message(): string {
-    return `UnifiedRunner error for session ${this.sessionID}: ${this.message}`
+    return `UnifiedRunner error for session ${this.sessionID}`
   }
 }
 

@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import type { ToolDefinition, CliToolContext, ToolExecutionResult, ToolCall, ToolContent, AvailabilityInput, PermissionRequest, ToolFailure } from "../types"
+import type { ToolDefinition, CliToolContext, ToolExecutionResult, ToolCall, ToolContent, AvailabilityInput, PermissionRequest } from "../types"
 import { make, settle, isAvailable, describe } from "../tool"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
 import type { ProviderV2 } from "@opencode-ai/core/provider"
@@ -84,7 +84,7 @@ export const toCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Sch
  */
 export const fromCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   cli: CliToolDefinition<P, O>
-): ToolDefinition<P, O> => cli as unknown as ToolDefinition<P, O>
+): ToolDefinition<P, O> => cli as ToolDefinition<P, O>
 
 /**
  * Create a CLI tool directly (convenience)
@@ -112,27 +112,33 @@ export const makeCliTool = <P extends Schema.Schema<unknown>, O extends Schema.S
       return result.output as Schema.Schema.Type<O>
     },
   }
-  const unified = make(unifiedConfig as any)
+  const unified = make(unifiedConfig)
   return toCliTool(unified)
 }
 
 /**
  * Check tool availability for a specific model/agent
  */
-export const checkCliAvailability = (
-  tool: CliToolDefinition<any, any>,
+export const checkCliAvailability = <
+  P extends Schema.Schema<unknown>,
+  O extends Schema.Schema<unknown>
+>(
+  tool: CliToolDefinition<P, O>,
   model: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info },
   flags: Record<string, unknown>
 ): boolean =>
-  isAvailable(tool as any, { flags, providerID: model.providerID, modelID: model.modelID, agentID: model.agent.id })
+  isAvailable(tool, { flags, providerID: model.providerID, modelID: model.modelID, agentID: model.agent.id })
 
 /**
  * Get enhanced description for a model
  */
-export const getCliDescription = (
-  tool: CliToolDefinition<any, any>,
+export const getCliDescription = <
+  P extends Schema.Schema<unknown>,
+  O extends Schema.Schema<unknown>
+>(
+  tool: CliToolDefinition<P, O>,
   agent: Agent.Info
-): Effect.Effect<string | undefined> => describe(tool as any, agent)
+): Effect.Effect<string | undefined> => describe(tool, agent)
 
 /**
  * CLI Adapter layer - provides CLI tool API backed by unified implementation

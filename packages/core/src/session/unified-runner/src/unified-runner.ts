@@ -33,11 +33,8 @@ import {
   type UnifiedRunnerInput,
   UnifiedRunnerError,
   RunnerState,
-  Compacted,
-  type SessionEffectRunner,
   RunnerStateChanged,
   Interrupted,
-  SubagentForked,
   SubagentCompleted,
 } from "./types"
 
@@ -63,7 +60,7 @@ const safePublish = <A, R>(effect: Effect.Effect<A, unknown, R>): Effect.Effect<
  * Emits SessionEvent for CLI subscription
  */
 export const layer = Layer.effect(
-  UnifiedRunnerService as any,
+  UnifiedRunnerService,
   Effect.gen(function* () {
     const events = yield* EventV2.Service
     const llm = yield* LLMClient.Service
@@ -132,11 +129,10 @@ export const layer = Layer.effect(
       }).pipe(Effect.map(SystemContext.combine))
 
     const emitRunnerState = (sessionID: SessionSchema.ID, state: RunnerState) =>
-      safePublish(events.publish(RunnerStateChanged, {
-        timestamp: yield* DateTime.now,
-        sessionID,
-        state,
-      }))
+      DateTime.now.pipe(
+        Effect.map((timestamp) => safePublish(events.publish(RunnerStateChanged, { timestamp, sessionID, state }))),
+        Effect.asVoid,
+      )
 
     const runTurnAttempt = Effect.fn("UnifiedRunner.runTurn")(function* (
       sessionID: SessionSchema.ID,

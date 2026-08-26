@@ -1,9 +1,8 @@
-import { Effect, Layer, Context, Ref, HashMap, Option, FileSystem, ChildProcess, ChildProcessSpawner, Clock, Duration, Timeout } from "effect"
-import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node"
-import type { Diagnostic as VSCodeDiagnostic } from "vscode-languageserver-types"
+import { Effect, Layer, Context, FileSystem, ChildProcess, Duration, Timeout } from "effect"
+import { createMessageConnection, StreamMessageReader, StreamMessageWriter } from "vscode-jsonrpc/node"
 import { Schema } from "effect"
-import { LSPClient, ClientInfo, Diagnostic, ServerCapabilities, Position, Range, DiagnosticSeverity, TextDocumentSyncKind, InitializeError, InstanceContext } from "./types"
-import { makePlatformResolver, PlatformResolver } from "./platform"
+import { LSPClient, Diagnostic } from "./types"
+import { makePlatformResolver } from "./platform"
 import path from "path"
 
 const DIAGNOSTICS_DEBOUNCE_MS = 150
@@ -103,7 +102,7 @@ export interface ClientHandle {
   initialization?: Record<string, unknown>
 }
 
-export const makeLSPClient = (platformResolver: PlatformResolver) => {
+export const makeLSPClient = () => {
   return async function create(input: {
     serverID: string
     server: ClientHandle
@@ -112,8 +111,8 @@ export const makeLSPClient = (platformResolver: PlatformResolver) => {
     instance: InstanceContext
   }): Promise<LSPClient> {
     const connection = createMessageConnection(
-      new StreamMessageReader(input.server.process.stdout!),
-      new StreamMessageWriter(input.server.process.stdin!),
+      new StreamMessageReader(input.server.process.stdout as NodeJS.ReadableStream),
+      new StreamMessageWriter(input.server.process.stdin as NodeJS.WritableStream),
     )
 
     const STDERR_BUFFER_LIMIT = 50

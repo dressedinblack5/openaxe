@@ -1,7 +1,5 @@
-import { Effect, Layer, Option, Schema, Context } from "effect"
+import { Effect, Layer, Option, Schema } from "effect"
 import type { ContextService } from "../context"
-import type { ContextScope, ContextSnapshot } from "../context"
-import { ScopeNotFoundError } from "../context"
 
 /**
  * SystemContext Adapter - Minimal compatibility layer
@@ -118,7 +116,7 @@ export interface SystemContextAdapterInterface {
   empty: SystemContext
 }
 
-export const makeSystemContextAdapter = (unified: ContextService): SystemContextAdapterInterface => {
+export const makeSystemContextAdapter = (_unified: ContextService): SystemContextAdapterInterface => {
   const observe = (value: SystemContext) =>
     Effect.forEach(
       value[ContextTypeId],
@@ -226,7 +224,7 @@ export const makeSystemContextAdapter = (unified: ContextService): SystemContext
 
   return {
     make: <A>(source: Source<A>): SystemContext => {
-      const codec = source.codec as any
+      const codec = source.codec
       const decode = Schema.decodeUnknownOption(codec)
       const encode = Schema.encodeSync(codec)
       const equivalent = Schema.toEquivalence(codec)
@@ -250,12 +248,12 @@ export const makeSystemContextAdapter = (unified: ContextService): SystemContext
                   Option.match(decode(previous), {
                     onNone: (): Compared => ({ _tag: "Incompatible" }),
                     onSome: (decoded): Compared =>
-                      equivalent(decoded as any, value as any)
+                      equivalent(decoded, value)
                         ? { _tag: "Unchanged" }
                         : {
                             _tag: "Updated",
                             render: () => ({
-                              text: requireText(source.key, "update", source.update(decoded as any, value as any)),
+                              text: requireText(source.key, "update", source.update(decoded, value)),
                               snapshot: snapshot(),
                             }),
                           },

@@ -2,7 +2,6 @@ import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import type { Provider } from "@/provider/provider"
 import { ProviderTransform } from "@/provider/transform"
-import { RuntimeFlags } from "@/effect/runtime-flags"
 
 const COMPACTION_BUFFER = 20_000
 

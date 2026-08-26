@@ -1,6 +1,5 @@
 import { Effect, Layer, Context } from "effect"
-import type { BaseToolContext, CliToolContext, PluginToolContext, ToolContext, PermissionRequest, AskInput, SessionMessage, SessionID, MessageID } from "./types"
-import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
+import type { BaseToolContext, CliToolContext, PluginToolContext, PermissionRequest, AskInput, SessionMessage, SessionID, MessageID } from "./types"
 
 /**
  * Context services for dependency injection (Effect v4 style)

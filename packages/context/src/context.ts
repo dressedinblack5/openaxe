@@ -1,4 +1,4 @@
-import { Effect, Layer, Context, Ref, Schedule, Duration, Option } from "effect"
+import { Effect, Layer, Context, Ref, Duration, Option } from "effect"
 import {
   ContextScope,
   ContextBudget,
@@ -7,7 +7,6 @@ import {
   ScopeState,
   type CompactionStrategy,
   ScopeNotFoundError,
-  ContextError,
   ContextScope as ContextScopeUtils,
   ContextBudget as ContextBudgetUtils,
   ContextEpoch as ContextEpochUtils,
@@ -31,8 +30,8 @@ const FULL_COMPACTION_INTERVAL = Duration.minutes(5)
  * epoch management, budget tracking, and compaction.
  */
 export interface ContextService {
-  readonly get: <A>(scope: ContextScope, key: string) => Effect.Effect<Option.Option<A>, ScopeNotFoundError>
-  readonly set: <A>(scope: ContextScope, key: string, value: A) => Effect.Effect<void, ScopeNotFoundError>
+  readonly get: (scope: ContextScope, key: string) => Effect.Effect<Option.Option<unknown>, ScopeNotFoundError>
+  readonly set: (scope: ContextScope, key: string, value: unknown) => Effect.Effect<void, ScopeNotFoundError>
   readonly delete: (scope: ContextScope, key: string) => Effect.Effect<boolean, ScopeNotFoundError>
   readonly snapshot: (scope: ContextScope) => Effect.Effect<ContextSnapshot, ScopeNotFoundError>
   readonly restore: (scope: ContextScope, snapshot: ContextSnapshot) => Effect.Effect<void, ScopeNotFoundError>
@@ -43,11 +42,11 @@ export interface ContextService {
   readonly setBudget: (scope: ContextScope, budget: ContextBudget) => Effect.Effect<void, ScopeNotFoundError>
   readonly compact: (scope: ContextScope, strategy?: CompactionStrategy) => Effect.Effect<ContextBudget, ScopeNotFoundError>
   readonly releaseScope: (scope: ContextScope) => Effect.Effect<void>
-  readonly getOrLoad: <A>(
+  readonly getOrLoad: (
     scope: ContextScope,
     key: string,
-    loader: () => Effect.Effect<A>
-  ) => Effect.Effect<A, ScopeNotFoundError>
+    loader: () => Effect.Effect<unknown>
+  ) => Effect.Effect<unknown, ScopeNotFoundError>
 }
 
 export class Service extends Context.Service<Service, ContextService>()("@openaxe/ContextService") {}
@@ -132,7 +131,7 @@ const performIncrementalCompaction = (
 
     const sortedEntries = Array.from(current.data.entries())
       .filter(([k]) => current.dirtyKeys.has(k))
-      .sort((a, b) => (b[1] as object)?.toString().length ?? 0 - (a[1] as object)?.toString().length ?? 0)
+      .sort((a, b) => JSON.stringify(b[1]).length - JSON.stringify(a[1]).length)
 
     let newData = new Map(current.data)
     let freed = 0
@@ -187,7 +186,7 @@ const performFullCompaction = (
     }
 
     const entries = Array.from(current.data.entries())
-      .sort((a, b) => (b[1] as object)?.toString().length ?? 0 - (a[1] as object)?.toString().length ?? 0)
+      .sort((a, b) => JSON.stringify(b[1]).length - JSON.stringify(a[1]).length)
 
     for (const [k, v] of entries) {
       if (currentUsed <= targetUsed) break
@@ -252,7 +251,7 @@ const optionFromNullable = <A>(value: A | null | undefined): Option.Option<A> =>
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-    const state = yield* Ref.make<ContextState>({
+    const state = yield* Ref.make({
       scopes: new Map(),
       latches: new Map(),
       compactionTimers: new Map()
@@ -284,14 +283,14 @@ export const layer = Layer.effect(
       })
 
     const service: ContextService = {
-      get: <A>(scope: ContextScope, key: string) =>
+      get: (scope: ContextScope, key: string) =>
         Effect.gen(function* () {
           const scopeState = yield* getScopeState(scope)
           const value = scopeState.data.get(key)
-          return optionFromNullable(value as A | undefined)
+          return optionFromNullable(value)
         }),
 
-      set: <A>(scope: ContextScope, key: string, value: A) =>
+      set: (scope: ContextScope, key: string, value: unknown) =>
         Effect.gen(function* () {
           yield* withScopeLock(scope, Effect.gen(function* () {
             const s = yield* Ref.get(state)
@@ -390,7 +389,9 @@ export const layer = Layer.effect(
             }
 
             s.scopes.set(ContextScopeUtils.hash(scope), updated)
+            return undefined
           }))
+          return undefined
         }),
 
       initializeEpoch: (scope: ContextScope, baseline: unknown, budget?: ContextBudget) =>
@@ -465,7 +466,7 @@ export const layer = Layer.effect(
       compact: (scope: ContextScope, strategy: CompactionStrategy = "hybrid") =>
         Effect.gen(function* () {
           const s = yield* Ref.get(state)
-          const scopeState = yield* getScopeState(scope)
+          const _scopeState = yield* getScopeState(scope)
 
           if (strategy === "explicit" || strategy === "hybrid") {
             return yield* performFullCompaction(s, scope)
@@ -483,9 +484,9 @@ export const layer = Layer.effect(
           yield* Ref.set(state, s)
         }),
 
-      getOrLoad: <A>(scope: ContextScope, key: string, loader: () => Effect.Effect<A>) =>
+      getOrLoad: (scope: ContextScope, key: string, loader: () => Effect.Effect<unknown>) =>
         Effect.gen(function* () {
-          const cached = yield* service.get<A>(scope, key)
+          const cached = yield* service.get(scope, key)
           if (Option.isSome(cached)) return cached.value
           const loaded = yield* loader()
           yield* service.set(scope, key, loaded)

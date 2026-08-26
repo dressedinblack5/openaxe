@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { DateTime, Effect } from "effect"
+import { DateTime } from "effect"
 import { SessionEvent } from "@opencode-ai/schema/session-event"
 import { reduceEvent, createInitialSessionData } from "../src/reducer"
 
@@ -83,19 +83,6 @@ const makeTextEndedEvent = (overrides = {}) => SessionEvent.Text.Ended.make({
     assistantMessageID: "msg_test123",
     textID: "text_123",
     text: "Hello World",
-    ...overrides,
-  },
-})
-
-const makeToolInputStartedEvent = (overrides = {}) => SessionEvent.Tool.Input.Started.make({
-  type: "session.next.tool.input.started",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    assistantMessageID: "msg_test123",
-    callID: "call_123",
-    name: "read_file",
     ...overrides,
   },
 })

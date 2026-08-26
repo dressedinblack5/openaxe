@@ -1,6 +1,6 @@
-import { Effect, Option } from "effect"
-import { SessionEvent, SessionMessageID, SessionID } from "@opencode-ai/schema"
-import { SessionData, SessionDataOutput, SessionDataReducer } from "./types"
+import { Effect } from "effect"
+import { SessionEvent } from "@opencode-ai/schema"
+import { SessionData, SessionDataReducer } from "./types"
 
 /**
  * Pure SessionData reducer over EventV2 stream
@@ -32,25 +32,6 @@ export const createInitialSessionData = (includeUserText = false): SessionData =
  */
 const dict = (v: unknown): Record<string, unknown> =>
   v && typeof v === "object" && !Array.isArray(v) ? { ...(v as Record<string, unknown>) } : {}
-
-/**
- * Helper to safely get string from unknown
- */
-const text = (v: unknown): string => (typeof v === "string" ? v : "")
-
-/**
- * Helper to get tool permission info (from CLI tool.ts)
- */
-const toolPermissionInfo = (
-  permission: string,
-  input: Record<string, unknown>,
-  meta: Record<string, unknown>,
-  patterns: string[],
-): SessionEvent.PermissionInfo | undefined => {
-  // This would be imported from the CLI tool.ts
-  // For now, return undefined to use fallback
-  return undefined
-}
 
 /**
  * Main reducer function - pure function that reduces EventV2 to SessionData
@@ -258,7 +239,6 @@ export const reduceEvent: SessionDataReducer = (state, event) => {
 const buildFooter = (data: SessionData): SessionEvent.FooterOutput | undefined => {
   // Check for permission request
   if (data.permissions.length > 0) {
-    const perm = data.permissions[0]
     return {
       view: "permission",
       patch: { status: "permission" },

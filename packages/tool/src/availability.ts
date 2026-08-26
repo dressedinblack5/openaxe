@@ -1,5 +1,5 @@
 import { Effect, HashMap, Ref, Context } from "effect"
-import type { ToolDefinition, AvailabilityInput, AvailabilityKey, ToolAvailabilityCache, Schema } from "./types"
+import type { ToolDefinition, AvailabilityInput, AvailabilityKey, Schema } from "./types"
 import type { ProviderV2 } from "@opencode-ai/core/provider"
 import type { ModelV2 } from "@opencode-ai/core/model"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
@@ -8,7 +8,7 @@ import type { RuntimeFlags } from "./types"
 /**
  * Availability filtering with memoization per (flags, providerID, modelID, agentID) tuple
  */
-export interface AvailabilityService {
+export interface AvailabilityServiceInterface {
   readonly check: (
     tool: ToolDefinition,
     input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info }
@@ -20,7 +20,7 @@ export interface AvailabilityService {
   readonly clearCache: () => Effect.Effect<void>
 }
 
-export class AvailabilityService extends Context.Service<AvailabilityService, AvailabilityService>()("@openaxe/ToolAvailability") {}
+export class AvailabilityService extends Context.Service<AvailabilityService, AvailabilityServiceInterface>()("@openaxe/ToolAvailability") {}
 
 const makeAvailabilityKey = (input: AvailabilityInput): AvailabilityKey => ({
   flagsHash: hashFlags(input.flags),
@@ -88,7 +88,7 @@ export const isAvailable = <
   tool: ToolDefinition<P, O>,
   input: AvailabilityInput
 ): boolean => {
-  const runtimeAvail = (tool as any).availability
+  const runtimeAvail = tool.availability
   return typeof runtimeAvail === "function" ? runtimeAvail(input) : true
 }
 

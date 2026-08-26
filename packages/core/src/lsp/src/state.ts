@@ -93,12 +93,12 @@ export const makeBrokenServerTracker = (): BrokenServerTracker => {
 const DIAGNOSTICS_DEBOUNCE_MS = 150
 const DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS = 5_000
 const DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS = 10_000
-const DIAGNOSTICS_REQUEST_TIMEOUT_MS = 3_000
+const _DIAGNOSTICS_REQUEST_TIMEOUT_MS = 3_000
 
 export const makeDiagnosticStore = (): DiagnosticStore => {
   const pushDiagnostics = new Map<string, Diagnostic[]>()
   const pullDiagnostics = new Map<string, Diagnostic[]>()
-  const published = new Map<string, { at: number; version?: number }>()
+  const _published = new Map<string, { at: number; version?: number }>()
   const diagnosticListeners = new Set<(input: { path: string; serverID: string }) => void>()
 
   const dedupeDiagnostics = (items: Diagnostic[]): Diagnostic[] => {
@@ -258,15 +258,15 @@ export const makeDiagnosticStore = (): DiagnosticStore => {
     },
   }
 
-  function requestDocumentDiagnostics(filePath: string): Promise<{ handled: boolean; matched: boolean }> {
+  function requestDocumentDiagnostics(_filePath: string): Promise<{ handled: boolean; matched: boolean }> {
     return Promise.resolve({ handled: false, matched: false })
   }
 
-  function requestFullDiagnostics(filePath: string): Promise<{ handled: boolean; matched: boolean }> {
+  function requestFullDiagnostics(_filePath: string): Promise<{ handled: boolean; matched: boolean }> {
     return Promise.resolve({ handled: false, matched: false })
   }
 
-  function waitForRegistrationChange(timeout: number, signal: AbortSignal): Promise<boolean> {
+  function waitForRegistrationChange(_timeout: number, _signal: AbortSignal): Promise<boolean> {
     return Promise.resolve(false)
   }
 }
@@ -276,7 +276,7 @@ export const makeDiagnosticStore = (): DiagnosticStore => {
  */
 
 export const makeServerRegistry = (initialServers: ReadonlyArray<ServerDefinition> = []): ServerRegistry => {
-  const servers = new HashMap.HashMap<string, ServerDefinition>()
+  let servers = new HashMap.HashMap<string, ServerDefinition>()
   for (const server of initialServers) {
     servers = HashMap.set(servers, server.id, server)
   }
@@ -370,8 +370,7 @@ export const makeCapabilityRegistry = (): CapabilityRegistry => ({
 export const makePlatformResolver = (): PlatformResolver => ({
   resolveBinary(platform: NodeJS.Platform, arch: string): { binary: string; args: string[] } {
     const isWindows = platform === "win32"
-    const ext = isWindows ? ".exe" : ""
-    const isArm64 = arch === "arm64" || arch === "aarch64"
+    const _isArm64 = arch === "arm64" || arch === "aarch64"
     return {
       binary: isWindows ? "cmd.exe" : "sh",
       args: isWindows ? ["/c"] : ["-c"],
@@ -396,7 +395,7 @@ export const makePlatformResolver = (): PlatformResolver => ({
  */
 
 export const makeServerDownloader = (): ServerDownloader => ({
-  download(strategy: DownloadStrategy, targetDir: string): Effect.Effect<string, ServerSpawnError> {
+  download(_strategy: DownloadStrategy, _targetDir: string): Effect.Effect<string, ServerSpawnError> {
     return Effect.tryPromise({
       try: async () => {
         // Implementation would download based on strategy type
@@ -405,7 +404,7 @@ export const makeServerDownloader = (): ServerDownloader => ({
       catch: (cause) => new ServerSpawnError({ serverID: "unknown", reason: String(cause), cause }),
     })
   },
-  extract(archivePath: string, targetDir: string, archiveType: "zip" | "tar.gz" | "tar.xz"): Effect.Effect<void, ServerSpawnError> {
+  extract(_archivePath: string, _targetDir: string, _archiveType: "zip" | "tar.gz" | "tar.xz"): Effect.Effect<void, ServerSpawnError> {
     return Effect.tryPromise({
       try: async () => {
         // Implementation would extract based on archive type
@@ -414,7 +413,7 @@ export const makeServerDownloader = (): ServerDownloader => ({
       catch: (cause) => new ServerSpawnError({ serverID: "unknown", reason: String(cause), cause }),
     })
   },
-  verify(binaryPath: string): Effect.Effect<boolean> {
+  verify(_binaryPath: string): Effect.Effect<boolean> {
     return Effect.tryPromise({
       try: async () => {
         // Implementation would verify binary exists and is executable

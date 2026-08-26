@@ -1,17 +1,14 @@
-import { Effect, Layer, Context } from "effect"
+import { Layer, Context } from "effect"
 import {
   Diagnostic,
   DiagnosticStore,
-  ServerCapabilities,
-  Position,
-  Range,
 } from "./types"
 import type { MessageConnection } from "vscode-jsonrpc/node"
 
-const DIAGNOSTICS_DEBOUNCE_MS = 150
-const DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS = 5_000
-const DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS = 10_000
-const DIAGNOSTICS_REQUEST_TIMEOUT_MS = 3_000
+const _DIAGNOSTICS_DEBOUNCE_MS = 150
+const _DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS = 5_000
+const _DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS = 10_000
+const _DIAGNOSTICS_REQUEST_TIMEOUT_MS = 3_000
 
 export interface DocumentDiagnosticReport {
   items?: Diagnostic[]
@@ -52,8 +49,8 @@ interface PublishedEntry {
 export const makeDiagnosticStore = (serverID: string): DiagnosticStore => {
   const pushDiagnostics = new Map<string, Diagnostic[]>()
   const pullDiagnostics = new Map<string, Diagnostic[]>()
-  const published = new Map<string, PublishedEntry>()
-  const diagnosticRegistrations = new Map<string, CapabilityRegistration>()
+  const _published = new Map<string, PublishedEntry>()
+  const _diagnosticRegistrations = new Map<string, CapabilityRegistration>()
   const registrationListeners = new Set<() => void>()
   const diagnosticListeners = new Set<(input: { path: string; serverID: string }) => void>()
 
@@ -79,11 +76,11 @@ export const makeDiagnosticStore = (serverID: string): DiagnosticStore => {
     pullDiagnostics.set(filePath, next)
   }
 
-  const emitRegistrationChange = (): void => {
+  const _emitRegistrationChange = (): void => {
     for (const listener of registrationListeners) listener()
   }
 
-  const shouldSeedDiagnosticsOnFirstPush = (): boolean => serverID === "typescript"
+  const _shouldSeedDiagnosticsOnFirstPush = (): boolean => serverID === "typescript"
 
   // Public API
   return {
@@ -99,10 +96,10 @@ export const makeDiagnosticStore = (serverID: string): DiagnosticStore => {
       }
       return result
     },
-    async waitForDocumentDiagnostics(path: string, version: number, after?: number): Promise<void> {
+    async waitForDocumentDiagnostics(_path: string, _version: number, _after?: number): Promise<void> {
       // Placeholder implementation
     },
-    async waitForFullDiagnostics(path: string, version: number, after?: number): Promise<void> {
+    async waitForFullDiagnostics(_path: string, _version: number, _after?: number): Promise<void> {
       // Placeholder implementation
     },
   }
@@ -195,8 +192,8 @@ export const mergeResults = (
     }
 
     if (matched && !merged.has(filePath)) merged.set(filePath, [])
-    return { handled, matched }
   }
+  return { handled, matched }
 }
 
 /**

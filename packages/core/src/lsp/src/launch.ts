@@ -57,7 +57,7 @@ export async function spawnWithTimeout(
     await Promise.race([
       new Promise<void>((resolve) => {
         proc.on("exit", () => resolve())
-        proc.on("error", (err) => {
+        proc.on("error", () => {
           if (!proc.killed) resolve() // Ignore errors if we killed it
         })
       }),
@@ -81,7 +81,7 @@ export async function killProcessTree(proc: Child): Promise<void> {
   if (process.platform === "win32") {
     // On Windows, use taskkill to kill the process tree
     await Process.run(["taskkill", "/pid", String(proc.pid), "/t", "/f"], { nothrow: true })
-  } else {
+  } else if (proc.pid !== undefined) {
     // On Unix, send SIGTERM to process group
     try {
       process.kill(-proc.pid, "SIGTERM")

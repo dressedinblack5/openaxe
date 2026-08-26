@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Context } from "effect"
+import { Effect, Layer, Option } from "effect"
 import type { ContextService } from "../context"
 import type { WorkspaceV2 } from "@opencode-ai/core/workspace"
 import { WorkspaceRef } from "openaxe/effect/instance-ref"
@@ -17,22 +17,22 @@ export const toWorkspaceScope = (workspaceID: WorkspaceV2.ID): import("../contex
 
 export interface WorkspaceContextAdapterInterface {
   provide: <R, E, A>(input: { workspaceID?: WorkspaceV2.ID; fn: Effect.Effect<A, E, R> }) => Effect.Effect<A, E, R>
-  restore: <A>(workspaceID: WorkspaceV2.ID, fn: Effect.Effect<A>) => Effect.Effect<A>
+  restore: (workspaceID: WorkspaceV2.ID, fn: Effect.Effect<unknown>) => Effect.Effect<unknown>
   getWorkspaceID: () => Effect.Effect<WorkspaceV2.ID | undefined, unknown, unknown>
-  get: <A>(workspaceID: WorkspaceV2.ID, key: string) => Effect.Effect<Option.Option<A>, unknown, unknown>
-  set: <A>(workspaceID: WorkspaceV2.ID, key: string, value: A) => Effect.Effect<void, unknown, unknown>
+  get: (workspaceID: WorkspaceV2.ID, key: string) => Effect.Effect<Option.Option<unknown>, unknown, unknown>
+  set: (workspaceID: WorkspaceV2.ID, key: string, value: unknown) => Effect.Effect<void, unknown, unknown>
   delete: (workspaceID: WorkspaceV2.ID, key: string) => Effect.Effect<boolean, unknown, unknown>
   has: (workspaceID: WorkspaceV2.ID, key: string) => Effect.Effect<boolean, unknown, unknown>
-  snapshot: (workspaceID: WorkspaceV2.ID) => Effect.Effect<any, unknown, unknown>
-  restoreSnapshot: (workspaceID: WorkspaceV2.ID, snapshot: any) => Effect.Effect<void, unknown, unknown>
-  initializeEpoch: (workspaceID: WorkspaceV2.ID, baseline: unknown, budget?: any) => Effect.Effect<any, unknown, unknown>
-  getEpoch: (workspaceID: WorkspaceV2.ID) => Effect.Effect<Option.Option<any>, unknown, unknown>
-  replaceEpoch: (workspaceID: WorkspaceV2.ID, epoch: any) => Effect.Effect<void, unknown, unknown>
-  getBudget: (workspaceID: WorkspaceV2.ID) => Effect.Effect<any, unknown, unknown>
-  setBudget: (workspaceID: WorkspaceV2.ID, budget: any) => Effect.Effect<void, unknown, unknown>
-  compact: (workspaceID: WorkspaceV2.ID, strategy?: "auto" | "explicit" | "hybrid") => Effect.Effect<any, unknown, unknown>
+  snapshot: (workspaceID: WorkspaceV2.ID) => Effect.Effect<unknown, unknown, unknown>
+  restoreSnapshot: (workspaceID: WorkspaceV2.ID, snapshot: unknown) => Effect.Effect<void, unknown, unknown>
+  initializeEpoch: (workspaceID: WorkspaceV2.ID, baseline: unknown, budget?: unknown) => Effect.Effect<unknown, unknown, unknown>
+  getEpoch: (workspaceID: WorkspaceV2.ID) => Effect.Effect<Option.Option<unknown>, unknown, unknown>
+  replaceEpoch: (workspaceID: WorkspaceV2.ID, epoch: unknown) => Effect.Effect<void, unknown, unknown>
+  getBudget: (workspaceID: WorkspaceV2.ID) => Effect.Effect<unknown, unknown, unknown>
+  setBudget: (workspaceID: WorkspaceV2.ID, budget: unknown) => Effect.Effect<void, unknown, unknown>
+  compact: (workspaceID: WorkspaceV2.ID, strategy?: "auto" | "explicit" | "hybrid") => Effect.Effect<unknown, unknown, unknown>
   release: (workspaceID: WorkspaceV2.ID) => Effect.Effect<void, unknown, unknown>
-  getOrLoad: <A>(workspaceID: WorkspaceV2.ID, key: string, loader: () => Effect.Effect<A>) => Effect.Effect<A, unknown, unknown>
+  getOrLoad: (workspaceID: WorkspaceV2.ID, key: string, loader: () => Effect.Effect<unknown>) => Effect.Effect<unknown, unknown, unknown>
 }
 
 const getWorkspaceID = (): Effect.Effect<WorkspaceV2.ID | undefined, unknown, unknown> =>
@@ -50,18 +50,18 @@ export const makeWorkspaceContextAdapter = (unified: ContextService) => {
     provide: <R, E, A>(input: { workspaceID?: WorkspaceV2.ID; fn: Effect.Effect<A, E, R> }): Effect.Effect<A, E, R> =>
       input.fn,
 
-    restore: <A>(_workspaceID: WorkspaceV2.ID, fn: Effect.Effect<A>): Effect.Effect<A> =>
+    restore: (_workspaceID: WorkspaceV2.ID, fn: Effect.Effect<unknown>): Effect.Effect<unknown> =>
       fn,
 
     getWorkspaceID,
 
-    get: <A>(workspaceID: WorkspaceV2.ID, key: string) =>
+    get: (workspaceID: WorkspaceV2.ID, key: string) =>
       Effect.gen(function* () {
         const scope = toWorkspaceScope(workspaceID)
-        return yield* unified.get<A>(scope, key)
+        return yield* unified.get(scope, key)
       }),
 
-    set: <A>(workspaceID: WorkspaceV2.ID, key: string, value: A) =>
+    set: (workspaceID: WorkspaceV2.ID, key: string, value: unknown) =>
       Effect.gen(function* () {
         const scope = toWorkspaceScope(workspaceID)
         yield* unified.set(scope, key, value)
@@ -76,7 +76,7 @@ export const makeWorkspaceContextAdapter = (unified: ContextService) => {
     has: (workspaceID: WorkspaceV2.ID, key: string) =>
       Effect.gen(function* () {
         const scope = toWorkspaceScope(workspaceID)
-        const result = yield* unified.get<unknown>(scope, key)
+        const result = yield* unified.get(scope, key)
         return Option.isSome(result)
       }),
 
@@ -86,13 +86,13 @@ export const makeWorkspaceContextAdapter = (unified: ContextService) => {
         return yield* unified.snapshot(scope)
       }),
 
-    restoreSnapshot: (workspaceID: WorkspaceV2.ID, snapshot: any) =>
+    restoreSnapshot: (workspaceID: WorkspaceV2.ID, snapshot: unknown) =>
       Effect.gen(function* () {
         const scope = toWorkspaceScope(workspaceID)
         yield* unified.restore(scope, snapshot)
       }),
 
-    initializeEpoch: (workspaceID: WorkspaceV2.ID, baseline: unknown, budget?: any) =>
+    initializeEpoch: (workspaceID: WorkspaceV2.ID, baseline: unknown, budget?: unknown) =>
       Effect.gen(function* () {
         const scope = toWorkspaceScope(workspaceID)
         return yield* unified.initializeEpoch(scope, baseline, budget)
@@ -104,7 +104,7 @@ export const makeWorkspaceContextAdapter = (unified: ContextService) => {
         return yield* unified.getEpoch(scope)
       }),
 
-    replaceEpoch: (workspaceID: WorkspaceV2.ID, epoch: any) =>
+    replaceEpoch: (workspaceID: WorkspaceV2.ID, epoch: unknown) =>
       Effect.gen(function* () {
         const scope = toWorkspaceScope(workspaceID)
         yield* unified.replaceEpoch(scope, epoch)
@@ -116,7 +116,7 @@ export const makeWorkspaceContextAdapter = (unified: ContextService) => {
         return yield* unified.getBudget(scope)
       }),
 
-    setBudget: (workspaceID: WorkspaceV2.ID, budget: any) =>
+    setBudget: (workspaceID: WorkspaceV2.ID, budget: unknown) =>
       Effect.gen(function* () {
         const scope = toWorkspaceScope(workspaceID)
         yield* unified.setBudget(scope, budget)

@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, Option, Context } from "effect"
+import { Effect, Layer, Option } from "effect"
 import type { ContextService } from "../context"
 import { ContextScope, ScopeNotFoundError } from "../context"
 
@@ -65,26 +65,23 @@ export const makePluginContext = (
 ): PluginContext => {
   const scope = toPluginScope(pluginId)
 
-  const getStored = <A>(key: string): Effect.Effect<Option.Option<A>, ScopeNotFoundError> =>
-    unified.get<A>(scope, key)
-
-  const setStored = <A>(key: string, value: A): Effect.Effect<void, ScopeNotFoundError> =>
+  const setStored = (key: string, value: unknown): Effect.Effect<void, ScopeNotFoundError> =>
     unified.set(scope, key, value)
 
   const cache = new Map<string, unknown>()
 
-  const syncGet = <A>(key: string): A | undefined => {
-    return cache.get(key) as A | undefined
+  const syncGet = (key: string): unknown | undefined => {
+    return cache.get(key)
   }
 
-  const syncSet = <A>(key: string, value: A): void => {
+  const _syncSet = (key: string, value: unknown): void => {
     cache.set(key, value)
     Effect.runFork(setStored(key, value).pipe(Effect.catchCause(Effect.logError)))
   }
 
   const initCache = Effect.gen(function* () {
     for (const [, key] of Object.entries(PLUGIN_CONTEXT_KEYS)) {
-      const value = yield* unified.get<unknown>(scope, key)
+      const value = yield* unified.get(scope, key)
       if (Option.isSome(value)) {
         cache.set(key, value.value)
       }
@@ -93,12 +90,12 @@ export const makePluginContext = (
 
   Effect.runFork(initCache)
 
-  const createProxy = <T extends object>(key: string): T => {
-    return new Proxy({} as T, {
+  const createProxy = (key: string) => {
+    return new Proxy({}, {
       get(_target, prop: string) {
         const cached = syncGet(key)
         if (cached && typeof cached === "object" && prop in cached) {
-          return (cached as any)[prop]
+          return (cached as Record<string, unknown>)[prop]
         }
         return undefined
       }
@@ -107,27 +104,27 @@ export const makePluginContext = (
 
   return {
     options: {
-      get name() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.name ?? "" },
-      get version() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.version ?? "" },
-      get description() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.description },
-      get author() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.author },
-      get license() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.license },
-      get repository() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.repository },
-      get keywords() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.keywords ?? [] },
-      get engines() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.engines ?? {} },
-      get dependencies() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.dependencies ?? {} },
-      get peerDependencies() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.peerDependencies ?? {} },
-      get devDependencies() { return syncGet<PluginOptions>(PLUGIN_CONTEXT_KEYS.OPTIONS)?.devDependencies ?? {} }
+      get name() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.name ?? "" },
+      get version() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.version ?? "" },
+      get description() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.description },
+      get author() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.author },
+      get license() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.license },
+      get repository() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.repository },
+      get keywords() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.keywords ?? [] },
+      get engines() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.engines ?? {} },
+      get dependencies() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.dependencies ?? {} },
+      get peerDependencies() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.peerDependencies ?? {} },
+      get devDependencies() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.devDependencies ?? {} }
     } as PluginOptions,
 
-    agent: createProxy<AgentHooks & Reload>(PLUGIN_CONTEXT_KEYS.AGENT),
-    aisdk: createProxy<AISDKHooks>(PLUGIN_CONTEXT_KEYS.AISDK),
-    catalog: createProxy<CatalogHooks & Reload>(PLUGIN_CONTEXT_KEYS.CATALOG),
-    command: createProxy<CommandHooks & Reload>(PLUGIN_CONTEXT_KEYS.COMMAND),
-    integration: createProxy<IntegrationHooks & Reload>(PLUGIN_CONTEXT_KEYS.INTEGRATION),
-    plugin: createProxy<PluginDomain>(PLUGIN_CONTEXT_KEYS.PLUGIN),
-    reference: createProxy<ReferenceHooks & Reload>(PLUGIN_CONTEXT_KEYS.REFERENCE),
-    skill: createProxy<SkillHooks & Reload>(PLUGIN_CONTEXT_KEYS.SKILL),
+    agent: createProxy(PLUGIN_CONTEXT_KEYS.AGENT),
+    aisdk: createProxy(PLUGIN_CONTEXT_KEYS.AISDK),
+    catalog: createProxy(PLUGIN_CONTEXT_KEYS.CATALOG),
+    command: createProxy(PLUGIN_CONTEXT_KEYS.COMMAND),
+    integration: createProxy(PLUGIN_CONTEXT_KEYS.INTEGRATION),
+    plugin: createProxy(PLUGIN_CONTEXT_KEYS.PLUGIN),
+    reference: createProxy(PLUGIN_CONTEXT_KEYS.REFERENCE),
+    skill: createProxy(PLUGIN_CONTEXT_KEYS.SKILL),
   }
 }
 

@@ -1,6 +1,6 @@
-import { Effect, Layer, Context } from "effect"
+import { Effect, Layer } from "effect"
 import { SessionRunnerService, RunError } from "@opencode-ai/core/session/runner/service"
-import { UnifiedRunnerInterface, UnifiedRunnerInput, UnifiedRunnerError } from "../types"
+import { UnifiedRunnerInterface, UnifiedRunnerError } from "../types"
 import { SessionSchema } from "@opencode-ai/core/session/schema"
 
 /**

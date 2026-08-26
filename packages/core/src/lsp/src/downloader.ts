@@ -3,7 +3,6 @@ import {
   ServerDownloader,
   DownloadStrategy,
   DownloadError,
-  ServerSpawnError,
 } from "./types"
 import { Filesystem } from "@opencode-ai/core/util/filesystem"
 import { Archive } from "@opencode-ai/core/util/archive"
@@ -20,36 +19,40 @@ import fs from "fs/promises"
 const run = (cmd: string[], opts: Process.RunOptions = {}) =>
   Process.run(cmd, { ...opts, nothrow: true })
 
-const output = (cmd: string[], opts: Process.RunOptions = {}) =>
+const _output = (cmd: string[], opts: Process.RunOptions = {}) =>
   Process.text(cmd, { ...opts, nothrow: true })
 
 export const makeServerDownloader = (): ServerDownloader => ({
-  download(strategy: DownloadStrategy, targetDir: string): Effect.Effect<string, DownloadError> {
+  download(_strategy: DownloadStrategy, _targetDir: string): Effect.Effect<string, DownloadError> {
     return Effect.gen(function* () {
-      switch (strategy.type) {
+      switch (_strategy.type) {
         case "npm": {
-          const bin = yield* downloadNpmPackage(strategy.package, targetDir)
+          const bin = yield* downloadNpmPackage(_strategy.package, _targetDir)
           return bin
         }
         case "go": {
-          const bin = yield* downloadGoModule(strategy.module, strategy.binary, targetDir)
+          const bin = yield* downloadGoModule(_strategy.module, _targetDir, _strategy.binary)
           return bin
         }
         case "cargo": {
-          const bin = yield* downloadCargoCrate(strategy.crate, strategy.binary, targetDir)
+          const bin = yield* downloadCargoCrate(_strategy.crate, _targetDir, _strategy.binary)
           return bin
         }
         case "binary": {
-          const bin = yield* downloadBinary(strategy.url, strategy.binary, strategy.archiveType ?? "tar.gz", targetDir)
+          const bin = yield* downloadBinary(_strategy.url, _targetDir, _strategy.binary, _strategy.archiveType ?? "tar.gz")
           return bin
         }
         case "mason": {
-          const bin = yield* downloadMasonPackage(strategy.package, strategy.binary, targetDir)
+          const bin = yield* downloadMasonPackage(_strategy.package, _targetDir, _strategy.binary)
           return bin
         }
         case "github": {
-          const bin = yield* downloadGithubRelease(strategy.repo, strategy.assetPattern, strategy.binary, strategy.archiveType ?? "tar.gz", targetDir)
+          const bin = yield* downloadGithubRelease(_strategy.repo, _strategy.assetPattern, _targetDir, _strategy.binary, _strategy.archiveType ?? "tar.gz")
           return bin
+        }
+        default: {
+          const _exhaustive: never = _strategy
+          throw new Error(`Unknown download strategy: ${_exhaustive}`)
         }
       }
     }).pipe(
@@ -64,21 +67,21 @@ export const makeServerDownloader = (): ServerDownloader => ({
     )
   },
 
-  extract(archivePath: string, targetDir: string, archiveType: "zip" | "tar.gz" | "tar.xz"): Effect.Effect<void, DownloadError> {
+  extract(_archivePath: string, _targetDir: string, _archiveType: "zip" | "tar.gz" | "tar.xz"): Effect.Effect<void, DownloadError> {
     return Effect.tryPromise({
       try: async () => {
-        if (archiveType === "zip") {
-          await Archive.extractZip(archivePath, targetDir)
-        } else if (archiveType === "tar.gz") {
-          await run(["tar", "-xzf", archivePath], { cwd: targetDir })
-        } else if (archiveType === "tar.xz") {
-          await run(["tar", "-xJf", archivePath], { cwd: targetDir })
+        if (_archiveType === "zip") {
+          Archive.extractZip(_archivePath, _targetDir)
+        } else if (_archiveType === "tar.gz") {
+          await run(["tar", "-xzf", _archivePath], { cwd: _targetDir })
+        } else if (_archiveType === "tar.xz") {
+          await run(["tar", "-xJf", _archivePath], { cwd: _targetDir })
         }
       },
       catch: (cause) => new DownloadError({
         serverID: "unknown",
-        url: archivePath,
-        message: `Failed to extract ${archiveType}: ${cause}`,
+        url: _archivePath,
+        message: `Failed to extract ${String(_archiveType)}: ${cause}`,
         cause,
       }),
     })
@@ -99,12 +102,12 @@ export const makeServerDownloader = (): ServerDownloader => ({
  * Strategy implementations
  */
 
-async function downloadNpmPackage(packageName: string, targetDir: string): Promise<string> {
+async function downloadNpmPackage(_packageName: string, _targetDir: string): Promise<string> {
   // In real implementation, would use npm pack or direct download
   throw new Error("Not implemented - would use npm pack or registry download")
 }
 
-async function downloadGoModule(module: string, binary?: string, targetDir: string): Promise<string> {
+async function downloadGoModule(module: string, targetDir: string, binary?: string): Promise<string> {
   const proc = Process.spawn(["go", "install", `${module}@latest`], {
     env: { ...process.env, GOBIN: Global.Path.bin },
     stdout: "pipe",
@@ -116,7 +119,7 @@ async function downloadGoModule(module: string, binary?: string, targetDir: stri
   return path.join(Global.Path.bin, binary ?? path.basename(module))
 }
 
-async function downloadCargoCrate(crate: string, binary?: string, targetDir: string): Promise<string> {
+async function downloadCargoCrate(crate: string, targetDir: string, binary?: string): Promise<string> {
   const proc = Process.spawn(["cargo", "install", crate, "--locked"], {
     env: { ...process.env },
     stdout: "pipe",
@@ -128,7 +131,7 @@ async function downloadCargoCrate(crate: string, binary?: string, targetDir: str
   return path.join(Global.Path.bin, binary ?? crate)
 }
 
-async function downloadBinary(url: string, binary?: string, archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz", targetDir: string): Promise<string> {
+async function downloadBinary(url: string, targetDir: string, binary?: string, archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz"): Promise<string> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Download failed: ${response.status}`)
   if (!response.body) throw new Error("No response body")
@@ -138,7 +141,7 @@ async function downloadBinary(url: string, binary?: string, archiveType: "zip" |
   await Filesystem.writeStream(archivePath, response.body)
 
   if (archiveType === "zip") {
-    await Archive.extractZip(archivePath, targetDir)
+    Archive.extractZip(archivePath, targetDir)
   } else if (archiveType === "tar.gz") {
     await run(["tar", "-xzf", archivePath], { cwd: targetDir })
   } else {
@@ -153,7 +156,7 @@ async function downloadBinary(url: string, binary?: string, archiveType: "zip" |
   return foundBin
 }
 
-async function downloadMasonPackage(packageName: string, binary?: string, targetDir: string): Promise<string> {
+async function downloadMasonPackage(_packageName: string, _targetDir: string, _binary?: string): Promise<string> {
   // Would use mason.nvim package manager
   throw new Error("Not implemented - would use mason")
 }
@@ -161,9 +164,9 @@ async function downloadMasonPackage(packageName: string, binary?: string, target
 async function downloadGithubRelease(
   repo: string,
   assetPattern: string,
+  targetDir: string,
   binary?: string,
-  archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz",
-  targetDir: string
+  archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz"
 ): Promise<string> {
   const releaseResponse = await fetch(`https://api.github.com/repos/${repo}/releases/latest`)
   if (!releaseResponse.ok) throw new Error("Failed to fetch release")
@@ -172,13 +175,13 @@ async function downloadGithubRelease(
   if (!tag) throw new Error("No tag in release")
 
   const assets = release.assets ?? []
-  const asset = assets.find((a: any) => a.name?.match(assetPattern.replace("{version}", tag.slice(1))))
+  const asset = assets.find((a: unknown) => a && typeof a === "object" && "name" in a && typeof a.name === "string" && a.name.match(assetPattern.replace("{version}", tag.slice(1))))
   if (!asset?.browser_download_url) throw new Error("Asset not found")
 
-  return downloadBinary(asset.browser_download_url, binary, archiveType, targetDir)
+  return downloadBinary(asset.browser_download_url, targetDir, binary, archiveType)
 }
 
-function findBinary(dir: string): string | undefined {
+function findBinary(_dir: string): string | undefined {
   // Simple binary finder - would need enhancement
   return undefined
 }

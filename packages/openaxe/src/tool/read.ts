@@ -4,7 +4,7 @@ import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 
 import type { Context } from "./tool"
 import { define } from "./tool"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import { LSP, type LSPService } from "@/lsp/lsp"
+import { LSP } from "@/lsp/lsp"
 import DESCRIPTION from "./read.txt"
 import { InstanceState } from "@/effect/instance-state"
 import { assertExternalDirectoryEffect } from "./external-directory"

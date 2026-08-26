@@ -1,11 +1,11 @@
-import { Effect, Schema, JsonSchema } from "effect"
+import { Effect, Schema } from "effect"
 import type { ToolDefinition, ToolContext, ToolExecutionResult, ToolFailure, ToolCall, ToolContent, AvailabilityInput, ToolAvailability, JSONSchema7 } from "./types"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
 
 /**
  * Internal runtime state for a tool (not exposed publicly)
  */
-interface ToolRuntime<P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>> {
+interface ToolRuntime {
   readonly definition: (name: string) => ToolDefinition
   readonly settle: (call: ToolCall, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure>
   readonly maxResultSizeChars?: number
@@ -15,7 +15,7 @@ interface ToolRuntime<P extends Schema.Schema<unknown>, O extends Schema.Schema<
   readonly describe?: (agent: Agent.Info) => Effect.Effect<string>
 }
 
-const runtimes = new WeakMap<ToolDefinition<any, any>, ToolRuntime<any, any>>()
+const runtimes = new WeakMap<ToolDefinition, ToolRuntime>()
 
 /**
  * Convert Effect Schema to JSON Schema for model consumption
@@ -103,7 +103,7 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
         )
 
         // Execute
-        const output = yield* config.execute(decoded as Schema.Schema.Type<P>, context).pipe(
+        const output = yield* config.execute(decoded, context).pipe(
           Effect.mapError(
             (error) =>
               new ToolFailure({
@@ -166,7 +166,7 @@ export const withPermission = <P extends Schema.Schema<unknown>, O extends Schem
  */
 function getRuntime<P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   tool: ToolDefinition<P, O>
-): ToolRuntime<P, O> {
+): ToolRuntime {
   const runtime = runtimes.get(tool)
   if (!runtime) throw new TypeError("Invalid tool: not created by make()")
   return runtime

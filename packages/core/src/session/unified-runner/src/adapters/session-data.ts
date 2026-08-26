@@ -1,7 +1,5 @@
-import { Effect, Layer, Context } from "effect"
-import { SessionData, SessionDataOutput, SessionEventSubscriberInterface } from "../types"
-import { InstanceState } from "@opencode-ai/openaxe/effect/instance-state"
-import { SessionEventSubscriber } from "../session-event-subscriber"
+import { Effect, Layer } from "effect"
+import { SessionData, SessionEventSubscriberInterface } from "../types"
 
 /**
  * CLI Adapter - Wraps SessionData reducer output from SessionEventSubscriber

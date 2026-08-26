@@ -1,7 +1,7 @@
-import { Effect, Layer, Context, Ref, HashMap, Scope } from "effect"
+import { Effect, Layer, Ref, HashMap, Scope } from "effect"
 import { EventV2 } from "@opencode-ai/core/event"
 import { InstanceState } from "@opencode-ai/core/effect/instance-state"
-import { SessionEvent, SessionID } from "@opencode-ai/schema"
+import { SessionID } from "@opencode-ai/schema"
 import { SessionEventSubscriberInterface, SessionData } from "./types"
 import { reduceEvent, createInitialSessionData } from "./reducer"
 
@@ -22,7 +22,7 @@ export const layer = Layer.scoped(
     const events = yield* EventV2.Service
     const instanceState = yield* InstanceState.make<SubscriberState>(
       Effect.fn("SessionEventSubscriber.state")(function* () {
-        const scope = yield* Scope.Scope
+        yield* Scope.Scope
         return { reducers: HashMap.empty(), scopes: HashMap.empty() }
       }),
     )

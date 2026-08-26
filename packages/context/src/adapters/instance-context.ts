@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Context } from "effect"
+import { Effect, Layer, Option } from "effect"
 import type { ContextService } from "../context"
 import { InstanceRef } from "openaxe/effect/instance-ref"
 
@@ -18,20 +18,20 @@ export const toProjectScope = (ctx: InstanceContext): import("../context").Conte
 export interface InstanceContextAdapterInterface {
   getContext: () => Effect.Effect<InstanceContext, unknown, unknown>
   getDirectory: () => Effect.Effect<string, unknown, unknown>
-  get: <A>(key: string) => Effect.Effect<Option.Option<A>, unknown, unknown>
-  set: <A>(key: string, value: A) => Effect.Effect<void, unknown, unknown>
+  get: (key: string) => Effect.Effect<Option.Option<unknown>, unknown, unknown>
+  set: (key: string, value: unknown) => Effect.Effect<void, unknown, unknown>
   delete: (key: string) => Effect.Effect<boolean, unknown, unknown>
   has: (key: string) => Effect.Effect<boolean, unknown, unknown>
-  snapshot: () => Effect.Effect<any, unknown, unknown>
-  restore: (snapshot: any) => Effect.Effect<void, unknown, unknown>
-  initializeEpoch: (baseline: unknown, budget?: any) => Effect.Effect<any, unknown, unknown>
-  getEpoch: () => Effect.Effect<Option.Option<any>, unknown, unknown>
-  replaceEpoch: (epoch: any) => Effect.Effect<void, unknown, unknown>
-  getBudget: () => Effect.Effect<any, unknown, unknown>
-  setBudget: (budget: any) => Effect.Effect<void, unknown, unknown>
-  compact: (strategy?: "auto" | "explicit" | "hybrid") => Effect.Effect<any, unknown, unknown>
+  snapshot: () => Effect.Effect<unknown, unknown, unknown>
+  restore: (snapshot: unknown) => Effect.Effect<void, unknown, unknown>
+  initializeEpoch: (baseline: unknown, budget?: unknown) => Effect.Effect<unknown, unknown, unknown>
+  getEpoch: () => Effect.Effect<Option.Option<unknown>, unknown, unknown>
+  replaceEpoch: (epoch: unknown) => Effect.Effect<void, unknown, unknown>
+  getBudget: () => Effect.Effect<unknown, unknown, unknown>
+  setBudget: (budget: unknown) => Effect.Effect<void, unknown, unknown>
+  compact: (strategy?: "auto" | "explicit" | "hybrid") => Effect.Effect<unknown, unknown, unknown>
   release: () => Effect.Effect<void, unknown, unknown>
-  getOrLoad: <A>(key: string, loader: () => Effect.Effect<A>) => Effect.Effect<A, unknown, unknown>
+  getOrLoad: (key: string, loader: () => Effect.Effect<unknown>) => Effect.Effect<unknown, unknown, unknown>
 }
 
 const getContext = (): Effect.Effect<InstanceContext, unknown, unknown> =>
@@ -51,39 +51,39 @@ const getDirectory = (): Effect.Effect<string, unknown, unknown> =>
 export const makeInstanceContextAdapter = (unified: ContextService): InstanceContextAdapterInterface => ({
   getContext,
   getDirectory,
-  get: <A>(key: string) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.get<A>(toProjectScope(ctx), key))
+  get: (key: string) => getContext().pipe(
+    Effect.flatMap((ctx) => unified.get(toProjectScope(ctx), key))
   ),
-  set: <A>(key: string, value: A) => getContext().pipe(
+  set: (key: string, value: unknown) => getContext().pipe(
     Effect.flatMap((ctx) => unified.set(toProjectScope(ctx), key, value))
   ),
   delete: (key: string) => getContext().pipe(
     Effect.flatMap((ctx) => unified.delete(toProjectScope(ctx), key))
   ),
   has: (key: string) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.get<unknown>(toProjectScope(ctx), key).pipe(
+    Effect.flatMap((ctx) => unified.get(toProjectScope(ctx), key).pipe(
       Effect.map(Option.isSome)
     ))
   ),
   snapshot: () => getContext().pipe(
     Effect.flatMap((ctx) => unified.snapshot(toProjectScope(ctx)))
   ),
-  restore: (snapshot: any) => getContext().pipe(
+  restore: (snapshot: unknown) => getContext().pipe(
     Effect.flatMap((ctx) => unified.restore(toProjectScope(ctx), snapshot))
   ),
-  initializeEpoch: (baseline: unknown, budget?: any) => getContext().pipe(
+  initializeEpoch: (baseline: unknown, budget?: unknown) => getContext().pipe(
     Effect.flatMap((ctx) => unified.initializeEpoch(toProjectScope(ctx), baseline, budget))
   ),
   getEpoch: () => getContext().pipe(
     Effect.flatMap((ctx) => unified.getEpoch(toProjectScope(ctx)))
   ),
-  replaceEpoch: (epoch: any) => getContext().pipe(
+  replaceEpoch: (epoch: unknown) => getContext().pipe(
     Effect.flatMap((ctx) => unified.replaceEpoch(toProjectScope(ctx), epoch))
   ),
   getBudget: () => getContext().pipe(
     Effect.flatMap((ctx) => unified.getBudget(toProjectScope(ctx)))
   ),
-  setBudget: (budget: any) => getContext().pipe(
+  setBudget: (budget: unknown) => getContext().pipe(
     Effect.flatMap((ctx) => unified.setBudget(toProjectScope(ctx), budget))
   ),
   compact: (strategy?: "auto" | "explicit" | "hybrid") => getContext().pipe(
@@ -92,9 +92,9 @@ export const makeInstanceContextAdapter = (unified: ContextService): InstanceCon
   release: () => getContext().pipe(
     Effect.flatMap((ctx) => unified.releaseScope(toProjectScope(ctx)))
   ),
-  getOrLoad: <A>(key: string, loader: () => Effect.Effect<A>) => getContext().pipe(
+  getOrLoad: (key: string, loader: () => Effect.Effect<unknown>) => getContext().pipe(
     Effect.flatMap((ctx) => unified.getOrLoad(toProjectScope(ctx), key, loader))
-  )
+  ),
 })
 
 /**

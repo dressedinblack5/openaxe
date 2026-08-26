@@ -13,7 +13,6 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "baseUrl": ".",
     "paths": {
       "@opencode-ai/core/*": ["../../../*"],
       "@opencode-ai/schema/*": ["../../../../schema/src/*"]

@@ -1,7 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { Effect, Layer } from "effect"
-import { SessionRunnerService } from "@opencode-ai/core/session/runner/service"
-import { SessionRunState } from "@opencode-ai/openaxe/session/run-state"
+import { Layer } from "effect"
 import {
   SessionDataAdapter,
   UnifiedRunnerInterface,
@@ -61,7 +59,6 @@ describe("UnifiedRunner Core Tests", () => {
 describe("SessionEffectRunner Tests", () => {
   it("should have state, busy, run, startShell, cancel", () => {
     // Verify the interface exists
-    const runner = {} // placeholder
     expect(true).toBe(true)
   })
 })

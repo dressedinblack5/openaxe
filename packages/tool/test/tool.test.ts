@@ -1,9 +1,8 @@
-import { Effect, Schema, Layer, Option } from "effect"
+import { Effect, Schema } from "effect"
 import { describe, it, expect } from "bun:test"
 import { make, settle, validateName, withPermission, isAvailable, subagentSafe, definition } from "../src/tool"
-import type { ToolDefinition, ToolContext, ToolExecutionResult, AvailabilityInput, ToolCall } from "../src/types"
-import { ToolRegistryLive, AvailabilityService } from "../src/registry"
-import { AvailabilityLive } from "../src/availability"
+import type { ToolContext, AvailabilityInput, ToolCall } from "../src/types"
+import { SessionID, MessageID } from "@opencode-ai/core/session/schema"
 
 // Test schema
 const TestInputSchema = Schema.Struct({
@@ -16,12 +15,11 @@ const TestOutputSchema = Schema.Struct({
 })
 
 type TestInput = Schema.Schema.Type<typeof TestInputSchema>
-type TestOutput = Schema.Schema.Type<typeof TestOutputSchema>
 
 // Mock context
 const mockContext: ToolContext = {
-  sessionID: "test-session" as any,
-  messageID: "test-message" as any,
+  sessionID: "test-session" as SessionID,
+  messageID: "test-message" as MessageID,
   agent: "test-agent",
   abort: new AbortController().signal,
   callID: "test-call",
@@ -68,7 +66,7 @@ describe("ToolDefinition", () => {
       description: "A test tool",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
     })
 
     const permissioned = withPermission(tool, "fs.read")
@@ -83,7 +81,7 @@ describe("ToolDefinition", () => {
       description: "A test tool",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
     })
 
     expect(subagentSafe(tool)).toBe(true)
@@ -95,7 +93,7 @@ describe("ToolDefinition", () => {
       description: "A test tool",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
       subagentSafe: false,
     })
 
@@ -110,14 +108,14 @@ describe("Availability", () => {
       description: "A test tool",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
     })
 
     const input: AvailabilityInput = {
       flags: {},
-      providerID: "anthropic" as any,
-      modelID: "claude-3" as any,
-      agentID: "agent-1" as any,
+      providerID: "anthropic",
+      modelID: "claude-3",
+      agentID: "agent-1",
     }
 
     expect(isAvailable(tool, input)).toBe(true)
@@ -129,22 +127,22 @@ describe("Availability", () => {
       description: "A test tool",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
       availability: (input) => input.flags.allowTest === true,
     })
 
     const allowedInput: AvailabilityInput = {
       flags: { allowTest: true },
-      providerID: "anthropic" as any,
-      modelID: "claude-3" as any,
-      agentID: "agent-1" as any,
+      providerID: "anthropic",
+      modelID: "claude-3",
+      agentID: "agent-1",
     }
 
     const deniedInput: AvailabilityInput = {
       flags: { allowTest: false },
-      providerID: "anthropic" as any,
-      modelID: "claude-3" as any,
-      agentID: "agent-1" as any,
+      providerID: "anthropic",
+      modelID: "claude-3",
+      agentID: "agent-1",
     }
 
     expect(isAvailable(tool, allowedInput)).toBe(true)
@@ -159,7 +157,7 @@ describe("ToolRegistry", () => {
       description: "Registry test tool",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
     })
 
     // Test that make() works and produces a valid tool
@@ -175,7 +173,7 @@ describe("ToolRegistry", () => {
       description: "List test 1",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
     })
 
     const tool2 = make({
@@ -183,7 +181,7 @@ describe("ToolRegistry", () => {
       description: "List test 2",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
     })
 
     // Test that tools can be created with different IDs
@@ -202,7 +200,7 @@ describe("Property-based tests", () => {
       description: "Idempotent test",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
     })
 
     // Test that the tool is created correctly
@@ -216,7 +214,7 @@ describe("Property-based tests", () => {
       description: "Isolation 1",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "1" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "1" }),
     })
 
     const tool2 = make({
@@ -224,7 +222,7 @@ describe("Property-based tests", () => {
       description: "Isolation 2",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "2" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "2" }),
     })
 
     const def1 = definition("isolation_1", tool1)
@@ -242,15 +240,15 @@ describe("Property-based tests", () => {
       description: "Memoization test",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "ok" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
       availability: (input) => input.flags.allow === true,
     })
 
     const input: AvailabilityInput = {
       flags: { allow: true },
-      providerID: "anthropic" as any,
-      modelID: "claude-3" as any,
-      agentID: "agent-1" as any,
+      providerID: "anthropic",
+      modelID: "claude-3",
+      agentID: "agent-1",
     }
 
     const result1 = isAvailable(tool, input)
@@ -268,7 +266,7 @@ describe("ToolExecutionResult", () => {
       description: "Execution test",
       parameters: TestInputSchema,
       output: TestOutputSchema,
-      execute: (input: TestInput) => Effect.succeed({ result: "executed" }),
+      execute: (_input: TestInput) => Effect.succeed({ result: "executed" }),
     })
 
     const call: ToolCall = { id: "call-1", name: "exec_test", input: { name: "test", value: 42 } }

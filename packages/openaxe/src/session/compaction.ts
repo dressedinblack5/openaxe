@@ -43,19 +43,6 @@ const DEFAULT_TAIL_TURNS = 2
 const MIN_PRESERVE_RECENT_TOKENS = 2_000
 const MAX_PRESERVE_RECENT_TOKENS = 8_000
 
-function parseThreshold(threshold: string, usableTokens: number): number {
-  if (threshold.endsWith("%")) {
-    const pct = parseFloat(threshold.slice(0, -1)) / 100
-    return Math.floor(usableTokens * pct)
-  }
-  if (threshold.startsWith("remaining:")) {
-    const remaining = parseInt(threshold.slice(10), 10)
-    return Math.max(0, usableTokens - remaining)
-  }
-  const absolute = parseInt(threshold, 10)
-  return isNaN(absolute) ? usableTokens : absolute
-}
-
 type Turn = {
   start: number
   end: number

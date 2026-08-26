@@ -1,9 +1,7 @@
 import { Effect, Layer, Context } from "effect"
 import { Glob } from "@opencode-ai/core/util/glob"
 import { DiscoveryCache } from "@opencode-ai/openaxe/tool/discovery-cache"
-import { Config } from "@opencode-ai/core/config"
-import type { ExternalToolLoader, ExternalToolDefinition, ToolContext } from "./types"
-import type { PluginToolContext } from "./types"
+import type { ExternalToolLoader, ExternalToolDefinition } from "./types"
 import path from "path"
 import { pathToFileURL } from "url"
 
@@ -31,10 +29,9 @@ function isExternalToolDefinition(value: unknown): value is ExternalToolDefiniti
 export const ExternalToolLoaderLive = Layer.effect(
   ExternalToolLoaderService,
   Effect.gen(function* () {
-    const config = yield* Config.Service
     const cache = yield* DiscoveryCache.load()
 
-    const load = (directories: ReadonlyArray<string>): Effect.Effect<ReadonlyArray<ExternalToolDefinition>, unknown, Config.Config | DiscoveryCache.DiscoveryCache> =>
+    const load = (directories: ReadonlyArray<string>): Effect.Effect<ReadonlyArray<ExternalToolDefinition>, unknown, DiscoveryCache.DiscoveryCache> =>
       Effect.gen(function* () {
         const allTools: ExternalToolDefinition[] = []
 
@@ -108,7 +105,7 @@ export const ExternalToolLoaderLive = Layer.effect(
         return allTools
       })
 
-    const watch = (directories: ReadonlyArray<string>): Effect.Effect<void, unknown, Config.Config | DiscoveryCache.DiscoveryCache> =>
+    const watch = (directories: ReadonlyArray<string>): Effect.Effect<void, unknown, DiscoveryCache.DiscoveryCache> =>
       Effect.gen(function* () {
         // For now, just re-load on watch trigger
         // In a full implementation, this would use a file watcher

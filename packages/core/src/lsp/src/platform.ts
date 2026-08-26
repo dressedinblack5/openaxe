@@ -8,10 +8,10 @@ import { PlatformResolver, DownloadStrategy } from "./types"
 export const makePlatformResolver = (): PlatformResolver => ({
   resolveBinary(platform: NodeJS.Platform, arch: string): { binary: string; args: string[] } {
     const isWindows = platform === "win32"
-    const isMac = platform === "darwin"
-    const isLinux = platform === "linux"
-    const isArm64 = arch === "arm64" || arch === "aarch64"
-    const isX64 = arch === "x64"
+    const _isMac = platform === "darwin"
+    const _isLinux = platform === "linux"
+    const _isArm64 = arch === "arm64" || arch === "aarch64"
+    const _isX64 = arch === "x64"
 
     return {
       binary: isWindows ? "cmd.exe" : "sh",

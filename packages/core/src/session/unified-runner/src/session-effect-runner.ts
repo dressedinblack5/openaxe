@@ -1,5 +1,5 @@
 import { Cause, Deferred, Effect, Exit, Fiber, Latch, Schema, Scope, SynchronizedRef } from "effect"
-import { RunnerState } from "./types"
+import { RunnerState, type SessionID } from "./types"
 
 /**
  * SessionEffectRunner - Internal minimal executor
@@ -55,6 +55,7 @@ type InternalState<A, E> =
  */
 export const makeSessionEffectRunner = <A, E = never>(
   scope: Scope.Scope,
+  sessionID: SessionID,
   onStateChange: (state: RunnerState) => Effect.Effect<void>,
   opts?: {
     onIdle?: Effect.Effect<void>
@@ -78,24 +79,26 @@ export const makeSessionEffectRunner = <A, E = never>(
       case "Running":
         return {
           _tag: "Running",
-          sessionID: "" as any, // Will be set by caller
+          sessionID,
           step: 1,
           providerTurnID: internal.run.id.toString(),
         }
       case "Shell":
         return {
           _tag: "Shell",
-          sessionID: "" as any,
+          sessionID,
           shellID: internal.shell.id.toString(),
           command: undefined,
         }
       case "ShellThenRun":
         return {
           _tag: "ShellThenRun",
-          sessionID: "" as any,
+          sessionID,
           shellID: internal.shell.id.toString(),
           pendingStep: 1,
         }
+      default:
+        return internal satisfies never
     }
   }
 
@@ -135,7 +138,7 @@ export const makeSessionEffectRunner = <A, E = never>(
       )
       yield* notifyStateChange({
         _tag: "Running",
-        sessionID: "" as any,
+        sessionID,
         step: 1,
         providerTurnID: id.toString(),
       })
@@ -154,7 +157,7 @@ export const makeSessionEffectRunner = <A, E = never>(
           const run = yield* startRun(st.run.work, st.run.done)
           yield* notifyStateChange({
             _tag: "Running",
-            sessionID: "" as any,
+            sessionID,
             step: 1,
             providerTurnID: run.id.toString(),
           })
@@ -192,6 +195,8 @@ export const makeSessionEffectRunner = <A, E = never>(
             const run = yield* startRun(work, done)
             return [awaitDone(done), { _tag: "Running", run }] as const
           }
+          default:
+            return st satisfies never
         }
       }),
     ).pipe(Effect.flatten)
@@ -211,7 +216,7 @@ export const makeSessionEffectRunner = <A, E = never>(
         const shell = { id, cancelled, ready, fiber } satisfies ShellHandle<A, E>
         yield* notifyStateChange({
           _tag: "Shell",
-          sessionID: "" as any,
+          sessionID,
           shellID: id.toString(),
           command: undefined,
         })
@@ -260,6 +265,8 @@ export const makeSessionEffectRunner = <A, E = never>(
           }),
           { _tag: "Idle" } as const,
         ] as const
+      default:
+        return st satisfies never
     }
   }).pipe(Effect.flatten)
 
