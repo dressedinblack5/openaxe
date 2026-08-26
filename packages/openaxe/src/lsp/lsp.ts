@@ -9,6 +9,7 @@ import { spawn } from "./launch"
 import { Effect, Layer, Context, Schedule, Duration, Schema } from "effect"
 import { LSPServer, type Info as ServerInfo } from "./server"
 import { create, type Info as ClientInfo, type Diagnostic } from "./client"
+import * as DiagnosticNS from "./diagnostic"
 import { NonNegativeInt } from "@opencode-ai/core/schema"
 import { LspEvent } from "@opencode-ai/schema/lsp-event"
 import path from "path"
@@ -706,7 +707,7 @@ export const LSP = {
   Status: StatusKind,
   Range,
   DocumentSymbol: DocumentSymbolKind,
-  Diagnostic: {} as Schema.Schema<Diagnostic>,
+  Diagnostic: DiagnosticNS,
 }
 
 export type LSPService = typeof Service

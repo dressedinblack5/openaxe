@@ -4,6 +4,9 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+- **LSP.Diagnostic**: `LSP.Diagnostic.pretty()` and `LSP.Diagnostic.report()` were undefined. Fixed by exporting the diagnostic namespace instead of an empty schema type.
+
 ### Added
 - **Separate provider/model for learning reviews** — `experimental.learning.provider` config lets the post-turn learning review run on a different provider than the agent's own (original provider/model still used as fallback). Reviews now go through the AI SDK (`generateText`) instead of raw `chat/completions` fetching.
 
