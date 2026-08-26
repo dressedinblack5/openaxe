@@ -1,5 +1,3 @@
-import { Schema, Effect } from "effect"
-
 /**
  * Type guard for discriminated unions with _tag field
  */
@@ -11,17 +9,16 @@ export const isTagged = <T extends { _tag: string }>(
 /**
  * Type for a tagged error - uses plain interface with _tag
  */
-export interface TaggedError<TTag extends string, TFields extends Record<string, unknown>> {
+export type TaggedError<TTag extends string, TFields extends Record<string, unknown>> = {
   readonly _tag: TTag
-  readonly [K in keyof TFields]: TFields[K]
-}
+} & TFields
 
 /**
  * Create a tagged error constructor
  */
 export const makeTaggedError = <TTag extends string, TFields extends Record<string, unknown>>(
   tag: TTag,
-  fields: TFields,
+  _fields: TFields,
 ): { make: (input: TFields) => TaggedError<TTag, TFields> } => ({
   make: (input: TFields) => ({ _tag: tag, ...input } as TaggedError<TTag, TFields>),
 })

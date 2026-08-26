@@ -6,15 +6,26 @@ All notable changes to this project are documented here. This project adheres to
 
 ### Fixed
 - **LSP.Diagnostic**: `LSP.Diagnostic.pretty()` and `LSP.Diagnostic.report()` were undefined. Fixed by exporting the diagnostic namespace instead of an empty schema type.
+- **~450+ lint errors resolved across 5 packages** — Fixed explicit `any` usage, unused imports, const reassignment, non-null assertions, await-thenable, restrict-template-expressions, no-unsafe-unary-minus, consistent-return, no-unnecessary-type-arguments/parameters, no-base-to-string across:
+  - `packages/core/src/session/unified-runner/` (11 files)
+  - `packages/context/src/` (5 files)
+  - `packages/core/src/lsp/src/` (10 files)
+  - `packages/tool/src/` (9 files)
+  - `packages/openaxe/src/session/` (2 files)
 
 ### Added
 - **Separate provider/model for learning reviews** — `experimental.learning.provider` config lets the post-turn learning review run on a different provider than the agent's own (original provider/model still used as fallback). Reviews now go through the AI SDK (`generateText`) instead of raw `chat/completions` fetching.
+- **Type guard utilities** — New `packages/core/src/error.ts` with `isTagged`, `makeTaggedError`, `isErrorType`, `narrowError` for safe discriminated union handling.
 
 ### Performance
 - **TUI startup cut ~48% to first data** — pre-start the server module so its eval overlaps the worker boot, pre-warm the shared instance boot before the TUI sync's first requests, and flag the sync `complete` after the blocking batch so the model dialog unlocks before the slow tail (sessions/LSP/MCP/VCS) streams in. Measured with `OPENAXE_STARTUP_TIMING=1` on an idle machine: sync-blocking-done 16846ms → 8810ms, first content 8974ms → 6447ms, TTF 7430ms → ~5800ms.
 
 ### Removed
 - **`openaxe memory` CLI command removed** — AXE.md file sync is deleted. Project memory now lives in WorkspaceMemory (project-scoped SQLite with semantic search), injected into the LLM context via the `core/workspace-memory` system-context builtin. Breaking change for users of the AXE.md workflow.
+
+### Refactored
+- **Error type schema redesign** — Started migration from `Schema.TaggedErrorClass` (which acts as `any` in unions) to plain discriminated union types with type guards. Integration errors refactored; remaining packages require fundamental Result/Either pattern adoption to resolve TypeScript's `no-redundant-type-constituents` limitation.
+- **Interface generics cleanup** — Removed unnecessary type parameters from context adapters (`instance-context`, `workspace-context`, `plugin-context`), tool registry, and tool definitions.
 
 ## [1.2.6] - 2026-07-16
 
