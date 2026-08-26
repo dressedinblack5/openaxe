@@ -21,6 +21,18 @@ const pathExists = async (p: string) =>
 const run = (cmd: string[], opts: Process.RunOptions = {}) => Process.run(cmd, { ...opts, nothrow: true })
 const output = (cmd: string[], opts: Process.RunOptions = {}) => Process.text(cmd, { ...opts, nothrow: true })
 
+async function downloadArchive(url: string, destPath: string): Promise<boolean> {
+  const response = await fetch(url)
+  if (!response.ok || !response.body) return false
+  await Filesystem.writeStream(destPath, response.body)
+  return true
+}
+
+const tryExtractZip = (archivePath: string, destDir: string) =>
+  Archive.extractZip(archivePath, destDir)
+    .then(() => true)
+    .catch(() => false)
+
 export interface Handle {
   process: Process.Child
   initialization?: Record<string, any>
@@ -179,18 +191,10 @@ export const ESLint: Info = {
     const serverPath = path.join(Global.Path.bin, "vscode-eslint", "server", "out", "eslintServer.js")
     if (!(await Filesystem.exists(serverPath))) {
       if (flags.disableLspDownload) return
-      const response = await fetch("https://github.com/microsoft/vscode-eslint/archive/refs/heads/main.zip")
-      if (!response.ok) return
-
       const zipPath = path.join(Global.Path.bin, "vscode-eslint.zip")
-      if (response.body) await Filesystem.writeStream(zipPath, response.body)
-
-      const ok = await Archive.extractZip(zipPath, Global.Path.bin)
-        .then(() => true)
-        .catch(() => {
-          return false
-        })
-      if (!ok) return
+      if (!(await downloadArchive("https://github.com/microsoft/vscode-eslint/archive/refs/heads/main.zip", zipPath)))
+        return
+      if (!(await tryExtractZip(zipPath, Global.Path.bin))) return
       await fs.rm(zipPath, { force: true })
 
       const extractedPath = path.join(Global.Path.bin, "vscode-eslint-main")
@@ -547,17 +551,12 @@ export const ElixirLS: Info = {
 
         if (flags.disableLspDownload) return
 
-        const response = await fetch("https://github.com/elixir-lsp/elixir-ls/archive/refs/heads/master.zip")
-        if (!response.ok) return
         const zipPath = path.join(Global.Path.bin, "elixir-ls.zip")
-        if (response.body) await Filesystem.writeStream(zipPath, response.body)
-
-        const ok = await Archive.extractZip(zipPath, Global.Path.bin)
-          .then(() => true)
-          .catch(() => {
-            return false
-          })
-        if (!ok) return
+        if (
+          !(await downloadArchive("https://github.com/elixir-lsp/elixir-ls/archive/refs/heads/master.zip", zipPath))
+        )
+          return
+        if (!(await tryExtractZip(zipPath, Global.Path.bin))) return
 
         await fs.rm(zipPath, {
           force: true,
@@ -641,22 +640,11 @@ export const Zls: Info = {
         return
       }
 
-      const downloadUrl = asset.browser_download_url
-      const downloadResponse = await fetch(downloadUrl)
-      if (!downloadResponse.ok) {
-        return
-      }
-
       const tempPath = path.join(Global.Path.bin, assetName)
-      if (downloadResponse.body) await Filesystem.writeStream(tempPath, downloadResponse.body)
+      if (!(await downloadArchive(asset.browser_download_url, tempPath))) return
 
       if (ext === "zip") {
-        const ok = await Archive.extractZip(tempPath, Global.Path.bin)
-          .then(() => true)
-          .catch(() => {
-            return false
-          })
-        if (!ok) return
+        if (!(await tryExtractZip(tempPath, Global.Path.bin))) return
       } else {
         await run(["tar", "-xf", tempPath], { cwd: Global.Path.bin })
       }
@@ -1032,12 +1020,7 @@ export const Clangd: Info = {
     }
 
     if (zip) {
-      const ok = await Archive.extractZip(archive, Global.Path.bin)
-        .then(() => true)
-        .catch(() => {
-          return false
-        })
-      if (!ok) return
+      if (!(await tryExtractZip(archive, Global.Path.bin))) return
     }
     if (tar) {
       await run(["tar", "-xf", archive], { cwd: Global.Path.bin })
@@ -1205,11 +1188,7 @@ export const JDTLS: Info = {
         "https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-latest.tar.gz"
       const archiveName = "release.tar.gz"
 
-      const download = await fetch(releaseURL)
-      if (!download.ok || !download.body) {
-        return
-      }
-      await Filesystem.writeStream(path.join(distPath, archiveName), download.body)
+      if (!(await downloadArchive(releaseURL, path.join(distPath, archiveName)))) return
 
       const tarResult = await run(["tar", "-xzf", archiveName], { cwd: distPath })
       if (tarResult.code !== 0) {
@@ -1329,17 +1308,8 @@ export const KotlinLS: Info = {
 
       await fs.mkdir(distPath, { recursive: true })
       const archivePath = path.join(distPath, "kotlin-ls.zip")
-      const download = await fetch(releaseURL)
-      if (!download.ok || !download.body) {
-        return
-      }
-      await Filesystem.writeStream(archivePath, download.body)
-      const ok = await Archive.extractZip(archivePath, distPath)
-        .then(() => true)
-        .catch(() => {
-          return false
-        })
-      if (!ok) return
+      if (!(await downloadArchive(releaseURL, archivePath))) return
+      if (!(await tryExtractZip(archivePath, distPath))) return
       await fs.rm(archivePath, { force: true })
       if (process.platform !== "win32") {
         await fs.chmod(launcherScript, 0o755).catch(() => {})
@@ -1444,14 +1414,8 @@ export const LuaLS: Info = {
         return
       }
 
-      const downloadUrl = asset.browser_download_url
-      const downloadResponse = await fetch(downloadUrl)
-      if (!downloadResponse.ok) {
-        return
-      }
-
       const tempPath = path.join(Global.Path.bin, assetName)
-      if (downloadResponse.body) await Filesystem.writeStream(tempPath, downloadResponse.body)
+      if (!(await downloadArchive(asset.browser_download_url, tempPath))) return
 
       // Unlike zls which is a single self-contained binary,
       // lua-language-server needs supporting files (meta/, locale/, etc.)
@@ -1467,12 +1431,7 @@ export const LuaLS: Info = {
       await fs.mkdir(installDir, { recursive: true })
 
       if (ext === "zip") {
-        const ok = await Archive.extractZip(tempPath, installDir)
-          .then(() => true)
-          .catch(() => {
-            return false
-          })
-        if (!ok) return
+        if (!(await tryExtractZip(tempPath, installDir))) return
       } else {
         const ok = await run(["tar", "-xzf", tempPath, "-C", installDir])
           .then((result) => result.code === 0)
