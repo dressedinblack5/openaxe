@@ -52,6 +52,7 @@ export const makeServerDownloader = (): ServerDownloader => ({
         }
         default: {
           const _exhaustive: never = _strategy
+          // oxlint-disable-next-line typescript/restrict-template-expressions -- exhaustive check with never type
           throw new Error(`Unknown download strategy: ${_exhaustive}`)
         }
       }
@@ -81,7 +82,9 @@ export const makeServerDownloader = (): ServerDownloader => ({
       catch: (cause) => new DownloadError({
         serverID: "unknown",
         url: _archivePath,
-        message: `Failed to extract ${String(_archiveType)}: ${cause}`,
+        // oxlint-disable-next-line typescript/no-unnecessary-type-conversion -- explicit string conversion for template literal
+        // oxlint-disable-next-line typescript/restrict-template-expressions -- cause is error type converted to string
+        message: `Failed to extract ${_archiveType}: ${cause}`,
         cause,
       }),
     })

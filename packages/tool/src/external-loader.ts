@@ -37,6 +37,7 @@ export const ExternalToolLoaderLive = Layer.effect(
 
         for (const dir of directories) {
           const prev = cache.dirs[dir]
+// oxlint-disable-next-line typescript/no-redundant-type-constituents -- FileSignature from DiscoveryCache
           const subdirs: Record<string, DiscoveryCache.FileSignature | undefined> = {}
           for (const sub of DiscoveryCache.SCAN_SUBDIRS) {
             subdirs[sub] = DiscoveryCache.statPath(path.join(dir, sub))
@@ -124,6 +125,7 @@ function importTool(file: string): Effect.Effect<ToolModule | undefined> {
         console.error(`[external-tool-loader] failed to import ${file}:`, error)
         return undefined
       },
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- dynamic import returns unknown
       onSuccess: (mod) => mod as ToolModule,
     },
   )

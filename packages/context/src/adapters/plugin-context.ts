@@ -70,6 +70,7 @@ export const makePluginContext = (
 
   const cache = new Map<string, unknown>()
 
+  // oxlint-disable-next-line typescript/no-redundant-type-constituents -- cache stores unknown values
   const syncGet = (key: string): unknown | undefined => {
     return cache.get(key)
   }
@@ -95,6 +96,7 @@ export const makePluginContext = (
       get(_target, prop: string) {
         const cached = syncGet(key)
         if (cached && typeof cached === "object" && prop in cached) {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- cached is a record with known string keys
           return (cached as Record<string, unknown>)[prop]
         }
         return undefined
@@ -102,20 +104,22 @@ export const makePluginContext = (
     })
   }
 
-  return {
-    options: {
-      get name() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.name ?? "" },
-      get version() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.version ?? "" },
-      get description() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.description },
-      get author() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.author },
-      get license() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.license },
-      get repository() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.repository },
-      get keywords() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.keywords ?? [] },
-      get engines() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.engines ?? {} },
-      get dependencies() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.dependencies ?? {} },
-      get peerDependencies() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.peerDependencies ?? {} },
-      get devDependencies() { return (syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined)?.devDependencies ?? {} }
-    } as PluginOptions,
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- cache is populated with correct PluginOptions type
+    const options = syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined
+    return {
+      options: {
+        get name() { return options?.name ?? "" },
+        get version() { return options?.version ?? "" },
+        get description() { return options?.description },
+        get author() { return options?.author },
+        get license() { return options?.license },
+        get repository() { return options?.repository },
+        get keywords() { return options?.keywords ?? [] },
+        get engines() { return options?.engines ?? {} },
+        get dependencies() { return options?.dependencies ?? {} },
+        get peerDependencies() { return options?.peerDependencies ?? {} },
+        get devDependencies() { return options?.devDependencies ?? {} }
+      } as PluginOptions,
 
     agent: createProxy(PLUGIN_CONTEXT_KEYS.AGENT),
     aisdk: createProxy(PLUGIN_CONTEXT_KEYS.AISDK),

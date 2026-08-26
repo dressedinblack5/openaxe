@@ -57,7 +57,10 @@ export const toCoreTool = <P extends Schema.Schema<unknown>, O extends Schema.Sc
  */
 export const fromCoreTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   core: CoreToolDefinition<P, O>
-): ToolDefinition<P, O> => core as ToolDefinition<P, O>
+): ToolDefinition<P, O> => {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CoreToolDefinition compatible with ToolDefinition
+  return core as ToolDefinition<P, O>
+}
 
 /**
  * Adapter layer - provides core tool API backed by unified implementation

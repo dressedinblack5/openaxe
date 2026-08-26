@@ -236,6 +236,7 @@ export const makeSystemContextAdapter = (_unified: ContextService): SystemContex
             Effect.map((value) => {
               if (isUnavailable(value)) return value
               const snapshot = (): SourceSnapshot => ({
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- encode returns Json-compatible value
                 value: encode(value) as Schema.Json,
                 ...(source.removed ? { removed: requireText(source.key, "removal", source.removed(value)) } : {}),
               })

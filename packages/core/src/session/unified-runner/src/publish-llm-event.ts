@@ -66,7 +66,7 @@ export const createLLMEventPublisher = (events: EventV2.Interface, input: Input)
     }
   >()
   const timestamp = DateTime.now
-  let assistantMessageID: SessionMessage.ID | undefined
+  let assistantMessageID: string | undefined
   let assistantActive = false
   let assistantFailed = false
   let providerFailed = false
@@ -195,7 +195,7 @@ export const createLLMEventPublisher = (events: EventV2.Interface, input: Input)
     yield* flushFragments()
   })
 
-  const failAssistant = Effect.fn("SessionRunner.failAssistant")(function* (message: string): Effect.Effect<void, never, never> {
+  const failAssistant = Effect.fn("SessionRunner.failAssistant")(function* (message: string) {
     if (assistantFailed) return yield* Effect.void
     yield* flush()
     const assistantMessageID = yield* startAssistant()
@@ -207,12 +207,13 @@ export const createLLMEventPublisher = (events: EventV2.Interface, input: Input)
       assistantMessageID,
       error: { type: "unknown", message },
     })
+    return void 0
   })
 
   const failUnsettledTools = Effect.fn("SessionRunner.failUnsettledTools")(function* (
     message: string,
     hostedOnly = false,
-  ): Effect.Effect<void, never, never> {
+  ) {
     for (const [callID, tool] of tools) {
       if (tool.settled || (hostedOnly && !tool.providerExecuted)) continue
       tool.settled = true
@@ -238,7 +239,7 @@ export const createLLMEventPublisher = (events: EventV2.Interface, input: Input)
   const publish = Effect.fn("SessionRunner.publishLLMEvent")(function* (
     event: LLMEvent,
     outputPaths: ReadonlyArray<string> = [],
-  ): Effect.Effect<void, never, never> {
+  ) {
     switch (event.type) {
       case "step-start":
         return

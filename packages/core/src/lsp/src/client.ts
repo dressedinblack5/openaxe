@@ -56,6 +56,7 @@ function getFilePath(uri: string): string | undefined {
   return path.normalize(new URL(uri).pathname)
 }
 
+// oxlint-disable-next-line typescript/no-redundant-type-constituents -- TextDocumentSyncKind from vscode-languageserver-protocol
 function getSyncKind(capabilities?: ServerCapabilitiesInternal): TextDocumentSyncKind | undefined {
   if (!capabilities) return undefined
   const sync = capabilities.textDocumentSync
@@ -85,6 +86,7 @@ function configurationValue(settings: unknown, section?: string): unknown {
   if (!section) return settings ?? null
   return section.split(".").reduce((acc, key) => {
     if (!acc || typeof acc !== "object" || !(key in acc)) return undefined
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- traversing unknown object by string key
     return (acc as Record<string, unknown>)[key]
   }, settings) ?? null
 }
@@ -110,8 +112,12 @@ export const makeLSPClient = () => {
     directory: string
     instance: InstanceContext
   }): Promise<LSPClient> {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- child process streams compatible with NodeJS streams
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- stdout/stderr from child process have error types
     const connection = createMessageConnection(
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- stdout from child process has error type
       new StreamMessageReader(input.server.process.stdout as NodeJS.ReadableStream),
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- stdin from child process has error type
       new StreamMessageWriter(input.server.process.stdin as NodeJS.WritableStream),
     )
 
@@ -164,12 +170,15 @@ export const makeLSPClient = () => {
 
     connection.onRequest("window/workDoneProgress/create", () => null)
 
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- LSP protocol params shape known at runtime
     connection.onRequest("workspace/configuration", async (params) => {
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- LSP protocol params shape known at runtime
       const items = (params as { items?: { section?: string }[] }).items ?? []
       return items.map((item) => configurationValue(input.server.initialization, item.section))
     })
 
     connection.onRequest("client/registerCapability", async (params) => {
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- LSP protocol params shape known at runtime
       const registrations = (params as { registrations?: CapabilityRegistration[] }).registrations ?? []
       let changed = false
       for (const registration of registrations) {
@@ -181,6 +190,7 @@ export const makeLSPClient = () => {
     })
 
     connection.onRequest("client/unregisterCapability", async (params) => {
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- LSP protocol params shape known at runtime
       const registrations = (params as { unregisterations?: { id: string; method: string }[] }).unregisterations ?? []
       let changed = false
       for (const registration of registrations) {

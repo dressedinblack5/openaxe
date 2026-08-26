@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect"
 import { SessionRunnerService, RunError } from "@opencode-ai/core/session/runner/service"
-import { UnifiedRunnerInterface, UnifiedRunnerError } from "../types"
+import { UnifiedRunnerInterface } from "../types"
 import { SessionSchema } from "@opencode-ai/core/session/schema"
 
 /**
@@ -16,15 +16,7 @@ export const layer = Layer.effect(
       readonly sessionID: SessionSchema.ID
       readonly force: boolean
     }): Effect.Effect<void, RunError> {
-      try {
-        yield* unifiedRunner.run({ sessionID: input.sessionID, force: input.force })
-      } catch (error) {
-        if (error instanceof UnifiedRunnerError) {
-          // Map UnifiedRunnerError to RunError variants
-          return yield* Effect.fail(error)
-        }
-        return yield* Effect.fail(error)
-      }
+      return yield* unifiedRunner.run({ sessionID: input.sessionID, force: input.force })
     })
 
     return { run }

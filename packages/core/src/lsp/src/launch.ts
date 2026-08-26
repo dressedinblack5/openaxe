@@ -8,8 +8,10 @@ type Child = ChildProcess
  * Handles cross-platform spawning, especially Windows .cmd/.bat files
  */
 
+// oxlint-disable-next-line typescript/no-redundant-type-constituents -- Process.Options from node:process
 export function spawn(cmd: string, args: string[], opts?: Process.Options): Child
 export function spawn(cmd: string, opts?: Process.Options): Child
+// oxlint-disable-next-line typescript/no-redundant-type-constituents -- Process.Options from node:process
 export function spawn(cmd: string, argsOrOpts?: string[] | Process.Options, opts?: Process.Options) {
   const args = Array.isArray(argsOrOpts) ? [...argsOrOpts] : []
   const cfg = Array.isArray(argsOrOpts) ? opts : argsOrOpts

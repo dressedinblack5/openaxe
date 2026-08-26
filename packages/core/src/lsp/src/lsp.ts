@@ -352,10 +352,12 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- filtering symbol kinds from unknown
     const workspaceSymbol = Effect.fn("LSP.workspaceSymbol")(function* (query: string) {
       const results = yield* runAll((client) =>
         client.connection
           .sendRequest<unknown[]>("workspace/symbol", { query })
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- filtering symbol kinds from unknown
           .then((result) => result.filter((x: unknown) => [5, 6, 7, 11, 13, 14, 23].includes((x as { kind?: number }).kind ?? 0)).slice(0, 10))
           .catch(() => []),
       )
@@ -473,7 +475,8 @@ export const layer = Layer.effect(
             context: { diagnostics: [] },
           })
           .catch(() => [])
-        return actions.find((a: unknown) => (a as { title?: string }).title === input.title) ?? null
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- finding code action by title
+          return actions.find((a: unknown) => (a as { title?: string }).title === input.title) ?? null
       })
       return results.filter(Boolean)
     })

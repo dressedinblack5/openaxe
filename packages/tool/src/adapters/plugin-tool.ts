@@ -68,6 +68,7 @@ export const fromZodTool = <Args extends z.ZodRawShape>(
         }
 
         const result = yield* Effect.promise(() =>
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- args validated by Zod schema at runtime
           zodTool.execute(args as z.infer<z.ZodObject<Args>>, pluginContext)
         )
 
@@ -92,6 +93,7 @@ export const toZodTool = <P extends Schema.Schema<unknown>, O extends Schema.Sch
     args: {} as z.ZodRawShape, // Cannot reconstruct Zod from Effect Schema
     execute: async (args, context) => {
       const result = await Effect.runPromise(
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- args match unified tool input schema
         unified.execute(args as Schema.Schema.Type<P>, context)
       )
       // Convert to string or ToolExecutionResult
@@ -108,6 +110,7 @@ function zodJsonSchema(schema: z.ZodType): JSONSchema7 {
   if (!isJsonSchemaObject(result)) throw new Error("Zod schema produced non-object JSON Schema")
   const { $defs, ...rest } = result
   return $defs && isJsonSchemaObject($defs)
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- $defs structure matches JSONSchema7 definitions
     ? { ...rest, definitions: $defs as JSONSchema7["definitions"] }
     : rest
 }

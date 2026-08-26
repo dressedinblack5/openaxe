@@ -65,6 +65,7 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
     readonly describe?: (agent: Agent.Info) => Effect.Effect<string>
   }
 ): ToolDefinition<P, O> {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- creating base tool definition
   const tool = Object.freeze({}) as ToolDefinition<P, O>
   const definitions = new Map<string, ToolDefinition>()
 
@@ -72,6 +73,7 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
     definition: (name) => {
       const cached = definitions.get(name)
       if (cached) return cached
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- building tool definition from config
       const def = {
         id: config.id,
         description: config.description,
@@ -85,6 +87,7 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
         subagentSafe: config.subagentSafe ?? true,
         availability: config.availability,
         describe: config.describe,
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- building tool definition from config
       } as ToolDefinition
       definitions.set(name, def)
       return def
@@ -156,6 +159,7 @@ export const withPermission = <P extends Schema.Schema<unknown>, O extends Schem
   const runtime = runtimes.get(tool)
   if (!runtime) throw new TypeError("Invalid tool: not created by make()")
 
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- creating decorated tool definition
   const decorated = Object.freeze({}) as ToolDefinition<P, O>
   runtimes.set(decorated, { ...runtime, permission })
   return decorated

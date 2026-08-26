@@ -9,10 +9,10 @@ import { Context, Effect, Layer, Schema } from "effect"
 import { produce } from "immer"
 import { Catalog } from "../../catalog"
 import { Credential } from "../../credential"
-import { Integration } from "../../integration"
 import { ModelV2 } from "../../model"
 import { ProviderV2 } from "../../provider"
 import { SessionSchema } from "../schema"
+import { IntegrationError } from "../../../error"
 
 export class NoModelAvailableError extends Schema.TaggedErrorClass<NoModelAvailableError>()(
   "SessionRunnerModel.NoModelAvailableError",
@@ -68,7 +68,7 @@ export type Error =
   | ModelUnavailableError
   | VariantUnavailableError
   | UnsupportedApiError
-  | Integration.IntegrationError
+  | IntegrationError
 
 export interface Interface {
   readonly resolve: (session: SessionSchema.Info) => Effect.Effect<Model, Error>
@@ -104,7 +104,7 @@ const withDefaults = (model: ModelV2.Info, route: AnyRoute, key: Auth.Credential
 
 const withVariant = (
   model: ModelV2.Info,
-  variantID: ModelV2.VariantID | undefined,
+  variantID: string | undefined,
 ): Effect.Effect<ModelV2.Info, VariantUnavailableError> => {
   const id = variantID === "default" || variantID === undefined ? model.request.variant : variantID
   const variant = id === undefined ? undefined : model.variants.find((item) => item.id === id)

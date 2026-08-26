@@ -67,7 +67,10 @@ export const ToolRegistryLive = Layer.effect(
       Effect.gen(function* () {
         const s = yield* Ref.get(state)
         const tool = HashMap.get(s.tools, id)
-        return tool._tag === "Some" ? (tool.value as unknown as ToolDefinition<P, O>) : undefined
+        return tool._tag === "Some"
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- stored tool compatible with requested types
+          ? (tool.value as unknown as ToolDefinition<P, O>)
+          : undefined
       })
 
     const list = (): Effect.Effect<ReadonlyArray<ToolDefinition>> =>

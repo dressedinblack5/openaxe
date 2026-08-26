@@ -345,6 +345,7 @@ export interface MessageConnection {
   sendRequest<R>(method: string, params?: unknown): Promise<R>
   sendNotification(method: string, params?: unknown): Promise<void>
   onNotification(method: string, handler: (params: unknown) => void): void
+  // oxlint-disable-next-line typescript/no-redundant-type-constituents -- Promise<unknown> | unknown for backward compatibility
   onRequest(method: string, handler: (params: unknown) => Promise<unknown> | unknown): void
   listen(): void
   end(): void

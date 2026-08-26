@@ -53,7 +53,7 @@ export class SessionNotFoundError extends Schema.TaggedErrorClass<SessionNotFoun
  * Safe event publishing - catches all errors to satisfy never error channel
  */
 const safePublish = <A, R>(effect: Effect.Effect<A, unknown, R>): Effect.Effect<A, never, R> =>
-  effect.pipe(Effect.catchCause(() => Effect.void)) as Effect.Effect<A, never, R>
+  effect.pipe(Effect.catchCause(() => Effect.void))
 
 /**
  * Unified Session Runner - Core durable orchestration
@@ -207,8 +207,8 @@ export const layer = Layer.effect(
           ...(session.model?.variant === undefined ? {} : { variant: session.model.variant }),
         },
       })
-      const withPublication = (effect: Effect.Effect<void, never, never>) => publicationSemaphore.withPermit(effect)
-      const publish = (event: LLMEvent, outputPaths: ReadonlyArray<string> = []): Effect.Effect<void, never, never> =>
+      const withPublication = (effect) => publicationSemaphore.withPermit(effect)
+      const publish = (event: LLMEvent, outputPaths: ReadonlyArray<string> = []) =>
         withPublication(safePublish(publisher.publish(event, outputPaths))).pipe(Effect.asVoid)
       let overflowFailure: ProviderErrorEvent | undefined
       const providerStream = llm.stream(request).pipe(

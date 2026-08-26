@@ -21,6 +21,7 @@ import { State } from "./state"
 import { Identifier } from "./util/identifier"
 import { EventV2 } from "./event"
 import { IntegrationConnection } from "./integration/connection"
+import { makeTaggedError } from "./error"
 
 export const ID = Integration.ID
 export type ID = Integration.ID
@@ -131,7 +132,7 @@ export const CodeRequiredError = makeTaggedError("Integration.CodeRequired", {
 })
 
 export const AuthorizationError = makeTaggedError("Integration.Authorization", {
-  cause: Schema.Defect(),
+  cause: undefined as unknown,
 })
 
 export type CodeRequiredError = ReturnType<typeof CodeRequiredError.make>
@@ -352,6 +353,9 @@ export const locationLayer = Layer.effect(
       })
 
     const authorize = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+      effect.pipe(Effect.mapError((cause) => AuthorizationError.make({ cause })))
+
+    const authorizeIntegration = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
       effect.pipe(Effect.mapError((cause) => IntegrationError.Authorization(cause)))
 
     const close = (attemptScope: Scope.Closeable) =>
@@ -535,9 +539,9 @@ export const locationLayer = Layer.effect(
             return [match, new Map(current).set(input.attemptID, { ...match, completing: true })]
           })
           if (!attempt) return yield* Effect.die(`OAuth attempt not found: ${input.attemptID}`)
-          if (attempt.status !== "pending") return undefined
+          if (attempt.status !== "pending") return void 0
           if (attempt.authorization.mode === "code" && input.code === undefined) {
-            return yield* IntegrationError.CodeRequired(input.attemptID)
+            return yield* Effect.fail(IntegrationError.CodeRequired(input.attemptID))
           }
           if (attempt.completing) return yield* Effect.die(`OAuth attempt already completing: ${input.attemptID}`)
           const callback =
@@ -545,10 +549,11 @@ export const locationLayer = Layer.effect(
               ? attempt.authorization.callback
               // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- manual (non-auto) mode completion guarantees the code is present by protocol.
               : attempt.authorization.callback(input.code!)
-          const exit = yield* authorize(callback).pipe(Effect.exit)
+          const exit = yield* authorizeIntegration(callback).pipe(Effect.exit)
           yield* settle(input.attemptID, exit)
-          if (Exit.isFailure(exit)) return yield* exit
-          return undefined
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- authorizeIntegration only fails with IntegrationError
+          if (Exit.isFailure(exit)) return yield* Effect.fail(Cause.squash(exit.cause) as IntegrationError)
+          return void 0
         }),
         cancel: Effect.fn("Integration.attempt.cancel")(function* (attemptID) {
           const attempt = yield* SynchronizedRef.modify(attempts, (current) => {

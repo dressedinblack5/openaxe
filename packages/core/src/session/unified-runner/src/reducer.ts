@@ -31,7 +31,7 @@ export const createInitialSessionData = (includeUserText = false): SessionData =
  * Helper to safely get object from unknown
  */
 const dict = (v: unknown): Record<string, unknown> =>
-  v && typeof v === "object" && !Array.isArray(v) ? { ...(v as Record<string, unknown>) } : {}
+  v && typeof v === "object" && !Array.isArray(v) ? { ...v } : {}
 
 /**
  * Main reducer function - pure function that reduces EventV2 to SessionData
@@ -236,6 +236,7 @@ export const reduceEvent: SessionDataReducer = (state, event) => {
 /**
  * Build footer output from SessionData
  */
+// oxlint-disable-next-line typescript/no-redundant-type-constituents -- FooterOutput from schema has error type in union
 const buildFooter = (data: SessionData): SessionEvent.FooterOutput | undefined => {
   // Check for permission request
   if (data.permissions.length > 0) {

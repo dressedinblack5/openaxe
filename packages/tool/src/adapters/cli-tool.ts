@@ -84,7 +84,10 @@ export const toCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Sch
  */
 export const fromCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   cli: CliToolDefinition<P, O>
-): ToolDefinition<P, O> => cli as ToolDefinition<P, O>
+): ToolDefinition<P, O> => {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CliToolDefinition compatible with ToolDefinition
+  return cli as ToolDefinition<P, O>
+}
 
 /**
  * Create a CLI tool directly (convenience)
@@ -108,7 +111,9 @@ export const makeCliTool = <P extends Schema.Schema<unknown>, O extends Schema.S
   const unifiedConfig = {
     ...config,
     execute: async (input: Schema.Schema.Type<P>, context: ToolContext) => {
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- context extended with CLI-specific properties
       const result = await Effect.runPromise(config.execute(input, context as CliToolContext))
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- result.output matches configured output schema
       return result.output as Schema.Schema.Type<O>
     },
   }
