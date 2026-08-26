@@ -58,7 +58,8 @@ export const Parameters = Schema.Struct({
 })
 
 export const EditTool = define(
-  "edit",  Effect.gen(function* () {
+  "edit",
+  Effect.gen(function* () {
     const lsp = yield* LSP.Service
     const afs = yield* FSUtil.Service
     const format = yield* Format.Service

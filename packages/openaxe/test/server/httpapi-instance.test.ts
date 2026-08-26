@@ -143,7 +143,11 @@ describe("instance HttpApi", () => {
           HttpApiApp.webHandler().handler(
             new Request(`http://localhost${path}`, {
               ...init,
-              headers: { "x-opencode-directory": dir, "content-type": "application/json", ...(init?.headers ? Object.fromEntries(new Headers(init.headers)) : {}) },
+              headers: {
+                "x-opencode-directory": dir,
+                "content-type": "application/json",
+                ...(init?.headers ? Object.fromEntries(new Headers(init.headers)) : {}),
+              },
             }),
             handlerContext,
           ),
@@ -177,7 +181,11 @@ describe("instance HttpApi", () => {
           HttpApiApp.webHandler().handler(
             new Request(`http://localhost${path}`, {
               ...init,
-              headers: { "x-opencode-directory": dir, "content-type": "application/json", ...(init?.headers ? Object.fromEntries(new Headers(init.headers)) : {}) },
+              headers: {
+                "x-opencode-directory": dir,
+                "content-type": "application/json",
+                ...(init?.headers ? Object.fromEntries(new Headers(init.headers)) : {}),
+              },
             }),
             handlerContext,
           ),

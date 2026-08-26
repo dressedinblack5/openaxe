@@ -14,7 +14,11 @@ import { testEffect } from "../lib/effect"
 const it = testEffect(Layer.mergeAll(Config.defaultLayer, FSUtil.defaultLayer))
 const winIt = process.platform === "win32" ? it.instance : it.instance.skip
 const tuiBundledSpecs = BUNDLED_PLUGINS.filter((p) => p.kinds.includes("tui")).map((p) => p.spec)
-const expectedBundledOrigins = tuiBundledSpecs.map((spec) => ({ spec, scope: "global" as const, source: "bundle" as const }))
+const expectedBundledOrigins = tuiBundledSpecs.map((spec) => ({
+  spec,
+  scope: "global" as const,
+  source: "bundle" as const,
+}))
 
 const globalConfigFiles = ["openaxe.json", "openaxe.jsonc", "tui.json", "tui.jsonc"].map((file) =>
   path.join(Global.Path.config, file),
@@ -119,7 +123,9 @@ it.instance("keeps server and tui plugin merge semantics aligned", () =>
       const serverOrigins = server.plugin_origins ?? []
       expect(serverOrigins.map((item) => ConfigPlugin.pluginSpecifier(item.spec))).toEqual(serverPlugins)
       expect(tuiOrigins.map((item) => ConfigPlugin.pluginSpecifier(item.spec))).toEqual(tuiPlugins)
-      const serverNonBundledOrigins = serverOrigins.filter((o) => !bundledPlugins.has(ConfigPlugin.pluginSpecifier(o.spec)))
+      const serverNonBundledOrigins = serverOrigins.filter(
+        (o) => !bundledPlugins.has(ConfigPlugin.pluginSpecifier(o.spec)),
+      )
       const tuiOriginsBySpec = new Map(tuiOrigins.map((o) => [ConfigPlugin.pluginSpecifier(o.spec), o.scope] as const))
       for (const origin of serverNonBundledOrigins) {
         const spec = ConfigPlugin.pluginSpecifier(origin.spec)

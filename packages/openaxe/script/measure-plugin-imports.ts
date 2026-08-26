@@ -8,12 +8,12 @@ async function time(label: string, fn: () => Promise<unknown>) {
 
 async function measure() {
   console.log("\n=== Plugin sub-imports ===\n")
-  
+
   await time(`@opencode-ai/core/util/glob`, () => import("@opencode-ai/core/util/glob"))
   await time(`@opencode-ai/core/fs-util`, () => import("@opencode-ai/core/fs-util"))
-  
+
   console.log()
-  
+
   // Plugin heavy candidates
   await time(`@/server/auth`, () => import("@/server/auth"))
   await time(`@opencode-ai/core/project`, () => import("@opencode-ai/core/project"))

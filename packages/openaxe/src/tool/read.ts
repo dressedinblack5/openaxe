@@ -4,7 +4,7 @@ import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 
 import type { Context } from "./tool"
 import { define } from "./tool"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import { LSP } from "@/lsp/lsp"
+import { LSP, type LSPService } from "@/lsp/lsp"
 import DESCRIPTION from "./read.txt"
 import { InstanceState } from "@/effect/instance-state"
 import { assertExternalDirectoryEffect } from "./external-directory"
@@ -62,11 +62,7 @@ type Metadata = {
   display?: Display
 }
 
-export const ReadTool = define<
-  typeof Parameters,
-  Metadata,
-  FSUtil.Service | Instruction.Service | LSP.Service | Scope.Scope
->(
+export const ReadTool = define(
   "read",
   Effect.gen(function* () {
     const fs = yield* FSUtil.Service
@@ -314,6 +310,7 @@ export const ReadTool = define<
             preview: msg,
             truncated: false,
             loaded: loaded.map((item) => item.filepath),
+            display: undefined as Display | undefined,
           },
           attachments: [
             {

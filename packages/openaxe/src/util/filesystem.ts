@@ -106,7 +106,8 @@ export async function writeStream(
     await mkdir(dir, { recursive: true })
   }
 
-  const nodeStream = stream instanceof ReadableStream ? Readable.fromWeb((stream as unknown) as WebReadableStream) : stream
+  const nodeStream =
+    stream instanceof ReadableStream ? Readable.fromWeb(stream as unknown as WebReadableStream) : stream
   const writeStream = createWriteStream(p)
   await pipeline(nodeStream, writeStream)
 

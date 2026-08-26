@@ -347,7 +347,10 @@ async function getSourceCheckout(): Promise<string | null> {
 }
 
 async function getWrapperScript(): Promise<string | null> {
-  const candidates = [path.join(os.homedir(), ".local", "bin", "openaxe"), path.join(os.homedir(), ".openaxe", "bin", "openaxe")]
+  const candidates = [
+    path.join(os.homedir(), ".local", "bin", "openaxe"),
+    path.join(os.homedir(), ".openaxe", "bin", "openaxe"),
+  ]
   for (const candidate of candidates) {
     const exists = await fs
       .access(candidate)

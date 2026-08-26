@@ -78,7 +78,10 @@ const createEmbeddedWebUIBundle = async () => {
 }
 
 // Copy tiktoken_bg.wasm for @anthropic-ai/tokenizer (used by token.ts)
-const tiktokenWasmPath = path.resolve(dir, "../../node_modules/.bun/tiktoken@1.0.22/node_modules/tiktoken/lite/tiktoken_bg.wasm")
+const tiktokenWasmPath = path.resolve(
+  dir,
+  "../../node_modules/.bun/tiktoken@1.0.22/node_modules/tiktoken/lite/tiktoken_bg.wasm",
+)
 const tiktokenWasmDest = path.resolve(dir, "src/tiktoken_bg.wasm")
 if (fs.existsSync(tiktokenWasmPath)) {
   fs.copyFileSync(tiktokenWasmPath, tiktokenWasmDest)
@@ -170,7 +173,10 @@ const targetsEnv = process.env.TARGETS
 if (targetsEnv) {
   const targetNames = targetsEnv.split(",").map((s) => s.trim())
   const filtered = targets.filter((t) => {
-    const name = `${t.os}-${t.arch}${t.abi === "musl" ? "-musl" : ""}${t.avx2 === false ? "-baseline" : ""}`.replace("win32", "windows")
+    const name = `${t.os}-${t.arch}${t.abi === "musl" ? "-musl" : ""}${t.avx2 === false ? "-baseline" : ""}`.replace(
+      "win32",
+      "windows",
+    )
     return targetNames.includes(name)
   })
   if (filtered.length === 0) {
@@ -355,7 +361,9 @@ if (Script.release) {
       await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}/bin`)
     } else if (key.includes("windows")) {
       // `zip` is not available on windows-latest runners; PowerShell is always present.
-      await $`powershell.exe -NoProfile -Command "Compress-Archive -Path * -DestinationPath ../../${key}.zip -Force"`.cwd(`dist/${key}/bin`)
+      await $`powershell.exe -NoProfile -Command "Compress-Archive -Path * -DestinationPath ../../${key}.zip -Force"`.cwd(
+        `dist/${key}/bin`,
+      )
     } else {
       await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
     }

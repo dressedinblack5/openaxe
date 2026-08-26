@@ -147,6 +147,7 @@ export const WebSearchTool = define(
   }),
   {
     available: ({ providerID, flags }) =>
-      providerID === undefined || webSearchEnabled(providerID, { exa: flags.enableExa, parallel: flags.enableParallel }),
+      providerID === undefined ||
+      webSearchEnabled(providerID, { exa: flags.enableExa, parallel: flags.enableParallel }),
   },
 )

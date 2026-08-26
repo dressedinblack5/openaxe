@@ -28,13 +28,18 @@ export const ReflectionRunCommand = effectCmd({
     const projectId = yield* resolveProjectId(ctx.directory, args.project)
     yield* Reflection.run(projectId)
     UI.println(
-      UI.Style.TEXT_SUCCESS_BOLD + `Reflection complete for project ${projectId}` + UI.Style.TEXT_NORMAL +
+      UI.Style.TEXT_SUCCESS_BOLD +
+        `Reflection complete for project ${projectId}` +
+        UI.Style.TEXT_NORMAL +
         " — retry_policy_overrides updated from tool-error history",
     )
   }),
 })
 
-const resolveProjectId = (directory: string, explicit: string | undefined): Effect.Effect<ProjectV2.ID, never, Project.Service> =>
+const resolveProjectId = (
+  directory: string,
+  explicit: string | undefined,
+): Effect.Effect<ProjectV2.ID, never, Project.Service> =>
   explicit !== undefined
     ? Effect.succeed(ProjectV2.ID.make(explicit))
     : Effect.gen(function* () {

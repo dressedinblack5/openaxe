@@ -186,7 +186,7 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
   const stdin =
     bunProc && bunProc.stdin && typeof bunProc.stdin === "object"
       ? "getWriter" in bunProc.stdin
-        ? Writable.fromWeb((bunProc.stdin as unknown) as WritableStream)
+        ? Writable.fromWeb(bunProc.stdin as unknown as WritableStream)
         : writableFromFileSink(bunProc.stdin)
       : null
   return {
@@ -194,8 +194,8 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
       return bunProc?.pid ?? 0
     },
     stdin,
-    stdout: bunProc?.stdout ? Readable.fromWeb((bunProc.stdout as unknown) as WebReadableStream) : null,
-    stderr: bunProc?.stderr ? Readable.fromWeb((bunProc.stderr as unknown) as WebReadableStream) : null,
+    stdout: bunProc?.stdout ? Readable.fromWeb(bunProc.stdout as unknown as WebReadableStream) : null,
+    stderr: bunProc?.stderr ? Readable.fromWeb(bunProc.stderr as unknown as WebReadableStream) : null,
     get exitCode() {
       return bunProc?.exitCode ?? null
     },

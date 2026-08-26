@@ -27,20 +27,20 @@ async function measure() {
   await time(`@opencode-ai/core/global`, () => import("@opencode-ai/core/global"))
 
   console.log()
-  
+
   // Database module breakdown
   await time(`@opencode-ai/core/database/database`, () => import("@opencode-ai/core/database/database"))
 
   console.log()
-  
+
   // fs-util
   await time(`@opencode-ai/core/fs-util`, () => import("@opencode-ai/core/fs-util"))
-  
+
   console.log()
-  
+
   // command module
   await time(`@/command`, () => import("../src/command"))
-  
+
   console.log()
 
   console.log(`\n  ${"TOTAL".padEnd(60)} ${(performance.now() - start).toFixed(0)}ms`)

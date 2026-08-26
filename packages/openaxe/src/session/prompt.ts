@@ -21,7 +21,7 @@ import { Plugin } from "../plugin"
 import { MAX_STEPS_PROMPT } from "@opencode-ai/core/session/runner/max-steps"
 import { ToolRegistry } from "@/tool/registry"
 import { MCP } from "../mcp"
-import { LSP } from "@/lsp/lsp"
+import { LSP, type Range as LSPRange } from "@/lsp/lsp"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { decodeText, filter, map, mkString, runForEach } from "effect/Stream"
@@ -871,7 +871,7 @@ export const layer = Layer.effect(
                   if (start === end) {
                     const symbols = yield* lsp.documentSymbol(filePathURI).pipe(Effect.catch(() => Effect.succeed([])))
                     for (const symbol of symbols) {
-                      let r: LSP.Range | undefined
+                      let r: LSPRange | undefined
                       if ("range" in symbol) r = symbol.range
                       else if ("location" in symbol) r = symbol.location.range
                       if (r?.start?.line && r?.start?.line === start) {
@@ -1271,7 +1271,12 @@ export const layer = Layer.effect(
           if (
             lastFinished &&
             lastFinished.summary !== true &&
-            isOverBudget({ cfg: yield* config.get(), tokens: lastFinished.tokens, model, outputTokenMax: flags.outputTokenMax })
+            isOverBudget({
+              cfg: yield* config.get(),
+              tokens: lastFinished.tokens,
+              model,
+              outputTokenMax: flags.outputTokenMax,
+            })
           ) {
             yield* compaction.create({ sessionID, agent: lastUser.agent, model: lastUser.model, auto: true })
             continue

@@ -137,3 +137,46 @@ The host-supplied environment overlay applied by the server when creating a PTY,
 ## Flagged ambiguities
 
 - Legacy `experimental.chat.system.transform` can mutate the assembled baseline system prompt arbitrarily, but V2 plugins do not yet expose an equivalent hook. Decide separately whether to port it, replace dynamic uses with plugin-defined **Context Sources**, or narrow its semantics.
+
+## Unified Tool Registry (ADR-XXXX)
+
+**ToolDefinition**:
+The unified tool definition using Effect Schema internally, JSON Schema for model output. Replaces Core `Definition`, CLI `Def`, Plugin `tool()`.
+
+**ToolRegistry**:
+The single registry service for tool registration, lookup, availability filtering, and execution. Replaces parallel Core/CLI/Plugin registries. Lives in `packages/tool`.
+
+**ToolContext**:
+Layered context system: `BaseToolContext` → `CliToolContext` → `PluginToolContext`. Provides session, agent, abort, metadata, and permission request capabilities.
+
+**ToolAvailability**:
+Static + Dynamic availability filtering with memoization per `(flags, providerID, modelID, agentID)` tuple. Evaluated by `ToolRegistry.tools(model)`.
+
+**ToolPermission**:
+Hybrid permission model: static `permission` string on `ToolDefinition` + dynamic `ctx.ask()` at execution time.
+
+**ToolExecution**:
+Unified execution flow: `settle()` validates input, executes, encodes output, applies truncation, returns `ToolExecutionResult`.
+
+**ExternalToolLoader**:
+Separate service for discovering external tools from filesystem directories. Decoupled from main registry.
+
+## Unified Session Runner (ADR-0003)
+
+**UnifiedRunner**:
+The core durable session orchestration service in `packages/core/src/session/unified-runner/`. Replaces parallel SessionRunner (core), SessionData (CLI), Effect Runner, and SessionRunState. Runs `run(input)`, emits `SessionEvent` for CLI subscription.
+
+**SessionEventSubscriber**:
+CLI-layer service in `packages/core/src/session/unified-runner/` that streams EventV2, runs pure SessionData reducer, publishes to InstanceState for TUI hot-reload. Full rehydration from EventV2 on cold start.
+
+**SessionEffectRunner**:
+Internal minimal executor (`run(work): Effect<A,E>`) managing Idle/Running/Shell states. Emits `RunnerStateChanged` events. Not a standalone utility—internal to UnifiedRunner.
+
+**SessionForkService**:
+Shared core service for session forking: DB clone, SessionInput chain, EventV2 Forked event. CLI wrapper. Core picks up via SessionStore.
+
+**RunnerState**:
+Ephemeral execution state emitted as `SessionEvent.RunnerStateChanged`: `Idle`, `Running`, `Shell`, `ShellThenRun`. CLI subscribes for TUI status.
+
+**SubagentDrain**:
+Subagent sessions have `parentSessionID + subagent: true`. Core runner drains subagents first via `drainSubagents(parentID)` before parent continuation. Task tool forks subagent, wakes it, awaits completion.

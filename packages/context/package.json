@@ -1,0 +1,26 @@
+{
+  "name": "@openaxe/context",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./context": "./src/context.ts",
+    "./adapters/system-context": "./src/adapters/system-context.ts",
+    "./adapters/instance-context": "./src/adapters/instance-context.ts",
+    "./adapters/workspace-context": "./src/adapters/workspace-context.ts",
+    "./adapters/plugin-context": "./src/adapters/plugin-context.ts"
+  },
+  "scripts": {
+    "typecheck": "bun tsc --noEmit",
+    "test": "bun test --timeout 60000"
+  },
+  "dependencies": {
+    "effect": "4.0.0-beta.82",
+    "openaxe": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  }
+}

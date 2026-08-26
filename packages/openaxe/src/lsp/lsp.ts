@@ -1,109 +1,26 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { FSUtil } from "@opencode-ai/core/fs-util"
 import { EventV2Bridge } from "@/event-v2-bridge"
-import type { Info as ClientInfo, Diagnostic } from "./client"
-import { create } from "./client"
-import path from "path"
-import { pathToFileURL, fileURLToPath } from "url"
-import { LSPServer, type Info as ServerInfo } from "./server"
 import { Config } from "@/config/config"
-import { Process } from "@/util/process"
-import { spawn } from "./launch"
-import { Effect, Layer, Context, Schema, Schedule, Duration } from "effect"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 import { InstanceState } from "@/effect/instance-state"
 import { containsPath } from "@/project/instance-context"
+import { Process } from "@/util/process"
+import { spawn } from "./launch"
+import { Effect, Layer, Context, Schedule, Duration, Schema } from "effect"
+import { LSPServer, type Info as ServerInfo } from "./server"
+import { create, type Info as ClientInfo, type Diagnostic } from "./client"
 import { NonNegativeInt } from "@opencode-ai/core/schema"
-import { RuntimeFlags } from "@/effect/runtime-flags"
 import { LspEvent } from "@opencode-ai/schema/lsp-event"
+import path from "path"
+import { pathToFileURL, fileURLToPath } from "url"
 
-export const Event = LspEvent
+const BROKEN_TTL = 300_000
+const IDLE_TTL = 15 * 60_000
 
-const Position = Schema.Struct({
-  line: NonNegativeInt,
-  character: NonNegativeInt,
-})
-
-export const Range = Schema.Struct({
-  start: Position,
-  end: Position,
-}).annotate({ identifier: "Range" })
-export type Range = typeof Range.Type
-
-export const Symbol = Schema.Struct({
-  name: Schema.String,
-  kind: NonNegativeInt,
-  location: Schema.Struct({
-    uri: Schema.String,
-    range: Range,
-  }),
-}).annotate({ identifier: "Symbol" })
-export type Symbol = typeof Symbol.Type
-
-export const DocumentSymbol = Schema.Struct({
-  name: Schema.String,
-  detail: Schema.optional(Schema.String),
-  kind: NonNegativeInt,
-  range: Range,
-  selectionRange: Range,
-}).annotate({ identifier: "DocumentSymbol" })
-export type DocumentSymbol = typeof DocumentSymbol.Type
-
-export const Status = Schema.Struct({
-  id: Schema.String,
-  name: Schema.String,
-  root: Schema.String,
-  status: Schema.Literals(["connected", "error"]),
-}).annotate({ identifier: "LSPStatus" })
-export type Status = typeof Status.Type
-
-enum SymbolKind {
-  File = 1,
-  Module = 2,
-  Namespace = 3,
-  Package = 4,
-  Class = 5,
-  Method = 6,
-  Property = 7,
-  Field = 8,
-  Constructor = 9,
-  Enum = 10,
-  Interface = 11,
-  Function = 12,
-  Variable = 13,
-  Constant = 14,
-  String = 15,
-  Number = 16,
-  Boolean = 17,
-  Array = 18,
-  Object = 19,
-  Key = 20,
-  Null = 21,
-  EnumMember = 22,
-  Struct = 23,
-  Event = 24,
-  Operator = 25,
-  TypeParameter = 26,
-}
-
-const kinds = [
-  SymbolKind.Class,
-  SymbolKind.Function,
-  SymbolKind.Method,
-  SymbolKind.Interface,
-  SymbolKind.Variable,
-  SymbolKind.Constant,
-  SymbolKind.Struct,
-  SymbolKind.Enum,
-]
-
-const BROKEN_TTL = 300_000 // 5 minutes before retrying a failed LSP server
-
-/** Client key used consistently across maps (broken, used, spawning). */
 function clientKey(root: string, serverID: string): string {
   return `${root}#${serverID}`
 }
 
-/** Check if a (root, serverID) pair is broken and within TTL; clean up if expired. */
 function checkBroken(s: State, root: string, serverID: string): boolean {
   const key = clientKey(root, serverID)
   const brokenAt = s.broken.get(key)
@@ -112,36 +29,96 @@ function checkBroken(s: State, root: string, serverID: string): boolean {
   return false
 }
 
-export function selectIdleKeys(
-  clients: { root: string; serverID: string }[],
-  used: Map<string, number>,
-  now: number,
-  ttl: number,
+function filterExperimentalServers(
+  servers: Record<string, ServerInfo>,
+  flags: RuntimeFlags.Info,
 ) {
-  return clients.filter((c) => now - (used.get(clientKey(c.root, c.serverID)) ?? now) > ttl).map((c) => clientKey(c.root, c.serverID))
-}
-
-const filterExperimentalServers = (servers: Record<string, ServerInfo>, flags: RuntimeFlags.Info) => {
   if (flags.experimentalLspTy) {
-    if (servers["pyright"]) {
-      delete servers["pyright"]
-    }
+    if (servers["pyright"]) delete servers["pyright"]
   } else {
-    if (servers["ty"]) {
-      delete servers["ty"]
-    }
+    if (servers["ty"]) delete servers["ty"]
   }
 }
 
 type LocInput = { file: string; line: number; character: number }
 
-interface State {
-  clients: ClientInfo[]
-  servers: Record<string, ServerInfo>
-  broken: Map<string, number>
-  spawning: Map<string, Promise<ClientInfo | undefined>>
-  used: Map<string, number>
-}
+const Position = Schema.Struct({
+  line: NonNegativeInt,
+  character: NonNegativeInt,
+})
+
+const Range = Schema.Struct({
+  start: Position,
+  end: Position,
+}).annotate({ identifier: "Range" })
+export type Range = typeof Range.Type
+
+const SymbolKind = Schema.Struct({
+  name: Schema.String,
+  kind: NonNegativeInt,
+  location: Schema.Struct({
+    uri: Schema.String,
+    range: Range,
+  }),
+}).annotate({ identifier: "Symbol" })
+export type Symbol = typeof SymbolKind.Type
+
+const DocumentSymbolKind = Schema.Struct({
+  name: Schema.String,
+  detail: Schema.optional(Schema.String),
+  kind: NonNegativeInt,
+  range: Range,
+  selectionRange: Range,
+}).annotate({ identifier: "DocumentSymbol" })
+export type DocumentSymbol = typeof DocumentSymbolKind.Type
+
+const StatusKind = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  root: Schema.String,
+  status: Schema.Literals(["connected", "error"]),
+}).annotate({ identifier: "LSPStatus" })
+export type Status = typeof StatusKind.Type
+
+const LspSymbolKind = {
+  File: 1,
+  Module: 2,
+  Namespace: 3,
+  Package: 4,
+  Class: 5,
+  Method: 6,
+  Property: 7,
+  Field: 8,
+  Constructor: 9,
+  Enum: 10,
+  Interface: 11,
+  Function: 12,
+  Variable: 13,
+  Constant: 14,
+  String: 15,
+  Number: 16,
+  Boolean: 17,
+  Array: 18,
+  Object: 19,
+  Key: 20,
+  Null: 21,
+  EnumMember: 22,
+  Struct: 23,
+  Event: 24,
+  Operator: 25,
+  TypeParameter: 26,
+} as const
+
+const kinds = [
+  LspSymbolKind.Class,
+  LspSymbolKind.Function,
+  LspSymbolKind.Method,
+  LspSymbolKind.Interface,
+  LspSymbolKind.Variable,
+  LspSymbolKind.Constant,
+  LspSymbolKind.Struct,
+  LspSymbolKind.Enum,
+]
 
 export interface Interface {
   readonly init: () => Effect.Effect<void>
@@ -170,6 +147,14 @@ export interface Interface {
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/LSP") {}
+
+interface State {
+  clients: ClientInfo[]
+  servers: Record<string, ServerInfo>
+  broken: Map<string, number>
+  spawning: Map<string, Promise<ClientInfo | undefined>>
+  used: Map<string, number>
+}
 
 export const layer = Layer.effect(
   Service,
@@ -203,9 +188,9 @@ export const layer = Layer.effect(
               servers[name] = {
                 ...existing,
                 id: name,
-                root: existing?.root ?? (async (_file, ctx) => ctx.directory),
+                root: existing?.root ?? (async (_file: string, ctx: any) => ctx.directory),
                 extensions: item.extensions ?? existing?.extensions ?? [],
-                spawn: async (root) => ({
+                spawn: async (root: string) => ({
                   process: spawn(item.command[0], item.command.slice(1), {
                     cwd: root,
                     env: { ...process.env, ...item.env },
@@ -237,17 +222,19 @@ export const layer = Layer.effect(
           }),
         )
 
-        // ponytail: LSP child processes (tsserver ~300-500MB) are held per
-        // (root, serverID) until project close. Shut down clients idle for
-        // 15 minutes; getClients respawns on demand. Keep broken entries
-        // cleared so respawn isn't stuck behind the 5-minute cooldown.
-        const IDLE_TTL = 15 * 60_000
         const prune = Effect.gen(function* () {
-          const keys = selectIdleKeys(s.clients, s.used, Date.now(), IDLE_TTL)
+          const now = Date.now()
+          const keys = s.clients
+            .filter((c) => now - (s.used.get(clientKey(c.root, c.serverID)) ?? now) > IDLE_TTL)
+            .map((c) => clientKey(c.root, c.serverID))
           if (keys.length === 0) return
           const keySet = new Set(keys)
           yield* Effect.promise(() =>
-            Promise.all(s.clients.filter((c) => keySet.has(clientKey(c.root, c.serverID))).map((c) => c.shutdown().catch(() => {}))),
+            Promise.all(
+              s.clients
+                .filter((c) => keySet.has(clientKey(c.root, c.serverID)))
+                .map((c) => c.shutdown().catch(() => {})),
+            ),
           )
           s.clients = s.clients.filter((c) => !keySet.has(clientKey(c.root, c.serverID)))
           for (const key of keySet) {
@@ -320,13 +307,11 @@ export const layer = Layer.effect(
             continue
           }
 
-          // Race-condition-free spawn deduplication using atomic check-and-set
           const spawnKey = clientKey(root, server.id)
           let task = s.spawning.get(spawnKey)
           if (!task) {
             task = schedule(server, root, spawnKey)
             s.spawning.set(spawnKey, task)
-            // Clean up after completion
             void task.finally(() => {
               if (s.spawning.get(spawnKey) === task) {
                 s.spawning.delete(spawnKey)
@@ -343,7 +328,7 @@ export const layer = Layer.effect(
 
         return { result, updated }
       })
-      yield* Effect.forEach(Array.from({ length: clients.updated }), () => events.publish(Event.Updated, {}), {
+      yield* Effect.forEach(Array.from({ length: clients.updated }), () => events.publish(LspEvent.Updated, {}), {
         discard: true,
       })
       for (const client of clients.result) s.used.set(clientKey(client.root, client.serverID), Date.now())
@@ -489,7 +474,7 @@ export const layer = Layer.effect(
       const results = yield* runAll((client) =>
         client.connection
           .sendRequest<Symbol[]>("workspace/symbol", { query })
-          .then((result) => result.filter((x) => kinds.includes(x.kind)).slice(0, 10))
+          .then((result) => result.filter((x) => (kinds as number[]).includes(x.kind)).slice(0, 10))
           .catch(() => [] as Symbol[]),
       )
       return results.flat()
@@ -694,8 +679,34 @@ export const defaultLayer = layer.pipe(
   Layer.provide(EventV2Bridge.defaultLayer),
 )
 
-export * as Diagnostic from "./diagnostic"
+export const node = LayerNode.make(layer, [Config.node, RuntimeFlags.node, EventV2Bridge.node])
 
-export const node = LayerNode.make(layer, [Config.node, RuntimeFlags.node, FSUtil.node, EventV2Bridge.node])
+export { LspEvent as Event }
+export type { Diagnostic } from "./client"
 
-export * as LSP from "./lsp"
+export function selectIdleKeys(
+  clients: { root: string; serverID: string }[],
+  used: Map<string, number>,
+  now: number,
+  ttl: number,
+) {
+  return clients
+    .filter((c) => now - (used.get(clientKey(c.root, c.serverID)) ?? now) > ttl)
+    .map((c) => clientKey(c.root, c.serverID))
+}
+
+export const LSP = {
+  Service,
+  layer,
+  defaultLayer,
+  node,
+  selectIdleKeys,
+  Event: LspEvent,
+  Symbol: SymbolKind,
+  Status: StatusKind,
+  Range,
+  DocumentSymbol: DocumentSymbolKind,
+  Diagnostic: {} as Schema.Schema<Diagnostic>,
+}
+
+export type LSPService = typeof Service

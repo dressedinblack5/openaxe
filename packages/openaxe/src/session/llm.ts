@@ -109,7 +109,8 @@ const live: Layer.Layer<
         input.model.providerID === "gitlab"
           ? (yield* Effect.promise(() => import("gitlab-ai-provider"))).GitLabWorkflowLanguageModel
           : undefined
-      const isWorkflow = GitLabWorkflowLanguageModelClass !== undefined && language instanceof GitLabWorkflowLanguageModelClass
+      const isWorkflow =
+        GitLabWorkflowLanguageModelClass !== undefined && language instanceof GitLabWorkflowLanguageModelClass
       const prepared = yield* LLMRequestPrep.prepare({
         ...input,
         provider: item,

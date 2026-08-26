@@ -11,7 +11,9 @@ import { testEffect } from "../lib/effect"
 
 const dir = path.join(Global.Path.data, "storage")
 
-const it = testEffect(Layer.mergeAll(Storage.defaultLayer, FSUtil.defaultLayer, CrossSpawnSpawner.defaultLayer, Git.defaultLayer))
+const it = testEffect(
+  Layer.mergeAll(Storage.defaultLayer, FSUtil.defaultLayer, CrossSpawnSpawner.defaultLayer, Git.defaultLayer),
+)
 
 const scope = Effect.fnUntraced(function* () {
   const root = ["storage_test", crypto.randomUUID()]
@@ -68,9 +70,7 @@ function remappedFs(root: string) {
 // (whose ChildProcessSpawner is known to work on all platforms), avoiding fresh
 // CrossSpawnSpawner instances that may fail to spawn git on Windows CI.
 const remappedStorage = (root: string) =>
-  Layer.fresh(Storage.layer.pipe(Layer.provide(remappedFs(root)))).pipe(
-    Layer.provide(Git.defaultLayer),
-  )
+  Layer.fresh(Storage.layer.pipe(Layer.provide(remappedFs(root)))).pipe(Layer.provide(Git.defaultLayer))
 
 describe("Storage", () => {
   it.effect("round-trips JSON content", () =>
@@ -251,7 +251,7 @@ describe("Storage", () => {
       const fs = yield* FSUtil.Service
       const tmp = yield* tmpdirScoped({ git: true })
       const storage = path.join(tmp, "storage")
-      const legacy = path.join(tmp, "project")  // Migration looks at dir/../project = tmp/project
+      const legacy = path.join(tmp, "project") // Migration looks at dir/../project = tmp/project
 
       yield* fs.writeWithDirs(path.join(legacy, "storage", "session", "message", "probe", "0.json"), "[]")
       yield* fs.writeWithDirs(

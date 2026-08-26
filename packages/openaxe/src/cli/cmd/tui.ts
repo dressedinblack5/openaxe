@@ -80,8 +80,7 @@ function createInternalFetch(): typeof fetch {
  */
 function prewarmAppLayer(fetchFn: typeof fetch, url: string, directory: string) {
   void (async () => {
-    const warm = (path: string) =>
-      fetchFn(`${url}${path}?directory=${encodeURIComponent(directory)}`).catch(() => {})
+    const warm = (path: string) => fetchFn(`${url}${path}?directory=${encodeURIComponent(directory)}`).catch(() => {})
     const warms = [
       warm("/config/providers"),
       warm("/provider"),
@@ -313,10 +312,7 @@ export const TuiCommand = cmd({
       const client = Rpc.client<typeof rpc>(worker, { requestTimeout: 120_000 })
       mark("worker-created")
 
-      const [effectImports, { config, pluginOrigins }] = await Promise.all([
-        effectImportsPromise,
-        configPromise,
-      ])
+      const [effectImports, { config, pluginOrigins }] = await Promise.all([effectImportsPromise, configPromise])
       const [{ Effect, Cause }, { run }, { createLegacyTuiPluginHost }] = effectImports
       mark("deferred-imports")
 

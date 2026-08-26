@@ -241,11 +241,7 @@ function resolveRoot(root: string) {
   return path.resolve(process.cwd(), root)
 }
 
-function createThemeInstaller(
-  meta: ConfigPlugin.Origin,
-  root: string,
-  plugin: PluginEntry,
-): TuiTheme["install"] {
+function createThemeInstaller(meta: ConfigPlugin.Origin, root: string, plugin: PluginEntry): TuiTheme["install"] {
   return async (file) => {
     const src = Filesystem.resolveFilePath(root, file)
     const name = path.basename(src, path.extname(src))

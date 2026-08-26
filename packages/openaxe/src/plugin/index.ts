@@ -260,9 +260,13 @@ export const layer = Layer.effect(
                     const toolDefs: Record<string, ToolDefinition> = {}
                     for (const [id, def] of Object.entries(toolsMod)) {
                       if (def && typeof def === "object" && "args" in def && "description" in def && "execute" in def) {
-                        const toolId = id === "default"
-                          ? new URL(entry).pathname.split("/").pop()?.replace(/\.[^/.]+$/, "") ?? "unknown"
-                          : id
+                        const toolId =
+                          id === "default"
+                            ? (new URL(entry).pathname
+                                .split("/")
+                                .pop()
+                                ?.replace(/\.[^/.]+$/, "") ?? "unknown")
+                            : id
                         toolDefs[toolId] = def as unknown as ToolDefinition
                       }
                     }
@@ -272,7 +276,9 @@ export const layer = Layer.effect(
                   },
                   catch: errorMessage,
                 }).pipe(
-                  Effect.tapError((error) => Effect.logError("failed to load plugin tools", { spec: load.spec, error })),
+                  Effect.tapError((error) =>
+                    Effect.logError("failed to load plugin tools", { spec: load.spec, error }),
+                  ),
                   Effect.ignore,
                 )
               }
@@ -296,7 +302,10 @@ export const layer = Layer.effect(
                 const fn = (hook as Record<string, unknown>)[key]
                 if (typeof fn !== "function") continue
                 let list = hookMap.get(key)
-                if (!list) { list = []; hookMap.set(key, list) }
+                if (!list) {
+                  list = []
+                  hookMap.set(key, list)
+                }
                 list.push(fn)
               }
             }

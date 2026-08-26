@@ -239,100 +239,27 @@ const boot = Effect.fn("test.boot")(function* () {
 // Tests
 // ---------------------------------------------------------------------------
 
-it.live("session.processor effect tests capture llm input cleanly", () =>
-  provideTmpdirServer(
-    ({ dir, llm }) =>
-      Effect.gen(function* () {
-        
-        const { processors, session, provider } = yield* boot()
+it.live(
+  "session.processor effect tests capture llm input cleanly",
+  () =>
+    provideTmpdirServer(
+      ({ dir, llm }) =>
+        Effect.gen(function* () {
+          const { processors, session, provider } = yield* boot()
 
-        yield* llm.text("hello")
+          yield* llm.text("hello")
 
-        const chat = yield* session.create({})
-        const parent = yield* user(chat.id, "hi")
-        const msg = yield* assistant(chat.id, parent.id, path.resolve(dir))
-        const mdl = yield* provider.getModel(ref.providerID, ref.modelID)
-        const handle = yield* processors.create({
-          assistantMessage: msg,
-          sessionID: chat.id,
-          model: mdl,
-        })
-
-        const input = {
-          user: {
-            id: parent.id,
+          const chat = yield* session.create({})
+          const parent = yield* user(chat.id, "hi")
+          const msg = yield* assistant(chat.id, parent.id, path.resolve(dir))
+          const mdl = yield* provider.getModel(ref.providerID, ref.modelID)
+          const handle = yield* processors.create({
+            assistantMessage: msg,
             sessionID: chat.id,
-            role: "user",
-            time: parent.time,
-            agent: parent.agent,
-            model: { providerID: ref.providerID, modelID: ref.modelID },
-          } satisfies SessionV1.User,
-          sessionID: chat.id,
-          model: mdl,
-          agent: agent(),
-          system: [],
-          messages: [{ role: "user", content: "hi" }],
-          tools: {},
-        } satisfies LLM.StreamInput
+            model: mdl,
+          })
 
-        const value = yield* handle.process(input)
-        const parts = yield* MessageV2.parts(msg.id)
-        const calls = yield* llm.calls
-
-        expect(value).toBe("continue")
-        expect(calls).toBe(1)
-        expect(parts.some((part) => part.type === "text" && part.text === "hello")).toBe(true)
-      }),
-    { config: (url) => providerCfg(url) },
-  ),
-  120_000,
-)
-
-it.live("session.processor effect tests preserve text start time", () =>
-  provideTmpdirServer(
-    ({ dir, llm }) =>
-      Effect.gen(function* () {
-        const database = yield* Database.Service
-        const gate = defer<void>()
-        const { processors, session, provider } = yield* boot()
-
-        yield* llm.push(
-          raw({
-            head: [
-              {
-                id: "chatcmpl-test",
-                object: "chat.completion.chunk",
-                choices: [{ delta: { role: "assistant" } }],
-              },
-              {
-                id: "chatcmpl-test",
-                object: "chat.completion.chunk",
-                choices: [{ delta: { content: "hello" } }],
-              },
-            ],
-            wait: gate.promise,
-            tail: [
-              {
-                id: "chatcmpl-test",
-                object: "chat.completion.chunk",
-                choices: [{ delta: {}, finish_reason: "stop" }],
-              },
-            ],
-          }),
-        )
-
-        const chat = yield* session.create({})
-        const parent = yield* user(chat.id, "hi")
-        const msg = yield* assistant(chat.id, parent.id, path.resolve(dir))
-        const mdl = yield* provider.getModel(ref.providerID, ref.modelID)
-        const handle = yield* processors.create({
-          assistantMessage: msg,
-          sessionID: chat.id,
-          model: mdl,
-        })
-
-        const run = yield* handle
-          .process({
+          const input = {
             user: {
               id: parent.id,
               sessionID: chat.id,
@@ -347,31 +274,107 @@ it.live("session.processor effect tests preserve text start time", () =>
             system: [],
             messages: [{ role: "user", content: "hi" }],
             tools: {},
+          } satisfies LLM.StreamInput
+
+          const value = yield* handle.process(input)
+          const parts = yield* MessageV2.parts(msg.id)
+          const calls = yield* llm.calls
+
+          expect(value).toBe("continue")
+          expect(calls).toBe(1)
+          expect(parts.some((part) => part.type === "text" && part.text === "hello")).toBe(true)
+        }),
+      { config: (url) => providerCfg(url) },
+    ),
+  120_000,
+)
+
+it.live(
+  "session.processor effect tests preserve text start time",
+  () =>
+    provideTmpdirServer(
+      ({ dir, llm }) =>
+        Effect.gen(function* () {
+          const database = yield* Database.Service
+          const gate = defer<void>()
+          const { processors, session, provider } = yield* boot()
+
+          yield* llm.push(
+            raw({
+              head: [
+                {
+                  id: "chatcmpl-test",
+                  object: "chat.completion.chunk",
+                  choices: [{ delta: { role: "assistant" } }],
+                },
+                {
+                  id: "chatcmpl-test",
+                  object: "chat.completion.chunk",
+                  choices: [{ delta: { content: "hello" } }],
+                },
+              ],
+              wait: gate.promise,
+              tail: [
+                {
+                  id: "chatcmpl-test",
+                  object: "chat.completion.chunk",
+                  choices: [{ delta: {}, finish_reason: "stop" }],
+                },
+              ],
+            }),
+          )
+
+          const chat = yield* session.create({})
+          const parent = yield* user(chat.id, "hi")
+          const msg = yield* assistant(chat.id, parent.id, path.resolve(dir))
+          const mdl = yield* provider.getModel(ref.providerID, ref.modelID)
+          const handle = yield* processors.create({
+            assistantMessage: msg,
+            sessionID: chat.id,
+            model: mdl,
           })
-          .pipe(Effect.forkChild)
 
-        yield* waitFor(
-          MessageV2.parts(msg.id).pipe(
-            Effect.map((parts) => parts.find((part): part is SessionV1.TextPart => part.type === "text")),
-            Effect.provideService(Database.Service, database),
-          ),
-          "timed out waiting for text part",
-        )
-        yield* Effect.sleep("20 millis")
-        gate.resolve()
+          const run = yield* handle
+            .process({
+              user: {
+                id: parent.id,
+                sessionID: chat.id,
+                role: "user",
+                time: parent.time,
+                agent: parent.agent,
+                model: { providerID: ref.providerID, modelID: ref.modelID },
+              } satisfies SessionV1.User,
+              sessionID: chat.id,
+              model: mdl,
+              agent: agent(),
+              system: [],
+              messages: [{ role: "user", content: "hi" }],
+              tools: {},
+            })
+            .pipe(Effect.forkChild)
 
-        const exit = yield* Fiber.await(run)
-        const text = (yield* MessageV2.parts(msg.id)).find((part): part is SessionV1.TextPart => part.type === "text")
+          yield* waitFor(
+            MessageV2.parts(msg.id).pipe(
+              Effect.map((parts) => parts.find((part): part is SessionV1.TextPart => part.type === "text")),
+              Effect.provideService(Database.Service, database),
+            ),
+            "timed out waiting for text part",
+          )
+          yield* Effect.sleep("20 millis")
+          gate.resolve()
 
-        expect(Exit.isSuccess(exit)).toBe(true)
-        expect(text?.text).toBe("hello")
-        expect(text?.time?.start).toBeDefined()
-        expect(text?.time?.end).toBeDefined()
-        if (!text?.time?.start || !text.time.end) return
-        expect(text.time.start).toBeLessThan(text.time.end)
-      }),
-    { config: (url) => providerCfg(url) },
-  ),
+          const exit = yield* Fiber.await(run)
+          const text = (yield* MessageV2.parts(msg.id)).find((part): part is SessionV1.TextPart => part.type === "text")
+
+          expect(Exit.isSuccess(exit)).toBe(true)
+          expect(text?.text).toBe("hello")
+          expect(text?.time?.start).toBeDefined()
+          expect(text?.time?.end).toBeDefined()
+          if (!text?.time?.start || !text.time.end) return
+          expect(text.time.start).toBeLessThan(text.time.end)
+        }),
+      { config: (url) => providerCfg(url) },
+    ),
   120_000,
 )
 
@@ -379,7 +382,6 @@ it.live("session.processor effect tests stop after token overflow requests compa
   provideTmpdirServer(
     ({ dir, llm }) =>
       Effect.gen(function* () {
-        
         const { processors, session, provider } = yield* boot()
 
         yield* llm.text("after", { usage: { input: 100, output: 0 } })
@@ -426,7 +428,6 @@ it.live("session.processor effect tests capture reasoning from http mock", () =>
   provideTmpdirServer(
     ({ dir, llm }) =>
       Effect.gen(function* () {
-        
         const { processors, session, provider } = yield* boot()
 
         yield* llm.push(reply().reason("think").text("done").stop())

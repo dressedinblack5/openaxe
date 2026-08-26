@@ -761,7 +761,12 @@ export const layer = Layer.effect(
               .pipe(Effect.ignore, Effect.forkIn(scope))
             if (
               !ctx.assistantMessage.summary &&
-              isOverBudget({ cfg: yield* config.get(), tokens: usage.tokens, model: ctx.model, outputTokenMax: flags.outputTokenMax })
+              isOverBudget({
+                cfg: yield* config.get(),
+                tokens: usage.tokens,
+                model: ctx.model,
+                outputTokenMax: flags.outputTokenMax,
+              })
             ) {
               ctx.needsCompaction = true
             }

@@ -188,9 +188,7 @@ it.effect("subagent inherits parent session external_directory rules", () =>
     const effective = Permission.merge(
       executor.permission,
       deriveSubagentSessionPermission({
-        parentSessionPermission: [
-          { permission: "external_directory", pattern: "/data/*", action: "allow" },
-        ],
+        parentSessionPermission: [{ permission: "external_directory", pattern: "/data/*", action: "allow" }],
         subagent: executor,
       }),
     )

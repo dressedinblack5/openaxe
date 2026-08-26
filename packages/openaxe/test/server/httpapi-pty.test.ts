@@ -51,13 +51,7 @@ const testServer = servedRoutes.pipe(
   Layer.provideMerge(NodeServices.layer),
 )
 
-const effectIt = testEffect(
-  Layer.mergeAll(
-    testStateLayer,
-    Socket.layerWebSocketConstructorGlobal,
-    testServer,
-  ),
-)
+const effectIt = testEffect(Layer.mergeAll(testStateLayer, Socket.layerWebSocketConstructorGlobal, testServer))
 
 function app() {
   return Server.Default().app
@@ -279,7 +273,7 @@ describe("pty HttpApi bridge", () => {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ command: "/bin/cat", title: "websocket" }),
-          })
+          }),
         )
         expect(created.status).toBe(200)
         const json = yield* Effect.promise(() => created.json())
@@ -310,7 +304,9 @@ describe("pty HttpApi bridge", () => {
         yield* write(new Socket.CloseEvent(1000, "done")).pipe(Effect.catch(() => Effect.void))
 
         yield* Effect.promise(() =>
-          request(PtyPaths.remove.replace(":ptyID", info.id), dir, { method: "DELETE" }).then((r) => expect(r.status).toBe(200))
+          request(PtyPaths.remove.replace(":ptyID", info.id), dir, { method: "DELETE" }).then((r) =>
+            expect(r.status).toBe(200),
+          ),
         )
       }),
   )

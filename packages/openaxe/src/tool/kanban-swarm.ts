@@ -26,25 +26,34 @@ export interface KanbanSwarmPromptOps {
 const Status = Schema.Literals(["backlog", "todo", "in_progress", "done", "blocked"])
 
 export const Parameters = Schema.Struct({
-  operation: Schema.Literals([
-    "create_worker",
-    "create_verifier",
-    "complete_worker",
-    "complete_verifier",
-  ]).annotate({ description: "The kanban swarm operation to perform" }),
+  operation: Schema.Literals(["create_worker", "create_verifier", "complete_worker", "complete_verifier"]).annotate({
+    description: "The kanban swarm operation to perform",
+  }),
   boardId: Schema.optional(Schema.String).annotate({ description: "Board id (required for all operations)" }),
-  cardId: Schema.optional(Schema.String).annotate({ description: "Card id (required for complete_worker, complete_verifier)" }),
-  title: Schema.optional(Schema.String).annotate({ description: "Worker/verifier card title (required for create_worker, create_verifier)" }),
+  cardId: Schema.optional(Schema.String).annotate({
+    description: "Card id (required for complete_worker, complete_verifier)",
+  }),
+  title: Schema.optional(Schema.String).annotate({
+    description: "Worker/verifier card title (required for create_worker, create_verifier)",
+  }),
   description: Schema.optional(Schema.String).annotate({ description: "Task description for the worker/verifier" }),
   prompt: Schema.optional(Schema.String).annotate({ description: "The task prompt for the agent to perform" }),
-  subagent_type: Schema.optional(Schema.String).annotate({ description: "The type of specialized agent to use (required for create_worker, create_verifier)" }),
+  subagent_type: Schema.optional(Schema.String).annotate({
+    description: "The type of specialized agent to use (required for create_worker, create_verifier)",
+  }),
   status: Schema.optional(Status).annotate({ description: "Card status" }),
   priority: Schema.optional(Schema.Int).annotate({ description: "Card priority" }),
   position: Schema.optional(Schema.Int).annotate({ description: "Card ordering position" }),
-  workerSessionId: Schema.optional(Schema.String).annotate({ description: "Session id of the subagent working on the card" }),
-  parentId: Schema.optional(Schema.String).annotate({ description: "Parent card id (root -> worker -> verifier hierarchies)" }),
+  workerSessionId: Schema.optional(Schema.String).annotate({
+    description: "Session id of the subagent working on the card",
+  }),
+  parentId: Schema.optional(Schema.String).annotate({
+    description: "Parent card id (root -> worker -> verifier hierarchies)",
+  }),
   verification: Schema.optional(Schema.Json).annotate({ description: "Verification result attached to the card" }),
-  rootSessionId: Schema.optional(Schema.String).annotate({ description: "Root session id. Defaults to the current session." }),
+  rootSessionId: Schema.optional(Schema.String).annotate({
+    description: "Root session id. Defaults to the current session.",
+  }),
   background: Schema.optional(Schema.Boolean).annotate({ description: "Run the subagent in the background" }),
 })
 
@@ -106,45 +115,49 @@ export const KanbanSwarmTool = define(
         })
 
         switch (params.operation) {
-        case "create_worker": {
-          if (!params.boardId || !params.title || !params.prompt || !params.subagent_type) {
-            return yield* Effect.fail(new Error("kanban-swarm create_worker requires boardId, title, prompt, and subagent_type"))
-          }
-
-          const next = yield* agent.get(params.subagent_type)
-          if (!next) {
-            return yield* Effect.fail(new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`))
-          }
-
-          const parentSession = yield* sessions.get(ctx.sessionID)
-          const depthLimit = cfg.experimental?.subagent_depth_limit
-          if (depthLimit !== undefined) {
-            const depth = yield* ancestorDepth(sessions.get, parentSession)
-            if (depth >= depthLimit) {
+          case "create_worker": {
+            if (!params.boardId || !params.title || !params.prompt || !params.subagent_type) {
               return yield* Effect.fail(
-                new Error(
-                  `Subagent depth limit reached (${depthLimit}). Increase "experimental.subagent_depth_limit" to allow nested subagents.`,
-                ),
+                new Error("kanban-swarm create_worker requires boardId, title, prompt, and subagent_type"),
               )
             }
-          }
-          const childPermission = deriveSubagentSessionPermission({
-            parentSessionPermission: parentSession.permission ?? [],
-            subagent: next,
-          })
-          const childToolDenies = [
-            ...(next.permission.some((rule) => Wildcard.match("todowrite", rule.permission))
-              ? []
-              : [{ permission: "todowrite" as const, pattern: "*" as const, action: "deny" as const }]),
-            ...(next.permission.some((rule) => Wildcard.match("task", rule.permission))
-              ? []
-              : [{ permission: "task" as const, pattern: "*" as const, action: "deny" as const }]),
-            ...(cfg.experimental?.primary_tools?.map((permission: string) => ({
-              permission,
-              pattern: "*" as const,
-              action: "deny" as const,
-            })) ?? []),
-          ]
+
+            const next = yield* agent.get(params.subagent_type)
+            if (!next) {
+              return yield* Effect.fail(
+                new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`),
+              )
+            }
+
+            const parentSession = yield* sessions.get(ctx.sessionID)
+            const depthLimit = cfg.experimental?.subagent_depth_limit
+            if (depthLimit !== undefined) {
+              const depth = yield* ancestorDepth(sessions.get, parentSession)
+              if (depth >= depthLimit) {
+                return yield* Effect.fail(
+                  new Error(
+                    `Subagent depth limit reached (${depthLimit}). Increase "experimental.subagent_depth_limit" to allow nested subagents.`,
+                  ),
+                )
+              }
+            }
+            const childPermission = deriveSubagentSessionPermission({
+              parentSessionPermission: parentSession.permission ?? [],
+              subagent: next,
+            })
+            const childToolDenies = [
+              ...(next.permission.some((rule) => Wildcard.match("todowrite", rule.permission))
+                ? []
+                : [{ permission: "todowrite" as const, pattern: "*" as const, action: "deny" as const }]),
+              ...(next.permission.some((rule) => Wildcard.match("task", rule.permission))
+                ? []
+                : [{ permission: "task" as const, pattern: "*" as const, action: "deny" as const }]),
+              ...(cfg.experimental?.primary_tools?.map((permission: string) => ({
+                permission,
+                pattern: "*" as const,
+                action: "deny" as const,
+              })) ?? []),
+            ]
 
             const workerSession = yield* sessions.create({
               parentID: ctx.sessionID,
@@ -156,7 +169,9 @@ export const KanbanSwarmTool = define(
                   (deny) =>
                     !childPermission.some(
                       (rule) =>
-                        rule.permission === deny.permission && rule.pattern === deny.pattern && rule.action === deny.action,
+                        rule.permission === deny.permission &&
+                        rule.pattern === deny.pattern &&
+                        rule.action === deny.action,
                     ),
                 ),
               ],
@@ -266,7 +281,8 @@ export const KanbanSwarmTool = define(
               state: "completed" | "error",
               text: string,
             ) {
-              const verification = state === "completed" ? { result: text, timestamp: Date.now() } : { error: text, timestamp: Date.now() }
+              const verification =
+                state === "completed" ? { result: text, timestamp: Date.now() } : { error: text, timestamp: Date.now() }
               yield* kanban.updateCard(card.id, {
                 status: state === "completed" ? "done" : "blocked",
                 verification,
@@ -303,10 +319,9 @@ export const KanbanSwarmTool = define(
               run: runTask().pipe(
                 Effect.tap((result) => updateCardOnComplete("completed", result)),
                 Effect.onInterrupt(() =>
-                  Effect.all([
-                    ops.cancel(workerSession.id),
-                    updateCardOnComplete("error", "Worker cancelled"),
-                  ], { discard: true }),
+                  Effect.all([ops.cancel(workerSession.id), updateCardOnComplete("error", "Worker cancelled")], {
+                    discard: true,
+                  }),
                 ),
               ),
             })
@@ -381,22 +396,24 @@ export const KanbanSwarmTool = define(
           }
           case "create_verifier": {
             if (!params.boardId || !params.title || !params.prompt || !params.subagent_type || !params.parentId) {
-              return yield* Effect.fail(new Error("kanban-swarm create_verifier requires boardId, title, prompt, subagent_type, and parentId"))
+              return yield* Effect.fail(
+                new Error("kanban-swarm create_verifier requires boardId, title, prompt, subagent_type, and parentId"),
+              )
             }
 
             const _parentCard = yield* kanban.getBoard(params.boardId).pipe(
               Effect.flatMap((_board) => kanban.listCards({ boardId: params.boardId })),
               Effect.map((cards) => cards.find((c) => c.id === params.parentId)),
               Effect.flatMap((card) =>
-                card
-                  ? Effect.succeed(card)
-                  : Effect.fail(new Error(`Parent card not found: ${params.parentId}`)),
+                card ? Effect.succeed(card) : Effect.fail(new Error(`Parent card not found: ${params.parentId}`)),
               ),
             )
 
             const next = yield* agent.get(params.subagent_type)
             if (!next) {
-              return yield* Effect.fail(new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`))
+              return yield* Effect.fail(
+                new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`),
+              )
             }
 
             const parentSession = yield* sessions.get(ctx.sessionID)
@@ -439,7 +456,9 @@ export const KanbanSwarmTool = define(
                   (deny) =>
                     !childPermission.some(
                       (rule) =>
-                        rule.permission === deny.permission && rule.pattern === deny.pattern && rule.action === deny.action,
+                        rule.permission === deny.permission &&
+                        rule.pattern === deny.pattern &&
+                        rule.action === deny.action,
                     ),
                 ),
               ],
@@ -550,7 +569,8 @@ export const KanbanSwarmTool = define(
               state: "completed" | "error",
               text: string,
             ) {
-              const verification = state === "completed" ? { result: text, timestamp: Date.now() } : { error: text, timestamp: Date.now() }
+              const verification =
+                state === "completed" ? { result: text, timestamp: Date.now() } : { error: text, timestamp: Date.now() }
               yield* kanban.updateCard(card.id, {
                 status: state === "completed" ? "done" : "blocked",
                 verification,
@@ -588,10 +608,9 @@ export const KanbanSwarmTool = define(
               run: runTask().pipe(
                 Effect.tap((result) => updateCardOnComplete("completed", result)),
                 Effect.onInterrupt(() =>
-                  Effect.all([
-                    ops.cancel(verifierSession.id),
-                    updateCardOnComplete("error", "Verifier cancelled"),
-                  ], { discard: true }),
+                  Effect.all([ops.cancel(verifierSession.id), updateCardOnComplete("error", "Verifier cancelled")], {
+                    discard: true,
+                  }),
                 ),
               ),
             })
@@ -638,7 +657,8 @@ export const KanbanSwarmTool = define(
                     background.waitForPromotion(verifierSession.id),
                   )
                   if (result?.metadata?.background === true) return backgroundResult()
-                  if (result?.status === "error") return yield* Effect.fail(new Error(result.error ?? "Verifier failed"))
+                  if (result?.status === "error")
+                    return yield* Effect.fail(new Error(result.error ?? "Verifier failed"))
                   if (result?.status === "cancelled") return yield* Effect.fail(new Error("Verifier cancelled"))
                   yield* kanban.updateCard(card.id, { status: "done" })
                   return {
@@ -695,9 +715,8 @@ export const KanbanSwarmTool = define(
               output: renderCard(card),
               metadata: { operation: params.operation },
             }
-}
+          }
         }
-
       }) as Effect.Effect<ExecuteResult<Metadata>>
     }
 

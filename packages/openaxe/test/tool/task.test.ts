@@ -481,9 +481,7 @@ describe("tool.task", () => {
             taskContext(sessionID, messageID, promptOps),
           )
 
-        const child = yield* sessions.get(
-          (yield* run(chat.id, assistant.id, "spawn child")).metadata.sessionId,
-        )
+        const child = yield* sessions.get((yield* run(chat.id, assistant.id, "spawn child")).metadata.sessionId)
         const childMsg = yield* assistantIn(child.id)
         const grandchild = yield* sessions.get(
           (yield* run(child.id, childMsg.id, "spawn grandchild")).metadata.sessionId,

@@ -1,0 +1,42 @@
+import { Effect, Layer, Context } from "effect"
+import { SessionData, SessionDataOutput, SessionEventSubscriberInterface } from "../types"
+import { InstanceState } from "@opencode-ai/openaxe/effect/instance-state"
+import { SessionEventSubscriber } from "../session-event-subscriber"
+
+/**
+ * CLI Adapter - Wraps SessionData reducer output from SessionEventSubscriber
+ * Provides SessionData for TUI rendering
+ */
+
+export interface SessionDataAdapterInterface {
+  readonly getData: (sessionID: string) => Effect.Effect<SessionData | undefined>
+  readonly subscribe: (sessionID: string) => Effect.Effect<void>
+  readonly unsubscribe: (sessionID: string) => Effect.Effect<void>
+}
+
+export const SessionDataAdapter = Context.Tag<SessionDataAdapterInterface>("@opencode/SessionDataAdapter")
+
+export const layer = Layer.effect(
+  SessionDataAdapter,
+  Effect.gen(function* () {
+    const eventSubscriber = yield* SessionEventSubscriberInterface
+
+    const getData = Effect.fn("SessionDataAdapter.getData")(function* (sessionID: string) {
+      return yield* eventSubscriber.getData(sessionID)
+    })
+
+    const subscribe = Effect.fn("SessionDataAdapter.subscribe")(function* (sessionID: string) {
+      yield* eventSubscriber.subscribe(sessionID)
+    })
+
+    const unsubscribe = Effect.fn("SessionDataAdapter.unsubscribe")(function* (sessionID: string) {
+      yield* eventSubscriber.unsubscribe(sessionID)
+    })
+
+    return { getData, subscribe, unsubscribe }
+  }),
+)
+
+export const defaultLayer = layer
+
+export * as SessionDataAdapter from "./session-data"

@@ -480,7 +480,10 @@ export async function create(input: {
     })
   }
 
-  function waitForFreshPush(request: { path: string; version: number; after: number; timeout: number }, signal?: AbortSignal) {
+  function waitForFreshPush(
+    request: { path: string; version: number; after: number; timeout: number },
+    signal?: AbortSignal,
+  ) {
     if (request.timeout <= 0) return Promise.resolve(false)
     return new Promise<boolean>((resolve) => {
       let finished = false

@@ -29,13 +29,18 @@ export const KbBuildCommand = effectCmd({
     const projectId = yield* resolveProjectId(ctx.directory, args.project)
     yield* KB.run(projectId)
     UI.println(
-      UI.Style.TEXT_SUCCESS_BOLD + `KB built for project ${projectId}` + UI.Style.TEXT_NORMAL +
+      UI.Style.TEXT_SUCCESS_BOLD +
+        `KB built for project ${projectId}` +
+        UI.Style.TEXT_NORMAL +
         ` — ${kbDir(ctx.directory)}`,
     )
   }),
 })
 
-const resolveProjectId = (directory: string, explicit: string | undefined): Effect.Effect<ProjectV2.ID, never, Project.Service> =>
+const resolveProjectId = (
+  directory: string,
+  explicit: string | undefined,
+): Effect.Effect<ProjectV2.ID, never, Project.Service> =>
   explicit !== undefined
     ? Effect.succeed(ProjectV2.ID.make(explicit))
     : Effect.gen(function* () {

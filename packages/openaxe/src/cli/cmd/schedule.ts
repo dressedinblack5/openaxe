@@ -10,11 +10,7 @@ export const ScheduleCommand = cmd({
   command: "schedule",
   describe: "schedule autonomous session runs on cron expressions",
   builder: (yargs: Argv) =>
-    yargs
-      .command(ScheduleAddCommand)
-      .command(ScheduleListCommand)
-      .command(ScheduleRemoveCommand)
-      .demandCommand(),
+    yargs.command(ScheduleAddCommand).command(ScheduleListCommand).command(ScheduleRemoveCommand).demandCommand(),
   async handler() {},
 })
 
@@ -41,9 +37,7 @@ export const ScheduleAddCommand = effectCmd({
     yield* Effect.scoped(scheduler.scheduleSession(SessionID.make(args.sessionID), args.cron)).pipe(
       Effect.catchTag("Scheduler.InvalidCronError", (error) => fail(error.message)),
     )
-    UI.println(
-      UI.Style.TEXT_SUCCESS_BOLD + `Scheduled ${args.sessionID} on "${args.cron}"` + UI.Style.TEXT_NORMAL,
-    )
+    UI.println(UI.Style.TEXT_SUCCESS_BOLD + `Scheduled ${args.sessionID} on "${args.cron}"` + UI.Style.TEXT_NORMAL)
   }),
 })
 

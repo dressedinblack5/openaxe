@@ -83,10 +83,7 @@ describe("plugin.loader.shared", () => {
           ].join("\n"),
         )
 
-        await Bun.write(
-          path.join(dir, "openaxe.json"),
-          JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2),
-        )
+        await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2))
 
         return { mark }
       },
@@ -118,10 +115,7 @@ describe("plugin.loader.shared", () => {
           ].join("\n"),
         )
 
-        await Bun.write(
-          path.join(dir, "openaxe.json"),
-          JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2),
-        )
+        await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2))
 
         return { mark }
       },
@@ -156,10 +150,7 @@ describe("plugin.loader.shared", () => {
           ].join("\n"),
         )
 
-        await Bun.write(
-          path.join(dir, "openaxe.json"),
-          JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2),
-        )
+        await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2))
 
         return { mark }
       },
@@ -189,10 +180,7 @@ describe("plugin.loader.shared", () => {
           ].join("\n"),
         )
 
-        await Bun.write(
-          path.join(dir, "openaxe.json"),
-          JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2),
-        )
+        await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2))
 
         return { mark }
       },
@@ -231,10 +219,7 @@ describe("plugin.loader.shared", () => {
           ].join("\n"),
         )
 
-        await Bun.write(
-          path.join(dir, "openaxe.json"),
-          JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2),
-        )
+        await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2))
 
         return { mark }
       },
@@ -792,10 +777,7 @@ describe("plugin.loader.shared", () => {
           ].join("\n"),
         )
 
-        await Bun.write(
-          path.join(dir, "openaxe.json"),
-          JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2),
-        )
+        await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2))
 
         return { mark }
       },
@@ -917,10 +899,7 @@ export default {
           ].join("\n"),
         )
 
-        await Bun.write(
-          path.join(dir, "openaxe.json"),
-          JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2),
-        )
+        await Bun.write(path.join(dir, "openaxe.json"), JSON.stringify({ plugin: [pathToFileURL(file).href] }, null, 2))
 
         return { mark }
       },
@@ -1265,7 +1244,7 @@ export default {
     ),
   )
 
-it.live("does not wait or retry npm plugin failures", () =>
+  it.live("does not wait or retry npm plugin failures", () =>
     Effect.gen(function* () {
       const install = spyOn(Npm, "add").mockRejectedValue(new Error("boom"))
       let wait = 0

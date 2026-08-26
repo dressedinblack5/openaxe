@@ -60,8 +60,6 @@ const _githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>
       }),
   )
 
-
-
 describe("tool.grep", () => {
   rooted.live("basic search", () =>
     Effect.gen(function* () {

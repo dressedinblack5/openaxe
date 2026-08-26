@@ -151,7 +151,10 @@ describe("DiscoveryCache module", () => {
 
     test("rejects malformed dir entries", () => {
       expect(
-        DiscoveryCache.isValidStore({ version: DiscoveryCache.emptyStore().version, dirs: { "/x": { subdirs: null, files: {} } } }),
+        DiscoveryCache.isValidStore({
+          version: DiscoveryCache.emptyStore().version,
+          dirs: { "/x": { subdirs: null, files: {} } },
+        }),
       ).toBe(false)
     })
   })

@@ -92,8 +92,8 @@ describe("event HttpApi", () => {
 
         const created = yield* requestInDirectory("/session", directory, { method: "POST" })
         expect(created.status).toBe(200)
-      expect(yield* readEvent(reader)).toMatchObject({ type: "session.created" })
-    }),
+        expect(yield* readEvent(reader)).toMatchObject({ type: "session.created" })
+      }),
     { git: true, config: { formatter: false, lsp: false } },
     60000,
   )

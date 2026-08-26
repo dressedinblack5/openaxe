@@ -91,7 +91,9 @@ describe("loadTemplate", () => {
   it.instance("loads a template from .openaxe/templates/<name>.yaml", () =>
     Effect.gen(function* () {
       const test = yield* TestInstance
-      yield* Effect.promise(() => Bun.write(`${test.directory}/.openaxe/templates/my-template.yaml`, YAML.stringify(validTemplate)))
+      yield* Effect.promise(() =>
+        Bun.write(`${test.directory}/.openaxe/templates/my-template.yaml`, YAML.stringify(validTemplate)),
+      )
       const loaded = yield* Template.loadTemplate(test.directory, "my-template")
       expect(loaded.name).toBe("refactor-sprint")
       expect(loaded.steps).toHaveLength(2)
@@ -137,7 +139,10 @@ describe("createFromTemplate", () => {
         { permission: "bash", action: "allow", pattern: "*" },
         { permission: "edit", action: "deny", pattern: "src/**" },
       ])
-      expect(info.metadata).toMatchObject({ template: "refactor-sprint", systemPrompt: "You are a refactoring specialist." })
+      expect(info.metadata).toMatchObject({
+        template: "refactor-sprint",
+        systemPrompt: "You are a refactoring specialist.",
+      })
 
       const session = yield* SessionNs.Service
       const stored = yield* session.get(info.id)
@@ -145,11 +150,7 @@ describe("createFromTemplate", () => {
 
       // steps admitted as durable inputs on the session (visible in session_input until promoted)
       const db = (yield* Database.Service).db
-      const inputs = yield* db
-        .select()
-        .from(SessionInputTable)
-        .where(eq(SessionInputTable.session_id, info.id))
-        .all()
+      const inputs = yield* db.select().from(SessionInputTable).where(eq(SessionInputTable.session_id, info.id)).all()
       const texts = inputs.map((row) => row.prompt.text)
       expect(texts).toContain("Scan the codebase for tech debt.")
       expect(texts).toContain("Write a refactor plan.")

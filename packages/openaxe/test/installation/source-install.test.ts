@@ -12,9 +12,7 @@ function mockSpawner() {
   const spawner = ChildProcessSpawner.make((command) => {
     const std = ChildProcess.isStandardCommand(command) ? command : undefined
     recorded.push({ cmd: std?.command ?? "", args: std?.args ?? [] })
-    const output = (std?.args ?? []).includes("--show-toplevel")
-      ? "/home/dressedinblack/Projects/openaxe"
-      : ""
+    const output = (std?.args ?? []).includes("--show-toplevel") ? "/home/dressedinblack/Projects/openaxe" : ""
     return Effect.succeed(
       ChildProcessSpawner.makeHandle({
         pid: ChildProcessSpawner.ProcessId(0),
@@ -35,7 +33,9 @@ function mockSpawner() {
 }
 
 function mockHttpClient() {
-  const client = HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, new Response("{}", { status: 200 }))))
+  const client = HttpClient.make((request) =>
+    Effect.succeed(HttpClientResponse.fromWeb(request, new Response("{}", { status: 200 }))),
+  )
   return Layer.succeed(HttpClient.HttpClient, client)
 }
 
@@ -51,7 +51,8 @@ describe("installation method detection", () => {
     Effect.gen(function* () {
       const method = yield* Installation.use.method()
       expect(method).toBe("git")
-    }))
+    }),
+  )
 })
 
 describe("git upgrade", () => {
@@ -68,5 +69,6 @@ describe("git upgrade", () => {
       const install = commands.indexOf("bun install")
       expect(pull).toBeGreaterThan(revParse)
       expect(install).toBeGreaterThan(pull)
-    }))
+    }),
+  )
 })

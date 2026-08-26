@@ -33,7 +33,6 @@ function mountEditorContext(WebSocketImpl?: typeof WebSocket) {
       return null
     }
 
-    
     return (
       <TestTuiContexts cwd={process.cwd()} paths={{ home: os.homedir() }}>
         <EditorContextProvider integration={editorService} WebSocketImpl={WebSocketImpl}>
@@ -56,7 +55,7 @@ const editorService: EditorIntegration = {
 function createWebSocketImpl(...sockets: FakeWebSocket[]) {
   let index = 0
 
-  return function(url: string, options?: { headers?: Record<string, string> }) {
+  return function (url: string, options?: { headers?: Record<string, string> }) {
     const socket = sockets[index]
     index += 1
     expect(socket).toBeDefined()

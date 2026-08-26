@@ -104,7 +104,17 @@ const publishUser = (sessionID: string, messageID: string, text: string, t: numb
     })
   })
 
-const publishAssistantTurn = (sessionID: string, assistantID: string, tool: { callID: string; name: string; input: Record<string, unknown>; failed?: { error: SessionMessage.UnknownError } }, t: number) =>
+const publishAssistantTurn = (
+  sessionID: string,
+  assistantID: string,
+  tool: {
+    callID: string
+    name: string
+    input: Record<string, unknown>
+    failed?: { error: SessionMessage.UnknownError }
+  },
+  t: number,
+) =>
   Effect.gen(function* () {
     const events = yield* EventV2.Service
     const sid = SessionV2.ID.make(sessionID)
@@ -193,136 +203,147 @@ const fillV1 = (sessionID: string, count: number) =>
 const texts = (msgs: SessionV1.WithParts[]) =>
   msgs.flatMap((m) => m.parts.filter((p): p is SessionV1.TextPart => p.type === "text").map((p) => p.text))
 
-it.instance("core-intelligence E2E: session -> messages -> fork -> merge -> backfill -> search -> schedule -> reflect -> skill -> KB", () =>
-  Effect.gen(function* () {
-    const ctx = yield* InstanceState.context
-    const session = yield* SessionNs.Service
-    const db = (yield* Database.Service).db
+it.instance(
+  "core-intelligence E2E: session -> messages -> fork -> merge -> backfill -> search -> schedule -> reflect -> skill -> KB",
+  () =>
+    Effect.gen(function* () {
+      const ctx = yield* InstanceState.context
+      const session = yield* SessionNs.Service
+      const db = (yield* Database.Service).db
 
-    // 1. create session
-    const created = yield* session.create({ title: "refactor the render loop architecture" })
-    const sessionID = created.id
-    expect(created.title).toBe("refactor the render loop architecture")
+      // 1. create session
+      const created = yield* session.create({ title: "refactor the render loop architecture" })
+      const sessionID = created.id
+      expect(created.title).toBe("refactor the render loop architecture")
 
-    // 2. send messages: V1 transcript for fork/merge + V2 durable rows for the rest
-    const ids = yield* fillV1(sessionID, 5)
-    const userTexts = [
-      "zzqqxx search target discussion",
-      "how does the module layout work",
-      "we should decide whether to switch to lazy loading",
-      "the build fails with a crash exception, tracking the bug",
-      "pattern: always run tests before committing",
-    ]
-    for (let i = 0; i < userTexts.length; i++) {
-      yield* publishUser(sessionID, `msg_user_${i}`, userTexts[i]!, i * 10)
-    }
-    // 5 assistant turns: 3 bash successes + 2 rate_limit failures (reflection
-    // sees 2/5 = 40% >= 30% -> override; skill-gen sees bash x5 >= 3 -> skill)
-    for (let i = 0; i < 5; i++) {
-      yield* publishAssistantTurn(
-        sessionID,
-        `msg_asst_${i}`,
-        {
-          callID: `call_${i}`,
-          name: "bash",
-          input: { command: `echo turn ${i}` },
-          ...(i >= 3 ? { failed: { error: { type: "unknown", message: "rate limit exceeded" } } } : {}),
-        },
-        100 + i * 10,
-      )
-    }
-
-    // 3. fork at message 3 of 5
-    const forkAt = ids[2]!
-    const forked = yield* ForkMerge.fork({ sessionID: SessionV2.ID.make(sessionID), atMessage: forkAt, name: "branch" })
-    const sessionRow = yield* db.select().from(SessionTable).where(eq(SessionTable.id, forked.id)).get()
-    expect(sessionRow?.parent_id).toBe(sessionID)
-    expect(sessionRow?.fork_point_message_id).toBe(forkAt)
-    const childMsgs = yield* session.messages({ sessionID: forked.id })
-    expect(childMsgs.length).toBe(3)
-
-    // 4. diverge the fork (edit the m2 copy) and merge back -> conflict marker
-    const m2Copy = (yield* session.messages({ sessionID: forked.id }))[0]!
-    const textPart = m2Copy.parts.find((p) => p.type === "text")
-    expect(textPart?.type).toBe("text")
-    if (textPart?.type === "text") {
-      yield* session.updatePart({ ...textPart, text: "m2 diverged in fork" })
-    }
-    const merged = yield* ForkMerge.merge({
-      sourceSessionID: forked.id,
-      targetSessionID: SessionV2.ID.make(sessionID),
-      strategy: "lww",
-    })
-    expect(merged.conflicts).toBeGreaterThan(0)
-    const mergedTexts = texts(yield* session.messages({ sessionID: SessionV2.ID.make(sessionID) })).join("\n")
-    expect(mergedTexts).toContain("<<<<<<< SOURCE")
-
-    // 5-6. backfill embeds the V2 user rows (assistant rows skipped), then
-    // semantic search finds the zzqqxx message (only message with those letters).
-    // Backfill + search share one vec layer scope: Vector's finalizers drop the
-    // vec0 tables when the layer scope closes.
-    const { backfill, rerun, hits } = yield* Effect.gen(function* () {
-      const backfill = yield* EmbedBackfill.run({ batchSize: 2 })
-      const rerun = yield* EmbedBackfill.run({ batchSize: 2 })
-      const vector = yield* Vector.Service
-      const hits = yield* vector.search("session_message", bagOfWords("zzqqxx"), 3, drizzleSql`session_id = ${sessionID}`)
-      return { backfill, rerun, hits }
-    }).pipe(Effect.provide(vecLayers))
-    expect(backfill.embedded).toBe(userTexts.length)
-    expect(backfill.skipped).toBe(0)
-    // idempotent: a second run embeds nothing more
-    expect(rerun.embedded).toBe(0)
-    // durable vector blob written so search survives a restart
-    const embeddedRow = yield* db
-      .select({ vector: SessionMessageTable.vector })
-      .from(SessionMessageTable)
-      .where(eq(SessionMessageTable.id, SessionMessage.ID.make("msg_user_0")))
-      .get()
-    expect(embeddedRow?.vector).not.toBeNull()
-    expect(hits.length).toBeGreaterThan(0)
-    expect(hits[0]?.id).toBe("msg_user_0")
-
-    // 7. schedule a cron, list it, reject an invalid cron, remove it
-    const projectId = (yield* db.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get())?.project_id
-    const scheduler = yield* Scheduler.Service
-    yield* scheduler.scheduleSession(SessionV2.ID.make(sessionID), "0 * * * *")
-    const schedules = yield* scheduler.list()
-    expect(schedules.some((s) => s.sessionID === sessionID && s.cron === "0 * * * *")).toBe(true)
-    const invalid = yield* scheduler.scheduleSession(SessionV2.ID.make(sessionID), "not a cron").pipe(Effect.flip)
-    expect(invalid._tag).toBe("Scheduler.InvalidCronError")
-    yield* scheduler.unschedule(SessionV2.ID.make(sessionID))
-    expect((yield* scheduler.list()).length).toBe(0)
-
-    // 8. reflection writes the rate_limit retry policy override
-    expect(projectId).toBeDefined()
-    if (projectId) {
-      yield* Reflection.run(projectId)
-      const override = yield* db
-        .select()
-        .from(RetryPolicyOverridesTable)
-        .where(eq(RetryPolicyOverridesTable.retry_reason, "rate_limit"))
-        .get()
-      expect(override?.max_attempts).toBe(5)
-      expect(override?.base_delay_ms).toBe(60_000)
-    }
-
-    // 9. skill generation writes .openaxe/skills/auto-bash/SKILL.md
-    const generator = yield* SkillGenerator.Service
-    const drafts = yield* generator.analyzeSession(sessionID)
-    expect(drafts.some((d) => d.name === "auto-bash")).toBe(true)
-    const skillFile = path.join(ctx.directory, ".openaxe", "skills", "auto-bash", "SKILL.md")
-    expect(fs.existsSync(skillFile)).toBe(true)
-
-    // 10. KB build writes the 4 .openaxe/kb files
-    if (projectId) {
-      yield* KB.run(projectId)
-      for (const file of KB.KB_FILES) {
-        const kbPath = path.join(ctx.directory, ".openaxe", "kb", `${file}.md`)
-        expect(fs.existsSync(kbPath)).toBe(true)
-        const content = fs.readFileSync(kbPath, "utf8")
-        expect(content).toContain(KB.USER_START)
+      // 2. send messages: V1 transcript for fork/merge + V2 durable rows for the rest
+      const ids = yield* fillV1(sessionID, 5)
+      const userTexts = [
+        "zzqqxx search target discussion",
+        "how does the module layout work",
+        "we should decide whether to switch to lazy loading",
+        "the build fails with a crash exception, tracking the bug",
+        "pattern: always run tests before committing",
+      ]
+      for (let i = 0; i < userTexts.length; i++) {
+        yield* publishUser(sessionID, `msg_user_${i}`, userTexts[i]!, i * 10)
       }
-    }
-  }),
+      // 5 assistant turns: 3 bash successes + 2 rate_limit failures (reflection
+      // sees 2/5 = 40% >= 30% -> override; skill-gen sees bash x5 >= 3 -> skill)
+      for (let i = 0; i < 5; i++) {
+        yield* publishAssistantTurn(
+          sessionID,
+          `msg_asst_${i}`,
+          {
+            callID: `call_${i}`,
+            name: "bash",
+            input: { command: `echo turn ${i}` },
+            ...(i >= 3 ? { failed: { error: { type: "unknown", message: "rate limit exceeded" } } } : {}),
+          },
+          100 + i * 10,
+        )
+      }
+
+      // 3. fork at message 3 of 5
+      const forkAt = ids[2]!
+      const forked = yield* ForkMerge.fork({
+        sessionID: SessionV2.ID.make(sessionID),
+        atMessage: forkAt,
+        name: "branch",
+      })
+      const sessionRow = yield* db.select().from(SessionTable).where(eq(SessionTable.id, forked.id)).get()
+      expect(sessionRow?.parent_id).toBe(sessionID)
+      expect(sessionRow?.fork_point_message_id).toBe(forkAt)
+      const childMsgs = yield* session.messages({ sessionID: forked.id })
+      expect(childMsgs.length).toBe(3)
+
+      // 4. diverge the fork (edit the m2 copy) and merge back -> conflict marker
+      const m2Copy = (yield* session.messages({ sessionID: forked.id }))[0]!
+      const textPart = m2Copy.parts.find((p) => p.type === "text")
+      expect(textPart?.type).toBe("text")
+      if (textPart?.type === "text") {
+        yield* session.updatePart({ ...textPart, text: "m2 diverged in fork" })
+      }
+      const merged = yield* ForkMerge.merge({
+        sourceSessionID: forked.id,
+        targetSessionID: SessionV2.ID.make(sessionID),
+        strategy: "lww",
+      })
+      expect(merged.conflicts).toBeGreaterThan(0)
+      const mergedTexts = texts(yield* session.messages({ sessionID: SessionV2.ID.make(sessionID) })).join("\n")
+      expect(mergedTexts).toContain("<<<<<<< SOURCE")
+
+      // 5-6. backfill embeds the V2 user rows (assistant rows skipped), then
+      // semantic search finds the zzqqxx message (only message with those letters).
+      // Backfill + search share one vec layer scope: Vector's finalizers drop the
+      // vec0 tables when the layer scope closes.
+      const { backfill, rerun, hits } = yield* Effect.gen(function* () {
+        const backfill = yield* EmbedBackfill.run({ batchSize: 2 })
+        const rerun = yield* EmbedBackfill.run({ batchSize: 2 })
+        const vector = yield* Vector.Service
+        const hits = yield* vector.search(
+          "session_message",
+          bagOfWords("zzqqxx"),
+          3,
+          drizzleSql`session_id = ${sessionID}`,
+        )
+        return { backfill, rerun, hits }
+      }).pipe(Effect.provide(vecLayers))
+      expect(backfill.embedded).toBe(userTexts.length)
+      expect(backfill.skipped).toBe(0)
+      // idempotent: a second run embeds nothing more
+      expect(rerun.embedded).toBe(0)
+      // durable vector blob written so search survives a restart
+      const embeddedRow = yield* db
+        .select({ vector: SessionMessageTable.vector })
+        .from(SessionMessageTable)
+        .where(eq(SessionMessageTable.id, SessionMessage.ID.make("msg_user_0")))
+        .get()
+      expect(embeddedRow?.vector).not.toBeNull()
+      expect(hits.length).toBeGreaterThan(0)
+      expect(hits[0]?.id).toBe("msg_user_0")
+
+      // 7. schedule a cron, list it, reject an invalid cron, remove it
+      const projectId = (yield* db.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get())?.project_id
+      const scheduler = yield* Scheduler.Service
+      yield* scheduler.scheduleSession(SessionV2.ID.make(sessionID), "0 * * * *")
+      const schedules = yield* scheduler.list()
+      expect(schedules.some((s) => s.sessionID === sessionID && s.cron === "0 * * * *")).toBe(true)
+      const invalid = yield* scheduler.scheduleSession(SessionV2.ID.make(sessionID), "not a cron").pipe(Effect.flip)
+      expect(invalid._tag).toBe("Scheduler.InvalidCronError")
+      yield* scheduler.unschedule(SessionV2.ID.make(sessionID))
+      expect((yield* scheduler.list()).length).toBe(0)
+
+      // 8. reflection writes the rate_limit retry policy override
+      expect(projectId).toBeDefined()
+      if (projectId) {
+        yield* Reflection.run(projectId)
+        const override = yield* db
+          .select()
+          .from(RetryPolicyOverridesTable)
+          .where(eq(RetryPolicyOverridesTable.retry_reason, "rate_limit"))
+          .get()
+        expect(override?.max_attempts).toBe(5)
+        expect(override?.base_delay_ms).toBe(60_000)
+      }
+
+      // 9. skill generation writes .openaxe/skills/auto-bash/SKILL.md
+      const generator = yield* SkillGenerator.Service
+      const drafts = yield* generator.analyzeSession(sessionID)
+      expect(drafts.some((d) => d.name === "auto-bash")).toBe(true)
+      const skillFile = path.join(ctx.directory, ".openaxe", "skills", "auto-bash", "SKILL.md")
+      expect(fs.existsSync(skillFile)).toBe(true)
+
+      // 10. KB build writes the 4 .openaxe/kb files
+      if (projectId) {
+        yield* KB.run(projectId)
+        for (const file of KB.KB_FILES) {
+          const kbPath = path.join(ctx.directory, ".openaxe", "kb", `${file}.md`)
+          expect(fs.existsSync(kbPath)).toBe(true)
+          const content = fs.readFileSync(kbPath, "utf8")
+          expect(content).toContain(KB.USER_START)
+        }
+      }
+    }),
   { git: true },
 )
