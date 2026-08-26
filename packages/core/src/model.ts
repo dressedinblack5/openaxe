@@ -32,9 +32,12 @@ export type MutableInfo = Omit<Types.DeepMutable<Info>, "api"> & {
 
 export function parse(input: string): { providerID: ProviderV2.ID; modelID: ID } {
   const [providerID, ...modelID] = input.split("/")
+  if (!providerID) throw new Error("Invalid model identifier: missing provider ID")
+  const modelIDStr = modelID.join("/")
+  if (!modelIDStr) throw new Error("Invalid model identifier: missing model ID")
   return {
     providerID: ProviderV2.ID.make(providerID),
-    modelID: ID.make(modelID.join("/")),
+    modelID: ID.make(modelIDStr),
   }
 }
 

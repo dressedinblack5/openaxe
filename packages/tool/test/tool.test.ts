@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect"
 import { describe, it, expect } from "bun:test"
 import { make, settle, validateName, withPermission, isAvailable, subagentSafe, definition } from "../src/tool"
 import type { ToolContext, AvailabilityInput, ToolCall } from "../src/types"
-import { SessionID, MessageID } from "@opencode-ai/core/session/schema"
+import { SessionID, type MessageID } from "@opencode-ai/core/session/schema"
 
 // Test schema
 const TestInputSchema = Schema.Struct({

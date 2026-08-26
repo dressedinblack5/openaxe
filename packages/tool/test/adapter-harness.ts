@@ -6,7 +6,7 @@ import { Schema } from "effect"
 import { CoreToolAdapterLayer } from "../src/adapters/core-tool"
 import { CliToolAdapterLayer } from "../src/adapters/cli-tool"
 import { PluginToolAdapterLayer } from "../src/adapters/plugin-tool"
-import { SessionID, MessageID } from "@opencode-ai/core/session/schema"
+import { SessionID, type MessageID } from "@opencode-ai/core/session/schema"
 import z from "zod"
 
 // Test schemas
