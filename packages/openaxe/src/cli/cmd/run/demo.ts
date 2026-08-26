@@ -312,7 +312,7 @@ function open(state: State): string {
   return id
 }
 
-async function emitText(state: State, body: string, signal?: AbortSignal): Promise<void> {
+async function emitPart(state: State, kind: "text" | "reasoning", body: string, signal?: AbortSignal): Promise<void> {
   const msg = open(state)
   const part = take(state, "part", "part")
   const start = Date.now()
@@ -326,7 +326,7 @@ async function emitText(state: State, body: string, signal?: AbortSignal): Promi
         id: part,
         sessionID: state.id,
         messageID: msg,
-        type: "text",
+        type: kind,
         text: "",
         time: {
           start,
@@ -364,7 +364,7 @@ async function emitText(state: State, body: string, signal?: AbortSignal): Promi
         id: part,
         sessionID: state.id,
         messageID: msg,
-        type: "text",
+        type: kind,
         text: next,
         time: {
           start,
@@ -375,67 +375,12 @@ async function emitText(state: State, body: string, signal?: AbortSignal): Promi
   } as Event)
 }
 
+async function emitText(state: State, body: string, signal?: AbortSignal): Promise<void> {
+  await emitPart(state, "text", body, signal)
+}
+
 async function emitReasoning(state: State, body: string, signal?: AbortSignal): Promise<void> {
-  const msg = open(state)
-  const part = take(state, "part", "part")
-  const start = Date.now()
-
-  feed(state, {
-    type: "message.part.updated",
-    properties: {
-      sessionID: state.id,
-      time: Date.now(),
-      part: {
-        id: part,
-        sessionID: state.id,
-        messageID: msg,
-        type: "reasoning",
-        text: "",
-        time: {
-          start,
-        },
-      },
-    },
-  } as Event)
-
-  let next = ""
-  for (const item of split(body)) {
-    if (signal?.aborted) {
-      return
-    }
-
-    next += item
-    feed(state, {
-      type: "message.part.delta",
-      properties: {
-        sessionID: state.id,
-        messageID: msg,
-        partID: part,
-        field: "text",
-        delta: item,
-      },
-    } as Event)
-    await wait(45, signal)
-  }
-
-  feed(state, {
-    type: "message.part.updated",
-    properties: {
-      sessionID: state.id,
-      time: Date.now(),
-      part: {
-        id: part,
-        sessionID: state.id,
-        messageID: msg,
-        type: "reasoning",
-        text: next,
-        time: {
-          start,
-          end: Date.now(),
-        },
-      },
-    },
-  } as Event)
+  await emitPart(state, "reasoning", body, signal)
 }
 
 function make(state: State, tool: string, input: Record<string, unknown>): Ref {
