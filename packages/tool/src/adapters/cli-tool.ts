@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import type { ToolDefinition, CliToolContext, ToolExecutionResult, ToolCall, ToolContent, AvailabilityInput, PermissionRequest } from "../types"
+import type { ToolDefinition, ToolContext, CliToolContext, ToolExecutionResult, ToolCall, ToolContent, AvailabilityInput, PermissionRequest } from "../types"
 import { make, settle, isAvailable, describe } from "../tool"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
 import type { ProviderV2 } from "@opencode-ai/core/provider"

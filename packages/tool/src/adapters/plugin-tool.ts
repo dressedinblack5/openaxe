@@ -3,6 +3,7 @@ import type { ToolDefinition, PluginToolContext, ToolExecutionResult, ToolCall, 
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import { make, settle, isAvailable } from "../tool"
 import z from "zod"
+import { zodToJsonSchema } from "zod-to-json-schema"
 
 /**
  * Plugin Tool Adapter - Zod compatibility layer for existing plugins
@@ -103,49 +104,15 @@ export const toZodTool = <P extends Schema.Schema<unknown>, O extends Schema.Sch
 }
 
 /**
- * Zod to JSON Schema conversion (copied from CLI registry)
+ * Zod to JSON Schema conversion using zod-to-json-schema (v3 compatible)
  */
 function zodJsonSchema(schema: z.ZodType): JSONSchema7 {
-  const result = normalizeZodJsonSchema(z.toJSONSchema(schema, { io: "input", metadata: zodMetadataRegistry(schema) }))
-  if (!isJsonSchemaObject(result)) throw new Error("Zod schema produced non-object JSON Schema")
-  const { $defs, ...rest } = result
-  return $defs && isJsonSchemaObject($defs)
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- $defs structure matches JSONSchema7 definitions
-    ? { ...rest, definitions: $defs as JSONSchema7["definitions"] }
-    : rest
+  // zod-to-json-schema produces v3 compatible JSON Schema
+  const result = zodToJsonSchema(schema, { target: "jsonSchema7" })
+  return normalizeZodJsonSchema(result)
 }
 
-function zodMetadataRegistry(schema: z.ZodType) {
-  const registry = z.registry<Record<string, unknown>>()
-  const seen = new WeakSet<object>()
-  const collect = (value: unknown) => {
-    if (typeof value !== "object" || value === null) return
-    if (seen.has(value)) return
-    seen.add(value)
-
-    if (isZodType(value)) {
-      const metadata = typeof value.meta === "function" ? value.meta() : undefined
-      const description = typeof value.description === "string" ? value.description : undefined
-      const merged = { ...(metadata && typeof metadata === "object" ? metadata : {}), ...(description ? { description } : {}) }
-      if (Object.keys(merged).length) registry.add(value, merged)
-      collect(value._zod.def)
-      return
-    }
-    for (const item of Object.values(value)) collect(item)
-  }
-  collect(schema)
-  return registry
-}
-
-function isZodType(value: unknown): value is z.ZodType {
-  return typeof value === "object" && value !== null && "_zod" in value
-}
-
-function isJsonSchemaObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-function normalizeZodJsonSchema(value: unknown): unknown {
+function normalizeZodJsonSchema(value: unknown): JSONSchema7 {
   if (Array.isArray(value)) return value.map((item) => normalizeZodJsonSchema(item))
   if (typeof value !== "object" || value === null) return value
   return Object.fromEntries(
