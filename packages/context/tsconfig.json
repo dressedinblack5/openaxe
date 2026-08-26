@@ -4,8 +4,10 @@
   "compilerOptions": {
     "noUncheckedIndexedAccess": false,
     "paths": {
-      "@openaxe/*": ["../*/src"]
-    }
+      "@/*": ["../openaxe/src/*"]
+    },
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": []
   },
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
