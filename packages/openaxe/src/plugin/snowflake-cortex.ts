@@ -3,6 +3,8 @@ import { OAUTH_DUMMY_KEY } from "../auth"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { createServer } from "http"
 import open from "open"
+import { mergeRequestHeaders } from "@/util/headers"
+import { rewriteMaxTokensBody, transformCortexResponse } from "@/util/cortex-response"
 
 const OAUTH_CLIENT_ID = "LOCAL_APPLICATION"
 const OAUTH_CALLBACK_HOST = "127.0.0.1"
@@ -391,78 +393,14 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
             }
 
             const prepareRequest = () => {
-              const headers = new Headers(requestInput instanceof Request ? requestInput.headers : undefined)
-              if (init?.headers) {
-                const entries =
-                  init.headers instanceof Headers
-                    ? init.headers.entries()
-                    : Array.isArray(init.headers)
-                      ? init.headers
-                      : Object.entries(init.headers as Record<string, string | undefined>)
-                for (const [key, value] of entries) {
-                  if (value !== undefined) headers.set(key, value)
-                }
-              }
+              const headers = mergeRequestHeaders(requestInput, init)
               headers.set("authorization", `Bearer ${currentOauth.access}`)
               headers.set("User-Agent", `opencode/${InstallationVersion}`)
 
               let body = init?.body
-              if (body && typeof body === "string") {
-                try {
-                  const parsed = JSON.parse(body)
-                  if ("max_tokens" in parsed) {
-                    parsed.max_completion_tokens = parsed.max_tokens
-                    delete parsed.max_tokens
-                    body = JSON.stringify(parsed)
-                  }
-                } catch {
-                  // expected when body is not parseable JSON
-                }
-              }
+              if (typeof body === "string") body = rewriteMaxTokensBody(body)
 
               return { ...init, headers, body }
-            }
-
-            const transformResponse = async (response: Response) => {
-              if (!response.ok && response.status === 400) {
-                try {
-                  const errorData = await response.clone().json()
-                  const errorMessage = String(errorData.message || errorData.error || "")
-                  if (errorMessage.toLowerCase().includes("conversation complete")) {
-                    return new Response(
-                      JSON.stringify({
-                        choices: [{ finish_reason: "stop", message: { content: "", role: "assistant" } }],
-                      }),
-                      { status: 200, headers: new Headers({ "content-type": "application/json" }) },
-                    )
-                  }
-                } catch {
-                  // expected when error response is not JSON
-                }
-              }
-
-              if (response.body && response.headers.get("content-type")?.includes("text/event-stream")) {
-                const reader = response.body.getReader()
-                const encoder = new TextEncoder()
-                const decoder = new TextDecoder()
-                const stream = new ReadableStream({
-                  async pull(ctrl) {
-                    const { done, value } = await reader.read()
-                    if (done) {
-                      ctrl.close()
-                      return
-                    }
-                    const text = decoder.decode(value, { stream: true })
-                    ctrl.enqueue(encoder.encode(text.replace(/"role"\s*:\s*""/g, '"role":"assistant"')))
-                  },
-                  cancel() {
-                    void reader.cancel()
-                  },
-                })
-                return new Response(stream, { headers: response.headers, status: response.status })
-              }
-
-              return response
             }
 
             const expiresSoon =
@@ -476,10 +414,10 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
 
             if (response.status === 401) {
               await refresh()
-              return transformResponse(await fetch(requestInput, prepareRequest()))
+              return transformCortexResponse(await fetch(requestInput, prepareRequest()))
             }
 
-            return transformResponse(response)
+            return transformCortexResponse(response)
           },
         }
       },

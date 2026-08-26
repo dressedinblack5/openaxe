@@ -14,6 +14,7 @@ import { Auth } from "../auth"
 import { Env } from "../env"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { iife } from "@/util/iife"
+import { rewriteMaxTokensBody, transformCortexResponse } from "@/util/cortex-response"
 import { Global } from "@opencode-ai/core/global"
 import path from "path"
 import { pathToFileURL } from "url"
@@ -908,59 +909,10 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       if (!useOAuthHandler) {
         options.fetch = async (url: RequestInfo | URL, init?: RequestInit) => {
           if (init?.body && typeof init.body === "string") {
-            try {
-              const body = JSON.parse(init.body)
-              if ("max_tokens" in body) {
-                body.max_completion_tokens = body.max_tokens
-                delete body.max_tokens
-                init = { ...init, body: JSON.stringify(body) }
-              }
-            } catch {
-              // expected when body is not parseable JSON
-            }
+            init = { ...init, body: rewriteMaxTokensBody(init.body) }
           }
 
-          const response = await fetch(url, init)
-
-          if (!response.ok && response.status === 400) {
-            try {
-              const errorData = await response.clone().json()
-              const errorMessage = String(errorData.message || errorData.error || "")
-              if (errorMessage.toLowerCase().includes("conversation complete")) {
-                return new Response(
-                  JSON.stringify({
-                    choices: [{ finish_reason: "stop", message: { content: "", role: "assistant" } }],
-                  }),
-                  { status: 200, headers: new Headers({ "content-type": "application/json" }) },
-                )
-              }
-            } catch {
-              // expected when error response is not JSON
-            }
-          }
-
-          if (response.body && response.headers.get("content-type")?.includes("text/event-stream")) {
-            const reader = response.body.getReader()
-            const encoder = new TextEncoder()
-            const decoder = new TextDecoder()
-            const stream = new ReadableStream({
-              async pull(ctrl) {
-                const { done, value } = await reader.read()
-                if (done) {
-                  ctrl.close()
-                  return
-                }
-                const text = decoder.decode(value, { stream: true })
-                ctrl.enqueue(encoder.encode(text.replace(/"role"\s*:\s*""/g, '"role":"assistant"')))
-              },
-              cancel() {
-                void reader.cancel()
-              },
-            })
-            return new Response(stream, { headers: response.headers, status: response.status })
-          }
-
-          return response
+          return transformCortexResponse(await fetch(url, init))
         }
       }
 
