@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Process } from "@opencode-ai/core/util/process"
 import { ChildProcess } from "node:child_process"
 

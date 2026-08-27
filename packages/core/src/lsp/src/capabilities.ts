@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Layer, Context } from "effect"
 import { ServerCapabilities, TextDocumentSyncKind } from "./types"
 

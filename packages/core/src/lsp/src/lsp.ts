@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { EventV2Bridge } from "@opencode-ai/openaxe/event-v2-bridge"

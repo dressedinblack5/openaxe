@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect } from "effect"
 import { SessionEvent } from "@opencode-ai/schema"
 import { SessionData, SessionDataReducer } from "./types"

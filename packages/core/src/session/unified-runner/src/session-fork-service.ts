@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, Layer } from "effect"
 import { Database } from "@opencode-ai/core/database/database"
 import { EventV2 } from "@opencode-ai/core/event"

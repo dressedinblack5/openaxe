@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect } from "bun:test"
 import { DateTime } from "effect"
 import { SessionEvent } from "@opencode-ai/schema/session-event"

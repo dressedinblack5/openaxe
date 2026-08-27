@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, Layer, Ref, HashMap, Scope } from "effect"
 import { EventV2 } from "@opencode-ai/core/event"
 import { InstanceState } from "@opencode-ai/core/effect/instance-state"

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PlatformResolver, DownloadStrategy } from "./types"
 
 /**

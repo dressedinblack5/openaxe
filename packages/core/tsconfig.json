@@ -4,8 +4,5 @@
   "compilerOptions": {
     "noUncheckedIndexedAccess": false
   },
-  "exclude": [
-    "src/lsp/src/**",
-    "src/session/unified-runner/**"
-  ]
+  "_ponytail": "src/lsp/src and src/session/unified-runner are WIP - files carry // @ts-nocheck; remove nocheck when promoting WIP to strict (re-enable checks then)"
 }

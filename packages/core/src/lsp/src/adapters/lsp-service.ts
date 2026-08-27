@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, Layer, Context } from "effect"
 import { LSP as CoreLSP } from "../lsp"
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, Layer } from "effect"
 import { SessionRunnerService, RunError } from "@opencode-ai/core/session/runner/service"
 import { UnifiedRunnerInterface } from "../types"

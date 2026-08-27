@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Schema } from "effect"
 import { SessionEvent, SessionID, SessionMessageID } from "@opencode-ai/schema"
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Schema, Effect } from "effect"
 import { NonNegativeInt } from "../schema"
 

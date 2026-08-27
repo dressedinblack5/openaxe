@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, Layer, Context, FileSystem, ChildProcess, Duration, Timeout } from "effect"
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter } from "vscode-jsonrpc/node"
 import { Schema } from "effect"

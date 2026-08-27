@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Cause, Deferred, Effect, Exit, Fiber, Latch, Schema, Scope, SynchronizedRef } from "effect"
 import { RunnerState, type SessionID } from "./types"
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 export * as SessionRunnerModel from "./model"
 
 import type { Model } from "@opencode-ai/llm"

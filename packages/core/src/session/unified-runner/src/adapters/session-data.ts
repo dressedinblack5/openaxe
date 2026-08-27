@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, Layer } from "effect"
 import { SessionData, SessionEventSubscriberInterface } from "../types"
 

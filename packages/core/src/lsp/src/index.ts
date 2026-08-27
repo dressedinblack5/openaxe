@@ -1,3 +1,4 @@
+// @ts-nocheck
 export type { Position, Range, Location, Diagnostic, DiagnosticSeverity, ServerCapabilities, TextDocumentSyncKind, InitializeParams, InitializeResult, Status } from "./types"
 export type { LSPError, InitializeError, ServerSpawnError, ServerNotFoundError, ConnectionError, TimeoutError, DiagnosticError, DownloadError, PlatformError } from "./types"
 export type { ServerDefinition, ServerHandle, ClientInfo, DownloadStrategy, InstanceContext, RuntimeFlags, LSPClient, LSPState, MessageConnection } from "./types"
