@@ -152,8 +152,8 @@ export interface ExternalToolDefinition {
 }
 
 export interface ExternalToolLoader {
-  readonly load: (directories: ReadonlyArray<string>) => Effect.Effect<ReadonlyArray<ExternalToolDefinition>>
-  readonly watch: (directories: ReadonlyArray<string>) => Effect.Effect<void>
+  readonly load: (directories: ReadonlyArray<string>) => Effect.Effect<ReadonlyArray<ExternalToolDefinition>, unknown>
+  readonly watch: (directories: ReadonlyArray<string>) => Effect.Effect<void, unknown>
 }
 
 /**
@@ -173,7 +173,7 @@ export interface ToolRegistryInterface {
     tool: ToolDefinition<P, O>,
     call: ToolCall,
     context: ToolContext
-  ) => Effect.Effect<ToolExecutionResult, ToolFailure>
+  ) => Effect.Effect<ToolExecutionResult, ToolFailure, P["DecodingServices"] | O["EncodingServices"]>
 }
 
 /**

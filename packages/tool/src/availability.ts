@@ -1,4 +1,4 @@
-import { Effect, HashMap, Ref, Context } from "effect"
+import { Effect, HashMap, Ref, Context, Layer } from "effect"
 import type { ToolDefinition, AvailabilityInput, AvailabilityKey, Schema } from "./types"
 import type { ProviderV2 } from "@opencode-ai/core/provider"
 import type { ModelV2 } from "@opencode-ai/core/model"
@@ -39,44 +39,47 @@ function keyToString(key: AvailabilityKey): string {
   return `${key.flagsHash}|${key.providerID ?? "none"}|${key.modelID ?? "none"}|${key.agentID ?? "none"}`
 }
 
-export const AvailabilityLive = Effect.gen(function* () {
-  const cache = yield* Ref.make(HashMap.empty<string, boolean>())
+export const AvailabilityLive = Layer.effect(
+  AvailabilityService,
+  Effect.gen(function* () {
+    const cache = yield* Ref.make(HashMap.empty<string, boolean>())
 
-  const check = (
-    tool: ToolDefinition,
-    input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info }
-  ): Effect.Effect<boolean> =>
-    Effect.gen(function* () {
-      const availInput: AvailabilityInput = {
-        flags: input.flags,
-        providerID: input.providerID,
-        modelID: input.modelID,
-        agentID: input.agent.id,
-      }
-      const key = makeAvailabilityKey(availInput)
-      const keyStr = keyToString(key)
+    const check = (
+      tool: ToolDefinition,
+      input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info }
+    ): Effect.Effect<boolean> =>
+      Effect.gen(function* () {
+        const availInput: AvailabilityInput = {
+          flags: input.flags,
+          providerID: input.providerID,
+          modelID: input.modelID,
+          agentID: input.agent.id,
+        }
+        const key = makeAvailabilityKey(availInput)
+        const keyStr = keyToString(key)
 
-      const cached = HashMap.get(yield* Ref.get(cache), keyStr)
-      if (cached._tag === "Some") return cached.value
+        const cached = HashMap.get(yield* Ref.get(cache), keyStr)
+        if (cached._tag === "Some") return cached.value
 
-      const available = isAvailable(tool, availInput)
-      yield* Ref.update(cache, (m) => HashMap.set(m, keyStr, available))
-      return available
-    })
+        const available = isAvailable(tool, availInput)
+        yield* Ref.update(cache, (m) => HashMap.set(m, keyStr, available))
+        return available
+      })
 
-  const filter = (
-    tools: ReadonlyArray<ToolDefinition>,
-    input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info }
-  ): Effect.Effect<ReadonlyArray<ToolDefinition>> =>
-    Effect.gen(function* () {
-      return yield* Effect.filter(tools, (tool) => check(tool, input))
-    })
+    const filter = (
+      tools: ReadonlyArray<ToolDefinition>,
+      input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info }
+    ): Effect.Effect<ReadonlyArray<ToolDefinition>> =>
+      Effect.gen(function* () {
+        return yield* Effect.filter(tools, (tool) => check(tool, input))
+      })
 
-  const clearCache = (): Effect.Effect<void> =>
-    Ref.set(cache, HashMap.empty())
+    const clearCache = (): Effect.Effect<void> =>
+      Ref.set(cache, HashMap.empty())
 
-  return { check, filter, clearCache }
-})
+    return { check, filter, clearCache }
+  })
+)
 
 /**
  * Static availability check (doesn't use cache)

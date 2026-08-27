@@ -3,6 +3,9 @@ import { describe, it, expect } from "bun:test"
 import { make, settle, validateName, withPermission, isAvailable, subagentSafe, definition } from "../src/tool"
 import type { ToolContext, AvailabilityInput, ToolCall } from "../src/types"
 import { SessionID, type MessageID } from "@opencode-ai/core/session/schema"
+import { ProviderV2 } from "@opencode-ai/core/provider"
+import { ModelV2 } from "@opencode-ai/core/model"
+import { AgentV2 as Agent } from "@opencode-ai/core/agent"
 
 // Test schema
 const TestInputSchema = Schema.Struct({
@@ -113,9 +116,9 @@ describe("Availability", () => {
 
     const input: AvailabilityInput = {
       flags: {},
-      providerID: "anthropic",
-      modelID: "claude-3",
-      agentID: "agent-1",
+      providerID: ProviderV2.ID.make("anthropic"),
+      modelID: ModelV2.ID.make("claude-3"),
+      agentID: Agent.ID.make("agent-1"),
     }
 
     expect(isAvailable(tool, input)).toBe(true)
@@ -133,16 +136,16 @@ describe("Availability", () => {
 
     const allowedInput: AvailabilityInput = {
       flags: { allowTest: true },
-      providerID: "anthropic",
-      modelID: "claude-3",
-      agentID: "agent-1",
+      providerID: ProviderV2.ID.make("anthropic"),
+      modelID: ModelV2.ID.make("claude-3"),
+      agentID: Agent.ID.make("agent-1"),
     }
 
     const deniedInput: AvailabilityInput = {
       flags: { allowTest: false },
-      providerID: "anthropic",
-      modelID: "claude-3",
-      agentID: "agent-1",
+      providerID: ProviderV2.ID.make("anthropic"),
+      modelID: ModelV2.ID.make("claude-3"),
+      agentID: Agent.ID.make("agent-1"),
     }
 
     expect(isAvailable(tool, allowedInput)).toBe(true)
@@ -246,9 +249,9 @@ describe("Property-based tests", () => {
 
     const input: AvailabilityInput = {
       flags: { allow: true },
-      providerID: "anthropic",
-      modelID: "claude-3",
-      agentID: "agent-1",
+      providerID: ProviderV2.ID.make("anthropic"),
+      modelID: ModelV2.ID.make("claude-3"),
+      agentID: Agent.ID.make("agent-1"),
     }
 
     const result1 = isAvailable(tool, input)

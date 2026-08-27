@@ -1,12 +1,15 @@
 import { Effect, Layer } from "effect"
 import { describe, it, expect } from "bun:test"
-import { ToolRegistryLive } from "../src/registry"
+import { ToolRegistryLive, ToolRegistryService } from "../src/registry"
 import { AvailabilityLive } from "../src/availability"
 import { Schema } from "effect"
 import { CoreToolAdapterLayer } from "../src/adapters/core-tool"
 import { CliToolAdapterLayer } from "../src/adapters/cli-tool"
 import { PluginToolAdapterLayer } from "../src/adapters/plugin-tool"
 import { SessionID, type MessageID } from "@opencode-ai/core/session/schema"
+import { ProviderV2 } from "@opencode-ai/core/provider"
+import { ModelV2 } from "@opencode-ai/core/model"
+import { AgentV2 as Agent } from "@opencode-ai/core/agent"
 import z from "zod"
 
 // Test schemas
@@ -55,7 +58,7 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
         description: "Core adapter test",
         parameters: TestInputSchema,
         output: TestOutputSchema,
-        execute: async (_input: TestInput) => ({ result: "ok" }),
+        execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
       })
 
       const core = CoreToolAdapterLayer.toCoreTool(unified)
@@ -82,7 +85,7 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
         description: "CLI adapter test",
         parameters: TestInputSchema,
         output: TestOutputSchema,
-        execute: async (_input: TestInput) => ({
+        execute: (_input: TestInput) => Effect.succeed({
           title: "Test",
           metadata: {},
           output: "result",
@@ -101,7 +104,7 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
         description: "CLI availability test",
         parameters: TestInputSchema,
         output: TestOutputSchema,
-        execute: async (_input: TestInput) => ({
+        execute: (_input: TestInput) => Effect.succeed({
           title: "",
           metadata: {},
           output: "ok",
@@ -111,9 +114,19 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
       })
 
       const model = {
-        providerID: "anthropic",
-        modelID: "claude-3",
-        agent: { id: "agent-1", name: "Test" },
+        providerID: ProviderV2.ID.make("anthropic"),
+        modelID: ModelV2.ID.make("claude-3"),
+        agent: {
+          id: Agent.ID.make("agent-1"),
+          name: "Test",
+          request: { headers: {}, body: {} },
+          mode: "primary" as const,
+          hidden: false,
+          permissions: [] as Array<{ readonly action: string; readonly resource: string; readonly effect: "allow" | "deny" | "ask" }>,
+          tools: [],
+          model: undefined,
+          provider: ProviderV2.ID.make("anthropic"),
+        },
       }
 
       expect(CliToolAdapterLayer.checkCliAvailability(cli, model, { allowCli: true })).toBe(true)
@@ -139,7 +152,7 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
         id: "plugin_adapter_test",
         description: "Plugin adapter test",
         args: { name: z.string(), value: z.number() },
-        execute: async (args: z.infer<typeof zodSchema>) => ({ result: `Hello ${args.name}` }),
+        execute: (args: z.infer<typeof zodSchema>) => Promise.resolve(JSON.stringify({ result: `Hello ${args.name}` })),
       }
 
       const unified = PluginToolAdapterLayer.fromZodTool(zodTool)
@@ -152,7 +165,7 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
         id: "to_zod_test",
         description: "To Zod test",
         args: { name: z.string(), value: z.number() },
-        execute: async (_args: unknown) => ({ result: "ok" }),
+        execute: (_args: unknown) => Promise.resolve(JSON.stringify({ result: "ok" })),
       })
 
       const zodTool = PluginToolAdapterLayer.toZodTool(unified)
@@ -169,7 +182,7 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
         description: "Chain test",
         parameters: TestInputSchema,
         output: TestOutputSchema,
-        execute: async (_input: TestInput) => ({ result: "ok" }),
+        execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
       })
 
       // Convert to core and back
@@ -186,23 +199,30 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
     })
 
     it("should work with ToolRegistry through adapters", async () => {
-      const registry = await Effect.runPromise(
-        ToolRegistryLive.pipe(Layer.provide(AvailabilityLive))
-      )
+      // Test that the layer can be built and provides the service
+      const layer = ToolRegistryLive.pipe(Layer.provide(AvailabilityLive))
+      
+      // Use Effect.gen to access the service within the layer
+      const testEffect = Effect.gen(function* () {
+        const registry = yield* ToolRegistryService
+        
+        // Register via core adapter
+        const unified = CoreToolAdapterLayer.make({
+          id: "registry_adapter_test",
+          description: "Registry adapter test",
+          parameters: TestInputSchema,
+          output: TestOutputSchema,
+          execute: (_input: TestInput) => Effect.succeed({ result: "ok" }),
+        })
 
-      // Register via core adapter
-      const unified = CoreToolAdapterLayer.make({
-        id: "registry_adapter_test",
-        description: "Registry adapter test",
-        parameters: TestInputSchema,
-        output: TestOutputSchema,
-        execute: async (_input: TestInput) => ({ result: "ok" }),
-      })
+        yield* registry.register(unified)
 
-      await Effect.runPromise(registry.register(unified))
-
-      // Retrieve and verify
-      const retrieved = await Effect.runPromise(registry.get("registry_adapter_test"))
+        // Retrieve and verify
+        const retrieved = yield* registry.get("registry_adapter_test")
+        return retrieved
+      }).pipe(Effect.provide(layer))
+      
+      const retrieved = await Effect.runPromise(testEffect)
       expect(retrieved).toBeDefined()
       expect(retrieved?.id).toBe("registry_adapter_test")
     })

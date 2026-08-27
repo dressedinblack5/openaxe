@@ -1,13 +1,17 @@
 import { Effect, Schema } from "effect"
+import { ToolFailureError } from "./types"
 import type { ToolDefinition, ToolContext, ToolExecutionResult, ToolFailure, ToolCall, ToolContent, AvailabilityInput, ToolAvailability, JSONSchema7 } from "./types"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
 
 /**
  * Internal runtime state for a tool (not exposed publicly)
  */
-interface ToolRuntime {
-  readonly definition: (name: string) => ToolDefinition
-  readonly settle: (call: ToolCall, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure>
+interface ToolRuntime<
+  P extends Schema.Schema<unknown> = Schema.Schema<unknown>,
+  O extends Schema.Schema<unknown> = Schema.Schema<unknown>
+> {
+  readonly definition: (name: string) => ToolDefinition<P, O>
+  readonly settle: (call: ToolCall, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure, P["DecodingServices"] | O["EncodingServices"]>
   readonly maxResultSizeChars?: number
   readonly permission?: string
   readonly subagentSafe: boolean
@@ -67,10 +71,10 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
 ): ToolDefinition<P, O> {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- creating base tool definition
   const tool = Object.freeze({}) as ToolDefinition<P, O>
-  const definitions = new Map<string, ToolDefinition>()
+  const definitions = new Map<string, ToolDefinition<P, O>>()
 
   const runtime: ToolRuntime<P, O> = {
-    definition: (name) => {
+    definition: (name: string): ToolDefinition<P, O> => {
       const cached = definitions.get(name)
       if (cached) return cached
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- building tool definition from config
@@ -88,7 +92,7 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
         availability: config.availability,
         describe: config.describe,
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- building tool definition from config
-      } as ToolDefinition
+      } as ToolDefinition<P, O>
       definitions.set(name, def)
       return def
     },
@@ -98,7 +102,7 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
         const decoded = yield* Schema.decodeUnknownEffect(config.parameters)(call.input).pipe(
           Effect.mapError(
             (error) =>
-              new ToolFailure({
+              new ToolFailureError({
                 message: `Invalid tool input: ${error.message}`,
                 cause: error,
               }),
@@ -106,10 +110,11 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
         )
 
         // Execute
-        const output = yield* config.execute(decoded, context).pipe(
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- decoded is P["Type"] which equals Type<P>
+        const output = yield* config.execute(decoded as Schema.Schema.Type<P>, context).pipe(
           Effect.mapError(
             (error) =>
-              new ToolFailure({
+              new ToolFailureError({
                 message: error.message,
                 cause: error,
               }),
@@ -120,7 +125,7 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
         const encoded = yield* Schema.encodeEffect(config.output)(output).pipe(
           Effect.mapError(
             (error) =>
-              new ToolFailure({
+              new ToolFailureError({
                 message: `Tool returned invalid output: ${error.message}`,
                 cause: error,
               }),
@@ -128,7 +133,8 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
         )
 
         // Build result
-        const toModelOutput = config.toModelOutput?.({ input: decoded, output: encoded }) ?? []
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- decoded is P["Type"] which equals Type<P>
+        const toModelOutput = config.toModelOutput?.({ input: decoded as Schema.Schema.Type<P>, output: encoded }) ?? []
         const result: ToolExecutionResult = {
           title: "",
           metadata: {},
@@ -191,7 +197,7 @@ export const settle = <P extends Schema.Schema<unknown>, O extends Schema.Schema
   tool: ToolDefinition<P, O>,
   call: ToolCall,
   context: ToolContext
-): Effect.Effect<ToolExecutionResult, ToolFailure> => getRuntime(tool).settle(call, context)
+): Effect.Effect<ToolExecutionResult, ToolFailure, P["DecodingServices"] | O["EncodingServices"]> => getRuntime(tool).settle(call, context)
 
 /**
  * Get tool permission

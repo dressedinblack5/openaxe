@@ -1,6 +1,6 @@
 import { Effect, Layer, Context } from "effect"
 import { Glob } from "@opencode-ai/core/util/glob"
-import { DiscoveryCache } from "@opencode-ai/openaxe/tool/discovery-cache"
+import { DiscoveryCache } from "./discovery-cache"
 import type { ExternalToolLoader, ExternalToolDefinition } from "./types"
 import path from "path"
 import { pathToFileURL } from "url"
@@ -29,14 +29,14 @@ function isExternalToolDefinition(value: unknown): value is ExternalToolDefiniti
 export const ExternalToolLoaderLive = Layer.effect(
   ExternalToolLoaderService,
   Effect.gen(function* () {
-    const cache = yield* DiscoveryCache.load()
+    const cacheStore = yield* DiscoveryCache.load()
 
-    const load = (directories: ReadonlyArray<string>): Effect.Effect<ReadonlyArray<ExternalToolDefinition>, unknown, DiscoveryCache.DiscoveryCache> =>
+    const load = (directories: ReadonlyArray<string>): Effect.Effect<ReadonlyArray<ExternalToolDefinition>, unknown> =>
       Effect.gen(function* () {
         const allTools: ExternalToolDefinition[] = []
 
         for (const dir of directories) {
-          const prev = cache.dirs[dir]
+          const prev = cacheStore.dirs[dir]
 // oxlint-disable-next-line typescript/no-redundant-type-constituents -- FileSignature from DiscoveryCache
           const subdirs: Record<string, DiscoveryCache.FileSignature | undefined> = {}
           for (const sub of DiscoveryCache.SCAN_SUBDIRS) {
@@ -106,7 +106,7 @@ export const ExternalToolLoaderLive = Layer.effect(
         return allTools
       })
 
-    const watch = (directories: ReadonlyArray<string>): Effect.Effect<void, unknown, DiscoveryCache.DiscoveryCache> =>
+    const watch = (directories: ReadonlyArray<string>): Effect.Effect<void, unknown> =>
       Effect.gen(function* () {
         // For now, just re-load on watch trigger
         // In a full implementation, this would use a file watcher

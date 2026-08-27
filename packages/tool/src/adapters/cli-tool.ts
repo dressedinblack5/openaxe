@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import type { ToolDefinition, ToolContext, CliToolContext, ToolExecutionResult, ToolCall, ToolContent, AvailabilityInput, PermissionRequest } from "../types"
+import type { ToolDefinition, ToolContext, CliToolContext, ToolExecutionResult, ToolCall, ToolContent, AvailabilityInput, PermissionRequest, ToolFailure } from "../types"
 import { make, settle, isAvailable, describe } from "../tool"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
 import type { ProviderV2 } from "@opencode-ai/core/provider"
@@ -35,7 +35,7 @@ export interface CliToolDefinition<
   readonly parameters: P
   readonly output: O
   readonly jsonSchema: import("@ai-sdk/provider").JSONSchema7
-  readonly execute: (input: Schema.Schema.Type<P>, context: CliToolContext) => Effect.Effect<ToolExecutionResult>
+  readonly execute: (input: Schema.Schema.Type<P>, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure>
   readonly toModelOutput?: (input: { readonly input: Schema.Schema.Type<P>; readonly output: unknown }) => ReadonlyArray<ToolContent>
   readonly maxResultSizeChars?: number
   readonly permission?: string
@@ -54,10 +54,10 @@ export const toCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Sch
 
   const enrichedExecute = (
     input: Schema.Schema.Type<P>,
-    context: CliToolContext
-  ): Effect.Effect<ToolExecutionResult> =>
+    context: ToolContext
+  ): Effect.Effect<ToolExecutionResult, ToolFailure> =>
     Effect.gen(function* () {
-      // Execute base tool - returns the decoded output
+      // Execute base tool - returns the decoded output (Type<O>)
       const output = yield* baseExecute(input, context)
 
       // Convert to ToolExecutionResult
@@ -98,7 +98,7 @@ export const makeCliTool = <P extends Schema.Schema<unknown>, O extends Schema.S
     readonly description: string
     readonly parameters: P
     readonly output: O
-    readonly execute: (input: Schema.Schema.Type<P>, context: CliToolContext) => Effect.Effect<ToolExecutionResult>
+    readonly execute: (input: Schema.Schema.Type<P>, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure>
     readonly toModelOutput?: (input: { readonly input: Schema.Schema.Type<P>; readonly output: unknown }) => ReadonlyArray<ToolContent>
     readonly maxResultSizeChars?: number
     readonly permission?: string
@@ -110,12 +110,13 @@ export const makeCliTool = <P extends Schema.Schema<unknown>, O extends Schema.S
   // Create a unified tool with a wrapper execute that converts ToolExecutionResult to the output type
   const unifiedConfig = {
     ...config,
-    execute: async (input: Schema.Schema.Type<P>, context: ToolContext) => {
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- context extended with CLI-specific properties
-      const result = await Effect.runPromise(config.execute(input, context as CliToolContext))
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- result.output matches configured output schema
-      return result.output as Schema.Schema.Type<O>
-    },
+    execute: (input: Schema.Schema.Type<P>, context: ToolContext): Effect.Effect<Schema.Schema.Type<O>, ToolFailure> =>
+      Effect.gen(function* () {
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- context extended with CLI-specific properties
+        const result = yield* config.execute(input, context as CliToolContext)
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- result.output matches configured output schema
+        return result.output as Schema.Schema.Type<O>
+      }),
   }
   const unified = make(unifiedConfig)
   return toCliTool(unified)
@@ -132,7 +133,13 @@ export const checkCliAvailability = <
   model: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info },
   flags: Record<string, unknown>
 ): boolean =>
-  isAvailable(tool, { flags, providerID: model.providerID, modelID: model.modelID, agentID: model.agent.id })
+  isAvailable(tool, { 
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- flags validated by AvailabilityInput
+    flags: flags as Record<string, boolean | string | number | undefined>, 
+    providerID: model.providerID, 
+    modelID: model.modelID, 
+    agentID: model.agent.id 
+  })
 
 /**
  * Get enhanced description for a model

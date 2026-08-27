@@ -35,7 +35,8 @@ export interface CoreToolDefinition<
   readonly description: string
   readonly parameters: Input
   readonly output: Output
-  readonly execute: (input: Schema.Schema.Type<Input>, context: ToolContext) => Effect.Effect<Schema.Schema.Type<Output>, ToolFailure>
+  readonly jsonSchema: import("@ai-sdk/provider").JSONSchema7
+  readonly execute: (input: Schema.Schema.Type<Input>, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure>
   readonly toModelOutput?: (input: { readonly input: Schema.Schema.Type<Input>; readonly output: unknown }) => ReadonlyArray<ToolContent>
   readonly maxResultSizeChars?: number
   readonly permission?: string

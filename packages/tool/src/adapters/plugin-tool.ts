@@ -37,7 +37,7 @@ export const fromZodTool = <Args extends z.ZodRawShape>(
   zodTool: ZodToolDefinition<Args>
 ): ToolDefinition => {
   const zodSchema = z.object(zodTool.args)
-  const jsonSchema = zodJsonSchema(zodSchema)
+  const _jsonSchema = zodJsonSchema(zodSchema)
 
   // Create Effect Schema from Zod
   const parameters = Schema.declare<unknown>(
@@ -51,7 +51,6 @@ export const fromZodTool = <Args extends z.ZodRawShape>(
     description: zodTool.description,
     parameters,
     output,
-    jsonSchema,
     execute: (args, context) =>
       Effect.gen(function* () {
         // Bridge Effect context to Promise-based plugin context
@@ -113,10 +112,18 @@ function zodJsonSchema(schema: z.ZodType): JSONSchema7 {
 }
 
 function normalizeZodJsonSchema(value: unknown): JSONSchema7 {
-  if (Array.isArray(value)) return value.map((item) => normalizeZodJsonSchema(item))
-  if (typeof value !== "object" || value === null) return value
+  if (Array.isArray(value)) {
+    // zod-to-json-schema should not return arrays for schema definitions
+    // but if it does, take the first element
+    return normalizeZodJsonSchema(value[0])
+  }
+  if (typeof value !== "object" || value === null) {
+    // Should not happen for JSON Schema, but return empty object as fallback
+    return {}
+  }
   return Object.fromEntries(
-    Object.entries(value)
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- value is object here
+    Object.entries(value as Record<string, unknown>)
       .filter(([key]) => key !== "exclusiveMaximum" && key !== "exclusiveMinimum")
       .map(([key, item]) => [key, normalizeZodJsonSchema(item)]),
   )
