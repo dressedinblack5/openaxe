@@ -212,9 +212,8 @@ describe("Integration", () => {
       )
 
       const attempt = yield* integrations.connection.oauth({ integrationID, methodID, inputs: {} })
-      expect(yield* integrations.attempt.complete({ attemptID: attempt.attemptID }).pipe(Effect.flip)).toBeInstanceOf(
-        Integration.CodeRequiredError,
-      )
+      const error = yield* integrations.attempt.complete({ attemptID: attempt.attemptID }).pipe(Effect.flip)
+      expect(error).toMatchObject({ _tag: "Integration.CodeRequired", attemptID: attempt.attemptID })
       expect(closed).toBe(false)
       yield* integrations.attempt.cancel(attempt.attemptID)
       expect(closed).toBe(true)
