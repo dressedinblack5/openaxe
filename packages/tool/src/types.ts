@@ -6,8 +6,9 @@ import type { ProviderV2 } from "@opencode-ai/core/provider"
 import type { ModelV2 } from "@opencode-ai/core/model"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
 import type { SessionID, MessageID } from "@opencode-ai/core/session/schema"
+import type { ToolRegistrationError } from "./tool"
 
-export type { SessionID, MessageID }
+export type { SessionID, MessageID, ToolRegistrationError }
 
 /**
  * ToolDefinition - Unified tool definition using Effect Schema internally,
@@ -25,7 +26,7 @@ export interface ToolDefinition<
   readonly execute: (
     input: Schema.Schema.Type<Parameters>,
     context: ToolContext
-  ) => Effect.Effect<Schema.Schema.Type<Output>, ToolFailure>
+  ) => Effect.Effect<ToolExecutionResult, ToolFailure>
   readonly toModelOutput?: (
     input: {
       readonly input: Schema.Schema.Type<Parameters>

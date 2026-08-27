@@ -50,7 +50,10 @@ export interface CoreToolDefinition<
  */
 export const toCoreTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   unified: ToolDefinition<P, O>
-): CoreToolDefinition<P, O> => unified as CoreToolDefinition<P, O>
+): CoreToolDefinition<P, O> => {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CoreToolDefinition compatible with ToolDefinition
+  return unified as CoreToolDefinition<P, O>
+}
 
 /**
  * Convert core tool definition to unified tool
