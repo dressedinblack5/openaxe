@@ -1,5 +1,4 @@
-// @ts-nocheck - WIP Effect v4 migration, re-enable when adapters compile
-import { Effect, Layer, Option } from "effect"
+import { Context, Effect, Layer, Option } from "effect"
 import type { ContextService } from "../context"
 import { ContextScope, ScopeNotFoundError } from "../context"
 

@@ -1,5 +1,4 @@
-// @ts-nocheck - WIP Effect v4 migration, re-enable when adapters compile
-import { Effect, Layer, Option, Schema } from "effect"
+import { Context, Effect, Layer, Option, Schema } from "effect"
 import type { ContextService } from "../context"
 
 /**
@@ -160,7 +159,7 @@ export const makeSystemContextAdapter = (_unified: ContextService): SystemContex
 
     for (const key of Object.keys(previous).sort()) {
       if (keys.has(key)) continue
-      if (previous[key].removed === undefined) return { _tag: "Replace" }
+      if (previous[key]?.removed === undefined) return { _tag: "Replace" }
     }
 
     const snapshot: Snapshot = {}
@@ -192,7 +191,7 @@ export const makeSystemContextAdapter = (_unified: ContextService): SystemContex
 
     for (const key of Object.keys(previous).sort()) {
       if (keys.has(key)) continue
-      const removed = previous[key].removed
+      const removed = previous[key]?.removed
       if (removed === undefined) throw new Error(`Missing removal rendering for system context source ${key}`)
       updates.push(removed)
     }
@@ -226,19 +225,22 @@ export const makeSystemContextAdapter = (_unified: ContextService): SystemContex
   return {
     make: <A>(source: Source<A>): SystemContext => {
       const codec = source.codec
-      const decode = Schema.decodeUnknownOption(codec)
-      const encode = Schema.encodeSync(codec)
-      const equivalent = Schema.toEquivalence(codec)
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Effect beta Schema variance requires cast
+      const decode = Schema.decodeUnknownOption(codec as unknown as never)
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Effect beta Schema variance requires cast
+      const encode = Schema.encodeSync(codec as unknown as never)
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Effect beta Schema variance requires cast
+      const equivalent = Schema.toEquivalence(codec as unknown as never)
 
       return context([
         {
           key: source.key,
           load: source.load.pipe(
-            Effect.map((value) => {
+            Effect.map((value: A | Unavailable) => {
               if (isUnavailable(value)) return value
               const snapshot = (): SourceSnapshot => ({
                 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- encode returns Json-compatible value
-                value: encode(value) as Schema.Json,
+                value: (encode as unknown as (a: A) => Schema.Json)(value),
                 ...(source.removed ? { removed: requireText(source.key, "removal", source.removed(value)) } : {}),
               })
               return {
@@ -247,10 +249,11 @@ export const makeSystemContextAdapter = (_unified: ContextService): SystemContex
                   snapshot: snapshot(),
                 }),
                 compare: (previous: Schema.Json): Compared =>
-                  Option.match(decode(previous), {
+                  Option.match(decode(previous) as Option.Option<A>, {
                     onNone: (): Compared => ({ _tag: "Incompatible" }),
-                    onSome: (decoded): Compared =>
-                      equivalent(decoded, value)
+                    onSome: (decoded: A): Compared =>
+                      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Effect beta Schema equivalence variance
+                      (equivalent as unknown as (a: A, b: A) => boolean)(decoded, value)
                         ? { _tag: "Unchanged" }
                         : {
                             _tag: "Updated",

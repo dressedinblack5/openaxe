@@ -1,7 +1,5 @@
-// @ts-nocheck - WIP Effect v4 migration, re-enable when adapters compile
-import { Effect, Layer, Option } from "effect"
-import type { ContextService } from "../context"
-import { InstanceRef } from "openaxe/effect/instance-ref"
+import { Context, Effect, Layer, Option } from "effect"
+import type { ContextService, ContextSnapshot, ContextBudget, ContextEpoch } from "../context"
 
 /**
  * InstanceContext Adapter - Minimal
@@ -10,6 +8,11 @@ export interface InstanceContext {
   readonly directory: string
   readonly worktree: string | undefined
 }
+
+// ponytail: local stub — @openaxe/context must not import openaxe/effect/instance-ref (workspace:* cycle)
+export const InstanceRef = Context.Reference<InstanceContext | undefined>("~openaxe/InstanceRef", {
+  defaultValue: () => undefined
+})
 
 export const toProjectScope = (ctx: InstanceContext): import("../context").ContextScope => ({
   _tag: "ProjectScope",
@@ -52,56 +55,36 @@ const getDirectory = (): Effect.Effect<string, unknown, unknown> =>
 export const makeInstanceContextAdapter = (unified: ContextService): InstanceContextAdapterInterface => ({
   getContext,
   getDirectory,
-  get: (key: string) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.get(toProjectScope(ctx), key))
-  ),
-  set: (key: string, value: unknown) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.set(toProjectScope(ctx), key, value))
-  ),
-  delete: (key: string) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.delete(toProjectScope(ctx), key))
-  ),
-  has: (key: string) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.get(toProjectScope(ctx), key).pipe(
-      Effect.map(Option.isSome)
-    ))
-  ),
-  snapshot: () => getContext().pipe(
-    Effect.flatMap((ctx) => unified.snapshot(toProjectScope(ctx)))
-  ),
-  restore: (snapshot: unknown) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.restore(toProjectScope(ctx), snapshot))
-  ),
-  initializeEpoch: (baseline: unknown, budget?: unknown) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.initializeEpoch(toProjectScope(ctx), baseline, budget))
-  ),
-  getEpoch: () => getContext().pipe(
-    Effect.flatMap((ctx) => unified.getEpoch(toProjectScope(ctx)))
-  ),
-  replaceEpoch: (epoch: unknown) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.replaceEpoch(toProjectScope(ctx), epoch))
-  ),
-  getBudget: () => getContext().pipe(
-    Effect.flatMap((ctx) => unified.getBudget(toProjectScope(ctx)))
-  ),
-  setBudget: (budget: unknown) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.setBudget(toProjectScope(ctx), budget))
-  ),
-  compact: (strategy?: "auto" | "explicit" | "hybrid") => getContext().pipe(
-    Effect.flatMap((ctx) => unified.compact(toProjectScope(ctx), strategy))
-  ),
-  release: () => getContext().pipe(
-    Effect.flatMap((ctx) => unified.releaseScope(toProjectScope(ctx)))
-  ),
-  getOrLoad: (key: string, loader: () => Effect.Effect<unknown>) => getContext().pipe(
-    Effect.flatMap((ctx) => unified.getOrLoad(toProjectScope(ctx), key, loader))
-  ),
+  get: (key: string) => getContext().pipe(Effect.flatMap((ctx) => unified.get(toProjectScope(ctx), key))),
+  set: (key: string, value: unknown) => getContext().pipe(Effect.flatMap((ctx) => unified.set(toProjectScope(ctx), key, value))),
+  delete: (key: string) => getContext().pipe(Effect.flatMap((ctx) => unified.delete(toProjectScope(ctx), key))),
+  has: (key: string) =>
+    getContext().pipe(Effect.flatMap((ctx) => unified.get(toProjectScope(ctx), key).pipe(Effect.map(Option.isSome)))),
+  snapshot: () => getContext().pipe(Effect.flatMap((ctx) => unified.snapshot(toProjectScope(ctx)))),
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- adapter boundary narrows unknown to ContextSnapshot
+  restore: (snapshot: unknown) => getContext().pipe(Effect.flatMap((ctx) => unified.restore(toProjectScope(ctx), snapshot as ContextSnapshot))),
+  initializeEpoch: (baseline: unknown, budget?: unknown) =>
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- adapter boundary narrows unknown to ContextBudget
+    getContext().pipe(Effect.flatMap((ctx) => unified.initializeEpoch(toProjectScope(ctx), baseline, budget as ContextBudget | undefined))),
+  getEpoch: () => getContext().pipe(Effect.flatMap((ctx) => unified.getEpoch(toProjectScope(ctx)))),
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- adapter boundary narrows unknown to ContextEpoch
+  replaceEpoch: (epoch: unknown) => getContext().pipe(Effect.flatMap((ctx) => unified.replaceEpoch(toProjectScope(ctx), epoch as ContextEpoch))),
+  getBudget: () => getContext().pipe(Effect.flatMap((ctx) => unified.getBudget(toProjectScope(ctx)))),
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- adapter boundary narrows unknown to ContextBudget
+  setBudget: (budget: unknown) => getContext().pipe(Effect.flatMap((ctx) => unified.setBudget(toProjectScope(ctx), budget as ContextBudget))),
+  compact: (strategy?: "auto" | "explicit" | "hybrid") =>
+    getContext().pipe(Effect.flatMap((ctx) => unified.compact(toProjectScope(ctx), strategy))),
+  release: () => getContext().pipe(Effect.flatMap((ctx) => unified.releaseScope(toProjectScope(ctx)))),
+  getOrLoad: (key: string, loader: () => Effect.Effect<unknown>) =>
+    getContext().pipe(Effect.flatMap((ctx) => unified.getOrLoad(toProjectScope(ctx), key, loader)))
 })
 
 /**
  * InstanceContext Adapter Service
  */
-export class InstanceContextAdapter extends Context.Service<InstanceContextAdapter, InstanceContextAdapterInterface>()("@openaxe/InstanceContextAdapter") {}
+export class InstanceContextAdapter extends Context.Service<InstanceContextAdapter, InstanceContextAdapterInterface>()(
+  "@openaxe/InstanceContextAdapter"
+) {}
 
 /**
  * Layer that provides the InstanceContext adapter
