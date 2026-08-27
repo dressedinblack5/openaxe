@@ -81,6 +81,7 @@ import { getRevertDiffFiles } from "../../util/revert-diff"
 import { OPENCODE_BASE_MODE, useBindings, useCommandShortcut, useOpencodeKeymap } from "../../keymap"
 import { usePathFormatter } from "../../context/path-format"
 import { LocationProvider } from "../../context/location"
+import { focusNext, focusPrev, focusRegion, isFocused } from "../../context/focus"
 
 addDefaultParsers(parsers.parsers)
 
@@ -1127,6 +1128,17 @@ export function Session() {
     bindings: tuiConfig.keybinds.get("session.background"),
   }))
 
+  useBindings(() => ({
+    mode: OPENCODE_BASE_MODE,
+    bindings: [
+      { key: "tab", cmd: () => { focusNext(); } },
+      { key: "shift+tab", cmd: () => { focusPrev(); } },
+      { key: "ctrl+1", cmd: () => { focusRegion("sidebar"); } },
+      { key: "ctrl+2", cmd: () => { focusRegion("messages"); } },
+      { key: "ctrl+3", cmd: () => { focusRegion("prompt"); } },
+    ],
+  }))
+
   const revertInfo = createMemo(() => session()?.revert)
   const revertMessageID = createMemo(() => revertInfo()?.messageID)
 
@@ -1174,7 +1186,16 @@ export function Session() {
         }}
       >
         <box flexDirection="row" flexGrow={1} minHeight={0}>
-          <box flexGrow={1} minHeight={0} paddingBottom={1} paddingLeft={2} paddingRight={2} gap={1}>
+          <box
+            flexGrow={1}
+            minHeight={0}
+            paddingBottom={1}
+            paddingLeft={2}
+            paddingRight={2}
+            gap={1}
+            border={isFocused("messages")() ? ["right"] : []}
+            borderColor={isFocused("messages")() ? theme.primary : undefined}
+          >
             <Show when={session()}>
               <scrollbox
                 ref={(r) => (scroll = r)}
@@ -1316,26 +1337,28 @@ export function Session() {
                   <SubagentFooter />
                 </Show>
                 <Show when={visible()}>
-                  <pluginRuntime.Slot
-                    name="session_prompt"
-                    mode="replace"
-                    session_id={route.sessionID}
-                    visible={visible()}
-                    disabled={disabled()}
-                    on_submit={toBottom}
-                    ref={bind}
-                  >
-                    <Prompt
+                  <box border={isFocused("prompt")() ? ["top"] : []} borderColor={isFocused("prompt")() ? theme.primary : undefined} marginTop={1}>
+                    <pluginRuntime.Slot
+                      name="session_prompt"
+                      mode="replace"
+                      session_id={route.sessionID}
                       visible={visible()}
-                      ref={bind}
                       disabled={disabled()}
-                      onSubmit={() => {
-                        toBottom()
-                      }}
-                      sessionID={route.sessionID}
-                      right={<pluginRuntime.Slot name="session_prompt_right" session_id={route.sessionID} />}
-                    />
-                  </pluginRuntime.Slot>
+                      on_submit={toBottom}
+                      ref={bind}
+                    >
+                      <Prompt
+                        visible={visible()}
+                        ref={bind}
+                        disabled={disabled()}
+                        onSubmit={() => {
+                          toBottom()
+                        }}
+                        sessionID={route.sessionID}
+                        right={<pluginRuntime.Slot name="session_prompt_right" session_id={route.sessionID} />}
+                      />
+                    </pluginRuntime.Slot>
+                  </box>
                 </Show>
               </box>
             </Show>
@@ -1343,7 +1366,9 @@ export function Session() {
           <Show when={sidebarVisible()}>
             <Switch>
               <Match when={wide()}>
-                <Sidebar sessionID={route.sessionID} />
+                <box border={isFocused("sidebar")() ? ["right"] : []} borderColor={isFocused("sidebar")() ? theme.primary : undefined}>
+                  <Sidebar sessionID={route.sessionID} />
+                </box>
               </Match>
               <Match when={!wide()}>
                 <box

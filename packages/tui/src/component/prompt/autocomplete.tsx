@@ -19,9 +19,10 @@ import { useTerminalDimensions } from "@opentui/solid"
 import { Locale } from "../../util/locale"
 import type { PromptInfo } from "../../prompt/history"
 import { useFrecency } from "../../prompt/frecency"
-import { useBindings, useCommandSlashes, useOpencodeModeStack } from "../../keymap"
+import { useBindings, useCommandSlashes } from "../../keymap"
 import { displayCharAt, mentionTriggerIndex } from "../../prompt/display"
 import type { FileSystemEntry } from "@opencode-ai/sdk/v2"
+import { pushFocus, popFocus } from "../../context/focus"
 
 function removeLineRange(input: string) {
   const hashIndex = input.lastIndexOf("#")
@@ -89,7 +90,6 @@ export function Autocomplete(props: {
   const data = useData()
   const project = useProject()
   const slashes = useCommandSlashes()
-  const modeStack = useOpencodeModeStack()
   const { theme } = useTheme()
   const dimensions = useTerminalDimensions()
   const frecency = useFrecency()
@@ -106,9 +106,11 @@ export function Autocomplete(props: {
   const [positionTick, setPositionTick] = createSignal(0)
 
   createEffect(() => {
-    if (!store.visible) return
-    const popMode = modeStack.push("autocomplete")
-    onCleanup(popMode)
+    if (store.visible) {
+      pushFocus("autocomplete")
+    } else {
+      popFocus()
+    }
   })
 
   createEffect(() => {

@@ -56,6 +56,7 @@ import { useTuiConfig } from "../../config"
 import { usePromptWorkspace } from "./workspace"
 import { usePromptMove } from "./move"
 import { readLocalAttachment } from "./local-attachment"
+import { isFocused } from "../../context/focus"
 
 export type PromptProps = {
   sessionID?: string
@@ -625,18 +626,6 @@ export function Prompt(props: PromptProps) {
     }
     setInputTarget(undefined)
     props.ref?.(undefined)
-  })
-
-  createEffect(() => {
-    if (!input || input.isDestroyed) return
-    if (props.visible === false || dialog.stack.length > 0) {
-      if (input.focused) input.blur()
-      return
-    }
-
-    // Slot/plugin updates can remount the background prompt while a dialog is open.
-    // Keep focus with the dialog and let the prompt reclaim it after the dialog closes.
-    if (!input.focused) input.focus()
   })
 
   createEffect(() => {
@@ -1319,7 +1308,13 @@ export function Prompt(props: PromptProps) {
     () => !!local.agent.current() && store.mode === "normal" && showVariant(),
     animationsEnabled,
   )
-  const borderHighlight = createMemo(() => tint(theme.border, highlight(), agentMetaAlpha()))
+  const promptFocused = createMemo(() => isFocused("prompt"))
+
+  const borderHighlight = createMemo(() => {
+    const base = tint(theme.border, highlight(), agentMetaAlpha())
+    if (promptFocused()) return theme.primary
+    return base
+  })
 
   const placeholderText = createMemo(() => {
     if (props.showPlaceholder === false) return undefined

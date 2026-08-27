@@ -5,6 +5,7 @@ import { useTheme } from "../../context/theme"
 import { useTuiConfig } from "../../config"
 import { InstallationChannel, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { usePluginRuntime } from "../../plugin/runtime"
+import { isFocused } from "../../context/focus"
 
 import { getScrollAcceleration } from "../../util/scroll"
 import { WorkspaceLabel } from "../../component/workspace-label"
@@ -23,23 +24,26 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   }
   const scrollAcceleration = createMemo(() => getScrollAcceleration(tuiConfig))
 
-  return (
-    <Show when={session()}>
-      {(current) => {
-        const s = current()
-        const workspaceID = s.workspaceID
-        const shareURL = s.share?.url
-        return (
-          <box
-            backgroundColor={theme.backgroundPanel}
-            width={42}
-            height="100%"
-            paddingTop={1}
-            paddingBottom={1}
-            paddingLeft={2}
-            paddingRight={2}
-            position={props.overlay ? "absolute" : "relative"}
-          >
+return (
+          <Show when={session()}>
+            {(current) => {
+              const s = current()
+              const workspaceID = s.workspaceID
+              const shareURL = s.share?.url
+              const sidebarFocused = isFocused("sidebar")
+              return (
+                <box
+                  backgroundColor={theme.backgroundPanel}
+                  width={42}
+                  height="100%"
+                  paddingTop={1}
+                  paddingBottom={1}
+                  paddingLeft={2}
+                  paddingRight={2}
+                  position={props.overlay ? "absolute" : "relative"}
+                  border={sidebarFocused() ? ["right"] : []}
+                  borderColor={sidebarFocused() ? theme.primary : undefined}
+                >
             <scrollbox
               flexGrow={1}
               scrollAcceleration={scrollAcceleration()}

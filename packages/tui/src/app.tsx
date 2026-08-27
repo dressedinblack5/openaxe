@@ -58,6 +58,7 @@ import { PromptStashProvider } from "./component/prompt/stash"
 import { DialogAlert } from "./ui/dialog-alert"
 import { DialogConfirm } from "./ui/dialog-confirm"
 import { Toast, ToastProvider, useToast } from "./ui/toast"
+import { focusNext, focusPrev, focusRegion } from "./context/focus"
 import { isDefaultTitle } from "./util/session"
 import { KVProvider, useKV } from "./context/kv"
 import * as Model from "./util/model"
@@ -141,6 +142,11 @@ const appBindingCommands = [
   "app.toggle.diffwrap",
   "app.toggle.paste_summary",
   "app.toggle.session_directory_filter",
+  "focus.next",
+  "focus.prev",
+  "focus.sidebar",
+  "focus.messages",
+  "focus.prompt",
 ] as const
 
 export type TuiInput = {
@@ -1010,6 +1016,51 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
           kv.set("session_directory_filter_enabled", !kv.get("session_directory_filter_enabled", true))
           await sync.session.refresh()
           dialog.clear()
+        },
+      },
+      {
+        name: "focus.next",
+        title: "Focus next region",
+        category: "Focus",
+        hidden: true,
+        run: () => {
+          focusNext()
+        },
+      },
+      {
+        name: "focus.prev",
+        title: "Focus previous region",
+        category: "Focus",
+        hidden: true,
+        run: () => {
+          focusPrev()
+        },
+      },
+      {
+        name: "focus.sidebar",
+        title: "Focus sidebar",
+        category: "Focus",
+        hidden: true,
+        run: () => {
+          focusRegion("sidebar")
+        },
+      },
+      {
+        name: "focus.messages",
+        title: "Focus messages",
+        category: "Focus",
+        hidden: true,
+        run: () => {
+          focusRegion("messages")
+        },
+      },
+      {
+        name: "focus.prompt",
+        title: "Focus prompt",
+        category: "Focus",
+        hidden: true,
+        run: () => {
+          focusRegion("prompt")
         },
       },
     ].map((command) => ({

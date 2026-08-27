@@ -17,6 +17,7 @@ import { createMemo, type Accessor } from "solid-js"
 import { useTuiConfig } from "./config"
 import { TuiKeybind } from "./config/keybind"
 
+
 export const LEADER_TOKEN = "leader"
 export const OPENCODE_BASE_MODE = "base"
 export const COMMAND_PALETTE_COMMAND = "command.palette.show"
@@ -172,7 +173,7 @@ const inputCommands = [
   "input.submit",
 ] as const
 
-function hasManagedTextareaFocus(renderer: CliRenderer) {
+function hasManagedTextareaFocus(renderer: CliRenderer): boolean {
   const editor = renderer.currentFocusedEditor
   return editor instanceof TextareaRenderable && !(editor instanceof InputRenderable)
 }

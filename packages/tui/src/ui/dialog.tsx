@@ -1,12 +1,13 @@
 import { useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { batch, createContext, createEffect, onCleanup, Show, useContext, type JSX, type ParentProps } from "solid-js"
 import { useTheme } from "../context/theme"
-import { Renderable, RGBA } from "@opentui/core"
+import { RGBA } from "@opentui/core"
 import { createStore } from "solid-js/store"
 import { useToast } from "./toast"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { useBindings, useOpencodeModeStack } from "../keymap"
 import { useClipboard } from "../context/clipboard"
+import { popFocus, replaceFocus, clearFocusStack } from "../context/focus"
 
 export function Dialog(
   props: ParentProps<{
@@ -81,31 +82,6 @@ function init() {
     onCleanup(popMode)
   })
 
-  let focus: Renderable | null
-  function contains(item: Renderable, target: Renderable): boolean {
-    if (item === target) return true
-    return item.getChildren().some((child) => contains(child, target))
-  }
-  function firstFocusable(item: Renderable): Renderable | undefined {
-    if (item.focusable) return item
-    for (const child of item.getChildren()) {
-      const found = firstFocusable(child)
-      if (found) return found
-    }
-    return undefined
-  }
-  function refocus() {
-    setTimeout(() => {
-      if (focus && !focus.isDestroyed && contains(renderer.root, focus)) {
-        focus.focus()
-        return
-      }
-      // Captured renderable was destroyed while the dialog was open — fall back to any
-      // focusable renderable (usually the prompt) instead of leaving keyboard dead.
-      firstFocusable(renderer.root)?.focus()
-    }, 1)
-  }
-
   useBindings(() => ({
     enabled: store.stack.length > 0 && !renderer.getSelection()?.getSelectedText(),
     bindings: [
@@ -120,7 +96,7 @@ function init() {
           const current = store.stack.at(-1)
           current?.onClose?.()
           setStore("stack", store.stack.slice(0, -1))
-          refocus()
+          popFocus()
         },
       },
       {
@@ -134,7 +110,7 @@ function init() {
           const current = store.stack.at(-1)
           current?.onClose?.()
           setStore("stack", store.stack.slice(0, -1))
-          refocus()
+          popFocus()
         },
       },
     ],
@@ -149,13 +125,12 @@ function init() {
         setStore("size", "medium")
         setStore("stack", [])
       })
-      refocus()
+      clearFocusStack()
     },
     // oxlint-disable-next-line typescript-eslint/no-explicit-any -- replace accepts arbitrary render inputs from plugins
     replace(input: any, onClose?: () => void) {
       if (store.stack.length === 0) {
-        focus = renderer.currentFocusedRenderable
-        focus?.blur()
+        replaceFocus("dialog")
       }
       for (const item of store.stack) {
         if (item.onClose) item.onClose()
