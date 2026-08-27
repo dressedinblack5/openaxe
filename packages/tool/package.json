@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@opencode-ai/schema": "workspace:*",
+    "@opencode-ai/core": "workspace:*",
+    "@ai-sdk/provider": "1.0.12",
     "effect": "4.0.0-beta.82",
     "@effect/schema": "0.75.0",
     "@effect/platform": "0.69.0"

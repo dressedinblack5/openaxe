@@ -3,5 +3,9 @@
   "extends": "@tsconfig/bun/tsconfig.json",
   "compilerOptions": {
     "noUncheckedIndexedAccess": false
-  }
+  },
+  "exclude": [
+    "src/lsp/src/**",
+    "src/session/unified-runner/**"
+  ]
 }

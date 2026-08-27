@@ -25,11 +25,12 @@ export function hasErrorTag<TTag extends string>(value: unknown, tag: TTag): val
 /**
  * Narrow a discriminated union error by tag
  */
-export function narrowError<T extends { readonly _tag: string }>(
+export function narrowError<T extends { readonly _tag: PropertyKey }>(
   error: T,
   tag: T["_tag"],
 ): Extract<T, { readonly _tag: typeof tag }> | undefined {
-  return error._tag === tag ? error : undefined
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- narrowed by _tag check
+  return error._tag === tag ? (error as Extract<T, { readonly _tag: typeof tag }>) : undefined
 }
 
 /**
@@ -131,53 +132,55 @@ export function assertNever(value: never): never {
  * Match an error against a map of handlers
  * Returns the result of the matching handler, or calls default handler
  */
-export function matchError<T, R>(
+export function matchError<T extends { readonly _tag: PropertyKey }, R>(
   error: T,
   handlers: {
     [K in T["_tag"]]?: (error: Extract<T, { readonly _tag: K }>) => R
   },
   defaultHandler: (error: T) => R,
 ): R {
-   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- handler lookup by _tag is safe
-   const handler = handlers[error._tag as keyof typeof handlers]
-   if (handler) {
-     return handler(error as unknown)
-   }
-   return defaultHandler(error)
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- handler lookup by _tag is safe
+  const handler = handlers[error._tag as keyof typeof handlers]
+  if (handler) {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- narrowed by handler existence
+    return handler(error as Extract<T, { readonly _tag: typeof error._tag }>)
+  }
+  return defaultHandler(error)
 }
 
 /**
  * Match an error with a default return value
  */
-export function matchErrorOr<T, R>(
+export function matchErrorOr<T extends { readonly _tag: PropertyKey }, R>(
   error: T,
   handlers: {
     [K in T["_tag"]]?: (error: Extract<T, { readonly _tag: K }>) => R
   },
   defaultValue: R,
 ): R {
-   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- handler lookup by _tag is safe
-   const handler = handlers[error._tag as keyof typeof handlers]
-   if (handler) {
-     return handler(error as unknown)
-   }
-   return defaultValue
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- handler lookup by _tag is safe
+  const handler = handlers[error._tag as keyof typeof handlers]
+  if (handler) {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- narrowed by handler existence
+    return handler(error as Extract<T, { readonly _tag: typeof error._tag }>)
+  }
+  return defaultValue
 }
 
 /**
  * Check if error matches any of the given tags
  */
-export function isAnyErrorType<T extends { readonly _tag: string }>(
+export function isAnyErrorType<T extends { readonly _tag: PropertyKey }>(
   error: T,
   tags: readonly T["_tag"][],
 ): boolean {
-  return tags.includes(error._tag)
+  return (tags as readonly PropertyKey[]).includes(error._tag)
 }
 
 /**
  * Utility to safely extract a field from an error if it matches the tag
  */
-export function getErrorField<T extends { readonly _tag: string }, K extends keyof T>(
+export function getErrorField<T extends { readonly _tag: PropertyKey }, K extends keyof T>(
   error: T,
   tag: T["_tag"],
   field: K,

@@ -38,12 +38,7 @@
     }
   },
   "devDependencies": {
-    "@tsconfig/bun": "1.0.9",
-    "@types/bun": "1.3.13",
-    "@types/cross-spawn": "6.0.6",
-    "@types/node": "24.12.2",
-    "@types/npmcli__arborist": "6.3.3",
-    "@types/turndown": "5.0.5",
+    "@opencode-ai/http-recorder": "workspace:*",
     "@parcel/watcher-darwin-arm64": "2.5.1",
     "@parcel/watcher-darwin-x64": "2.5.1",
     "@parcel/watcher-linux-arm64-glibc": "2.5.1",
@@ -52,8 +47,14 @@
     "@parcel/watcher-linux-x64-musl": "2.5.1",
     "@parcel/watcher-win32-arm64": "2.5.1",
     "@parcel/watcher-win32-x64": "2.5.1",
-    "@opencode-ai/http-recorder": "workspace:*",
-    "drizzle-kit": "1.0.0-rc.2"
+    "@tsconfig/bun": "1.0.9",
+    "@types/bun": "1.3.13",
+    "@types/cross-spawn": "6.0.6",
+    "@types/node": "24.12.2",
+    "@types/npmcli__arborist": "6.3.3",
+    "@types/turndown": "5.0.5",
+    "drizzle-kit": "1.0.0-rc.2",
+    "vscode-jsonrpc": "9.0.1"
   },
   "dependencies": {
     "@ai-sdk/alibaba": "1.0.17",

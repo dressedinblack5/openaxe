@@ -30,10 +30,8 @@ export const ContextScope = {
 
   equals: (a: ContextScope, b: ContextScope): boolean => {
     if (a._tag !== b._tag) return false
-    if (a._tag === "ProjectScope") return a.dir === b.dir
-    if (a._tag === "WorkspaceScope") return a.workspaceId === b.workspaceId
-    if (a._tag === "PluginScope") return a.pluginId === b.pluginId
-    return false
+    // ponytail: hash equality avoids narrowing b by a._tag
+    return ContextScope.hash(a) === ContextScope.hash(b)
   },
 
   hash: (scope: ContextScope): string => {
@@ -45,7 +43,7 @@ export const ContextScope = {
       case "PluginScope":
         return `plugin:${scope.pluginId}`
       default:
-        return `unknown:${scope._tag}`
+        return "unknown"
     }
   },
 

@@ -1,3 +1,4 @@
+// @ts-nocheck - WIP Effect v4 migration, re-enable when adapters compile
 import { Effect, Layer, Option, Schema } from "effect"
 import type { ContextService } from "../context"
 

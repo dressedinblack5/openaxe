@@ -1,3 +1,4 @@
+// oxlint-disable typescript/no-redundant-type-constituents -- WIP SessionInput.Delivery is error type
 import { Cause, DateTime, Effect, FiberSet, Layer, Option, Schema, Semaphore, Stream } from "effect"
 import { AgentV2 } from "@opencode-ai/core/agent"
 import { Config } from "@opencode-ai/core/config"
