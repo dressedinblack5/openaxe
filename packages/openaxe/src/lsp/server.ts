@@ -552,9 +552,7 @@ export const ElixirLS: Info = {
         if (flags.disableLspDownload) return
 
         const zipPath = path.join(Global.Path.bin, "elixir-ls.zip")
-        if (
-          !(await downloadArchive("https://github.com/elixir-lsp/elixir-ls/archive/refs/heads/master.zip", zipPath))
-        )
+        if (!(await downloadArchive("https://github.com/elixir-lsp/elixir-ls/archive/refs/heads/master.zip", zipPath)))
           return
         if (!(await tryExtractZip(zipPath, Global.Path.bin))) return
 

@@ -1,4 +1,4 @@
-import { log } from "effect/Effect";
+import { log } from "effect/Effect"
 import { Commands } from "../commands"
 import { Runtime } from "../../framework/runtime"
 

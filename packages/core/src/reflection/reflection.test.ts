@@ -22,7 +22,11 @@ const dataOf = (message: SessionMessage.Message): MessageData => {
   return data
 }
 
-const assistant = (id: string, content: SessionMessage.AssistantContent[], created: number): SessionMessage.Message => ({
+const assistant = (
+  id: string,
+  content: SessionMessage.AssistantContent[],
+  created: number,
+): SessionMessage.Message => ({
   id: SessionMessage.ID.make(id),
   type: "assistant",
   agent: "build",
@@ -47,7 +51,12 @@ const errorTool = (id: string, name: string, message: string): SessionMessage.As
   time: { created: DateTime.makeUnsafe(1_000) },
 })
 
-const seed = (db: Database.Interface["db"], projectID: ProjectV2.ID, sessionID: SessionSchema.ID, messages: SessionMessage.Message[]) =>
+const seed = (
+  db: Database.Interface["db"],
+  projectID: ProjectV2.ID,
+  sessionID: SessionSchema.ID,
+  messages: SessionMessage.Message[],
+) =>
   Effect.gen(function* () {
     yield* db
       .insert(ProjectTable)
@@ -108,16 +117,36 @@ describe("Reflection", () => {
       Effect.gen(function* () {
         const projectID = ProjectV2.ID.make("proj_reflect_happy")
         const sessionID = SessionSchema.ID.descending("ses_reflect_happy")
-        yield* seed(
-          db,
-          projectID,
-          sessionID,
-          [
-            assistant("msg_1", [okTool("p1", "bash"), errorTool("p2", "bash", "rate limit exceeded: too many requests"), okTool("p3", "read")], 1_000),
-            assistant("msg_2", [errorTool("p4", "bash", "429 Too Many Requests - slow down"), okTool("p5", "grep"), errorTool("p6", "bash", "rate limit reached")], 2_000),
-            assistant("msg_3", [okTool("p7", "read"), errorTool("p8", "bash", "input exceeds context window"), okTool("p9", "grep"), okTool("p10", "bash")], 3_000),
-          ],
-        )
+        yield* seed(db, projectID, sessionID, [
+          assistant(
+            "msg_1",
+            [
+              okTool("p1", "bash"),
+              errorTool("p2", "bash", "rate limit exceeded: too many requests"),
+              okTool("p3", "read"),
+            ],
+            1_000,
+          ),
+          assistant(
+            "msg_2",
+            [
+              errorTool("p4", "bash", "429 Too Many Requests - slow down"),
+              okTool("p5", "grep"),
+              errorTool("p6", "bash", "rate limit reached"),
+            ],
+            2_000,
+          ),
+          assistant(
+            "msg_3",
+            [
+              okTool("p7", "read"),
+              errorTool("p8", "bash", "input exceeds context window"),
+              okTool("p9", "grep"),
+              okTool("p10", "bash"),
+            ],
+            3_000,
+          ),
+        ])
 
         yield* service.analyze(projectID)
 
@@ -147,12 +176,7 @@ describe("Reflection", () => {
       Effect.gen(function* () {
         const projectID = ProjectV2.ID.make("proj_reflect_clean")
         const sessionID = SessionSchema.ID.descending("ses_reflect_clean")
-        yield* seed(
-          db,
-          projectID,
-          sessionID,
-          [assistant("msg_1", [okTool("p1", "bash"), okTool("p2", "read")], 1_000)],
-        )
+        yield* seed(db, projectID, sessionID, [assistant("msg_1", [okTool("p1", "bash"), okTool("p2", "read")], 1_000)])
 
         yield* service.analyze(projectID)
 
@@ -165,23 +189,25 @@ describe("Reflection", () => {
   it.effect("classify maps error text/status to reasons and never crashes", () =>
     Effect.sync(() => {
       expect(Reflection.classify({ type: "unknown", message: "rate limit exceeded" })).toBe("rate_limit")
-    expect(Reflection.classify({ type: "unknown", message: "Input exceeds context window" })).toBe("context_length")
-    expect(Reflection.classify({ type: "unknown", message: "The request timed out" })).toBe("timeout")
-    expect(Reflection.classify({ type: "unknown", message: "response was filtered by safety" })).toBe("refusal")
-    expect(Reflection.classify({ type: "unknown", message: "Unauthorized: invalid api key" })).toBe("auth")
-    expect(Reflection.classify({ type: "unknown", message: "invalid request body" })).toBe("invalid_request")
-    expect(Reflection.classify({ type: "unknown", message: "provider is overloaded" })).toBe("server")
-    expect(Reflection.classify({ type: "unknown", message: "something entirely unexpected" })).toBe("unclassified")
-    expect(Reflection.classify(42)).toBe("unclassified")
-    expect(Reflection.classify(undefined)).toBe("unclassified")
-    // ApiError-shaped objects from the provider SDK.
-    expect(
-      Reflection.classify({ name: "APIError", data: { statusCode: 429, message: "Too Many Requests" } }),
-    ).toBe("rate_limit")
-    expect(Reflection.classify({ name: "APIError", data: { statusCode: 500, message: "Internal Server Error" } })).toBe(
-      "server",
-    )
-    expect(Reflection.classify({ name: "APIError", data: { statusCode: 401, message: "Invalid API key" } })).toBe("auth")
-    })
+      expect(Reflection.classify({ type: "unknown", message: "Input exceeds context window" })).toBe("context_length")
+      expect(Reflection.classify({ type: "unknown", message: "The request timed out" })).toBe("timeout")
+      expect(Reflection.classify({ type: "unknown", message: "response was filtered by safety" })).toBe("refusal")
+      expect(Reflection.classify({ type: "unknown", message: "Unauthorized: invalid api key" })).toBe("auth")
+      expect(Reflection.classify({ type: "unknown", message: "invalid request body" })).toBe("invalid_request")
+      expect(Reflection.classify({ type: "unknown", message: "provider is overloaded" })).toBe("server")
+      expect(Reflection.classify({ type: "unknown", message: "something entirely unexpected" })).toBe("unclassified")
+      expect(Reflection.classify(42)).toBe("unclassified")
+      expect(Reflection.classify(undefined)).toBe("unclassified")
+      // ApiError-shaped objects from the provider SDK.
+      expect(Reflection.classify({ name: "APIError", data: { statusCode: 429, message: "Too Many Requests" } })).toBe(
+        "rate_limit",
+      )
+      expect(
+        Reflection.classify({ name: "APIError", data: { statusCode: 500, message: "Internal Server Error" } }),
+      ).toBe("server")
+      expect(Reflection.classify({ name: "APIError", data: { statusCode: 401, message: "Invalid API key" } })).toBe(
+        "auth",
+      )
+    }),
   )
 })

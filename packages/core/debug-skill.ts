@@ -11,7 +11,7 @@ async function main() {
     await fs.writeFile(path.join(first, "foo.md"), "# foo")
 
     console.log("Testing Bun.Glob patterns on:", first)
-    
+
     // Test individual patterns
     for (const pat of ["*.md", "**/SKILL.md", "{*.md,**/SKILL.md}", "**/*"]) {
       const results: string[] = []
@@ -33,4 +33,7 @@ async function main() {
   }
 }
 
-main().catch(e => { console.error(e); process.exit(1) })
+main().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})

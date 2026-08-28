@@ -124,14 +124,12 @@ function startListener(opts: ListenOptions, port: number) {
   return Layer.buildWithMemoMap(listenerLayer(opts, port), Layer.makeMemoMapUnsafe(), scope).pipe(
     Effect.provide(HttpApiApp.context),
     Effect.onError(() => Scope.close(scope, Exit.void).pipe(Effect.ignore)),
-    Effect.map(
-      (ctx): ListenerState => ({
-        scope,
-        server: Context.get(ctx, HttpServer.HttpServer),
-        http: Context.get(ctx, ListenerServerService),
-        websockets: Context.get(ctx, WebSocketTracker.Service),
-      }),
-    ),
+    Effect.map((ctx): ListenerState => ({
+      scope,
+      server: Context.get(ctx, HttpServer.HttpServer),
+      http: Context.get(ctx, ListenerServerService),
+      websockets: Context.get(ctx, WebSocketTracker.Service),
+    })),
   )
 }
 

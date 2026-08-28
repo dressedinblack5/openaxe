@@ -88,24 +88,23 @@ export const AmazonBedrockPlugin = define({
           process.env.AWS_BEARER_TOKEN_BEDROCK ??
           (typeof options.bearerToken === "string" ? options.bearerToken : undefined)
         if (bearerToken && !process.env.AWS_BEARER_TOKEN_BEDROCK) process.env.AWS_BEARER_TOKEN_BEDROCK = bearerToken
-        
 
         options.region = region
         if (typeof options.endpoint === "string") options.baseURL = options.endpoint
         if (!bearerToken && options.credentialProvider === undefined) {
           // Do not gate SDK creation on explicit AWS env vars. The default chain
           // also handles ~/.aws/credentials, SSO, process creds, and instance roles.
-          const { fromNodeProviderChain } = yield* Effect.promise( async () => import("@aws-sdk/credential-providers"))
+          const { fromNodeProviderChain } = yield* Effect.promise(async () => import("@aws-sdk/credential-providers"))
           options.credentialProvider = fromNodeProviderChain(profile ? { profile } : {})
         }
 
         if (evt.package === "@ai-sdk/amazon-bedrock/mantle") {
-          const mod = yield* Effect.promise( async () => import("@ai-sdk/amazon-bedrock/mantle"))
+          const mod = yield* Effect.promise(async () => import("@ai-sdk/amazon-bedrock/mantle"))
           evt.sdk = mod.createBedrockMantle(options)
           return
         }
 
-        const mod = yield* Effect.promise( async () => import("@ai-sdk/amazon-bedrock"))
+        const mod = yield* Effect.promise(async () => import("@ai-sdk/amazon-bedrock"))
         evt.sdk = mod.createAmazonBedrock(options)
       }),
     )

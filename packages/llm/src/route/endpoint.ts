@@ -1,5 +1,5 @@
 import type { LLMRequest } from "../schema"
-import { trimBaseUrl } from "../protocols/shared";
+import { trimBaseUrl } from "../protocols/shared"
 export interface EndpointInput<Body> {
   readonly request: LLMRequest
   readonly body: Body

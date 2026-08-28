@@ -250,7 +250,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
         throw new Error(`Circular color reference: ${[...chain, c].join(" -> ")}`)
       }
 
-// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- dynamic theme color key lookup; keys originate from Object.entries over ThemeColor
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- dynamic theme color key lookup; keys originate from Object.entries over ThemeColor
       const next = defs[c] ?? theme.theme[c as ThemeColor]
       if (next === undefined) {
         throw new Error(`Color reference "${c}" not found in defs or theme`)
@@ -267,7 +267,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
     Object.entries(theme.theme)
       .filter(([key]) => key !== "selectedListItemText" && key !== "backgroundMenu" && key !== "thinkingOpacity")
       .map(([key, value]) => {
-// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- values come from theme.theme and are resolved by their key
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- values come from theme.theme and are resolved by their key
         return [key, resolveColor(value as ColorValue)]
       }),
   ) as Partial<Record<ThemeColor, RGBA>>
@@ -275,7 +275,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
   // Handle selectedListItemText separately since it's optional
   const hasSelectedListItemText = theme.theme.selectedListItemText !== undefined
   if (hasSelectedListItemText) {
-// oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- guarded by hasSelectedListItemText above
+    // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- guarded by hasSelectedListItemText above
     resolved.selectedListItemText = resolveColor(theme.theme.selectedListItemText!)
   } else {
     // Backward compatibility: if selectedListItemText is not defined, use background color

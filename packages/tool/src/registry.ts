@@ -1,5 +1,12 @@
 import { Effect, Layer, Context, Ref, HashMap } from "effect"
-import type { ToolDefinition, ToolRegistryInterface, ToolCall, ToolExecutionResult, ToolContext, ToolFailure } from "./types"
+import type {
+  ToolDefinition,
+  ToolRegistryInterface,
+  ToolCall,
+  ToolExecutionResult,
+  ToolContext,
+  ToolFailure,
+} from "./types"
 import type { ProviderV2 } from "@opencode-ai/core/provider"
 import type { ModelV2 } from "@opencode-ai/core/model"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
@@ -8,7 +15,9 @@ import { validateName } from "./tool"
 import { Schema } from "effect"
 import { AvailabilityLive } from "./availability"
 
-export class ToolRegistryService extends Context.Service<ToolRegistryService, ToolRegistryInterface>()("@openaxe/ToolRegistry") {}
+export class ToolRegistryService extends Context.Service<ToolRegistryService, ToolRegistryInterface>()(
+  "@openaxe/ToolRegistry",
+) {}
 
 /**
  * Internal state
@@ -31,7 +40,7 @@ export const ToolRegistryLive = Layer.effect(
     })
 
     const register = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-      def: ToolDefinition<P, O>
+      def: ToolDefinition<P, O>,
     ): Effect.Effect<void> =>
       Effect.gen(function* () {
         yield* validateName(def.id).pipe(Effect.orDie)
@@ -42,14 +51,14 @@ export const ToolRegistryLive = Layer.effect(
       })
 
     const get = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-      id: string
+      id: string,
     ): Effect.Effect<ToolDefinition<P, O> | undefined> =>
       Effect.gen(function* () {
         const s = yield* Ref.get(state)
         const tool = HashMap.get(s.tools, id)
         return tool._tag === "Some"
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- stored tool compatible with requested types
-          ? (tool.value as unknown as ToolDefinition<P, O>)
+          ? // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- stored tool compatible with requested types
+            (tool.value as unknown as ToolDefinition<P, O>)
           : undefined
       })
 
@@ -59,7 +68,11 @@ export const ToolRegistryLive = Layer.effect(
         return Array.from(HashMap.values(s.tools))
       })
 
-    const tools = (model: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info }): Effect.Effect<ReadonlyArray<ToolDefinition>> =>
+    const tools = (model: {
+      providerID: ProviderV2.ID
+      modelID: ModelV2.ID
+      agent: Agent.Info
+    }): Effect.Effect<ReadonlyArray<ToolDefinition>> =>
       Effect.gen(function* () {
         const s = yield* Ref.get(state)
         const allTools = Array.from(HashMap.values(s.tools))
@@ -88,7 +101,7 @@ export const ToolRegistryLive = Layer.effect(
     const settle = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
       tool: ToolDefinition<P, O>,
       call: ToolCall,
-      context: ToolContext
+      context: ToolContext,
     ): Effect.Effect<ToolExecutionResult, ToolFailure, P["DecodingServices"] | O["EncodingServices"]> =>
       Effect.gen(function* () {
         // Import locally to avoid circular dependency
@@ -97,7 +110,7 @@ export const ToolRegistryLive = Layer.effect(
       })
 
     return { register, get, list, tools, named, settle }
-  })
+  }),
 )
 
 /**

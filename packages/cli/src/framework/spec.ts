@@ -7,11 +7,7 @@ type Options<Config extends Command.Config, Commands extends ReadonlyArray<Any>>
   readonly commands?: Commands
 }
 
-export interface Node<
-  Name extends string,
-  Spec extends Command.Any,
-  Commands extends Children,
-> {
+export interface Node<Name extends string, Spec extends Command.Any, Commands extends Children> {
   readonly name: Name
   readonly spec: Spec
   readonly commands: Commands

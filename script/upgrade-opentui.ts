@@ -187,9 +187,7 @@ async function findStaleLockfileEntries() {
 
 function findStaleLockfileEntriesInText(txt: string) {
   const matches: Array<{ entry: string; pkg: string; version: string }> = []
-  for (const match of txt.matchAll(
-    /^ {4}"([^"]+)": \["(@opentui\/(?:core(?:-[^@"]+)?|keymap|solid))@([^"]+)"/gm,
-  )) {
+  for (const match of txt.matchAll(/^ {4}"([^"]+)": \["(@opentui\/(?:core(?:-[^@"]+)?|keymap|solid))@([^"]+)"/gm)) {
     const entry = match[1]
     const pkg = match[2]
     const version = match[3]

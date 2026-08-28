@@ -51,18 +51,15 @@ const PLUGIN_CONTEXT_KEYS = {
   INTEGRATION: "plugin:integration",
   PLUGIN: "plugin:domain",
   REFERENCE: "plugin:reference",
-  SKILL: "plugin:skill"
+  SKILL: "plugin:skill",
 } as const
 
 export const toPluginScope = (pluginId: string): ContextScope => ({
   _tag: "PluginScope",
-  pluginId
+  pluginId,
 })
 
-export const makePluginContext = (
-  unified: ContextService,
-  pluginId: string
-): PluginContext => {
+export const makePluginContext = (unified: ContextService, pluginId: string): PluginContext => {
   const scope = toPluginScope(pluginId)
 
   const setStored = (key: string, value: unknown): Effect.Effect<void, ScopeNotFoundError> =>
@@ -92,34 +89,59 @@ export const makePluginContext = (
   Effect.runFork(initCache)
 
   const createProxy = (key: string) => {
-    return new Proxy({}, {
-      get(_target, prop: string) {
-        const cached = syncGet(key)
-        if (cached && typeof cached === "object" && prop in cached) {
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- cached is a record with known string keys
-          return (cached as Record<string, unknown>)[prop]
-        }
-        return undefined
-      }
-    })
+    return new Proxy(
+      {},
+      {
+        get(_target, prop: string) {
+          const cached = syncGet(key)
+          if (cached && typeof cached === "object" && prop in cached) {
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- cached is a record with known string keys
+            return (cached as Record<string, unknown>)[prop]
+          }
+          return undefined
+        },
+      },
+    )
   }
 
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- cache is populated with correct PluginOptions type
-    const options = syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined
-    return {
-      options: {
-        get name() { return options?.name ?? "" },
-        get version() { return options?.version ?? "" },
-        get description() { return options?.description },
-        get author() { return options?.author },
-        get license() { return options?.license },
-        get repository() { return options?.repository },
-        get keywords() { return options?.keywords ?? [] },
-        get engines() { return options?.engines ?? {} },
-        get dependencies() { return options?.dependencies ?? {} },
-        get peerDependencies() { return options?.peerDependencies ?? {} },
-        get devDependencies() { return options?.devDependencies ?? {} }
-      } as PluginOptions,
+  const options = syncGet(PLUGIN_CONTEXT_KEYS.OPTIONS) as PluginOptions | undefined
+  return {
+    options: {
+      get name() {
+        return options?.name ?? ""
+      },
+      get version() {
+        return options?.version ?? ""
+      },
+      get description() {
+        return options?.description
+      },
+      get author() {
+        return options?.author
+      },
+      get license() {
+        return options?.license
+      },
+      get repository() {
+        return options?.repository
+      },
+      get keywords() {
+        return options?.keywords ?? []
+      },
+      get engines() {
+        return options?.engines ?? {}
+      },
+      get dependencies() {
+        return options?.dependencies ?? {}
+      },
+      get peerDependencies() {
+        return options?.peerDependencies ?? {}
+      },
+      get devDependencies() {
+        return options?.devDependencies ?? {}
+      },
+    } as PluginOptions,
 
     agent: createProxy(PLUGIN_CONTEXT_KEYS.AGENT),
     aisdk: createProxy(PLUGIN_CONTEXT_KEYS.AISDK),
@@ -135,7 +157,9 @@ export const makePluginContext = (
 /**
  * PluginContext Factory Service
  */
-export class PluginContextFactory extends Context.Service<PluginContextFactory, (pluginId: string) => PluginContext>()("@openaxe/PluginContextFactory") {}
+export class PluginContextFactory extends Context.Service<PluginContextFactory, (pluginId: string) => PluginContext>()(
+  "@openaxe/PluginContextFactory",
+) {}
 
 /**
  * Layer that provides the PluginContext factory

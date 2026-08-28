@@ -47,8 +47,8 @@ gen/
 
 ## COMMANDS
 
-| Command | Action |
-|---------|--------|
-| `bun run build` | `bun ./script/build.ts` — full codegen pipeline |
-| `bun run typecheck` | `tsgo --noEmit` |
-| `bun ./script/publish.ts` | Pack and publish to npm |
+| Command                   | Action                                          |
+| ------------------------- | ----------------------------------------------- |
+| `bun run build`           | `bun ./script/build.ts` — full codegen pipeline |
+| `bun run typecheck`       | `tsgo --noEmit`                                 |
+| `bun ./script/publish.ts` | Pack and publish to npm                         |

@@ -30,10 +30,7 @@ const bagOfWords = (text: string) => {
 }
 
 const makeEmbedding = (embed: Embedding.Interface["embed"]) =>
-  Layer.succeed(
-    Embedding.Service,
-    Embedding.Service.of({ provider: { model: "fake", dimension: DIMS, embed }, embed }),
-  )
+  Layer.succeed(Embedding.Service, Embedding.Service.of({ provider: { model: "fake", dimension: DIMS, embed }, embed }))
 
 const fakeEmbedding = makeEmbedding((texts) =>
   Effect.sync(() => ({
@@ -76,7 +73,14 @@ const seed = (db: Database.Interface["db"]) =>
       .pipe(Effect.orDie)
     yield* db
       .insert(SessionTable)
-      .values({ id: sessionID, project_id: Project.ID.global, slug: "test", directory: "/project", title: "test", version: "test" })
+      .values({
+        id: sessionID,
+        project_id: Project.ID.global,
+        slug: "test",
+        directory: "/project",
+        title: "test",
+        version: "test",
+      })
       .run()
       .pipe(Effect.orDie)
   })

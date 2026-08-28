@@ -45,7 +45,7 @@ export async function spawnWithTimeout(
   cmd: string,
   args: string[],
   timeoutMs: number,
-  opts?: Process.Options
+  opts?: Process.Options,
 ): Promise<Child> {
   const proc = spawn(cmd, args, opts)
 

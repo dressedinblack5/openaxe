@@ -85,12 +85,13 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
         description: "CLI adapter test",
         parameters: TestInputSchema,
         output: TestOutputSchema,
-        execute: (_input: TestInput) => Effect.succeed({
-          title: "Test",
-          metadata: {},
-          output: "result",
-          attachments: [],
-        }),
+        execute: (_input: TestInput) =>
+          Effect.succeed({
+            title: "Test",
+            metadata: {},
+            output: "result",
+            attachments: [],
+          }),
       })
 
       const cli = CliToolAdapterLayer.toCliTool(unified)
@@ -104,12 +105,13 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
         description: "CLI availability test",
         parameters: TestInputSchema,
         output: TestOutputSchema,
-        execute: (_input: TestInput) => Effect.succeed({
-          title: "",
-          metadata: {},
-          output: "ok",
-          attachments: [],
-        }),
+        execute: (_input: TestInput) =>
+          Effect.succeed({
+            title: "",
+            metadata: {},
+            output: "ok",
+            attachments: [],
+          }),
         availability: (input) => input.flags.allowCli === true,
       })
 
@@ -122,7 +124,11 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
           request: { headers: {}, body: {} },
           mode: "primary" as const,
           hidden: false,
-          permissions: [] as Array<{ readonly action: string; readonly resource: string; readonly effect: "allow" | "deny" | "ask" }>,
+          permissions: [] as Array<{
+            readonly action: string
+            readonly resource: string
+            readonly effect: "allow" | "deny" | "ask"
+          }>,
           tools: [],
           model: undefined,
           provider: ProviderV2.ID.make("anthropic"),
@@ -201,11 +207,11 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
     it("should work with ToolRegistry through adapters", async () => {
       // Test that the layer can be built and provides the service
       const layer = ToolRegistryLive.pipe(Layer.provide(AvailabilityLive))
-      
+
       // Use Effect.gen to access the service within the layer
       const testEffect = Effect.gen(function* () {
         const registry = yield* ToolRegistryService
-        
+
         // Register via core adapter
         const unified = CoreToolAdapterLayer.make({
           id: "registry_adapter_test",
@@ -221,7 +227,7 @@ describe("Adapter Harness - Strangler Fig Pattern", () => {
         const retrieved = yield* registry.get("registry_adapter_test")
         return retrieved
       }).pipe(Effect.provide(layer))
-      
+
       const retrieved = await Effect.runPromise(testEffect)
       expect(retrieved).toBeDefined()
       expect(retrieved?.id).toBe("registry_adapter_test")

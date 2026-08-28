@@ -43,16 +43,19 @@ export function useFilteredList<T>(props: FilteredListProps<T>) {
         const fuzzied = keys
           ? fuzzysort.go(needle, filterable, { keys }).map((x) => x.obj)
           : isStringArray(filterable)
-            // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- every() checked all items are strings, which are the T values here.
-            ? (fuzzysort.go(needle, filterable).map((x) => x.target) as T[])
+            ? // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- every() checked all items are strings, which are the T values here.
+              (fuzzysort.go(needle, filterable).map((x) => x.target) as T[])
             : fuzzysort.go(needle, filterable, { keys: props.filterKeys ?? [] }).map((x) => x.obj)
         return skipped.length ? [...fuzzied, ...skipped] : fuzzied
       })()
-      const grouped = step1.reduce((acc, item) => {
-        const key = props.groupBy ? props.groupBy(item) : ""
-        ;(acc[key] ??= []).push(item)
-        return acc
-      }, {} as Record<string, T[]>)
+      const grouped = step1.reduce(
+        (acc, item) => {
+          const key = props.groupBy ? props.groupBy(item) : ""
+          ;(acc[key] ??= []).push(item)
+          return acc
+        },
+        {} as Record<string, T[]>,
+      )
       const result = Object.entries(grouped).map(([k, v]) => ({
         category: k,
         items: props.sortBy ? v.sort(props.sortBy) : v,

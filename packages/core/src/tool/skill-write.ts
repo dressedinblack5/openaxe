@@ -29,7 +29,8 @@ const isSafeSegment = (value: string) =>
 export const validName = (value: string) => NAME_PATTERN.test(value) && isSafeSegment(value)
 export const Input = Schema.Struct({
   operation: Schema.optional(Schema.Literals(["write", "list"])).annotate({
-    description: "Operation to perform. 'write' creates or updates a skill, 'list' returns existing skills (default write).",
+    description:
+      "Operation to perform. 'write' creates or updates a skill, 'list' returns existing skills (default write).",
   }),
   name: Schema.optional(Schema.String).annotate({
     description:
@@ -96,8 +97,7 @@ const withSkillFrontmatter = (content: string, name: string, description: string
   if (data && typeof data === "object" && typeof (data as { name?: unknown }).name === "string") return content
   const merged: Record<string, string> = { name }
   if (description !== undefined) merged.description = description
-  const combined =
-    data && typeof data === "object" && Object.keys(data).length > 0 ? { ...data, ...merged } : merged
+  const combined = data && typeof data === "object" && Object.keys(data).length > 0 ? { ...data, ...merged } : merged
   return matter.stringify(parsed?.content ?? content, combined)
 }
 
@@ -106,22 +106,20 @@ export const listSkills = Effect.fn("SkillWriteTool.list")(function* (fs: FSUtil
   const entries = yield* fs
     .glob("**/SKILL.md", { cwd: skillsDir, absolute: true, include: "file", dot: true })
     .pipe(Effect.catch(() => Effect.succeed([] as string[])))
-  return yield* Effect.forEach(
-    entries,
-    (filepath) =>
-      Effect.gen(function* () {
-        const content = yield* fs.readFileStringSafe(filepath)
-        if (content === undefined) return undefined
-        const markdown = ConfigMarkdown.parseOption(content)
-        const frontmatter = markdown ? decodeFrontmatter(markdown.data).valueOrUndefined : undefined
-        const skillName = frontmatter?.name ?? path.basename(path.dirname(filepath))
-        if (!validName(skillName)) return undefined
-        return {
-          name: skillName,
-          description: frontmatter?.description,
-          path: filepath,
-        }
-      }),
+  return yield* Effect.forEach(entries, (filepath) =>
+    Effect.gen(function* () {
+      const content = yield* fs.readFileStringSafe(filepath)
+      if (content === undefined) return undefined
+      const markdown = ConfigMarkdown.parseOption(content)
+      const frontmatter = markdown ? decodeFrontmatter(markdown.data).valueOrUndefined : undefined
+      const skillName = frontmatter?.name ?? path.basename(path.dirname(filepath))
+      if (!validName(skillName)) return undefined
+      return {
+        name: skillName,
+        description: frontmatter?.description,
+        path: filepath,
+      }
+    }),
   ).pipe(Effect.map((items) => items.filter((item): item is ListedSkill => item !== undefined)))
 })
 
@@ -146,7 +144,13 @@ export const writeSkill = Effect.fn("SkillWriteTool.write")(function* (
   if (existing) {
     const current = yield* fs.readFileStringSafe(target)
     if (current === normalized) {
-      const result: WriteResult = { operation: "write", name: input.name, directory: skillsDir, path: target, action: "unchanged" }
+      const result: WriteResult = {
+        operation: "write",
+        name: input.name,
+        directory: skillsDir,
+        path: target,
+        action: "unchanged",
+      }
       return result
     }
   }
@@ -233,7 +237,9 @@ export const layer = Layer.effectDiscard(
               Effect.mapError((error) =>
                 error instanceof ToolFailure
                   ? error
-                  : new ToolFailure({ message: `Unable to ${operationLabel(input.operation)} skill: ${errorMessage(error)}` }),
+                  : new ToolFailure({
+                      message: `Unable to ${operationLabel(input.operation)} skill: ${errorMessage(error)}`,
+                    }),
               ),
             ),
         }),

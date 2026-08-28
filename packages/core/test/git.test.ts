@@ -36,12 +36,12 @@ describe("Git", () => {
         const target = path.join(fixture.root, "checkout")
         yield* git.clone({ remote: fixture.remote, target })
 
-        yield* Effect.promise( async () => commit(fixture.source, "two\n", "second"))
+        yield* Effect.promise(async () => commit(fixture.source, "two\n", "second"))
         expect((yield* git.fetch(target)).exitCode).toBe(0)
         expect((yield* git.reset(target, "origin/main")).exitCode).toBe(0)
         expect(yield* read(path.join(target, "README.md"))).toBe("two\n")
 
-        yield* Effect.promise( async () => branch(fixture.source, "feature/docs", "feature\n"))
+        yield* Effect.promise(async () => branch(fixture.source, "feature/docs", "feature\n"))
         expect((yield* git.fetchBranch(target, "feature/docs")).exitCode).toBe(0)
         expect((yield* git.checkout(target, "feature/docs")).exitCode).toBe(0)
         expect((yield* git.reset(target, "origin/feature/docs")).exitCode).toBe(0)
@@ -59,12 +59,14 @@ function withRemote<A, E, R>(body: (fixture: Awaited<ReturnType<typeof gitRemote
       return { root, fixture: await gitRemote(root.path) }
     }),
     (input) => body(input.fixture),
-    (input) => Effect.promise( async () => input.root[Symbol.asyncDispose]()),
+    (input) => Effect.promise(async () => input.root[Symbol.asyncDispose]()),
   )
 }
 
 function read(file: string) {
-  return Effect.promise( async () => fs.readFile(file, "utf8")).pipe(Effect.map((content) => content.replace(/\r\n/g, "\n")))
+  return Effect.promise(async () => fs.readFile(file, "utf8")).pipe(
+    Effect.map((content) => content.replace(/\r\n/g, "\n")),
+  )
 }
 
 async function initRepo(directory: string) {
@@ -80,14 +82,14 @@ describe("Git worktrees", () => {
   it.live("creates, lists, and removes linked worktrees", () =>
     Effect.gen(function* () {
       const root = yield* Effect.acquireRelease(
-        Effect.promise( async () => tmpdir()),
-        (dir) => Effect.promise( async () => dir[Symbol.asyncDispose]()),
+        Effect.promise(async () => tmpdir()),
+        (dir) => Effect.promise(async () => dir[Symbol.asyncDispose]()),
       )
-      yield* Effect.promise( async () => initRepo(root.path))
-      const directory = AbsolutePath.make(yield* Effect.promise( async () => fs.realpath(root.path)))
+      yield* Effect.promise(async () => initRepo(root.path))
+      const directory = AbsolutePath.make(yield* Effect.promise(async () => fs.realpath(root.path)))
       const worktree = AbsolutePath.make(`${root.path}-git-worktree`)
       yield* Effect.addFinalizer(() =>
-        Effect.promise( async () => fs.rm(worktree, { recursive: true, force: true })).pipe(Effect.ignore),
+        Effect.promise(async () => fs.rm(worktree, { recursive: true, force: true })).pipe(Effect.ignore),
       )
       const git = yield* Git.Service
       const repo = { directory, store: AbsolutePath.make(path.join(directory, ".git")) }
@@ -96,7 +98,7 @@ describe("Git worktrees", () => {
 
       expect((yield* git.worktreeList(repo)).some((entry) => entry.endsWith("-git-worktree"))).toBe(true)
       const linked = yield* git.find(worktree)
-      expect(linked?.directory).toBe(AbsolutePath.make(yield* Effect.promise( async () => fs.realpath(worktree))))
+      expect(linked?.directory).toBe(AbsolutePath.make(yield* Effect.promise(async () => fs.realpath(worktree))))
       expect(linked?.store).toBe(repo.store)
       if (!linked) throw new Error("Linked worktree not found")
       yield* git.worktreeRemove({ repo: linked, directory: worktree, force: false })

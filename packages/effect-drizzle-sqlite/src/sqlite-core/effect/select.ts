@@ -1,5 +1,5 @@
 /* oxlint-disable */
-import type { Effect } from "effect/Effect";
+import type { Effect } from "effect/Effect"
 import type { CacheConfig } from "drizzle-orm/cache/core/types"
 import { applyEffectWrapper, type QueryEffectHKTBase } from "drizzle-orm/effect-core/query-effect"
 import { entityKind, is } from "drizzle-orm/entity"
@@ -134,8 +134,9 @@ export class SQLiteEffectSelectBuilder<
   }
 }
 
-export interface SQLiteEffectSelectHKT<TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase>
-  extends SQLiteSelectHKTBase {
+export interface SQLiteEffectSelectHKT<
+  TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
+> extends SQLiteSelectHKTBase {
   _type: SQLiteEffectSelectBase<
     this["tableName"],
     this["runResult"],
@@ -163,7 +164,9 @@ export interface SQLiteEffectSelectBase<
   TResult extends any[] = SelectResult<TSelection, TSelectMode, TNullabilityMap>[],
   TSelectedFields extends ColumnsSelection = BuildSubquerySelection<TSelection, TNullabilityMap>,
   TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
-> extends SQLiteSelectQueryBuilderBase<
+>
+  extends
+    SQLiteSelectQueryBuilderBase<
       SQLiteEffectSelectHKT<TEffectHKT>,
       TTableName,
       "async",
@@ -179,19 +182,19 @@ export interface SQLiteEffectSelectBase<
     Effect<TResult, TEffectHKT["error"], TEffectHKT["context"]> {}
 
 export class SQLiteEffectSelectBase<
-    TTableName extends string | undefined,
-    TRunResult,
-    TSelection extends ColumnsSelection,
-    TSelectMode extends SelectMode = "single",
-    TNullabilityMap extends Record<string, JoinNullability> = TTableName extends string
-      ? Record<TTableName, "not-null">
-      : {},
-    TDynamic extends boolean = false,
-    TExcludedMethods extends string = never,
-    TResult extends any[] = SelectResult<TSelection, TSelectMode, TNullabilityMap>[],
-    TSelectedFields extends ColumnsSelection = BuildSubquerySelection<TSelection, TNullabilityMap>,
-    TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
-  >
+  TTableName extends string | undefined,
+  TRunResult,
+  TSelection extends ColumnsSelection,
+  TSelectMode extends SelectMode = "single",
+  TNullabilityMap extends Record<string, JoinNullability> = TTableName extends string
+    ? Record<TTableName, "not-null">
+    : {},
+  TDynamic extends boolean = false,
+  TExcludedMethods extends string = never,
+  TResult extends any[] = SelectResult<TSelection, TSelectMode, TNullabilityMap>[],
+  TSelectedFields extends ColumnsSelection = BuildSubquerySelection<TSelection, TNullabilityMap>,
+  TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
+>
   extends SQLiteSelectQueryBuilderBase<
     SQLiteEffectSelectHKT<TEffectHKT>,
     TTableName,

@@ -62,22 +62,20 @@ export type ReconcileResult =
   | { readonly _tag: "ReplacementBlocked" }
 
 export type ReplacementResult =
-  | { readonly _tag: "ReplacementReady"; readonly generation: Generation }
-  | { readonly _tag: "ReplacementBlocked" }
+  { readonly _tag: "ReplacementReady"; readonly generation: Generation } | { readonly _tag: "ReplacementBlocked" }
 
 export class InitializationBlocked extends Schema.TaggedErrorClass<InitializationBlocked>()(
   "SystemContext.InitializationBlocked",
-  { keys: Schema.Array(Schema.String) }
+  { keys: Schema.Array(Schema.String) },
 ) {
   override get message() {
     return `System context initialization blocked by unavailable sources: ${this.keys.join(", ")}`
   }
 }
 
-export class DuplicateKeyError extends Schema.TaggedErrorClass<DuplicateKeyError>()(
-  "SystemContext.DuplicateKeyError",
-  { key: Schema.String }
-) {
+export class DuplicateKeyError extends Schema.TaggedErrorClass<DuplicateKeyError>()("SystemContext.DuplicateKeyError", {
+  key: Schema.String,
+}) {
   override get message() {
     return `Duplicate system context key: ${this.key}`
   }
@@ -100,7 +98,12 @@ interface Loaded {
 }
 
 type Entry =
-  | { readonly _tag: "Available"; readonly key: Key; readonly baseline: () => Rendered; readonly compare: (previous: Schema.Json) => Compared }
+  | {
+      readonly _tag: "Available"
+      readonly key: Key
+      readonly baseline: () => Rendered
+      readonly compare: (previous: Schema.Json) => Compared
+    }
   | { readonly _tag: "Unavailable"; readonly key: Key }
 
 function context(sources: ReadonlyArray<PackedSource>): SystemContext {
@@ -122,11 +125,10 @@ export const makeSystemContextAdapter = (_unified: ContextService): SystemContex
       value[ContextTypeId],
       (source) =>
         source.load.pipe(
-          Effect.map(
-            (result): Entry =>
-              result === unavailable
-                ? { _tag: "Unavailable", key: source.key }
-                : { _tag: "Available", key: source.key, ...result },
+          Effect.map((result): Entry =>
+            result === unavailable
+              ? { _tag: "Unavailable", key: source.key }
+              : { _tag: "Available", key: source.key, ...result },
           ),
         ),
       { concurrency: "unbounded" },
@@ -144,7 +146,10 @@ export const makeSystemContextAdapter = (_unified: ContextService): SystemContex
   const reconcileObservation = (
     entries: ReadonlyArray<Entry>,
     previous: Snapshot,
-  ): { readonly _tag: "Unchanged" } | { readonly _tag: "Updated"; readonly text: string; readonly snapshot: Snapshot } | { readonly _tag: "Replace" } => {
+  ):
+    | { readonly _tag: "Unchanged" }
+    | { readonly _tag: "Updated"; readonly text: string; readonly snapshot: Snapshot }
+    | { readonly _tag: "Replace" } => {
     const keys = new Set(entries.map((entry) => Key.toString(entry.key)))
     const comparisons = new Map<string, Compared>()
 
@@ -304,7 +309,9 @@ export const makeSystemContextAdapter = (_unified: ContextService): SystemContex
 /**
  * SystemContext Adapter Service
  */
-export class SystemContextAdapter extends Context.Service<SystemContextAdapter, SystemContextAdapterInterface>()("@openaxe/SystemContextAdapter") {}
+export class SystemContextAdapter extends Context.Service<SystemContextAdapter, SystemContextAdapterInterface>()(
+  "@openaxe/SystemContextAdapter",
+) {}
 
 /**
  * Layer that provides the SystemContext adapter

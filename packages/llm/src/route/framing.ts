@@ -1,5 +1,5 @@
 import type { Stream } from "effect"
-import { sseFraming } from "../protocols/shared";
+import { sseFraming } from "../protocols/shared"
 import type { LLMError } from "../schema"
 
 /**

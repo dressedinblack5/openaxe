@@ -25,35 +25,46 @@ export const searchMessages: (
   query: string,
   k: number,
   filter: SQL | undefined,
-) => Effect.Effect<Array<{ sessionId: string; messageId: string; content: string; score: number }>, ServiceUnavailableError, Database.Service> = (
-  query,
-  k,
-  filter,
-) =>
+) => Effect.Effect<
+  Array<{ sessionId: string; messageId: string; content: string; score: number }>,
+  ServiceUnavailableError,
+  Database.Service
+> = (query, k, filter) =>
   Effect.gen(function* () {
     const embedding = yield* Effect.serviceOption(Embedding.Service)
     const vector = yield* Effect.serviceOption(Vector.Service)
-    if (Option.isNone(embedding) || Option.isNone(vector))
-      return yield* Effect.fail(unavailable("Embedding service"))
+    if (Option.isNone(embedding) || Option.isNone(vector)) return yield* Effect.fail(unavailable("Embedding service"))
     const embedded = yield* embedding.value.embed([query]).pipe(Effect.mapError(() => unavailable("Embedding service")))
     const queryVector = embedded.vectors[0]
     if (queryVector === undefined) return yield* Effect.fail(unavailable("Embedding service"))
-    const hits = yield* vector.value.search("session_message", queryVector, k, filter).pipe(
-      Effect.mapError(() => unavailable("Vector service")),
-    )
+    const hits = yield* vector.value
+      .search("session_message", queryVector, k, filter)
+      .pipe(Effect.mapError(() => unavailable("Vector service")))
     if (hits.length === 0) return []
     const { db } = yield* Database.Service
     const rows = yield* db
       .select()
       .from(SessionMessageTable)
-      .where(inArray(SessionMessageTable.id, hits.map((hit) => SessionMessage.ID.make(hit.id))))
+      .where(
+        inArray(
+          SessionMessageTable.id,
+          hits.map((hit) => SessionMessage.ID.make(hit.id)),
+        ),
+      )
       .all()
       .pipe(Effect.orDie)
     const byId = new Map(rows.map((row) => [row.id, row]))
     return hits.flatMap((hit) => {
       const row = byId.get(SessionMessage.ID.make(hit.id))
       return row
-        ? [{ sessionId: row.session_id, messageId: row.id, content: contentOf(row.type, row.data, row.id), score: hit.score }]
+        ? [
+            {
+              sessionId: row.session_id,
+              messageId: row.id,
+              content: contentOf(row.type, row.data, row.id),
+              score: hit.score,
+            },
+          ]
         : []
     })
   })
@@ -65,7 +76,9 @@ function contentOf(type: SessionMessage.Type, data: Record<string, unknown>, id:
   const message = Schema.decodeUnknownSync(SessionMessage.Message)({ id, type, ...data })
   switch (message.type) {
     case "user":
-      return [message.text, textOf((message.files ?? []).map((file) => file.source?.text ?? ""))].filter(Boolean).join("\n")
+      return [message.text, textOf((message.files ?? []).map((file) => file.source?.text ?? ""))]
+        .filter(Boolean)
+        .join("\n")
     case "system":
     case "synthetic":
       return message.text
@@ -102,7 +115,11 @@ export const SearchHandler = HttpApiBuilder.group(Api, "server.search", (handler
         Effect.fn(function* (ctx) {
           const query = yield* requireQuery(ctx.query.q)
           return {
-            results: yield* searchMessages(query, ctx.query.k ?? DefaultSearchLimit, sql`session_id = ${ctx.params.sessionID}`),
+            results: yield* searchMessages(
+              query,
+              ctx.query.k ?? DefaultSearchLimit,
+              sql`session_id = ${ctx.params.sessionID}`,
+            ),
           }
         }),
       )
@@ -113,7 +130,10 @@ export const SearchHandler = HttpApiBuilder.group(Api, "server.search", (handler
           const location = yield* Effect.serviceOption(Location.Service)
           const projectId =
             ctx.query.projectId ??
-            Option.getOrElse(Option.map(location, (loc) => loc.project.id), () => ProjectV2.ID.make("default"))
+            Option.getOrElse(
+              Option.map(location, (loc) => loc.project.id),
+              () => ProjectV2.ID.make("default"),
+            )
           return {
             results: yield* searchMessages(query, ctx.query.k ?? DefaultSearchLimit, sql`project_id = ${projectId}`),
           }

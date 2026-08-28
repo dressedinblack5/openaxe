@@ -1,5 +1,5 @@
 import { Cause, Context, Effect, Layer, Schema, Stream } from "effect"
-import { getOrUndefined } from "effect/Option";
+import { getOrUndefined } from "effect/Option"
 import { Auth } from "./auth"
 import { Endpoint, type EndpointPatch } from "./endpoint"
 import { RequestExecutor } from "./executor"
@@ -9,8 +9,8 @@ import type { Transport, TransportRuntime } from "./transport"
 import { WebSocketExecutor } from "./transport"
 import type { Protocol } from "./protocol"
 import { applyCachePolicy } from "../cache-policy"
-import { encodeJson, eventError, validateWith } from "../protocols/shared";
-import { randomUUID } from "node:crypto";
+import { encodeJson, eventError, validateWith } from "../protocols/shared"
+import { randomUUID } from "node:crypto"
 import type {
   GenerationOptionsInput,
   HttpOptionsInput,
@@ -251,11 +251,7 @@ function makeFromTransport<Body, Prepared, Frame, Event, State>(
   const decodeEvent = (route: string) => (frame: Frame) =>
     decodeEventEffect(frame).pipe(
       Effect.mapError(() =>
-        eventError(
-          input.id,
-          `Invalid ${route} stream event`,
-          typeof frame === "string" ? frame : encodeJson(frame),
-        ),
+        eventError(input.id, `Invalid ${route} stream event`, typeof frame === "string" ? frame : encodeJson(frame)),
       ),
     )
 
@@ -372,18 +368,24 @@ const compile = Effect.fn("LLM.compile")(function* (request: LLMRequest) {
   return { request: resolved, route, body, prepared }
 })
 
-const prepareWith = Effect.fn("LLMClient.prepare")(function* (request: LLMRequest) {
-  const compiled = yield* compile(request)
-
-  return new PreparedRequest({
-    id: compiled.request.id ?? "request",
-    route: compiled.route.id,
-    protocol: compiled.route.protocol,
-    model: compiled.request.model,
-    body: compiled.body,
-    metadata: { transport: compiled.route.transport.id },
+const prepareWith = Effect.fn("LLMClient.prepare")(<Body = unknown>(request: LLMRequest): Effect.Effect<PreparedRequestOf<Body>, LLMError> =>
+  Effect.gen(function* () {
+    const compiled = yield* compile(request)
+    // The route body is typed as `unknown` but the caller asserts the expected `Body` type via the generic.
+    // This is a type-level assertion; the runtime body is validated by the route's body schema.
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+    const body = compiled.body as Body
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+    return new PreparedRequest({
+      id: compiled.request.id ?? "request",
+      route: compiled.route.id,
+      protocol: compiled.route.protocol,
+      model: compiled.request.model,
+      body,
+      metadata: { transport: compiled.route.transport.id },
+    }) as unknown as PreparedRequestOf<Body>
   })
-})
+)
 
 const streamRequestWith = (runtime: TransportRuntime) => (request: LLMRequest) =>
   Stream.unwrap(
@@ -408,10 +410,6 @@ const generateWith = (stream: Interface["stream"]) =>
       ),
     )
   })
-
-export const prepare = <Body = unknown>(request: LLMRequest): Effect.Effect<PreparedRequestOf<Body>, LLMError> =>
-  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — prepareWith returns Effect<PreparedRequest, LLMError>, narrowing to PreparedRequestOf<Body>
-  prepareWith(request) as Effect.Effect<PreparedRequestOf<Body>, LLMError>
 
 export function stream(request: LLMRequest): Stream.Stream<LLMEvent, LLMError> {
   // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Service.stream yields Stream<LLMEvent, LLMError>; Stream.unwrap lifts the Effect back out.
@@ -443,10 +441,16 @@ export const layer: Layer.Layer<Service, never, RequestExecutor.Service> = Layer
       http: yield* RequestExecutor.Service,
       webSocket: getOrUndefined(yield* Effect.serviceOption(WebSocketExecutor.Service)),
     })
-    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion — prepareWith has narrower generic signature than Interface["prepare"]
-    return Service.of({ prepare: prepareWith as unknown as Interface["prepare"], stream, generate: generateWith(stream) })
+    return Service.of({
+      prepare: prepareWith,
+      stream,
+      generate: generateWith(stream),
+    })
   }),
 )
+
+export const prepare = <Body = unknown>(request: LLMRequest): Effect.Effect<PreparedRequestOf<Body>, LLMError> =>
+  prepareWith(request)
 
 export const Route = { make } as const
 

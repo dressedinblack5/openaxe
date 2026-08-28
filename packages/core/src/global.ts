@@ -16,7 +16,8 @@ const requireXDG = (value: string | undefined, label: string) => {
   return value
 }
 const appData = process.env.APPDATA ?? (isWin ? path.join(home, "AppData", "Roaming") : requireXDG(xdgData, "data"))
-const localAppData = process.env.LOCALAPPDATA ?? (isWin ? path.join(home, "AppData", "Local") : requireXDG(xdgCache, "cache"))
+const localAppData =
+  process.env.LOCALAPPDATA ?? (isWin ? path.join(home, "AppData", "Local") : requireXDG(xdgCache, "cache"))
 const xdgConfigHome = xdgConfig ?? (home ? path.join(home, ".config") : requireXDG(undefined, "config"))
 const xdgStateHome = xdgState ?? (home ? path.join(home, ".local", "state") : requireXDG(undefined, "state"))
 

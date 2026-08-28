@@ -263,23 +263,19 @@ export async function make(input: {
         ),
       "session",
     )
-    const serverEntries = sessions.map(
-      (item): SessionInfo => ({
-        sessionId: item.id,
-        cwd: item.directory,
-        title: item.title,
-        updatedAt: new Date(item.time.updated).toISOString(),
-      }),
-    )
+    const serverEntries = sessions.map((item): SessionInfo => ({
+      sessionId: item.id,
+      cwd: item.directory,
+      title: item.title,
+      updatedAt: new Date(item.time.updated).toISOString(),
+    }))
     const liveEntries = (yield* session.list(params.cwd ?? undefined))
       .filter((item) => !serverEntries.some((entry) => entry.sessionId === item.id))
-      .map(
-        (item): SessionInfo => ({
-          sessionId: item.id,
-          cwd: item.cwd,
-          updatedAt: item.createdAt.toISOString(),
-        }),
-      )
+      .map((item): SessionInfo => ({
+        sessionId: item.id,
+        cwd: item.cwd,
+        updatedAt: item.createdAt.toISOString(),
+      }))
     const sorted = [...liveEntries, ...serverEntries].sort(
       (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime(),
     )

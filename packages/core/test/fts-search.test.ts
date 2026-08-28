@@ -38,12 +38,18 @@ const makeDatabase = () =>
     const run = (query: string, params: ReadonlyArray<unknown> = []) =>
       Effect.try({
         try: () => (native.query(query).all(...(params as never[])) ?? []) as Array<Record<string, unknown>>,
-        catch: (cause) => new SqlError({ reason: classifySqliteError(cause, { message: "Failed to execute statement", operation: "execute" }) }),
+        catch: (cause) =>
+          new SqlError({
+            reason: classifySqliteError(cause, { message: "Failed to execute statement", operation: "execute" }),
+          }),
       })
     const runValues = (query: string, params: ReadonlyArray<unknown> = []) =>
       Effect.try({
         try: () => (native.query(query).values(...(params as never[])) ?? []) as Array<unknown[]>,
-        catch: (cause) => new SqlError({ reason: classifySqliteError(cause, { message: "Failed to execute statement", operation: "executeValues" }) }),
+        catch: (cause) =>
+          new SqlError({
+            reason: classifySqliteError(cause, { message: "Failed to execute statement", operation: "executeValues" }),
+          }),
       })
     const connection = {
       execute: (query: string, params: ReadonlyArray<unknown>) => run(query, params),
@@ -131,8 +137,14 @@ const setup = Effect.gen(function* () {
 const seed = Effect.gen(function* () {
   const { db } = yield* Database.Service
   const messages = [
-    { seq: 1, message: userMessage("msg_fts_search_user", "How does the effect runtime schedule fiber work?", 1_000_000) },
-    { seq: 2, message: systemMessage("msg_fts_search_system", "Session initialized for the search feature", 1_000_010) },
+    {
+      seq: 1,
+      message: userMessage("msg_fts_search_user", "How does the effect runtime schedule fiber work?", 1_000_000),
+    },
+    {
+      seq: 2,
+      message: systemMessage("msg_fts_search_system", "Session initialized for the search feature", 1_000_010),
+    },
     {
       seq: 3,
       message: assistantMessage(

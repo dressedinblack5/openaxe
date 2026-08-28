@@ -66,7 +66,7 @@ import { normalizePath } from "../../util/path"
 import { PermissionPrompt } from "./permission"
 import { QuestionPrompt } from "./question"
 import { DialogExportOptions } from "../../ui/dialog-export-options"
-import { index, name } from "../../util/model";
+import { index, name } from "../../util/model"
 import { formatTranscript } from "../../util/transcript"
 import { sessionEpilogue } from "../../util/presentation"
 import { setPreLayoutSiblingMargin } from "../../util/layout"
@@ -1131,11 +1131,36 @@ export function Session() {
   useBindings(() => ({
     mode: OPENCODE_BASE_MODE,
     bindings: [
-      { key: "tab", cmd: () => { focusNext(); } },
-      { key: "shift+tab", cmd: () => { focusPrev(); } },
-      { key: "ctrl+1", cmd: () => { focusRegion("sidebar"); } },
-      { key: "ctrl+2", cmd: () => { focusRegion("messages"); } },
-      { key: "ctrl+3", cmd: () => { focusRegion("prompt"); } },
+      {
+        key: "tab",
+        cmd: () => {
+          focusNext()
+        },
+      },
+      {
+        key: "shift+tab",
+        cmd: () => {
+          focusPrev()
+        },
+      },
+      {
+        key: "ctrl+1",
+        cmd: () => {
+          focusRegion("sidebar")
+        },
+      },
+      {
+        key: "ctrl+2",
+        cmd: () => {
+          focusRegion("messages")
+        },
+      },
+      {
+        key: "ctrl+3",
+        cmd: () => {
+          focusRegion("prompt")
+        },
+      },
     ],
   }))
 
@@ -1220,102 +1245,102 @@ export function Session() {
                   {(message, index) => {
                     const rvID = revert()?.messageID
                     return (
-                    <Switch>
-                      <Match when={message.id === rvID}>
-                        {(function () {
-                          const redoShortcut = useCommandShortcut("session.redo")
-                          const [hover, setHover] = createSignal(false)
-                          const dialog = useDialog()
-                          const rv = revert()
-                          if (!rv) return <></>
+                      <Switch>
+                        <Match when={message.id === rvID}>
+                          {(function () {
+                            const redoShortcut = useCommandShortcut("session.redo")
+                            const [hover, setHover] = createSignal(false)
+                            const dialog = useDialog()
+                            const rv = revert()
+                            if (!rv) return <></>
 
-                          const handleUnrevert = async () => {
-                            const confirmed = await DialogConfirm.show(
-                              dialog,
-                              "Confirm Redo",
-                              "Are you sure you want to restore the reverted messages?",
-                            )
-                            if (confirmed) {
-                              keymap.dispatchCommand("session.redo")
+                            const handleUnrevert = async () => {
+                              const confirmed = await DialogConfirm.show(
+                                dialog,
+                                "Confirm Redo",
+                                "Are you sure you want to restore the reverted messages?",
+                              )
+                              if (confirmed) {
+                                keymap.dispatchCommand("session.redo")
+                              }
                             }
-                          }
 
-                          return (
-                            <box
-                              onMouseOver={() => setHover(true)}
-                              onMouseOut={() => setHover(false)}
-                              onMouseUp={handleUnrevert}
-                              marginTop={1}
-                              flexShrink={0}
-                              border={["left"]}
-                              customBorderChars={SplitBorder.customBorderChars}
-                              borderColor={theme.backgroundPanel}
-                            >
+                            return (
                               <box
-                                paddingTop={1}
-                                paddingBottom={1}
-                                paddingLeft={2}
-                                backgroundColor={hover() ? theme.backgroundElement : theme.backgroundPanel}
+                                onMouseOver={() => setHover(true)}
+                                onMouseOut={() => setHover(false)}
+                                onMouseUp={handleUnrevert}
+                                marginTop={1}
+                                flexShrink={0}
+                                border={["left"]}
+                                customBorderChars={SplitBorder.customBorderChars}
+                                borderColor={theme.backgroundPanel}
                               >
-                                <text fg={theme.textMuted}>{rv.reverted.length} message reverted</text>
-                                <text fg={theme.textMuted}>
-                                  <span style={{ fg: theme.text }}>{redoShortcut()}</span> or /redo to restore
-                                </text>
-                                <Show when={rv.diffFiles?.length}>
-                                  <box marginTop={1}>
-                                    <For each={rv.diffFiles}>
-                                      {(file) => (
-                                        <text fg={theme.text}>
-                                          {file.filename}
-                                          <Show when={file.additions > 0}>
-                                            <span style={{ fg: theme.diffAdded }}> +{file.additions}</span>
-                                          </Show>
-                                          <Show when={file.deletions > 0}>
-                                            <span style={{ fg: theme.diffRemoved }}> -{file.deletions}</span>
-                                          </Show>
-                                        </text>
-                                      )}
-                                    </For>
-                                  </box>
-                                </Show>
+                                <box
+                                  paddingTop={1}
+                                  paddingBottom={1}
+                                  paddingLeft={2}
+                                  backgroundColor={hover() ? theme.backgroundElement : theme.backgroundPanel}
+                                >
+                                  <text fg={theme.textMuted}>{rv.reverted.length} message reverted</text>
+                                  <text fg={theme.textMuted}>
+                                    <span style={{ fg: theme.text }}>{redoShortcut()}</span> or /redo to restore
+                                  </text>
+                                  <Show when={rv.diffFiles?.length}>
+                                    <box marginTop={1}>
+                                      <For each={rv.diffFiles}>
+                                        {(file) => (
+                                          <text fg={theme.text}>
+                                            {file.filename}
+                                            <Show when={file.additions > 0}>
+                                              <span style={{ fg: theme.diffAdded }}> +{file.additions}</span>
+                                            </Show>
+                                            <Show when={file.deletions > 0}>
+                                              <span style={{ fg: theme.diffRemoved }}> -{file.deletions}</span>
+                                            </Show>
+                                          </text>
+                                        )}
+                                      </For>
+                                    </box>
+                                  </Show>
+                                </box>
                               </box>
-                            </box>
-                          )
-                        })()}
-                      </Match>
-                      <Match when={rvID !== undefined && message.id >= rvID}>
-                        <></>
-                      </Match>
-                      <Match when={message.role === "user" && message}>
-                        {(m) => (
-                          <UserMessage
-                            index={index()}
-                            onMouseUp={() => {
-                              if (renderer.getSelection()?.getSelectedText()) return
-                              dialog.replace(() => (
-                                <DialogMessage
-                                  messageID={message.id}
-                                  sessionID={route.sessionID}
-                                  setPrompt={(promptInfo) => prompt?.set(promptInfo)}
-                                />
-                              ))
-                            }}
-                            message={m()}
-                            parts={sync.data.part[message.id] ?? []}
-                            pending={pending()}
-                          />
-                        )}
-                      </Match>
-                      <Match when={message.role === "assistant" && message}>
-                        {(m) => (
-                          <AssistantMessage
-                            last={lastAssistant()?.id === message.id}
-                            message={m()}
-                            parts={sync.data.part[message.id] ?? []}
-                          />
-                        )}
-                      </Match>
-                    </Switch>
+                            )
+                          })()}
+                        </Match>
+                        <Match when={rvID !== undefined && message.id >= rvID}>
+                          <></>
+                        </Match>
+                        <Match when={message.role === "user" && message}>
+                          {(m) => (
+                            <UserMessage
+                              index={index()}
+                              onMouseUp={() => {
+                                if (renderer.getSelection()?.getSelectedText()) return
+                                dialog.replace(() => (
+                                  <DialogMessage
+                                    messageID={message.id}
+                                    sessionID={route.sessionID}
+                                    setPrompt={(promptInfo) => prompt?.set(promptInfo)}
+                                  />
+                                ))
+                              }}
+                              message={m()}
+                              parts={sync.data.part[message.id] ?? []}
+                              pending={pending()}
+                            />
+                          )}
+                        </Match>
+                        <Match when={message.role === "assistant" && message}>
+                          {(m) => (
+                            <AssistantMessage
+                              last={lastAssistant()?.id === message.id}
+                              message={m()}
+                              parts={sync.data.part[message.id] ?? []}
+                            />
+                          )}
+                        </Match>
+                      </Switch>
                     )
                   }}
                 </For>
@@ -1337,7 +1362,11 @@ export function Session() {
                   <SubagentFooter />
                 </Show>
                 <Show when={visible()}>
-                  <box border={isFocused("prompt")() ? ["top"] : []} borderColor={isFocused("prompt")() ? theme.primary : undefined} marginTop={1}>
+                  <box
+                    border={isFocused("prompt")() ? ["top"] : []}
+                    borderColor={isFocused("prompt")() ? theme.primary : undefined}
+                    marginTop={1}
+                  >
                     <pluginRuntime.Slot
                       name="session_prompt"
                       mode="replace"
@@ -1366,7 +1395,10 @@ export function Session() {
           <Show when={sidebarVisible()}>
             <Switch>
               <Match when={wide()}>
-                <box border={isFocused("sidebar")() ? ["right"] : []} borderColor={isFocused("sidebar")() ? theme.primary : undefined}>
+                <box
+                  border={isFocused("sidebar")() ? ["right"] : []}
+                  borderColor={isFocused("sidebar")() ? theme.primary : undefined}
+                >
                   <Sidebar sessionID={route.sessionID} />
                 </box>
               </Match>
@@ -1525,19 +1557,13 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
         {(part, index) => (
           <Switch>
             <Match when={part.type === "text" && part}>
-              {(p) => (
-                <TextPart last={index() === props.parts.length - 1} part={p()} message={props.message} />
-              )}
+              {(p) => <TextPart last={index() === props.parts.length - 1} part={p()} message={props.message} />}
             </Match>
             <Match when={part.type === "tool" && part}>
-              {(p) => (
-                <ToolPart last={index() === props.parts.length - 1} part={p()} message={props.message} />
-              )}
+              {(p) => <ToolPart last={index() === props.parts.length - 1} part={p()} message={props.message} />}
             </Match>
             <Match when={part.type === "reasoning" && part}>
-              {(p) => (
-                <ReasoningPart last={index() === props.parts.length - 1} part={p()} message={props.message} />
-              )}
+              {(p) => <ReasoningPart last={index() === props.parts.length - 1} part={p()} message={props.message} />}
             </Match>
           </Switch>
         )}
@@ -2138,7 +2164,12 @@ function Shell(props: ToolProps) {
         </BlockTool>
       </Match>
       <Match when={true}>
-        <InlineTool icon="$" pending="Turning the wheel..." complete={stringValue(props.input.command)} part={props.part}>
+        <InlineTool
+          icon="$"
+          pending="Turning the wheel..."
+          complete={stringValue(props.input.command)}
+          part={props.part}
+        >
           {stringValue(props.input.command)}
         </InlineTool>
       </Match>
@@ -2170,12 +2201,7 @@ function Write(props: ToolProps) {
         </BlockTool>
       </Match>
       <Match when={true}>
-        <InlineTool
-          icon="←"
-          pending="Laying the cut..."
-          complete={stringValue(props.input.filePath)}
-          part={props.part}
-        >
+        <InlineTool icon="←" pending="Laying the cut..." complete={stringValue(props.input.filePath)} part={props.part}>
           Write {pathFormatter.format(stringValue(props.input.filePath))}
         </InlineTool>
       </Match>
@@ -2421,7 +2447,12 @@ function Edit(props: ToolProps) {
         </BlockTool>
       </Match>
       <Match when={true}>
-        <InlineTool icon="←" pending="Setting the chisel..." complete={stringValue(props.input.filePath)} part={props.part}>
+        <InlineTool
+          icon="←"
+          pending="Setting the chisel..."
+          complete={stringValue(props.input.filePath)}
+          part={props.part}
+        >
           Edit {pathFormatter.format(stringValue(props.input.filePath))} {input({ replaceAll: props.input.replaceAll })}
         </InlineTool>
       </Match>

@@ -113,7 +113,10 @@ const projectDirectory = (db: Database.Interface["db"], projectId: ProjectV2.ID)
     return session ? session.directory : undefined
   })
 
-const loadSummaries = (db: Database.Interface["db"], projectId: ProjectV2.ID): Effect.Effect<readonly SessionSummary[]> =>
+const loadSummaries = (
+  db: Database.Interface["db"],
+  projectId: ProjectV2.ID,
+): Effect.Effect<readonly SessionSummary[]> =>
   Effect.gen(function* () {
     const sessions = yield* db
       .select({
@@ -153,7 +156,11 @@ const loadSummaries = (db: Database.Interface["db"], projectId: ProjectV2.ID): E
     }
 
     return sessions.map((session) => {
-      const acc = bySession.get(String(session.id)) ?? { lines: [], tools: new Map<string, number>(), errors: new Set<string>() }
+      const acc = bySession.get(String(session.id)) ?? {
+        lines: [],
+        tools: new Map<string, number>(),
+        errors: new Set<string>(),
+      }
       return {
         id: String(session.id),
         title: session.title,
@@ -178,7 +185,10 @@ const toolParts = (data: unknown): ReadonlyArray<{ name: string; error: string |
   return data.content.flatMap((part) => {
     if (!isRecord(part) || part.type !== "tool") return []
     const state = isRecord(part.state) ? part.state : undefined
-    const error = state !== undefined && (state.status === "error" || state.error !== undefined) ? errorText(state.error) : undefined
+    const error =
+      state !== undefined && (state.status === "error" || state.error !== undefined)
+        ? errorText(state.error)
+        : undefined
     return [{ name: typeof part.name === "string" ? part.name : "unknown", error }]
   })
 }
@@ -252,7 +262,10 @@ const relatedByTags = (summaries: readonly SessionSummary[]): ReadonlyMap<string
   for (const ids of byTag.values()) {
     if (ids.length < 2) continue
     for (const id of ids) {
-      related.set(id, [...new Set([...(related.get(id) ?? []), ...ids])].filter((other) => other !== id))
+      related.set(
+        id,
+        [...new Set([...(related.get(id) ?? []), ...ids])].filter((other) => other !== id),
+      )
     }
   }
   return related
@@ -277,9 +290,11 @@ const cosine = (a: readonly number[], b: readonly number[]): number => {
 }
 
 const TOPIC_KEYWORDS: Record<KbFile, RegExp> = {
-  architecture: /architecture|structur|layout|module|package|component|refactor|how (does|is|are)|where (is|are)|codebase|overview|entry ?point/i,
+  architecture:
+    /architecture|structur|layout|module|package|component|refactor|how (does|is|are)|where (is|are)|codebase|overview|entry ?point/i,
   patterns: /pattern|workflow|repeat|recurring|always|convention|habit|standard practice|reusable|boilerplate/i,
-  decisions: /decide|decided|decision|choose|chose|prefer|switch to|should we|use .* instead|tradeoff|trade-off|why did/i,
+  decisions:
+    /decide|decided|decision|choose|chose|prefer|switch to|should we|use .* instead|tradeoff|trade-off|why did/i,
   errors: /error|fail|broken|crash|exception|not working|issue|bug/i,
 }
 
@@ -328,7 +343,10 @@ const renderBody = (file: KbFile, blocks: readonly { heading: string; bullets: r
   const sections =
     blocks.length > 0
       ? blocks
-          .map((block) => `${block.heading}\n\n${block.bullets.length > 0 ? block.bullets.join("\n") : "_Nothing extracted from this session yet._"}`)
+          .map(
+            (block) =>
+              `${block.heading}\n\n${block.bullets.length > 0 ? block.bullets.join("\n") : "_Nothing extracted from this session yet._"}`,
+          )
           .join("\n\n")
       : "_Nothing extracted from recent sessions yet._"
   // The marker block is always present so user edits land in a stable slot across re-builds.

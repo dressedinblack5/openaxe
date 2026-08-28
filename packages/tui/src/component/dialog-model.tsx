@@ -1,11 +1,17 @@
 import { createMemo, createSignal } from "solid-js"
 import { useLocal } from "../context/local"
-function sortBy<T>(items: T[], ...criteria: Array<((item: T) => string | number | boolean) | [(item: T) => string | number | boolean, "asc" | "desc"]>): T[] {
+function sortBy<T>(
+  items: T[],
+  ...criteria: Array<
+    ((item: T) => string | number | boolean) | [(item: T) => string | number | boolean, "asc" | "desc"]
+  >
+): T[] {
   return items.slice().sort((a, b) => {
     for (const criterion of criteria) {
       const fn = Array.isArray(criterion) ? criterion[0] : criterion
       const dir = Array.isArray(criterion) && criterion[1] === "desc" ? -1 : 1
-      const va = fn(a), vb = fn(b)
+      const va = fn(a),
+        vb = fn(b)
       if (va < vb) return -1 * dir
       if (va > vb) return 1 * dir
     }
@@ -16,11 +22,14 @@ import { DialogSelect } from "../ui/dialog-select"
 import { useDialog } from "../ui/dialog"
 import { createDialogProviderOptions, DialogProvider } from "./dialog-provider"
 import { DialogVariant } from "./dialog-variant"
-import { go } from "fuzzysort";
+import { go } from "fuzzysort"
 import { useConnected } from "./use-connected"
 import { useSync } from "../context/sync"
 
-export function DialogModel(props: { providerID?: string; onModelSelect?: (providerID: string, modelID: string) => void }) {
+export function DialogModel(props: {
+  providerID?: string
+  onModelSelect?: (providerID: string, modelID: string) => void
+}) {
   const local = useLocal()
   const sync = useSync()
   const dialog = useDialog()
@@ -76,7 +85,9 @@ export function DialogModel(props: { providerID?: string; onModelSelect?: (provi
     ).flatMap((provider) => {
       const modelEntries = Object.entries(provider.models)
       const filtered1 = modelEntries.filter(([_, info]) => info.status !== "deprecated")
-      const filtered2 = filtered1.filter(([_, info]) => (props.providerID ? info.providerID === props.providerID : true))
+      const filtered2 = filtered1.filter(([_, info]) =>
+        props.providerID ? info.providerID === props.providerID : true,
+      )
       const mapped = filtered2.map(([model, info]) => ({
         value: { providerID: provider.id, modelID: model },
         title: info.name ?? model,
@@ -94,15 +105,11 @@ export function DialogModel(props: { providerID?: string; onModelSelect?: (provi
       const filtered3 = mapped.filter((option) => {
         if (!showSections) return true
         if (
-          favorites.some(
-            (item) => item.providerID === option.value.providerID && item.modelID === option.value.modelID,
-          )
+          favorites.some((item) => item.providerID === option.value.providerID && item.modelID === option.value.modelID)
         )
           return false
         if (
-          recents.some(
-            (item) => item.providerID === option.value.providerID && item.modelID === option.value.modelID,
-          )
+          recents.some((item) => item.providerID === option.value.providerID && item.modelID === option.value.modelID)
         )
           return false
         return true
@@ -111,10 +118,12 @@ export function DialogModel(props: { providerID?: string; onModelSelect?: (provi
     })
 
     const popularProviders = !connected()
-      ? providers().map((option) => ({
-          ...option,
-          category: "Popular providers",
-        })).slice(0, 6)
+      ? providers()
+          .map((option) => ({
+            ...option,
+            category: "Popular providers",
+          }))
+          .slice(0, 6)
       : []
 
     if (needle) {

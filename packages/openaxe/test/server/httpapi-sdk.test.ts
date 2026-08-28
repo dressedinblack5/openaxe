@@ -51,10 +51,7 @@ type Captured = { status: number; data?: unknown; error?: unknown }
 type ProjectFixture = { sdk: Sdk; directory: string }
 type LlmProjectFixture = ProjectFixture & { llm: TestLLMServer["Service"] }
 type TestServices =
-  | FSUtil.Service
-  | ChildProcessSpawner.ChildProcessSpawner
-  | InstanceStore.Service
-  | HttpServer.HttpServer
+  FSUtil.Service | ChildProcessSpawner.ChildProcessSpawner | InstanceStore.Service | HttpServer.HttpServer
 type TestScope = Scope.Scope | TestServices
 
 function client(

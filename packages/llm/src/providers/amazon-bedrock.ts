@@ -1,7 +1,7 @@
 import type { RouteDefaultsInput } from "../route/client"
 import { Auth } from "../route/auth"
 import { ProviderID, type ModelID } from "../schema"
-import { route, sigV4Auth } from "../protocols/bedrock-converse";
+import { route, sigV4Auth } from "../protocols/bedrock-converse"
 import type { BedrockCredentials } from "../protocols/bedrock-converse"
 
 export const id = ProviderID.make("amazon-bedrock")

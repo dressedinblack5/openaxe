@@ -146,9 +146,9 @@ export const layer = Layer.effect(
       Effect.gen(function* () {
         yield* requireDimension(queryVector)
         yield* ensureSchemaOnce
-        const rows = yield* db.all<{ id: string; distance: number }>(searchSql(table, queryVector, k, filter)).pipe(
-          Effect.mapError(queryFailed),
-        )
+        const rows = yield* db
+          .all<{ id: string; distance: number }>(searchSql(table, queryVector, k, filter))
+          .pipe(Effect.mapError(queryFailed))
         // Cosine distance from the query — lower is more relevant (same convention as WorkspaceMemory).
         return rows.map((row) => ({ id: row.id, score: row.distance }))
       })

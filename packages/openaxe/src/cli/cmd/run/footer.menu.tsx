@@ -14,9 +14,7 @@ export type RunFooterMenuItem = {
 }
 
 type RunFooterMenuRow =
-  | { type: "header"; label: string }
-  | { type: "item"; item: RunFooterMenuItem; index: number }
-  | { type: "spacer" }
+  { type: "header"; label: string } | { type: "item"; item: RunFooterMenuItem; index: number } | { type: "spacer" }
 
 function maxOffset(count: number, limit: number) {
   return Math.max(0, count - limit)

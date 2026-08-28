@@ -122,7 +122,7 @@ function cacheKey(query: string, opts?: { currentFile?: string; pageIndex?: numb
 function cachedFileSearch(
   picker: Picker,
   query: string,
-  opts?: { currentFile?: string; pageIndex?: number; pageSize?: number }
+  opts?: { currentFile?: string; pageIndex?: number; pageSize?: number },
 ): Result<Search> {
   const key = cacheKey(query, opts)
   const cached = searchCache.get(key)
@@ -152,7 +152,7 @@ export function create(opts: Init): Result<Picker> {
     value: {
       destroy: () => pick.destroy(),
       isScanning: () => pick.isScanning(),
-      waitForScan:  async (timeoutMs) => pick.waitForScan(timeoutMs),
+      waitForScan: async (timeoutMs) => pick.waitForScan(timeoutMs),
       refreshGitStatus: () => pick.refreshGitStatus(),
       fileSearch: (query, next) => cachedFileSearch(pick, query, next),
       glob: (pattern, next) => pick.glob(pattern, next),

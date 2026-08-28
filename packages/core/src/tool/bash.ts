@@ -166,9 +166,7 @@ export const layer = Layer.effectDiscard(
                   maxErrorBytes: MAX_CAPTURE_BYTES,
                 })
                 .pipe(
-                  Effect.catchTag("AppProcessError", (error) =>
-                    isTimeout(error) ? Effect.void : Effect.fail(error),
-                  ),
+                  Effect.catchTag("AppProcessError", (error) => (isTimeout(error) ? Effect.void : Effect.fail(error))),
                 )
               if (!result) {
                 return {

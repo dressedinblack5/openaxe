@@ -66,7 +66,9 @@ export const layer = Layer.effect(
     const healthy = Effect.fnUntraced(function* () {
       const info = yield* registration()
       const client = yield* createClient(info.url)
-      const response = yield* Effect.tryPromise( async () => client.v2.health.get({ signal: AbortSignal.timeout(2_000) }))
+      const response = yield* Effect.tryPromise(async () =>
+        client.v2.health.get({ signal: AbortSignal.timeout(2_000) }),
+      )
       if (response.data?.healthy === true) return info
       return yield* Effect.fail(new Error("Registered server is not healthy"))
     })
@@ -167,10 +169,10 @@ export const layer = Layer.effect(
       const existing = yield* healthy().pipe(Effect.option)
       // A stale registration may point at a PID that has since been reused by
       // another process. Only signal the PID after authenticating the server.
-        if (Option.isNone(existing)) {
-          yield* fs.remove(file).pipe(Effect.ignore)
-          return
-        }
+      if (Option.isNone(existing)) {
+        yield* fs.remove(file).pipe(Effect.ignore)
+        return
+      }
       yield* stopProcess(existing.value)
       yield* fs.remove(file).pipe(Effect.ignore)
     })

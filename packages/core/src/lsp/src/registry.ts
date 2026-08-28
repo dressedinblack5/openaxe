@@ -1,9 +1,6 @@
 // @ts-nocheck
 import { HashMap } from "effect"
-import {
-  ServerDefinition,
-  ServerRegistry,
-} from "./types"
+import { ServerDefinition, ServerRegistry } from "./types"
 import { Filesystem } from "@opencode-ai/core/util/filesystem"
 import { Global } from "@opencode-ai/core/global"
 import { Npm } from "@opencode-ai/core/npm"
@@ -18,13 +15,14 @@ import fs from "fs/promises"
  */
 
 const pathExists = async (p: string) =>
-  fs.stat(p).then(() => true).catch(() => false)
+  fs
+    .stat(p)
+    .then(() => true)
+    .catch(() => false)
 
-const _run = (cmd: string[], opts: Process.RunOptions = {}) =>
-  Process.run(cmd, { ...opts, nothrow: true })
+const _run = (cmd: string[], opts: Process.RunOptions = {}) => Process.run(cmd, { ...opts, nothrow: true })
 
-const output = (cmd: string[], opts: Process.RunOptions = {}) =>
-  Process.text(cmd, { ...opts, nothrow: true })
+const output = (cmd: string[], opts: Process.RunOptions = {}) => Process.text(cmd, { ...opts, nothrow: true })
 
 const NearestRoot = (includePatterns: string[], excludePatterns?: string[]): ServerDefinition["root"] => {
   return async (file, ctx) => {
@@ -79,7 +77,7 @@ export const makeNpmServer = (input: {
       const resolved2 = await Npm.which(input.package)
       if (!resolved2) return undefined
     }
-    const finalBin = resolved ?? await Npm.which(input.package)
+    const finalBin = resolved ?? (await Npm.which(input.package))
     if (!finalBin) return undefined
     const args = input.args ?? ["--stdio"]
     return {
@@ -123,7 +121,10 @@ export const makeGoServer = (input: {
       })
       const exit = await proc.exited
       if (exit !== 0) return undefined
-      bin = path.join(Global.Path.bin, input.binary ?? path.basename(input.module) + (process.platform === "win32" ? ".exe" : ""))
+      bin = path.join(
+        Global.Path.bin,
+        input.binary ?? path.basename(input.module) + (process.platform === "win32" ? ".exe" : ""),
+      )
     }
     const args = input.args ?? []
     return {
@@ -208,7 +209,9 @@ export const makeBinaryServer = (input: {
     }
     return undefined
   },
-  downloadStrategy: input.url ? { type: "binary", url: input.url, binary: input.binary, archiveType: input.archiveType } : undefined,
+  downloadStrategy: input.url
+    ? { type: "binary", url: input.url, binary: input.binary, archiveType: input.archiveType }
+    : undefined,
 })
 
 export const makeMasonServer = (input: {
@@ -281,16 +284,50 @@ export const BuiltinServers: ReadonlyArray<ServerDefinition> = [
     extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".vue", ".astro", ".svelte"],
     package: "oxlint",
     binary: "oxc_language_server",
-    rootPatterns: [".oxlintrc.json", "package-lock.json", "bun.lockb", "bun.lock", "pnpm-lock.yaml", "yarn.lock", "package.json"],
+    rootPatterns: [
+      ".oxlintrc.json",
+      "package-lock.json",
+      "bun.lockb",
+      "bun.lock",
+      "pnpm-lock.yaml",
+      "yarn.lock",
+      "package.json",
+    ],
   }),
   makeNpmServer({
     id: "biome",
     name: "Biome",
-    extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".json", ".jsonc", ".vue", ".astro", ".svelte", ".css", ".graphql", ".gql", ".html"],
+    extensions: [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx",
+      ".mjs",
+      ".cjs",
+      ".mts",
+      ".cts",
+      ".json",
+      ".jsonc",
+      ".vue",
+      ".astro",
+      ".svelte",
+      ".css",
+      ".graphql",
+      ".gql",
+      ".html",
+    ],
     package: "biome",
     binary: "biome",
     args: ["lsp-proxy", "--stdio"],
-    rootPatterns: ["biome.json", "biome.jsonc", "package-lock.json", "bun.lockb", "bun.lock", "pnpm-lock.yaml", "yarn.lock"],
+    rootPatterns: [
+      "biome.json",
+      "biome.jsonc",
+      "package-lock.json",
+      "bun.lockb",
+      "bun.lock",
+      "pnpm-lock.yaml",
+      "yarn.lock",
+    ],
   }),
   makeGoServer({
     id: "gopls",

@@ -131,10 +131,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
   })
   const files = createMemo(() => diff() ?? [])
   const [focus, setFocus] = createSignal<DiffViewerFocus>("patches")
-  const [fileTreeEnabled, setFileTreeEnabled] = createSignal(
-    
-    props.api.kv.get(KV_SHOW_FILE_TREE, true),
-  )
+  const [fileTreeEnabled, setFileTreeEnabled] = createSignal(props.api.kv.get(KV_SHOW_FILE_TREE, true))
   const showFileTree = createMemo(() => showDiffViewerFileTree(fileTreeEnabled(), files().length))
   const [singlePatch, setSinglePatch] = createSignal(props.api.kv.get(KV_SINGLE_PATCH, false))
   const patchPaneWidth = createMemo(() => dimensions().width - (showFileTree() ? 33 : 0) - 4)
@@ -162,10 +159,9 @@ function DiffViewer(props: { api: TuiPluginApi }) {
   const previousHunkShortcut = useCommandShortcut("diff.previous_hunk")
   const nextFileShortcut = useCommandShortcut("diff.next_file")
   const previousFileShortcut = useCommandShortcut("diff.previous_file")
-  
-  
+
   const switchSourceShortcut = useCommandShortcut("diff.switch_source")
-  
+
   const markReviewedShortcut = useCommandShortcut("diff.mark_reviewed")
   const helpShortcut = useCommandShortcut("diff.help")
   let scroll: ScrollBoxRenderable | undefined
@@ -317,7 +313,6 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     setSelectedHunk({ fileIndex: next.fileIndex, hunkIndex: next.hunkIndex, scrollTop: patchScroll.scrollTop })
   }
 
-  
   const firstPatchFileIndex = () => fileRows().find((row) => row.fileIndex !== undefined)?.fileIndex
   const visiblePatchFiles = createMemo(() => {
     if (!singlePatch()) {

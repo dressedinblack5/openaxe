@@ -33,7 +33,9 @@ export interface VerificationResult {
 
 export interface Interface {
   readonly verify: (files: ReadonlyArray<string>) => Effect.Effect<ReadonlyArray<VerifyResult>>
-  readonly verifyProject: (files: ReadonlyArray<string>) => Effect.Effect<ReadonlyArray<VerificationResult>, never, ChildProcessSpawner>
+  readonly verifyProject: (
+    files: ReadonlyArray<string>,
+  ) => Effect.Effect<ReadonlyArray<VerificationResult>, never, ChildProcessSpawner>
   readonly verifyStructural: (files: ReadonlyArray<string>) => Effect.Effect<ReadonlyArray<VerifyResult>>
 }
 
@@ -121,7 +123,8 @@ function checkSource(source: string): ReadonlyArray<FileError> {
 function parseRelativeImports(source: string): ReadonlyArray<{ readonly path: string; readonly line: number }> {
   const results: Array<{ path: string; line: number }> = []
   const lines = source.split("\n")
-  const re = /from\s+["'`](\.\.?\/[^"'`]+)["'`]|require\s*\(\s*["'`](\.\.?\/[^"'`]+)["'`]|(?:\bimport\s+)["'`](\.\.?\/[^"'`]+)["'`]/g
+  const re =
+    /from\s+["'`](\.\.?\/[^"'`]+)["'`]|require\s*\(\s*["'`](\.\.?\/[^"'`]+)["'`]|(?:\bimport\s+)["'`](\.\.?\/[^"'`]+)["'`]/g
 
   for (let i = 0; i < lines.length; i++) {
     let m: RegExpExecArray | null
@@ -218,7 +221,9 @@ function parseCargoDiagnostics(output: string): Diagnostic[] {
         message: msg.message,
         severity: msg.level === "error" ? "error" : "warning",
       })
-    } catch { /* ponytail: malformed lint output from edge-case tool, skip unparseable lines */ }
+    } catch {
+      /* ponytail: malformed lint output from edge-case tool, skip unparseable lines */
+    }
   }
   return result
 }
@@ -240,7 +245,8 @@ function parseRuffDiagnostics(output: string): Diagnostic[] {
           }) as Diagnostic,
       )
       .filter((d: Diagnostic) => d.file)
-  } catch { /* ponytail: invalid ruff JSON output, treat as empty result */
+  } catch {
+    /* ponytail: invalid ruff JSON output, treat as empty result */
     return []
   }
 }
@@ -357,10 +363,22 @@ function verifyPython(files: string[]): Effect.Effect<VerificationResult, never,
               }
             }
           }
-          return { projectType: "python" as const, files, diagnostics, passed: diagnostics.length === 0, verifier: "python -m py_compile" } satisfies VerificationResult
+          return {
+            projectType: "python" as const,
+            files,
+            diagnostics,
+            passed: diagnostics.length === 0,
+            verifier: "python -m py_compile",
+          } satisfies VerificationResult
         }),
         Effect.catch(() =>
-          Effect.succeed({ projectType: "python" as const, files, diagnostics: [], passed: true, verifier: "python -m py_compile" }),
+          Effect.succeed({
+            projectType: "python" as const,
+            files,
+            diagnostics: [],
+            passed: true,
+            verifier: "python -m py_compile",
+          }),
         ),
       ),
     ),
@@ -398,9 +416,7 @@ export const layer = Layer.effect(
     const verify = Effect.fn("Guardrail.verify")(function* (files: ReadonlyArray<string>) {
       return yield* Effect.forEach(files, (file) =>
         Effect.gen(function* () {
-          const content = yield* fs.readFileString(file).pipe(
-            Effect.catch(() => Effect.succeed("")),
-          )
+          const content = yield* fs.readFileString(file).pipe(Effect.catch(() => Effect.succeed("")))
           const errors = checkSource(content)
           return { file, errors, passed: errors.length === 0 } satisfies VerifyResult
         }),
@@ -410,9 +426,7 @@ export const layer = Layer.effect(
     const verifyStructural = Effect.fn("Guardrail.verifyStructural")(function* (files: ReadonlyArray<string>) {
       return yield* Effect.forEach(files, (file) =>
         Effect.gen(function* () {
-          const content = yield* fs.readFileString(file).pipe(
-            Effect.catch(() => Effect.succeed("")),
-          )
+          const content = yield* fs.readFileString(file).pipe(Effect.catch(() => Effect.succeed("")))
           const bracketErrors = checkSource(content)
           const importErrors = yield* checkImports(file, content, fs)
           const errors = [...bracketErrors, ...importErrors]
@@ -456,8 +470,6 @@ export const layer = Layer.effect(
   }),
 )
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(CrossSpawnSpawner.defaultLayer),
-)
+export const defaultLayer = layer.pipe(Layer.provide(CrossSpawnSpawner.defaultLayer))
 
 export * as Guardrail from "./guardrail"

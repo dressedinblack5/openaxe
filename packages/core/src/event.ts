@@ -357,7 +357,7 @@ export const layerWith = (options?: LayerOptions) =>
               type: definition.type,
               ...(location ? { location } : {}),
               data,
-             // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- pubsub payload is narrowed to the subscriber's event type.
+              // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- pubsub payload is narrowed to the subscriber's event type.
             } as Payload<D>,
             options?.commit,
           )
@@ -485,7 +485,7 @@ export const layerWith = (options?: LayerOptions) =>
 
       const subscribe = <D extends Definition>(definition: D): Stream.Stream<Payload<D>> =>
         Stream.unwrap(getOrCreate(definition).pipe(Effect.map((pubsub) => Stream.fromPubSub(pubsub)))).pipe(
-           // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- pubsub broadcasts the base payload; subscribers narrow to their event type.
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- pubsub broadcasts the base payload; subscribers narrow to their event type.
           Stream.map((event) => event as Payload<D>),
         )
 
@@ -581,7 +581,7 @@ export const layerWith = (options?: LayerOptions) =>
       const project = <D extends Definition>(definition: D, projector: Subscriber<D>): Effect.Effect<void> =>
         Effect.sync(() => {
           const list = projectors.get(definition.type) ?? []
-           // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- pubsub broadcasts the base payload; projectors narrow to their event type.
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- pubsub broadcasts the base payload; projectors narrow to their event type.
           list.push((event) => projector(event as Payload<D>))
           projectors.set(definition.type, list)
         })

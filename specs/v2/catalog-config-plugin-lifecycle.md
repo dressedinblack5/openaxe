@@ -27,13 +27,9 @@ const transform = yield * Config.transform()
 yield *
   transform((config) => {
     config.providers ??= {}
-    config.providers.acme = {
-      /* ... */
-    }
+    config.providers.acme = {/* ... */}
     config.model = "acme/code"
-    config.permissions = [
-      /* ... */
-    ]
+    config.permissions = [/* ... */]
   })
 ```
 

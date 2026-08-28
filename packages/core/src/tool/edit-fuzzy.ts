@@ -185,12 +185,7 @@ function isDisproportionateMatch(search: string, oldString: string): boolean {
  * Exact matches are intentionally not handled here: the caller runs the exact
  * path first and only retries with this when the exact search is absent.
  */
-export function fuzzyReplace(
-  content: string,
-  find: string,
-  replacement: string,
-  replaceAll: boolean,
-): FuzzyResult {
+export function fuzzyReplace(content: string, find: string, replacement: string, replaceAll: boolean): FuzzyResult {
   let sawCandidate = false
   for (const replacer of [lineTrimmed, blockAnchor, indentationFlexible]) {
     for (const search of replacer(content, find)) {

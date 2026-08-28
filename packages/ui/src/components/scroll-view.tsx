@@ -7,7 +7,9 @@ export interface ScrollViewProps extends ComponentProps<"div"> {
   orientation?: "vertical" | "horizontal" // currently only vertical is fully implemented for thumb
 }
 
-export const scrollKey = (event: Pick<KeyboardEvent, "key" | "altKey" | "ctrlKey" | "metaKey" | "shiftKey">): string | undefined => {
+export const scrollKey = (
+  event: Pick<KeyboardEvent, "key" | "altKey" | "ctrlKey" | "metaKey" | "shiftKey">,
+): string | undefined => {
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return undefined
 
   switch (event.key) {
@@ -44,7 +46,6 @@ export function scrollTopFromThumbPointer(input: {
 }
 
 export function ScrollView(props: ScrollViewProps) {
-  
   const merged = mergeProps({ orientation: "vertical" }, props)
   const [local, events, rest] = splitProps(
     merged,
@@ -156,7 +157,6 @@ export function ScrollView(props: ScrollViewProps) {
   // We ensure the viewport has a tabindex so it can receive focus
   // We can also explicitly catch PageUp/Down if we want smooth scroll or specific behavior,
   // but native usually handles this perfectly. Let's explicitly ensure it behaves well.
-  
 
   return (
     <div

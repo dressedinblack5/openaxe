@@ -51,11 +51,7 @@ export const CardOutput = Schema.Struct({
   timeUpdated: Schema.Number,
 })
 
-export const Output = Schema.Union([
-  CardOutput,
-  BoardOutput,
-  Schema.Struct({ cards: Schema.Array(CardOutput) }),
-])
+export const Output = Schema.Union([CardOutput, BoardOutput, Schema.Struct({ cards: Schema.Array(CardOutput) })])
 
 export const layer = Layer.effectDiscard(
   Effect.gen(function* () {
@@ -101,7 +97,9 @@ export const layer = Layer.effectDiscard(
                 }
                 case "create_card": {
                   if (!input.boardId || !input.title)
-                    return yield* Effect.fail(new ToolFailure({ message: "kanban create_card requires boardId and title" }))
+                    return yield* Effect.fail(
+                      new ToolFailure({ message: "kanban create_card requires boardId and title" }),
+                    )
                   return yield* kanban.createCard({
                     boardId: input.boardId,
                     rootSessionId: input.rootSessionId ?? context.sessionID,
@@ -128,8 +126,7 @@ export const layer = Layer.effectDiscard(
                     parentId: input.parentId,
                     verification: input.verification,
                   })
-                  if (!card)
-                    return yield* Effect.fail(new ToolFailure({ message: `Card not found: ${input.cardId}` }))
+                  if (!card) return yield* Effect.fail(new ToolFailure({ message: `Card not found: ${input.cardId}` }))
                   return card
                 }
                 case "list_cards": {

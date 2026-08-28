@@ -66,8 +66,8 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
   const background = backgroundHex ?? neutral[0]
   const alphaTone = (color: HexColor, alpha: number) =>
     overlay
-      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- withAlpha returns an rgba() string: a valid CSS color not representable in the HexColor | CssVarRef union.
-      ? (withAlpha(color, alpha) as ColorValue)
+      ? // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- withAlpha returns an rgba() string: a valid CSS color not representable in the HexColor | CssVarRef union.
+        (withAlpha(color, alpha) as ColorValue)
       : blend(color, background, alpha)
   const borderTone = (light: number, dark: number) =>
     alphaTone(ink, isDark ? Math.min(1, dark + 0.024 + (colors.compact ? 0.08 : 0)) : Math.min(1, light + 0.024))
@@ -198,7 +198,11 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
   tokens["text-base"] = body ?? neutral[10]
   tokens["text-weak"] = body ? shift(body, { l: isDark ? -0.11 : 0.11, c: 0.9 }) : neutral[8]
   tokens["text-weaker"] = body ? shift(body, { l: isDark ? -0.2 : 0.21, c: isDark ? 0.78 : 0.72 }) : neutral[7]
-  tokens["text-strong"] = body ? (isDark ? blend("#ffffff", body, 0.9) : shift(body, { l: -0.07, c: 1.04 })) : neutral[11]
+  tokens["text-strong"] = body
+    ? isDark
+      ? blend("#ffffff", body, 0.9)
+      : shift(body, { l: -0.07, c: 1.04 })
+    : neutral[11]
   tokens["text-invert-base"] = isDark ? neutral[10] : neutral[1]
   tokens["text-invert-weak"] = isDark ? neutral[8] : neutral[2]
   tokens["text-invert-weaker"] = isDark ? neutral[7] : neutral[3]

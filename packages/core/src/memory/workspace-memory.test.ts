@@ -45,10 +45,7 @@ const failingEmbedding = makeEmbedding(() =>
 )
 
 const makeLayer = (file: string, embedding = fakeEmbedding) =>
-  WorkspaceMemory.layer.pipe(
-    Layer.provide(Database.layerFromPath(file)),
-    Layer.provide(embedding),
-  )
+  WorkspaceMemory.layer.pipe(Layer.provide(Database.layerFromPath(file)), Layer.provide(embedding))
 
 const run = <A, E>(effect: Effect.Effect<A, E, WorkspaceMemory.Service>) =>
   Effect.runPromise(
@@ -60,9 +57,7 @@ const run = <A, E>(effect: Effect.Effect<A, E, WorkspaceMemory.Service>) =>
           return { dir, layer }
         }),
         ({ dir }) => Effect.promise(() => dir[Symbol.asyncDispose]()),
-      ).pipe(
-        Effect.flatMap(({ layer }) => effect.pipe(Effect.provide(layer))),
-      ),
+      ).pipe(Effect.flatMap(({ layer }) => effect.pipe(Effect.provide(layer)))),
     ),
   )
 
@@ -208,19 +203,13 @@ describe("WorkspaceMemory", () => {
       Effect.gen(function* () {
         const service = yield* WorkspaceMemory.Service
         yield* service.set("secret", "project A only")
-      }).pipe(
-        Effect.provide(withLocation("project-a")),
-        Effect.provide(makeLayer(file)),
-      ),
+      }).pipe(Effect.provide(withLocation("project-a")), Effect.provide(makeLayer(file))),
     )
     const fromOther = await Effect.runPromise(
       Effect.gen(function* () {
         const service = yield* WorkspaceMemory.Service
         return { value: yield* service.get("secret"), keys: yield* service.list() }
-      }).pipe(
-        Effect.provide(withLocation("project-b")),
-        Effect.provide(makeLayer(file)),
-      ),
+      }).pipe(Effect.provide(withLocation("project-b")), Effect.provide(makeLayer(file))),
     )
     expect(Option.isNone(fromOther.value)).toBe(true)
     expect(fromOther.keys).toEqual([])

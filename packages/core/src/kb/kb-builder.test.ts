@@ -32,7 +32,11 @@ const user = (id: string, text: string, created: number): SessionMessage.Message
   time: { created: DateTime.makeUnsafe(created) },
 })
 
-const assistant = (id: string, content: SessionMessage.AssistantContent[], created: number): SessionMessage.Message => ({
+const assistant = (
+  id: string,
+  content: SessionMessage.AssistantContent[],
+  created: number,
+): SessionMessage.Message => ({
   id: SessionMessage.ID.make(id),
   type: "assistant",
   agent: "build",
@@ -86,7 +90,12 @@ const seedSession = (
     .run()
     .pipe(Effect.orDie)
 
-const seedMessage = (db: Database.Interface["db"], sessionID: SessionSchema.ID, message: SessionMessage.Message, seq: number) =>
+const seedMessage = (
+  db: Database.Interface["db"],
+  sessionID: SessionSchema.ID,
+  message: SessionMessage.Message,
+  seq: number,
+) =>
   db
     .insert(SessionMessageTable)
     .values({ id: message.id, session_id: sessionID, type: message.type, seq, data: dataOf(message) })
@@ -138,18 +147,37 @@ describe("KBBuilder", () => {
         yield* seedProject(db, projectID, projectDir)
         const archID = SessionSchema.ID.descending("ses_kb_arch")
         yield* seedSession(db, projectID, archID, "Architecture overhaul", projectDir)
-        yield* seedMessage(db, archID, user("msg_1", "How is the package structured? We should refactor the module layout.", 1_000), 1)
+        yield* seedMessage(
+          db,
+          archID,
+          user("msg_1", "How is the package structured? We should refactor the module layout.", 1_000),
+          1,
+        )
         yield* seedMessage(db, archID, assistant("msg_2", [okTool("p1", "read"), okTool("p2", "grep")], 2_000), 2)
 
         const errID = SessionSchema.ID.descending("ses_kb_err")
         yield* seedSession(db, projectID, errID, "Fix rate limit errors", projectDir)
         yield* seedMessage(db, errID, user("msg_3", "Bash keeps failing with rate limit errors, fix it", 1_000), 1)
-        yield* seedMessage(db, errID, assistant("msg_4", [errorTool("p3", "bash", "rate limit exceeded: too many requests"), okTool("p4", "bash")], 2_000), 2)
+        yield* seedMessage(
+          db,
+          errID,
+          assistant(
+            "msg_4",
+            [errorTool("p3", "bash", "rate limit exceeded: too many requests"), okTool("p4", "bash")],
+            2_000,
+          ),
+          2,
+        )
 
         const patID = SessionSchema.ID.descending("ses_kb_pat")
         yield* seedSession(db, projectID, patID, "Testing conventions", projectDir)
         yield* seedMessage(db, patID, user("msg_5", "Our workflow pattern: always run typecheck after edits", 1_000), 1)
-        yield* seedMessage(db, patID, assistant("msg_6", [okTool("p5", "bash"), okTool("p6", "bash"), okTool("p7", "read")], 2_000), 2)
+        yield* seedMessage(
+          db,
+          patID,
+          assistant("msg_6", [okTool("p5", "bash"), okTool("p6", "bash"), okTool("p7", "read")], 2_000),
+          2,
+        )
 
         yield* service.build(projectID)
 
@@ -275,9 +303,16 @@ describe("KBBuilder", () => {
         yield* seedMessage(db, relatedID, user("msg_2", "Tidy up some loose ends", 1_000), 1)
 
         // archID summary ~ [1, 0]; relatedID ~ [cos(0.2), sin(0.2)] -> cosine ≈ 0.98 >= 0.9.
-        const vectors: number[][] = [[1, 0], [Math.cos(0.2), Math.sin(0.2)]]
+        const vectors: number[][] = [
+          [1, 0],
+          [Math.cos(0.2), Math.sin(0.2)],
+        ]
         const fake = Embedding.Service.of({
-          provider: { model: "fake", dimension: 2, embed: () => Effect.succeed({ vectors, dimension: 2, model: "fake" }) },
+          provider: {
+            model: "fake",
+            dimension: 2,
+            embed: () => Effect.succeed({ vectors, dimension: 2, model: "fake" }),
+          },
           embed: () => Effect.succeed({ vectors, dimension: 2, model: "fake" }),
         })
 

@@ -31,9 +31,8 @@ const makeLayer = async () => {
 
 const withVector = <A, E>(body: (service: Vector.Interface) => Effect.Effect<A, E>) =>
   Effect.scoped(
-    Effect.acquireRelease(
-      Effect.promise(makeLayer),
-      ({ dir }) => Effect.promise(() => dir[Symbol.asyncDispose]()),
+    Effect.acquireRelease(Effect.promise(makeLayer), ({ dir }) =>
+      Effect.promise(() => dir[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap(({ layer }) =>
         Effect.gen(function* () {
@@ -194,7 +193,12 @@ describe("VectorService", () => {
         const vector = yield* Vector.Service
         // WorkspaceMemory writes a row + blob vector, VectorService finds it (with filter).
         yield* memory.set("banana", "banana is the yellow fruit")
-        const viaVector = yield* vector.search("workspace_memory", bagOfWords("yellow fruit"), 5, sql`project_id = ${"default"}`)
+        const viaVector = yield* vector.search(
+          "workspace_memory",
+          bagOfWords("yellow fruit"),
+          5,
+          sql`project_id = ${"default"}`,
+        )
         expect(viaVector[0]?.id).toBe("banana")
         expect(viaVector[0]?.score).toBeGreaterThan(0)
         expect(viaVector[0]?.score).toBeLessThan(1)

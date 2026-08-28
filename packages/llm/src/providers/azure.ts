@@ -2,8 +2,8 @@ import { Auth } from "../route/auth"
 import type { AtLeastOne, ProviderAuthOption } from "../route/auth-options"
 import type { Route, RouteDefaultsInput } from "../route/client"
 import { ProviderID, type ModelID } from "../schema"
-import { route as chatRouteImport } from "../protocols/openai-chat";
-import { route } from "../protocols/openai-responses";
+import { route as chatRouteImport } from "../protocols/openai-chat"
+import { route } from "../protocols/openai-responses"
 import { withOpenAIOptions, type OpenAIProviderOptionsInput } from "./openai-options"
 
 export const id = ProviderID.make("azure")

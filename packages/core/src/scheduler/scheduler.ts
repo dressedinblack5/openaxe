@@ -78,9 +78,12 @@ export const layer = Layer.effect(
     }
 
     // Resume persisted schedules when the layer starts.
-    const rows = yield* db.select().from(SessionScheduleTable).where(eq(SessionScheduleTable.enabled, 1)).all().pipe(
-      Effect.orDie,
-    )
+    const rows = yield* db
+      .select()
+      .from(SessionScheduleTable)
+      .where(eq(SessionScheduleTable.enabled, 1))
+      .all()
+      .pipe(Effect.orDie)
     for (const row of rows) {
       const parsed = Cron.parse(row.cron)
       if (parsed._tag === "Failure") {
@@ -131,14 +134,20 @@ export const layer = Layer.effect(
           yield* Fiber.interrupt(fiber).pipe(Effect.ignore)
           fibers.delete(sessionID)
         }
-        yield* db.delete(SessionScheduleTable).where(eq(SessionScheduleTable.session_id, sessionID)).run().pipe(
-          Effect.orDie,
-        )
+        yield* db
+          .delete(SessionScheduleTable)
+          .where(eq(SessionScheduleTable.session_id, sessionID))
+          .run()
+          .pipe(Effect.orDie)
       })
 
     const list: Interface["list"] = () =>
       Effect.gen(function* () {
-        const rows = yield* db.select().from(SessionScheduleTable).where(eq(SessionScheduleTable.enabled, 1)).all()
+        const rows = yield* db
+          .select()
+          .from(SessionScheduleTable)
+          .where(eq(SessionScheduleTable.enabled, 1))
+          .all()
           .pipe(Effect.orDie)
         return rows.map(toScheduled)
       })

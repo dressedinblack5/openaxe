@@ -32,7 +32,8 @@ import type { OpenAIResponsesModelId } from "./openai-responses-settings"
 import { localShellInputSchema } from "./tool/local-shell"
 
 const isJSONValue = (value: unknown): value is JSONValue => {
-  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") return true
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean")
+    return true
   if (Array.isArray(value)) return value.every(isJSONValue)
   if (typeof value === "object") return Object.values(value).every(isJSONValue)
   return false
@@ -244,12 +245,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     }
 
     // when a web search tool is present, automatically include the sources:
-    const webSearchToolName = tools
-      ?.find(
-        (tool): tool is LanguageModelV3ProviderTool =>
-          tool.type === "provider" && (tool.id === "openai.web_search" || tool.id === "openai.web_search_preview"),
-      )
-      ?.name
+    const webSearchToolName = tools?.find(
+      (tool): tool is LanguageModelV3ProviderTool =>
+        tool.type === "provider" && (tool.id === "openai.web_search" || tool.id === "openai.web_search_preview"),
+    )?.name
 
     if (webSearchToolName) {
       addInclude("web_search_call.action.sources")
@@ -510,7 +509,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         requestBodyValues: body,
         statusCode: 400,
         responseHeaders,
-        responseBody: typeof rawResponse === "string" ? rawResponse : JSON.stringify(rawResponse) ?? "",
+        responseBody: typeof rawResponse === "string" ? rawResponse : (JSON.stringify(rawResponse) ?? ""),
         isRetryable: false,
       })
     }
@@ -1582,7 +1581,7 @@ const openaiResponsesChunkSchema = z.union([
   z.object({ type: z.string() }).loose(), // fallback for unknown chunks
 ])
 
-type ExtractByType<T, K extends T extends { type: infer U } ? U : never> = T extends { type: K } ? T : never
+type ExtractByType<T, K extends (T extends { type: infer U } ? U : never)> = T extends { type: K } ? T : never
 
 function isTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,

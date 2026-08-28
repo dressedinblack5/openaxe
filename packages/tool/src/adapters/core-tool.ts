@@ -1,6 +1,25 @@
 import { Effect } from "effect"
-import type { ToolDefinition, ToolContext, ToolExecutionResult, ToolFailure, ToolCall, AvailabilityInput, ToolContent } from "../types"
-import { make, validateName, withPermission, definition, settle, permission, maxResultSizeChars, subagentSafe, isAvailable, describe } from "../tool"
+import type {
+  ToolDefinition,
+  ToolContext,
+  ToolExecutionResult,
+  ToolFailure,
+  ToolCall,
+  AvailabilityInput,
+  ToolContent,
+} from "../types"
+import {
+  make,
+  validateName,
+  withPermission,
+  definition,
+  settle,
+  permission,
+  maxResultSizeChars,
+  subagentSafe,
+  isAvailable,
+  describe,
+} from "../tool"
 import type { Schema } from "effect"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
 
@@ -10,18 +29,21 @@ import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
  */
 
 // Re-export core types from unified module
-export type {
-  ToolDefinition,
-  ToolContext,
-  ToolExecutionResult,
-  ToolFailure,
-  ToolCall,
-  AvailabilityInput,
-  ToolContent,
-}
+export type { ToolDefinition, ToolContext, ToolExecutionResult, ToolFailure, ToolCall, AvailabilityInput, ToolContent }
 
 // Re-export core functions
-export { make, validateName, withPermission, definition, settle, permission, maxResultSizeChars, subagentSafe, isAvailable, describe }
+export {
+  make,
+  validateName,
+  withPermission,
+  definition,
+  settle,
+  permission,
+  maxResultSizeChars,
+  subagentSafe,
+  isAvailable,
+  describe,
+}
 
 /**
  * Convert unified ToolDefinition to core tool Definition format
@@ -29,15 +51,21 @@ export { make, validateName, withPermission, definition, settle, permission, max
  */
 export interface CoreToolDefinition<
   Input extends Schema.Schema<unknown> = Schema.Schema<unknown>,
-  Output extends Schema.Schema<unknown> = Schema.Schema<unknown>
+  Output extends Schema.Schema<unknown> = Schema.Schema<unknown>,
 > {
   readonly id: string
   readonly description: string
   readonly parameters: Input
   readonly output: Output
   readonly jsonSchema: import("@ai-sdk/provider").JSONSchema7
-  readonly execute: (input: Schema.Schema.Type<Input>, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure>
-  readonly toModelOutput?: (input: { readonly input: Schema.Schema.Type<Input>; readonly output: unknown }) => ReadonlyArray<ToolContent>
+  readonly execute: (
+    input: Schema.Schema.Type<Input>,
+    context: ToolContext,
+  ) => Effect.Effect<ToolExecutionResult, ToolFailure>
+  readonly toModelOutput?: (input: {
+    readonly input: Schema.Schema.Type<Input>
+    readonly output: unknown
+  }) => ReadonlyArray<ToolContent>
   readonly maxResultSizeChars?: number
   readonly permission?: string
   readonly subagentSafe?: boolean
@@ -50,7 +78,7 @@ export interface CoreToolDefinition<
  * The unified tool IS the core tool - no conversion needed
  */
 export const toCoreTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  unified: ToolDefinition<P, O>
+  unified: ToolDefinition<P, O>,
 ): CoreToolDefinition<P, O> => {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CoreToolDefinition compatible with ToolDefinition
   return unified as CoreToolDefinition<P, O>
@@ -60,7 +88,7 @@ export const toCoreTool = <P extends Schema.Schema<unknown>, O extends Schema.Sc
  * Convert core tool definition to unified tool
  */
 export const fromCoreTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  core: CoreToolDefinition<P, O>
+  core: CoreToolDefinition<P, O>,
 ): ToolDefinition<P, O> => {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CoreToolDefinition compatible with ToolDefinition
   return core as ToolDefinition<P, O>

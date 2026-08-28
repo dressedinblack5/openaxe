@@ -128,9 +128,11 @@ export const layer = Layer.effect(
     )
 
     const savedRules = EffectRuntime.fnUntraced(function* () {
-      return (yield* saved.list({ projectID: location.project.id })).map(
-        (item): Permission.Rule => ({ action: item.action, resource: item.resource, effect: "allow" }),
-      )
+      return (yield* saved.list({ projectID: location.project.id })).map((item): Permission.Rule => ({
+        action: item.action,
+        resource: item.resource,
+        effect: "allow",
+      }))
     })
 
     const configured = EffectRuntime.fn("PermissionV2.configured")(function* (

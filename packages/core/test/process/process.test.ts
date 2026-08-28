@@ -61,8 +61,8 @@ describe("AppProcess", () => {
           const reason = exit.cause.reasons[0]
           if (reason && reason._tag === "Fail") {
             expect(reason.error).toBeInstanceOf(AppProcess.AppProcessError)
-            expect((reason.error).exitCode).toBe(1)
-            expect((reason.error).message).toContain("Command failed (exit 1)")
+            expect(reason.error.exitCode).toBe(1)
+            expect(reason.error.message).toContain("Command failed (exit 1)")
           } else {
             throw new Error("expected fail reason")
           }
@@ -94,7 +94,7 @@ describe("AppProcess", () => {
           const reason = exit.cause.reasons[0]
           if (reason && reason._tag === "Fail") {
             expect(reason.error).toBeInstanceOf(AppProcess.AppProcessError)
-            expect((reason.error).exitCode).toBe(2)
+            expect(reason.error.exitCode).toBe(2)
           }
         }
       }),
@@ -139,7 +139,7 @@ describe("AppProcess", () => {
       it.live(
         "timeout cleans up the scoped child process",
         Effect.acquireUseRelease(
-          Effect.promise( async () => fs.mkdtemp(path.join(tmpdir(), "opencode-process-timeout-"))),
+          Effect.promise(async () => fs.mkdtemp(path.join(tmpdir(), "opencode-process-timeout-"))),
           (directory) => {
             const ready = path.join(directory, "ready")
             const settled = path.join(directory, "settled")
@@ -152,7 +152,7 @@ describe("AppProcess", () => {
               expect(yield* waitForFile(settled)).toBe("settled")
             })
           },
-          (directory) => Effect.promise( async () => fs.rm(directory, { recursive: true, force: true })),
+          (directory) => Effect.promise(async () => fs.rm(directory, { recursive: true, force: true })),
         ),
         5_000,
       )
@@ -160,7 +160,7 @@ describe("AppProcess", () => {
       it.live(
         "fiber interruption cleans up the scoped child process after readiness",
         Effect.acquireUseRelease(
-          Effect.promise( async () => fs.mkdtemp(path.join(tmpdir(), "opencode-process-interrupt-"))),
+          Effect.promise(async () => fs.mkdtemp(path.join(tmpdir(), "opencode-process-interrupt-"))),
           (directory) => {
             const ready = path.join(directory, "ready")
             const settled = path.join(directory, "settled")
@@ -173,7 +173,7 @@ describe("AppProcess", () => {
               expect(yield* waitForFile(settled)).toBe("settled")
             })
           },
-          (directory) => Effect.promise( async () => fs.rm(directory, { recursive: true, force: true })),
+          (directory) => Effect.promise(async () => fs.rm(directory, { recursive: true, force: true })),
         ),
         5_000,
       )

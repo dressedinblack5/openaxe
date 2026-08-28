@@ -21,13 +21,13 @@ Create a **Unified Session Runner** in `packages/core/src/session/unified-runner
 
 ### Core Architecture
 
-| Component | Location | Responsibility |
-|-----------|----------|----------------|
-| `UnifiedRunner` | core | Durable orchestration: `run()`, `cancel()`, `drainSubagents()`, emits `SessionEvent` |
-| `SessionEffectRunner` | core (internal) | Minimal executor `run(work): Effect<A,E>`, manages Idle/Running/Shell states |
-| `SessionForkService` | core | Shared forking: DB clone + SessionInput chain + EventV2 Forked event |
-| `SessionEventSubscriber` | CLI | Streams EventV2 → pure reducer → InstanceState for TUI hot-reload |
-| `SessionData` Reducer | shared | Pure function reducing EventV2 → SessionData for TUI |
+| Component                | Location        | Responsibility                                                                       |
+| ------------------------ | --------------- | ------------------------------------------------------------------------------------ |
+| `UnifiedRunner`          | core            | Durable orchestration: `run()`, `cancel()`, `drainSubagents()`, emits `SessionEvent` |
+| `SessionEffectRunner`    | core (internal) | Minimal executor `run(work): Effect<A,E>`, manages Idle/Running/Shell states         |
+| `SessionForkService`     | core            | Shared forking: DB clone + SessionInput chain + EventV2 Forked event                 |
+| `SessionEventSubscriber` | CLI             | Streams EventV2 → pure reducer → InstanceState for TUI hot-reload                    |
+| `SessionData` Reducer    | shared          | Pure function reducing EventV2 → SessionData for TUI                                 |
 
 ### Responsibility Split
 

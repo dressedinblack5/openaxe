@@ -12,7 +12,15 @@ import { AutoCommit } from "../auto-commit"
 import { ErrorJournal } from "../error-journal"
 import { Guardrail } from "../guardrail"
 import { ApplicationTools } from "./application-tools"
-import { definition, maxResultSizeChars, permission, settle, validateName, type AnyTool, type RegistrationError } from "./tool"
+import {
+  definition,
+  maxResultSizeChars,
+  permission,
+  settle,
+  validateName,
+  type AnyTool,
+  type RegistrationError,
+} from "./tool"
 import { Tools } from "./tools"
 
 export type ExecuteInput = {
@@ -92,15 +100,13 @@ const registryLayer = Layer.effect(
         const maybeGuardrail = yield* Effect.serviceOption(Guardrail.Service)
         if (maybeGuardrail._tag === "Some") {
           const guardrail = maybeGuardrail.value
-          const results = yield* (guardrail.verify(filePaths).pipe(
-            Effect.catch(() => Effect.succeed([] as readonly Guardrail.VerifyResult[])),
-          ))
+          const results = yield* guardrail
+            .verify(filePaths)
+            .pipe(Effect.catch(() => Effect.succeed([] as readonly Guardrail.VerifyResult[])))
           const failed = results.filter((r) => !r.passed)
           if (failed.length > 0) {
             const lines = failed.flatMap((r) =>
-              r.errors.map(
-                (e) => `${r.file}: ${e.message}${e.line != null ? ` (line ${e.line})` : ""}`,
-              ),
+              r.errors.map((e) => `${r.file}: ${e.message}${e.line != null ? ` (line ${e.line})` : ""}`),
             )
             guardedOutput = {
               ...output,

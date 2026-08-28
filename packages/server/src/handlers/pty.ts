@@ -5,7 +5,7 @@ import { Location } from "@opencode-ai/core/location"
 import { Effect, Queue } from "effect"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder, HttpApiSchema } from "effect/unstable/httpapi"
-import { CloseEvent } from "effect/unstable/socket/Socket";
+import { CloseEvent } from "effect/unstable/socket/Socket"
 import { Api } from "../api"
 import { CorsConfig, isAllowedRequestOrigin } from "../cors"
 import { ForbiddenError, PtyNotFoundError } from "../errors"

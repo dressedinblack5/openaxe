@@ -23,7 +23,9 @@ export const layer = Layer.effect(
     const events = yield* EventV2.Service
     const store = yield* SessionStore.Service
 
-    const fork = Effect.fn("SessionForkService.fork")(function* (input: SessionForkInput): Effect.Effect<SessionForkResult, UnifiedRunnerError> {
+    const fork = Effect.fn("SessionForkService.fork")(function* (
+      input: SessionForkInput,
+    ): Effect.Effect<SessionForkResult, UnifiedRunnerError> {
       const parent = yield* store.get(input.parentSessionID)
       if (!parent) {
         return yield* new UnifiedRunnerError({
@@ -115,12 +117,7 @@ export const layer = Layer.effect(
         const parts = yield* db
           .select()
           .from(PartTable)
-          .where(
-            and(
-              eq(PartTable.session_id, input.parentSessionID),
-              eq(PartTable.message_id, msg.id),
-            ),
-          )
+          .where(and(eq(PartTable.session_id, input.parentSessionID), eq(PartTable.message_id, msg.id)))
           .all()
           .pipe(Effect.orDie)
 

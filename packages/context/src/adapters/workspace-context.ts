@@ -4,7 +4,7 @@ import type { ContextService, ContextSnapshot, ContextBudget, ContextEpoch } fro
 // ponytail: local stubs — @openaxe/context must not import @opencode-ai/core or openaxe/effect/instance-ref
 export type WorkspaceID = string
 export const WorkspaceRef = Context.Reference<WorkspaceID | undefined>("~openaxe/WorkspaceRef", {
-  defaultValue: () => undefined
+  defaultValue: () => undefined,
 })
 
 /**
@@ -16,7 +16,7 @@ export interface WorkspaceContext {
 
 export const toWorkspaceScope = (workspaceID: WorkspaceID): import("../context").ContextScope => ({
   _tag: "WorkspaceScope",
-  workspaceId: workspaceID
+  workspaceId: workspaceID,
 })
 
 export interface WorkspaceContextAdapterInterface {
@@ -29,14 +29,25 @@ export interface WorkspaceContextAdapterInterface {
   has: (workspaceID: WorkspaceID, key: string) => Effect.Effect<boolean, unknown, unknown>
   snapshot: (workspaceID: WorkspaceID) => Effect.Effect<unknown, unknown, unknown>
   restoreSnapshot: (workspaceID: WorkspaceID, snapshot: unknown) => Effect.Effect<void, unknown, unknown>
-  initializeEpoch: (workspaceID: WorkspaceID, baseline: unknown, budget?: unknown) => Effect.Effect<unknown, unknown, unknown>
+  initializeEpoch: (
+    workspaceID: WorkspaceID,
+    baseline: unknown,
+    budget?: unknown,
+  ) => Effect.Effect<unknown, unknown, unknown>
   getEpoch: (workspaceID: WorkspaceID) => Effect.Effect<Option.Option<unknown>, unknown, unknown>
   replaceEpoch: (workspaceID: WorkspaceID, epoch: unknown) => Effect.Effect<void, unknown, unknown>
   getBudget: (workspaceID: WorkspaceID) => Effect.Effect<unknown, unknown, unknown>
   setBudget: (workspaceID: WorkspaceID, budget: unknown) => Effect.Effect<void, unknown, unknown>
-  compact: (workspaceID: WorkspaceID, strategy?: "auto" | "explicit" | "hybrid") => Effect.Effect<unknown, unknown, unknown>
+  compact: (
+    workspaceID: WorkspaceID,
+    strategy?: "auto" | "explicit" | "hybrid",
+  ) => Effect.Effect<unknown, unknown, unknown>
   release: (workspaceID: WorkspaceID) => Effect.Effect<void, unknown, unknown>
-  getOrLoad: (workspaceID: WorkspaceID, key: string, loader: () => Effect.Effect<unknown>) => Effect.Effect<unknown, unknown, unknown>
+  getOrLoad: (
+    workspaceID: WorkspaceID,
+    key: string,
+    loader: () => Effect.Effect<unknown>,
+  ) => Effect.Effect<unknown, unknown, unknown>
 }
 
 const getWorkspaceID = (): Effect.Effect<WorkspaceID | undefined, unknown, unknown> =>
@@ -51,7 +62,8 @@ const getWorkspaceID = (): Effect.Effect<WorkspaceID | undefined, unknown, unkno
 
 export const makeWorkspaceContextAdapter = (unified: ContextService) => {
   const adapter = {
-    provide: <R, E, A>(input: { workspaceID?: WorkspaceID; fn: Effect.Effect<A, E, R> }): Effect.Effect<A, E, R> => input.fn,
+    provide: <R, E, A>(input: { workspaceID?: WorkspaceID; fn: Effect.Effect<A, E, R> }): Effect.Effect<A, E, R> =>
+      input.fn,
 
     restore: (_workspaceID: WorkspaceID, fn: Effect.Effect<unknown>): Effect.Effect<unknown> => fn,
 
@@ -144,7 +156,7 @@ export const makeWorkspaceContextAdapter = (unified: ContextService) => {
       Effect.gen(function* () {
         const scope = toWorkspaceScope(workspaceID)
         return yield* unified.getOrLoad(scope, key, loader)
-      })
+      }),
   }
   return adapter
 }
@@ -152,9 +164,10 @@ export const makeWorkspaceContextAdapter = (unified: ContextService) => {
 /**
  * WorkspaceContext Adapter Service
  */
-export class WorkspaceContextAdapter extends Context.Service<WorkspaceContextAdapter, WorkspaceContextAdapterInterface>()(
-  "@openaxe/WorkspaceContextAdapter"
-) {}
+export class WorkspaceContextAdapter extends Context.Service<
+  WorkspaceContextAdapter,
+  WorkspaceContextAdapterInterface
+>()("@openaxe/WorkspaceContextAdapter") {}
 
 /**
  * Layer that provides the WorkspaceContext adapter

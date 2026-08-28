@@ -21,10 +21,7 @@ export class SessionRunnerCancelled extends Schema.TaggedErrorClass<SessionRunne
   {},
 ) {}
 
-export class SessionRunnerBusy extends Schema.TaggedErrorClass<SessionRunnerBusy>()(
-  "SessionEffectRunner.Busy",
-  {},
-) {}
+export class SessionRunnerBusy extends Schema.TaggedErrorClass<SessionRunnerBusy>()("SessionEffectRunner.Busy", {}) {}
 
 interface RunHandle<A, E> {
   id: number
@@ -71,7 +68,10 @@ export const makeSessionEffectRunner = <A, E = never>(
   let ids = 0
 
   const getState = () => SynchronizedRef.getUnsafe(ref)
-  const next = () => { ids += 1; return ids }
+  const next = () => {
+    ids += 1
+    return ids
+  }
 
   const toRunnerState = (internal: InternalState<A, E>): RunnerState => {
     switch (internal._tag) {
@@ -103,8 +103,7 @@ export const makeSessionEffectRunner = <A, E = never>(
     }
   }
 
-  const notifyStateChange = (internal: InternalState<A, E>) =>
-    onStateChange(toRunnerState(internal))
+  const notifyStateChange = (internal: InternalState<A, E>) => onStateChange(toRunnerState(internal))
 
   const complete = (done: Deferred.Deferred<A, E | SessionRunnerCancelled>, exit: Exit.Exit<A, E>) =>
     Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)

@@ -72,7 +72,7 @@ function code(err: unknown) {
   return value
 }
 
- async function sleep(ms: number, signal?: AbortSignal) {
+async function sleep(ms: number, signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {
       reject(signal.reason ?? new Error("Aborted"))
@@ -329,10 +329,10 @@ export async function acquire(key: string, input: Options = {}): Promise<Lease> 
   )
   lock.startHeartbeat()
 
-  const release =  async () => lock.release()
+  const release = async () => lock.release()
   return {
     release,
-     async [Symbol.asyncDispose]() {
+    async [Symbol.asyncDispose]() {
       return release()
     },
   }
@@ -346,12 +346,12 @@ export async function withLock<T>(key: string, fn: () => Promise<T>, input: Opti
 
 export const effect = Effect.fn("Flock.effect")(function* (key: string, input: Options = {}) {
   return yield* Effect.acquireRelease(
-    Effect.promise( async (signal) => acquire(key, { ...input, signal })).pipe(
+    Effect.promise(async (signal) => acquire(key, { ...input, signal })).pipe(
       Effect.withSpan("Flock.acquire", {
         attributes: { key },
       }),
     ),
-    (lock) => Effect.promise( async () => lock.release()).pipe(Effect.withSpan("Flock.release")),
+    (lock) => Effect.promise(async () => lock.release()).pipe(Effect.withSpan("Flock.release")),
   ).pipe(Effect.asVoid)
 })
 

@@ -19,7 +19,7 @@ export default Runtime.handler(
   Effect.fn("cli.api")(function* (input) {
     const daemon = yield* Daemon.Service
     const transport = yield* daemon.transport()
-    const params = Option.getOrElse(input.param, () => ({} as Record<string, string>))
+    const params = Option.getOrElse(input.param, () => ({}) as Record<string, string>)
     const request = yield* resolveRequest(transport, input.request, params)
     const headers = new Headers(transport.headers)
     for (const header of input.header) {
@@ -33,14 +33,14 @@ export default Runtime.handler(
     const body: BodyInit | undefined = Option.getOrUndefined(input.data)
     if (body !== undefined && !headers.has("content-type")) headers.set("content-type", "application/json")
 
-    const response = yield* Effect.tryPromise( async () =>
+    const response = yield* Effect.tryPromise(async () =>
       fetch(new URL(request.path, transport.url), {
         method: request.method,
         headers,
         body,
       }),
     )
-    const output = yield* Effect.promise( async () => response.text())
+    const output = yield* Effect.promise(async () => response.text())
     if (output) process.stdout.write(output + (output.endsWith(EOL) ? "" : EOL))
   }),
 )

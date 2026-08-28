@@ -948,12 +948,12 @@ export function Prompt(props: PromptProps) {
     if (!agent) return false
     const trimmed = store.prompt.input.trim()
     if (trimmed === "exit" || trimmed === "quit" || trimmed === ":q") {
-       exit()
+      exit()
       return true
     }
     const selectedModel = local.model.current()
     if (!selectedModel) {
-       promptModelWarning()
+      promptModelWarning()
       return false
     }
 
@@ -1351,7 +1351,6 @@ export function Prompt(props: PromptProps) {
     }
   })
   const maxHeight = createMemo(() => tuiConfig.prompt?.max_height ?? Math.max(6, Math.floor(dimensions().height / 3)))
-  
 
   return (
     <>
@@ -1399,7 +1398,7 @@ export function Prompt(props: PromptProps) {
               onSubmit={() => {
                 // IME: double-defer so the last composed character (e.g. Korean
                 // hangul) is flushed to plainText before we read it for submission.
-                setTimeout(() => setTimeout( async () => submit(), 0), 0)
+                setTimeout(() => setTimeout(async () => submit(), 0), 0)
               }}
               onPaste={async (event: PasteEvent) => {
                 if (props.disabled) {

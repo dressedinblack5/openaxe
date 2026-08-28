@@ -8,143 +8,153 @@ const makeEventId = () => `evt_${Math.random().toString(36).slice(2)}`
 const now = () => DateTime.makeUnsafe(Date.now())
 
 // Helper to create event with proper Payload structure (id, type, data)
-const makePromptedEvent = (overrides = {}) => SessionEvent.Prompted.make({
-  type: "session.next.prompted",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    messageID: "msg_test123",
-    prompt: { text: "test", files: [] },
-    delivery: "steer",
-    ...overrides,
-  },
-})
+const makePromptedEvent = (overrides = {}) =>
+  SessionEvent.Prompted.make({
+    type: "session.next.prompted",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      messageID: "msg_test123",
+      prompt: { text: "test", files: [] },
+      delivery: "steer",
+      ...overrides,
+    },
+  })
 
-const makeStepStartedEvent = (overrides = {}) => SessionEvent.Step.Started.make({
-  type: "session.next.step.started",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    assistantMessageID: "msg_test123",
-    agent: "test-agent",
-    model: { providerID: "anthropic", id: "claude-3" },
-    snapshot: undefined,
-    ...overrides,
-  },
-})
+const makeStepStartedEvent = (overrides = {}) =>
+  SessionEvent.Step.Started.make({
+    type: "session.next.step.started",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      assistantMessageID: "msg_test123",
+      agent: "test-agent",
+      model: { providerID: "anthropic", id: "claude-3" },
+      snapshot: undefined,
+      ...overrides,
+    },
+  })
 
-const makeStepEndedEvent = (overrides = {}) => SessionEvent.Step.Ended.make({
-  type: "session.next.step.ended",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    assistantMessageID: "msg_test123",
-    finish: "completed",
-    cost: 0,
-    tokens: { input: 100, output: 50, reasoning: 0, cache: { read: 0, write: 0 } },
-    snapshot: undefined,
-    ...overrides,
-  },
-})
+const makeStepEndedEvent = (overrides = {}) =>
+  SessionEvent.Step.Ended.make({
+    type: "session.next.step.ended",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      assistantMessageID: "msg_test123",
+      finish: "completed",
+      cost: 0,
+      tokens: { input: 100, output: 50, reasoning: 0, cache: { read: 0, write: 0 } },
+      snapshot: undefined,
+      ...overrides,
+    },
+  })
 
-const makeTextStartedEvent = (overrides = {}) => SessionEvent.Text.Started.make({
-  type: "session.next.text.started",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    assistantMessageID: "msg_test123",
-    textID: "text_123",
-    ...overrides,
-  },
-})
+const makeTextStartedEvent = (overrides = {}) =>
+  SessionEvent.Text.Started.make({
+    type: "session.next.text.started",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      assistantMessageID: "msg_test123",
+      textID: "text_123",
+      ...overrides,
+    },
+  })
 
-const makeTextDeltaEvent = (overrides = {}) => SessionEvent.Text.Delta.make({
-  type: "session.next.text.delta",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    assistantMessageID: "msg_test123",
-    textID: "text_123",
-    delta: "Hello",
-    ...overrides,
-  },
-})
+const makeTextDeltaEvent = (overrides = {}) =>
+  SessionEvent.Text.Delta.make({
+    type: "session.next.text.delta",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      assistantMessageID: "msg_test123",
+      textID: "text_123",
+      delta: "Hello",
+      ...overrides,
+    },
+  })
 
-const makeTextEndedEvent = (overrides = {}) => SessionEvent.Text.Ended.make({
-  type: "session.next.text.ended",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    assistantMessageID: "msg_test123",
-    textID: "text_123",
-    text: "Hello World",
-    ...overrides,
-  },
-})
+const makeTextEndedEvent = (overrides = {}) =>
+  SessionEvent.Text.Ended.make({
+    type: "session.next.text.ended",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      assistantMessageID: "msg_test123",
+      textID: "text_123",
+      text: "Hello World",
+      ...overrides,
+    },
+  })
 
-const makeToolCalledEvent = (overrides = {}) => SessionEvent.Tool.Called.make({
-  type: "session.next.tool.called",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    assistantMessageID: "msg_test123",
-    callID: "call_123",
-    tool: "read_file",
-    input: { filePath: "/test.ts" },
-    provider: { executed: false, metadata: undefined },
-    ...overrides,
-  },
-})
+const makeToolCalledEvent = (overrides = {}) =>
+  SessionEvent.Tool.Called.make({
+    type: "session.next.tool.called",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      assistantMessageID: "msg_test123",
+      callID: "call_123",
+      tool: "read_file",
+      input: { filePath: "/test.ts" },
+      provider: { executed: false, metadata: undefined },
+      ...overrides,
+    },
+  })
 
-const makeToolSuccessEvent = (overrides = {}) => SessionEvent.Tool.Success.make({
-  type: "session.next.tool.success",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    assistantMessageID: "msg_test123",
-    callID: "call_123",
-    structured: { content: "file content" },
-    content: [],
-    outputPaths: [],
-    result: undefined,
-    provider: { executed: false, metadata: undefined },
-    ...overrides,
-  },
-})
+const makeToolSuccessEvent = (overrides = {}) =>
+  SessionEvent.Tool.Success.make({
+    type: "session.next.tool.success",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      assistantMessageID: "msg_test123",
+      callID: "call_123",
+      structured: { content: "file content" },
+      content: [],
+      outputPaths: [],
+      result: undefined,
+      provider: { executed: false, metadata: undefined },
+      ...overrides,
+    },
+  })
 
-const makeShellStartedEvent = (overrides = {}) => SessionEvent.Shell.Started.make({
-  type: "session.next.shell.started",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    messageID: "msg_test123",
-    callID: "call_123",
-    command: "ls -la",
-    ...overrides,
-  },
-})
+const makeShellStartedEvent = (overrides = {}) =>
+  SessionEvent.Shell.Started.make({
+    type: "session.next.shell.started",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      messageID: "msg_test123",
+      callID: "call_123",
+      command: "ls -la",
+      ...overrides,
+    },
+  })
 
-const makeShellEndedEvent = (overrides = {}) => SessionEvent.Shell.Ended.make({
-  type: "session.next.shell.ended",
-  id: makeEventId(),
-  data: {
-    timestamp: now(),
-    sessionID: "ses_test123",
-    messageID: "msg_test123",
-    callID: "call_123",
-    output: "file1.txt\nfile2.txt",
-    ...overrides,
-  },
-})
+const makeShellEndedEvent = (overrides = {}) =>
+  SessionEvent.Shell.Ended.make({
+    type: "session.next.shell.ended",
+    id: makeEventId(),
+    data: {
+      timestamp: now(),
+      sessionID: "ses_test123",
+      messageID: "msg_test123",
+      callID: "call_123",
+      output: "file1.txt\nfile2.txt",
+      ...overrides,
+    },
+  })
 
 describe("SessionData Reducer", () => {
   const initialState = createInitialSessionData()

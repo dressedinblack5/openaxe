@@ -17,7 +17,7 @@ const withStore = <A, E, R>(
   config?: Config.Info,
 ) =>
   Effect.acquireUseRelease(
-    Effect.promise( async () => tmpdir()),
+    Effect.promise(async () => tmpdir()),
     (tmp) => {
       const global = Global.layerWith({ data: tmp.path })
       const configured = config
@@ -37,7 +37,7 @@ const withStore = <A, E, R>(
         return yield* body({ root: tmp.path, store: yield* ToolOutputStore.Service, fs: yield* FSUtil.Service })
       }).pipe(Effect.provide(Layer.mergeAll(store, FSUtil.defaultLayer)))
     },
-    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+    (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
   )
 
 const it = testEffect(Layer.empty)
@@ -174,7 +174,7 @@ describe("ToolOutputStore", () => {
 
   it.live("preserves interruption while retaining complete output", () =>
     Effect.gen(function* () {
-      const root = yield* Effect.promise( async () => tmpdir())
+      const root = yield* Effect.promise(async () => tmpdir())
       const blockedFilesystem = Layer.effect(
         FSUtil.Service,
         Effect.gen(function* () {
@@ -203,7 +203,7 @@ describe("ToolOutputStore", () => {
         return yield* Fiber.await(fiber)
       }).pipe(Effect.provide(store))
       expect(Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause)).toBe(true)
-      yield* Effect.promise( async () => root[Symbol.asyncDispose]())
+      yield* Effect.promise(async () => root[Symbol.asyncDispose]())
     }),
   )
 

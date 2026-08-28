@@ -5,7 +5,7 @@ import { DecodeError, ResizerUnavailableError, SizeError } from "../image"
 export const make = Effect.gen(function* () {
   const loadPhoton = yield* Effect.cached(
     Effect.tryPromise({
-      try:  async () => import("@silvia-odwyer/photon-node") as Promise<typeof import("@silvia-odwyer/photon-node")>,
+      try: async () => import("@silvia-odwyer/photon-node") as Promise<typeof import("@silvia-odwyer/photon-node")>,
       catch: () => new ResizerUnavailableError(),
     }),
   )
@@ -45,7 +45,15 @@ export const make = Effect.gen(function* () {
 
     if (!limits.autoResize && exceedsDimension) {
       img.free()
-      return yield* new SizeError({ resource, width, height, bytes, maxWidth: limits.maxWidth, maxHeight: limits.maxHeight, maxBytes: limits.maxBase64Bytes })
+      return yield* new SizeError({
+        resource,
+        width,
+        height,
+        bytes,
+        maxWidth: limits.maxWidth,
+        maxHeight: limits.maxHeight,
+        maxBytes: limits.maxBase64Bytes,
+      })
     }
 
     if (limits.autoResize && exceedsDimension) {
@@ -59,14 +67,21 @@ export const make = Effect.gen(function* () {
       const raw = img.get_bytes()
       img.free()
       const resultBytes = raw.byteLength
-      
 
       if (resultBytes > limits.maxBase64Bytes) {
         const oversized = photon.PhotonImage.new_from_byteslice(raw)
         const fw = oversized.get_width()
         const fh = oversized.get_height()
         oversized.free()
-        return yield* new SizeError({ resource, width: fw, height: fh, bytes: resultBytes, maxWidth: limits.maxWidth, maxHeight: limits.maxHeight, maxBytes: limits.maxBase64Bytes })
+        return yield* new SizeError({
+          resource,
+          width: fw,
+          height: fh,
+          bytes: resultBytes,
+          maxWidth: limits.maxWidth,
+          maxHeight: limits.maxHeight,
+          maxBytes: limits.maxBase64Bytes,
+        })
       }
 
       return { ...content, content: Buffer.from(raw).toString("base64") }
@@ -76,7 +91,15 @@ export const make = Effect.gen(function* () {
 
     // No resize needed — check base64 byte budget only
     if (bytes > limits.maxBase64Bytes) {
-      return yield* new SizeError({ resource, width, height, bytes, maxWidth: limits.maxWidth, maxHeight: limits.maxHeight, maxBytes: limits.maxBase64Bytes })
+      return yield* new SizeError({
+        resource,
+        width,
+        height,
+        bytes,
+        maxWidth: limits.maxWidth,
+        maxHeight: limits.maxHeight,
+        maxBytes: limits.maxBase64Bytes,
+      })
     }
 
     return content

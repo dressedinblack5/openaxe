@@ -89,10 +89,10 @@ export function buildLayer<A, E>(node: Node<A, E>, options?: { readonly replacem
             ? Layer.empty
             : Layer.mergeAll(...nonEmpty)
           : dependencies.length === 0
-            // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- RuntimeLayer covers all Layer types
-            ? (node.implementation as RuntimeLayer)
-            // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- RuntimeLayer covers all Layer types
-            : Layer.provide(node.implementation as RuntimeLayer, nonEmpty)
+            ? // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- RuntimeLayer covers all Layer types
+              (node.implementation as RuntimeLayer)
+            : // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- RuntimeLayer covers all Layer types
+              Layer.provide(node.implementation as RuntimeLayer, nonEmpty)
       cache.set(node, result)
       return result
     } finally {

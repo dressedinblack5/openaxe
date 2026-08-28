@@ -37,10 +37,14 @@ export const Diagnostic = Schema.Struct({
   codeDescription: Schema.optional(Schema.Struct({ href: Schema.String })),
   source: Schema.optional(Schema.String),
   message: Schema.String,
-  relatedInformation: Schema.optional(Schema.Array(Schema.Struct({
-    location: Location,
-    message: Schema.String,
-  }))),
+  relatedInformation: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        location: Location,
+        message: Schema.String,
+      }),
+    ),
+  ),
   tags: Schema.optional(Schema.Array(Schema.Literals([1, 2]))),
   data: Schema.optional(Schema.Unknown),
 }).annotate({ identifier: "Diagnostic" })
@@ -78,114 +82,174 @@ export const DocumentSymbol = Schema.Struct({
 export type DocumentSymbol = typeof DocumentSymbol.Type
 
 export const ServerCapabilities = Schema.Struct({
-  textDocumentSync: Schema.optional(Schema.Union([TextDocumentSyncKind, Schema.Struct({
-    openClose: Schema.optional(Schema.Boolean),
-    change: Schema.optional(TextDocumentSyncKind),
-    willSave: Schema.optional(Schema.Boolean),
-    willSaveWaitUntil: Schema.optional(Schema.Boolean),
-    save: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({
-      includeText: Schema.optional(Schema.Boolean),
-    })])),
-  })])),
+  textDocumentSync: Schema.optional(
+    Schema.Union([
+      TextDocumentSyncKind,
+      Schema.Struct({
+        openClose: Schema.optional(Schema.Boolean),
+        change: Schema.optional(TextDocumentSyncKind),
+        willSave: Schema.optional(Schema.Boolean),
+        willSaveWaitUntil: Schema.optional(Schema.Boolean),
+        save: Schema.optional(
+          Schema.Union([
+            Schema.Boolean,
+            Schema.Struct({
+              includeText: Schema.optional(Schema.Boolean),
+            }),
+          ]),
+        ),
+      }),
+    ]),
+  ),
   hoverProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
-  completionProvider: Schema.optional(Schema.Struct({
-    resolveProvider: Schema.optional(Schema.Boolean),
-    triggerCharacters: Schema.optional(Schema.Array(Schema.String)),
-    allCommitCharacters: Schema.optional(Schema.Array(Schema.String)),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })),
-  signatureHelpProvider: Schema.optional(Schema.Struct({
-    triggerCharacters: Schema.optional(Schema.Array(Schema.String)),
-    retriggerCharacters: Schema.optional(Schema.Array(Schema.String)),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })),
+  completionProvider: Schema.optional(
+    Schema.Struct({
+      resolveProvider: Schema.optional(Schema.Boolean),
+      triggerCharacters: Schema.optional(Schema.Array(Schema.String)),
+      allCommitCharacters: Schema.optional(Schema.Array(Schema.String)),
+      workDoneProgress: Schema.optional(Schema.Boolean),
+    }),
+  ),
+  signatureHelpProvider: Schema.optional(
+    Schema.Struct({
+      triggerCharacters: Schema.optional(Schema.Array(Schema.String)),
+      retriggerCharacters: Schema.optional(Schema.Array(Schema.String)),
+      workDoneProgress: Schema.optional(Schema.Boolean),
+    }),
+  ),
   definitionProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   referencesProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   documentHighlightProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   documentSymbolProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   workspaceSymbolProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
-  codeActionProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({
-    codeActionKinds: Schema.optional(Schema.Array(Schema.String)),
-    resolveProvider: Schema.optional(Schema.Boolean),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })])),
-  codeLensProvider: Schema.optional(Schema.Struct({
-    resolveProvider: Schema.optional(Schema.Boolean),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })),
+  codeActionProvider: Schema.optional(
+    Schema.Union([
+      Schema.Boolean,
+      Schema.Struct({
+        codeActionKinds: Schema.optional(Schema.Array(Schema.String)),
+        resolveProvider: Schema.optional(Schema.Boolean),
+        workDoneProgress: Schema.optional(Schema.Boolean),
+      }),
+    ]),
+  ),
+  codeLensProvider: Schema.optional(
+    Schema.Struct({
+      resolveProvider: Schema.optional(Schema.Boolean),
+      workDoneProgress: Schema.optional(Schema.Boolean),
+    }),
+  ),
   documentFormattingProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   documentRangeFormattingProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
-  documentOnTypeFormattingProvider: Schema.optional(Schema.Struct({
-    firstTriggerCharacter: Schema.String,
-    moreTriggerCharacter: Schema.optional(Schema.Array(Schema.String)),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })),
-  renameProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({
-    prepareProvider: Schema.optional(Schema.Boolean),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })])),
-  documentLinkProvider: Schema.optional(Schema.Struct({
-    resolveProvider: Schema.optional(Schema.Boolean),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })),
+  documentOnTypeFormattingProvider: Schema.optional(
+    Schema.Struct({
+      firstTriggerCharacter: Schema.String,
+      moreTriggerCharacter: Schema.optional(Schema.Array(Schema.String)),
+      workDoneProgress: Schema.optional(Schema.Boolean),
+    }),
+  ),
+  renameProvider: Schema.optional(
+    Schema.Union([
+      Schema.Boolean,
+      Schema.Struct({
+        prepareProvider: Schema.optional(Schema.Boolean),
+        workDoneProgress: Schema.optional(Schema.Boolean),
+      }),
+    ]),
+  ),
+  documentLinkProvider: Schema.optional(
+    Schema.Struct({
+      resolveProvider: Schema.optional(Schema.Boolean),
+      workDoneProgress: Schema.optional(Schema.Boolean),
+    }),
+  ),
   colorProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   foldingRangeProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
-  diagnosticProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({
-    identifier: Schema.optional(Schema.String),
-    interFileDependencies: Schema.optional(Schema.Boolean),
-    workspaceDiagnostics: Schema.optional(Schema.Boolean),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })])),
+  diagnosticProvider: Schema.optional(
+    Schema.Union([
+      Schema.Boolean,
+      Schema.Struct({
+        identifier: Schema.optional(Schema.String),
+        interFileDependencies: Schema.optional(Schema.Boolean),
+        workspaceDiagnostics: Schema.optional(Schema.Boolean),
+        workDoneProgress: Schema.optional(Schema.Boolean),
+      }),
+    ]),
+  ),
   selectionRangeProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   linkedEditingRangeProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   callHierarchyProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
-  semanticTokensProvider: Schema.optional(Schema.Struct({
-    legend: Schema.Struct({
-      tokenTypes: Schema.Array(Schema.String),
-      tokenModifiers: Schema.Array(Schema.String),
+  semanticTokensProvider: Schema.optional(
+    Schema.Struct({
+      legend: Schema.Struct({
+        tokenTypes: Schema.Array(Schema.String),
+        tokenModifiers: Schema.Array(Schema.String),
+      }),
+      range: Schema.optional(Schema.Boolean),
+      full: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({ delta: Schema.optional(Schema.Boolean) })])),
+      workDoneProgress: Schema.optional(Schema.Boolean),
     }),
-    range: Schema.optional(Schema.Boolean),
-    full: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({ delta: Schema.optional(Schema.Boolean) })])),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })),
+  ),
   monikerProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   typeDefinitionProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
   implementationProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
-  inlayHintProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({
-    resolveProvider: Schema.optional(Schema.Boolean),
-    workDoneProgress: Schema.optional(Schema.Boolean),
-  })])),
+  inlayHintProvider: Schema.optional(
+    Schema.Union([
+      Schema.Boolean,
+      Schema.Struct({
+        resolveProvider: Schema.optional(Schema.Boolean),
+        workDoneProgress: Schema.optional(Schema.Boolean),
+      }),
+    ]),
+  ),
   inlineValueProvider: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({})])),
-  workspace: Schema.optional(Schema.Struct({
-    workspaceFolders: Schema.optional(Schema.Union([Schema.Boolean, Schema.Struct({
-      supported: Schema.Boolean,
-      changeNotifications: Schema.optional(Schema.Union([Schema.Boolean, Schema.String])),
-    })])),
-    fileOperations: Schema.optional(Schema.Struct({
-      didCreate: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
-      willCreate: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
-      didRename: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
-      willRename: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
-      didDelete: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
-      willDelete: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
-    })),
-  })),
+  workspace: Schema.optional(
+    Schema.Struct({
+      workspaceFolders: Schema.optional(
+        Schema.Union([
+          Schema.Boolean,
+          Schema.Struct({
+            supported: Schema.Boolean,
+            changeNotifications: Schema.optional(Schema.Union([Schema.Boolean, Schema.String])),
+          }),
+        ]),
+      ),
+      fileOperations: Schema.optional(
+        Schema.Struct({
+          didCreate: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
+          willCreate: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
+          didRename: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
+          willRename: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
+          didDelete: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
+          willDelete: Schema.optional(Schema.Struct({ filters: Schema.Array(Schema.Unknown) })),
+        }),
+      ),
+    }),
+  ),
 }).annotate({ identifier: "ServerCapabilities" })
 
 export type ServerCapabilities = typeof ServerCapabilities.Type
 
 export const InitializeParams = Schema.Struct({
   processId: Schema.optional(Schema.Union([Schema.Number, Schema.Null])),
-  clientInfo: Schema.optional(Schema.Struct({
-    name: Schema.String,
-    version: Schema.optional(Schema.String),
-  })),
+  clientInfo: Schema.optional(
+    Schema.Struct({
+      name: Schema.String,
+      version: Schema.optional(Schema.String),
+    }),
+  ),
   rootUri: Schema.optional(Schema.Union([Schema.String, Schema.Null])),
   rootPath: Schema.optional(Schema.Union([Schema.String, Schema.Null])),
-  workspaceFolders: Schema.optional(Schema.Union([Schema.Null, Schema.Array(Schema.Struct({
-    uri: Schema.String,
-    name: Schema.String,
-  }))])),
+  workspaceFolders: Schema.optional(
+    Schema.Union([
+      Schema.Null,
+      Schema.Array(
+        Schema.Struct({
+          uri: Schema.String,
+          name: Schema.String,
+        }),
+      ),
+    ]),
+  ),
   capabilities: Schema.Unknown,
   initializationOptions: Schema.optional(Schema.Unknown),
   trace: Schema.optional(Schema.Literals(["off", "messages", "verbose"])),
@@ -195,10 +259,12 @@ export type InitializeParams = typeof InitializeParams.Type
 
 export const InitializeResult = Schema.Struct({
   capabilities: ServerCapabilities,
-  serverInfo: Schema.optional(Schema.Struct({
-    name: Schema.String,
-    version: Schema.optional(Schema.String),
-  })),
+  serverInfo: Schema.optional(
+    Schema.Struct({
+      name: Schema.String,
+      version: Schema.optional(Schema.String),
+    }),
+  ),
   offsetEncoding: Schema.optional(Schema.Literals(["utf-8", "utf-16"])),
 }).annotate({ identifier: "InitializeResult" })
 
@@ -212,8 +278,6 @@ export class LSPError extends Schema.TaggedErrorClass<LSPError>()("LSPError", {
   message: Schema.String,
   serverID: Schema.optional(Schema.String),
 }) {}
-
-
 
 export class ServerSpawnError extends Schema.TaggedErrorClass<ServerSpawnError>()("LSPServerSpawnError", {
   serverID: Schema.String,
@@ -268,7 +332,11 @@ export interface ServerDefinition {
   readonly extensions: ReadonlyArray<string>
   readonly rootPatterns?: ReadonlyArray<string>
   readonly excludePatterns?: ReadonlyArray<string>
-  readonly spawn: (root: string, ctx: InstanceContext, flags: RuntimeFlags) => Effect.Effect<ServerHandle | undefined, ServerSpawnError>
+  readonly spawn: (
+    root: string,
+    ctx: InstanceContext,
+    flags: RuntimeFlags,
+  ) => Effect.Effect<ServerHandle | undefined, ServerSpawnError>
   readonly initialization?: Record<string, unknown>
   readonly global?: boolean
   readonly downloadStrategy?: DownloadStrategy
@@ -294,9 +362,20 @@ export type DownloadStrategy =
   | { readonly type: "npm"; readonly package: string; readonly binary?: string }
   | { readonly type: "go"; readonly module: string; readonly binary?: string }
   | { readonly type: "cargo"; readonly crate: string; readonly binary?: string }
-  | { readonly type: "binary"; readonly url: string; readonly binary?: string; readonly archiveType?: "zip" | "tar.gz" | "tar.xz" }
+  | {
+      readonly type: "binary"
+      readonly url: string
+      readonly binary?: string
+      readonly archiveType?: "zip" | "tar.gz" | "tar.xz"
+    }
   | { readonly type: "mason"; readonly package: string; readonly binary?: string }
-  | { readonly type: "github"; readonly repo: string; readonly assetPattern: string; readonly binary?: string; readonly archiveType?: "zip" | "tar.gz" | "tar.xz" }
+  | {
+      readonly type: "github"
+      readonly repo: string
+      readonly assetPattern: string
+      readonly binary?: string
+      readonly archiveType?: "zip" | "tar.gz" | "tar.xz"
+    }
 
 export interface InstanceContext {
   readonly directory: string
@@ -326,7 +405,12 @@ export interface ClientInfo {
   readonly notify: {
     readonly open: (request: { path: string }) => Promise<number>
   }
-  readonly waitForDiagnostics: (request: { path: string; version: number; mode?: "document" | "full"; after?: number }) => Promise<void>
+  readonly waitForDiagnostics: (request: {
+    path: string
+    version: number
+    mode?: "document" | "full"
+    after?: number
+  }) => Promise<void>
   readonly shutdown: () => Promise<void>
 }
 
@@ -338,7 +422,12 @@ export interface LSPClient {
     readonly open: (request: { path: string }) => Promise<number>
   }
   readonly diagnostics: Map<string, Diagnostic[]>
-  readonly waitForDiagnostics: (request: { path: string; version: number; mode?: "document" | "full"; after?: number }) => Promise<void>
+  readonly waitForDiagnostics: (request: {
+    path: string
+    version: number
+    mode?: "document" | "full"
+    after?: number
+  }) => Promise<void>
   readonly shutdown: () => Promise<void>
 }
 
@@ -412,7 +501,11 @@ export interface PlatformResolver {
 
 export interface ServerDownloader {
   download(strategy: DownloadStrategy, targetDir: string): Effect.Effect<string, DownloadError>
-  extract(archivePath: string, targetDir: string, archiveType: "zip" | "tar.gz" | "tar.xz"): Effect.Effect<void, DownloadError>
+  extract(
+    archivePath: string,
+    targetDir: string,
+    archiveType: "zip" | "tar.gz" | "tar.xz",
+  ): Effect.Effect<void, DownloadError>
   verify(binaryPath: string): Effect.Effect<boolean>
 }
 

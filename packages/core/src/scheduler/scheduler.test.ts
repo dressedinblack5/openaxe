@@ -35,11 +35,10 @@ const withScheduler = <A, E>(
     Effect.promise(async () => {
       const dir = await tmpdir()
       const { wakes, execution } = makeWakeLog()
-      const layer = Scheduler.layer
-        .pipe(
-          Layer.provide(Database.layerFromPath(path.join(dir.path, "scheduler.sqlite"))),
-          Layer.provide(execution),
-        )
+      const layer = Scheduler.layer.pipe(
+        Layer.provide(Database.layerFromPath(path.join(dir.path, "scheduler.sqlite"))),
+        Layer.provide(execution),
+      )
       return { dir, wakes, layer }
     }),
     ({ dir }) => Effect.promise(() => dir[Symbol.asyncDispose]()),

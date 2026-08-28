@@ -49,7 +49,9 @@ const invalidResponse = (error: unknown): EmbeddingError => ({
 const embed = (
   http: HttpClient.HttpClient,
   buildRequest: (texts: readonly string[]) => HttpClientRequest.HttpClientRequest,
-  decode: (body: string) => Effect.Effect<{ readonly vectors: number[][]; readonly usage?: { promptTokens: number } }, unknown>,
+  decode: (
+    body: string,
+  ) => Effect.Effect<{ readonly vectors: number[][]; readonly usage?: { promptTokens: number } }, unknown>,
   model: string,
   expected: number | undefined,
 ): ((texts: readonly string[]) => Effect.Effect<EmbeddingResult, EmbeddingError>) =>
@@ -65,7 +67,12 @@ const embed = (
     if (expected !== undefined) {
       for (const vector of parsed.vectors) {
         if (vector.length !== expected)
-          return yield* Effect.fail<EmbeddingError>({ _tag: "InvalidDimension", expected, actual: vector.length, model })
+          return yield* Effect.fail<EmbeddingError>({
+            _tag: "InvalidDimension",
+            expected,
+            actual: vector.length,
+            model,
+          })
       }
     }
     return {
@@ -76,7 +83,10 @@ const embed = (
     }
   })
 
-export function makeOllamaProvider(http: HttpClient.HttpClient, config: ConfigEmbedding.Config = {}): EmbeddingProvider {
+export function makeOllamaProvider(
+  http: HttpClient.HttpClient,
+  config: ConfigEmbedding.Config = {},
+): EmbeddingProvider {
   const model = config.model ?? "nomic-embed-text"
   const baseUrl = (config.baseUrl ?? "http://localhost:11434").replace(/\/+$/, "")
   const expected = DIMENSIONS[model]
@@ -93,15 +103,17 @@ export function makeOllamaProvider(http: HttpClient.HttpClient, config: ConfigEm
       http,
       (texts) =>
         HttpClientRequest.post(`${baseUrl}/api/embed`).pipe(HttpClientRequest.bodyJsonUnsafe({ model, input: texts })),
-      (body) =>
-        Effect.map(decode(body), (value) => ({ vectors: value.embeddings.map((vector) => [...vector]) })),
+      (body) => Effect.map(decode(body), (value) => ({ vectors: value.embeddings.map((vector) => [...vector]) })),
       model,
       expected,
     ),
   }
 }
 
-export function makeOpenAIProvider(http: HttpClient.HttpClient, config: ConfigEmbedding.Config = {}): EmbeddingProvider {
+export function makeOpenAIProvider(
+  http: HttpClient.HttpClient,
+  config: ConfigEmbedding.Config = {},
+): EmbeddingProvider {
   const model = config.model ?? "text-embedding-3-small"
   const baseUrl = (config.baseUrl ?? "https://api.openai.com").replace(/\/+$/, "")
   const expected = DIMENSIONS[model]

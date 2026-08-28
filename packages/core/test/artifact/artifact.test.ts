@@ -6,21 +6,17 @@ import { Artifact } from "@opencode-ai/core/artifact"
 import { testEffect } from "../lib/effect"
 import { tmpdir } from "../fixture/tmpdir"
 
-const withStore = <A, E>(
-  body: (store: Artifact.Interface) => Effect.Effect<A, E>,
-) =>
+const withStore = <A, E>(body: (store: Artifact.Interface) => Effect.Effect<A, E>) =>
   Effect.acquireUseRelease(
-    Effect.promise( async () => tmpdir()),
+    Effect.promise(async () => tmpdir()),
     (tmp) => {
       const baseDir = path.join(tmp.path, "artifacts")
-      const artifactLayer = Artifact.layer(baseDir).pipe(
-        Layer.provide(NodeFileSystem.layer),
-      )
+      const artifactLayer = Artifact.layer(baseDir).pipe(Layer.provide(NodeFileSystem.layer))
       return Effect.gen(function* () {
         return yield* body(yield* Artifact.Service)
       }).pipe(Effect.provide(artifactLayer))
     },
-    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+    (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
   )
 
 const it = testEffect(Layer.empty)
@@ -101,9 +97,9 @@ describe("Artifact", () => {
         yield* store.store("beta", "b")
         yield* store.store("alpha-extra", "a2")
 
-        expect((yield* store.list())).toHaveLength(3)
-        expect((yield* store.list("alpha"))).toHaveLength(2)
-        expect((yield* store.list("gamma"))).toHaveLength(0)
+        expect(yield* store.list()).toHaveLength(3)
+        expect(yield* store.list("alpha")).toHaveLength(2)
+        expect(yield* store.list("gamma")).toHaveLength(0)
       }),
     ),
   )
@@ -155,13 +151,11 @@ describe("Artifact", () => {
 
   it.live("respects custom truncation threshold", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) => {
         const tinyThreshold = 5
         const baseDir = path.join(tmp.path, "custom-threshold")
-        const artifactLayer = Artifact.layer(baseDir, tinyThreshold).pipe(
-          Layer.provide(NodeFileSystem.layer),
-        )
+        const artifactLayer = Artifact.layer(baseDir, tinyThreshold).pipe(Layer.provide(NodeFileSystem.layer))
         return Effect.gen(function* () {
           const store = yield* Artifact.Service
           const entry = yield* store.store("tiny", "hello world")
@@ -173,7 +167,7 @@ describe("Artifact", () => {
           expect(retrieved.content).toBe("hello world")
         }).pipe(Effect.provide(artifactLayer))
       },
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 })

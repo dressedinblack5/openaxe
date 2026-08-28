@@ -201,7 +201,9 @@ export const layer = Layer.effect(
       const model = yield* models.resolve(session)
       // Fast path: load recent messages only (100). If compaction needs more,
       // reload full history and retry the compaction check.
-      const pagination = yield* SessionHistory.entriesForRunnerPaginated(db, session.id, system.baselineSeq, { limit: 100 })
+      const pagination = yield* SessionHistory.entriesForRunnerPaginated(db, session.id, system.baselineSeq, {
+        limit: 100,
+      })
       let entries = pagination.entries
       const isLastStep = agent.info?.steps !== undefined && currentStep >= agent.info.steps
       const toolMaterialization = isLastStep ? undefined : yield* tools.materialize(agent.info?.permissions)

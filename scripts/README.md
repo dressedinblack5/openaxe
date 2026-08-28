@@ -5,15 +5,19 @@ This directory contains scripts for automated maintenance of the dressedinblack5
 ## Scripts
 
 ### sync-upstream.sh
+
 Pulls changes from upstream dev branch, handles conflicts, and creates maintenance PRs
 
-### audit-deps.sh  
+### audit-deps.sh
+
 Scans and updates dependencies for security and performance
 
 ### performance-check.sh
+
 Monitors and reports on performance metrics
 
 ### plugin-sync.sh
+
 Manages custom plugin updates and compatibility
 
 ## Usage
@@ -22,7 +26,7 @@ Manages custom plugin updates and compatibility
 # Run full maintenance workflow
 ./scripts/sync-upstream.sh --dry-run
 
-# Check for security updates  
+# Check for security updates
 ./scripts/audit-deps.sh --check --output report.txt
 
 # Profile performance
@@ -35,6 +39,7 @@ Manages custom plugin updates and compatibility
 ## Configuration
 
 All maintenance operations respect project-specific constraints:
+
 - TUI/CLI-only architecture preservation
 - Plugin ecosystem compatibility
 - Performance threshold monitoring

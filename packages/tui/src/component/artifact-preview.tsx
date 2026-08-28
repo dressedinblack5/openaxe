@@ -35,9 +35,7 @@ async function fetchJson<T>(url: string, fetchFn: typeof fetch, validate: (value
   return value
 }
 
-type View =
-  | { type: "list" }
-  | { type: "content"; key: string; version: number }
+type View = { type: "list" } | { type: "content"; key: string; version: number }
 
 export function ArtifactPreview() {
   const dialog = useDialog()
@@ -51,10 +49,8 @@ export function ArtifactPreview() {
   const [list] = createResource(
     () => view().type === "list",
     async () => {
-      return fetchJson(
-        `${baseUrl()}/api/artifact`,
-        doFetch,
-        (value): value is ArtifactSummary[] => Array.isArray(value),
+      return fetchJson(`${baseUrl()}/api/artifact`, doFetch, (value): value is ArtifactSummary[] =>
+        Array.isArray(value),
       )
     },
   )
@@ -103,44 +99,66 @@ export function ArtifactPreview() {
   const showContent = () => view().type === "content"
 
   return (
-    <Show when={showList()} fallback={
-      <Show when={showContent()} fallback={
-        <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
-          <text fg={theme.error}>Unknown view</text>
-        </box>
-      }>
-        <ContentDisplay
-          entry={entry}
-          showFull={showFull()}
-          onToggle={() => setShowFull(!showFull())}
-          onBack={() => { setView({ type: "list" }); setShowFull(false) }}
-        />
-      </Show>
-    }>
-      <Show when={!list.loading} fallback={
-        <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
-          <text fg={theme.textMuted}>Loading artifacts...</text>
-        </box>
-      }>
-        <Show when={!list.error} fallback={
-          <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
-            <text fg={theme.error}>Failed to load artifacts</text>
-          </box>
-        }>
-          <Show when={options().length > 0} fallback={
-            <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1}>
-              <box flexDirection="row" justifyContent="space-between">
-                <text fg={theme.text} attributes={TextAttributes.BOLD}>Artifacts</text>
-                <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>esc</text>
-              </box>
-              <text fg={theme.textMuted}>No artifacts found</text>
+    <Show
+      when={showList()}
+      fallback={
+        <Show
+          when={showContent()}
+          fallback={
+            <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
+              <text fg={theme.error}>Unknown view</text>
             </box>
-          }>
+          }
+        >
+          <ContentDisplay
+            entry={entry}
+            showFull={showFull()}
+            onToggle={() => setShowFull(!showFull())}
+            onBack={() => {
+              setView({ type: "list" })
+              setShowFull(false)
+            }}
+          />
+        </Show>
+      }
+    >
+      <Show
+        when={!list.loading}
+        fallback={
+          <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
+            <text fg={theme.textMuted}>Loading artifacts...</text>
+          </box>
+        }
+      >
+        <Show
+          when={!list.error}
+          fallback={
+            <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
+              <text fg={theme.error}>Failed to load artifacts</text>
+            </box>
+          }
+        >
+          <Show
+            when={options().length > 0}
+            fallback={
+              <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1}>
+                <box flexDirection="row" justifyContent="space-between">
+                  <text fg={theme.text} attributes={TextAttributes.BOLD}>
+                    Artifacts
+                  </text>
+                  <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
+                    esc
+                  </text>
+                </box>
+                <text fg={theme.textMuted}>No artifacts found</text>
+              </box>
+            }
+          >
             <DialogSelect
               title="Artifacts"
               options={options()}
               onSelect={(opt) => {
-                const parts = (opt.value).split(":")
+                const parts = opt.value.split(":")
                 setView({ type: "content", key: parts[0], version: Number(parts[1]) })
               }}
               emptyView={<text fg={theme.textMuted}>No artifacts found</text>}
@@ -168,17 +186,13 @@ function ContentDisplay(props: {
         <text fg={theme.text} attributes={TextAttributes.BOLD}>
           {data() ? `${data()?.key} v${data()?.version}` : "Artifact"}
         </text>
-        <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>esc</text>
+        <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
+          esc
+        </text>
       </box>
-      <Show when={!props.entry.loading} fallback={
-        <text fg={theme.textMuted}>Loading...</text>
-      }>
-        <Show when={!props.entry.error} fallback={
-          <text fg={theme.error}>Failed to load artifact content</text>
-        }>
-          <Show when={data()} fallback={
-            <text fg={theme.textMuted}>Artifact not found</text>
-          }>
+      <Show when={!props.entry.loading} fallback={<text fg={theme.textMuted}>Loading...</text>}>
+        <Show when={!props.entry.error} fallback={<text fg={theme.error}>Failed to load artifact content</text>}>
+          <Show when={data()} fallback={<text fg={theme.textMuted}>Artifact not found</text>}>
             {(d) => (
               <box flexDirection="column" gap={1} paddingBottom={1}>
                 <box flexDirection="row" gap={2} paddingBottom={1}>
@@ -186,11 +200,15 @@ function ContentDisplay(props: {
                   <Show when={d().truncated}>
                     <text fg={theme.warning}>Truncated</text>
                   </Show>
-                  <text fg={theme.textMuted}>
-                    {new Date(d().timeCreated).toLocaleString()}
-                  </text>
+                  <text fg={theme.textMuted}>{new Date(d().timeCreated).toLocaleString()}</text>
                 </box>
-                <box flexGrow={1} flexShrink={1} paddingLeft={1} paddingRight={1} backgroundColor={theme.backgroundElement}>
+                <box
+                  flexGrow={1}
+                  flexShrink={1}
+                  paddingLeft={1}
+                  paddingRight={1}
+                  backgroundColor={theme.backgroundElement}
+                >
                   <text wrapMode="word" fg={theme.text}>
                     {props.showFull || !d().truncated
                       ? d().content
@@ -202,12 +220,16 @@ function ContentDisplay(props: {
                     <Button variant="primary" onMouseUp={props.onToggle}>
                       {props.showFull ? "Show less" : "Show all content"}
                     </Button>
-                    <Button variant="secondary" onMouseUp={props.onBack}>Back</Button>
+                    <Button variant="secondary" onMouseUp={props.onBack}>
+                      Back
+                    </Button>
                   </box>
                 </Show>
                 <Show when={!d().truncated}>
                   <box paddingTop={1}>
-                    <Button variant="secondary" onMouseUp={props.onBack}>Back</Button>
+                    <Button variant="secondary" onMouseUp={props.onBack}>
+                      Back
+                    </Button>
                   </box>
                 </Show>
               </box>

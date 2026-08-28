@@ -14,9 +14,13 @@ export const ArtifactHandler = HttpApiBuilder.group(Api, "server.artifact", (han
         svc.get(ctx.params.key, ctx.params.version).pipe(Effect.map((e) => e ?? undefined)),
       )
       .handle("artifact.store", (ctx) =>
-        svc.store(ctx.payload.key, ctx.payload.content).pipe(
-          Effect.catch((error: unknown) => Effect.fail(new InvalidRequestError({ message: error instanceof Error ? error.message : String(error) }))),
-        ),
+        svc
+          .store(ctx.payload.key, ctx.payload.content)
+          .pipe(
+            Effect.catch((error: unknown) =>
+              Effect.fail(new InvalidRequestError({ message: error instanceof Error ? error.message : String(error) })),
+            ),
+          ),
       )
   }),
 )

@@ -36,7 +36,10 @@ describe("KanbanService", () => {
       expect(moved?.status).toBe("in_progress")
       expect(moved?.workerSessionId).toBe("ses_worker")
 
-      const verified = yield* kanban.updateCard(card.id, { status: "done", verification: { passed: true, notes: "all green" } })
+      const verified = yield* kanban.updateCard(card.id, {
+        status: "done",
+        verification: { passed: true, notes: "all green" },
+      })
       expect(verified?.verification).toEqual({ passed: true, notes: "all green" })
 
       const done = yield* kanban.listCards({ boardId: board.id, status: "done" })
@@ -126,7 +129,10 @@ describe("KanbanTool", () => {
         const boardId = String(field(board.result.value, "id"))
         expect(field(board.result.value, "rootSessionId")).toBe(sessionID)
 
-        const card = yield* settleTool(registry, call({ operation: "create_card", boardId, title: "task", priority: 2 }))
+        const card = yield* settleTool(
+          registry,
+          call({ operation: "create_card", boardId, title: "task", priority: 2 }),
+        )
         expect(card.result.type).toBe("json")
         const cardId = String(field(card.result.value, "id"))
         expect(field(card.result.value, "status")).toBe("backlog")

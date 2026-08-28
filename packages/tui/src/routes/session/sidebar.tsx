@@ -24,26 +24,26 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   }
   const scrollAcceleration = createMemo(() => getScrollAcceleration(tuiConfig))
 
-return (
-          <Show when={session()}>
-            {(current) => {
-              const s = current()
-              const workspaceID = s.workspaceID
-              const shareURL = s.share?.url
-              const sidebarFocused = isFocused("sidebar")
-              return (
-                <box
-                  backgroundColor={theme.backgroundPanel}
-                  width={42}
-                  height="100%"
-                  paddingTop={1}
-                  paddingBottom={1}
-                  paddingLeft={2}
-                  paddingRight={2}
-                  position={props.overlay ? "absolute" : "relative"}
-                  border={sidebarFocused() ? ["right"] : []}
-                  borderColor={sidebarFocused() ? theme.primary : undefined}
-                >
+  return (
+    <Show when={session()}>
+      {(current) => {
+        const s = current()
+        const workspaceID = s.workspaceID
+        const shareURL = s.share?.url
+        const sidebarFocused = isFocused("sidebar")
+        return (
+          <box
+            backgroundColor={theme.backgroundPanel}
+            width={42}
+            height="100%"
+            paddingTop={1}
+            paddingBottom={1}
+            paddingLeft={2}
+            paddingRight={2}
+            position={props.overlay ? "absolute" : "relative"}
+            border={sidebarFocused() ? ["right"] : []}
+            borderColor={sidebarFocused() ? theme.primary : undefined}
+          >
             <scrollbox
               flexGrow={1}
               scrollAcceleration={scrollAcceleration()}
@@ -86,9 +86,7 @@ return (
                         </Show>
                       </text>
                     )}
-                    {shareURL && (
-                      <text fg={theme.textMuted}>{shareURL}</text>
-                    )}
+                    {shareURL && <text fg={theme.textMuted}>{shareURL}</text>}
                   </box>
                 </pluginRuntime.Slot>
                 <pluginRuntime.Slot name="sidebar_content" session_id={props.sessionID} />

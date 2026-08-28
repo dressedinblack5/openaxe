@@ -14,8 +14,8 @@ export type LocalAttachment =
 export async function readLocalAttachment(file: string) {
   return readLocalAttachmentWith(
     {
-      readText:  async (value) => readFile(value, "utf8"),
-      readBytes:  async (value) => readFile(value),
+      readText: async (value) => readFile(value, "utf8"),
+      readBytes: async (value) => readFile(value),
       mime: async (value) => mimeTypes[path.extname(value).toLowerCase()] ?? "application/octet-stream",
     },
     file,

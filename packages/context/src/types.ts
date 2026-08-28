@@ -47,7 +47,7 @@ export const ContextScope = {
     }
   },
 
-  toString: (scope: ContextScope): string => ContextScope.hash(scope)
+  toString: (scope: ContextScope): string => ContextScope.hash(scope),
 } as const
 
 /**
@@ -66,30 +66,28 @@ export const ContextBudget = {
   make: (limit: number, used = 0, reserved = 0): ContextBudget => ({
     limit,
     used,
-    reserved
+    reserved,
   }),
 
-  available: (budget: ContextBudget): number =>
-    Math.max(0, budget.limit - budget.used - budget.reserved),
+  available: (budget: ContextBudget): number => Math.max(0, budget.limit - budget.used - budget.reserved),
 
-  isOverBudget: (budget: ContextBudget): boolean =>
-    budget.used + budget.reserved > budget.limit,
+  isOverBudget: (budget: ContextBudget): boolean => budget.used + budget.reserved > budget.limit,
 
   reserve: (budget: ContextBudget, tokens: number): ContextBudget => ({
     ...budget,
-    reserved: budget.reserved + tokens
+    reserved: budget.reserved + tokens,
   }),
 
   release: (budget: ContextBudget, tokens: number): ContextBudget => ({
     ...budget,
-    reserved: Math.max(0, budget.reserved - tokens)
+    reserved: Math.max(0, budget.reserved - tokens),
   }),
 
   consume: (budget: ContextBudget, tokens: number): ContextBudget => ({
     ...budget,
     used: budget.used + tokens,
-    reserved: Math.max(0, budget.reserved - tokens)
-  })
+    reserved: Math.max(0, budget.reserved - tokens),
+  }),
 } as const
 
 /**
@@ -104,19 +102,14 @@ export interface ContextEpoch {
 }
 
 export const ContextEpoch = {
-  make: (
-    generation: Generation,
-    baseline: unknown,
-    budget: ContextBudget
-  ): ContextEpoch => ({
+  make: (generation: Generation, baseline: unknown, budget: ContextBudget): ContextEpoch => ({
     generation,
     baseline,
     budget,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   }),
 
-  isStale: (epoch: ContextEpoch, maxAgeMs: number): boolean =>
-    Date.now() - epoch.timestamp > maxAgeMs
+  isStale: (epoch: ContextEpoch, maxAgeMs: number): boolean => Date.now() - epoch.timestamp > maxAgeMs,
 } as const
 
 /**
@@ -135,20 +128,20 @@ export const ContextSnapshot = {
     scope: ContextScope,
     data: ReadonlyMap<string, unknown>,
     epoch: ContextEpoch | null,
-    version: number
+    version: number,
   ): ContextSnapshot => ({
     scope,
     data,
     epoch,
-    version
+    version,
   }),
 
   empty: (scope: ContextScope): ContextSnapshot => ({
     scope,
     data: new Map(),
     epoch: null,
-    version: 0
-  })
+    version: 0,
+  }),
 } as const
 
 /**
@@ -170,15 +163,11 @@ export interface Generation {
 /**
  * Errors
  */
-export class ScopeNotFoundError extends Schema.TaggedErrorClass<ScopeNotFoundError>()(
-  "ScopeNotFoundError",
-  { scope: Schema.Unknown }
-) {}
+export class ScopeNotFoundError extends Schema.TaggedErrorClass<ScopeNotFoundError>()("ScopeNotFoundError", {
+  scope: Schema.Unknown,
+}) {}
 
-export class ContextError extends Schema.TaggedErrorClass<ContextError>()(
-  "ContextError",
-  { message: Schema.String }
-) {}
+export class ContextError extends Schema.TaggedErrorClass<ContextError>()("ContextError", { message: Schema.String }) {}
 
 /**
  * Internal state per scope (not exported)
@@ -197,6 +186,6 @@ export const ScopeState = {
     epoch: null,
     budget,
     version: 0,
-    dirtyKeys: new Set()
-  })
+    dirtyKeys: new Set(),
+  }),
 } as const

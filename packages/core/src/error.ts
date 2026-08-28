@@ -26,28 +26,25 @@ export abstract class AppError extends Error {
  * Create a typed error class with discriminant
  */
 export function createErrorClass(tag: string, _fields: Record<string, unknown>) {
-class TypedError extends AppError {
-      declare _tag: string
-      readonly _fields: Record<string, unknown>
+  class TypedError extends AppError {
+    declare _tag: string
+    readonly _fields: Record<string, unknown>
 
-      constructor(message: string, fields: Record<string, unknown>) {
-        super(message, tag)
-        this._fields = fields
-        Object.assign(this, fields)
-      }
+    constructor(message: string, fields: Record<string, unknown>) {
+      super(message, tag)
+      this._fields = fields
+      Object.assign(this, fields)
     }
-    TypedError.prototype._tag = tag
-Object.defineProperty(TypedError, "name", { value: tag.replace(".", "") })
-    return TypedError;
+  }
+  TypedError.prototype._tag = tag
+  Object.defineProperty(TypedError, "name", { value: tag.replace(".", "") })
+  return TypedError
 }
 
 /**
  * Create a tagged error class with a .make() method (replaces Schema.TaggedErrorClass)
  */
-export function makeTaggedError<Tag extends string, Fields extends Record<string, unknown>>(
-  tag: Tag,
-  _fields: Fields,
-) {
+export function makeTaggedError<Tag extends string, Fields extends Record<string, unknown>>(tag: Tag, _fields: Fields) {
   const ErrorClass = class TaggedError {
     readonly _tag: Tag
 
@@ -119,7 +116,12 @@ export const SessionError = {
 
 export type SessionError =
   | { readonly _tag: "Session.NotFound"; readonly sessionID: string }
-  | { readonly _tag: "Session.InvalidState"; readonly sessionID: string; readonly expected: string; readonly actual: string }
+  | {
+      readonly _tag: "Session.InvalidState"
+      readonly sessionID: string
+      readonly expected: string
+      readonly actual: string
+    }
 
 /**
  * SessionEvent errors
@@ -131,8 +133,7 @@ export const SessionEventError = {
   }),
 }
 
-export type SessionEventError =
-  | { readonly _tag: "SessionEvent.FooterOutput"; readonly message: string }
+export type SessionEventError = { readonly _tag: "SessionEvent.FooterOutput"; readonly message: string }
 
 /**
  * LSP errors
@@ -260,12 +261,6 @@ export type ContextError =
  * Union of all error types - using discriminated unions to avoid `any` inference
  */
 export type AnyError =
-  | IntegrationError
-  | ModelError
-  | SessionError
-  | SessionEventError
-  | LSPError
-  | ToolError
-  | ContextError
+  IntegrationError | ModelError | SessionError | SessionEventError | LSPError | ToolError | ContextError
 
 export * as Error from "./error"

@@ -14,7 +14,10 @@ const TAR_BLOCK = 512
 
 /** Resolve an archive entry name against destDir, guarding against traversal. */
 function safeEntry(destDir: string, name: string): string | null {
-  const parts = name.replaceAll("\\", "/").split("/").filter((part) => part !== "" && part !== ".")
+  const parts = name
+    .replaceAll("\\", "/")
+    .split("/")
+    .filter((part) => part !== "" && part !== ".")
   if (parts.some((part) => part === "..")) return null
   if (parts.length === 0) return null
   return path.join(destDir, ...parts)
@@ -131,7 +134,10 @@ export function extractTgz(archivePath: string, destDir: string, stripComponents
       continue
     }
 
-    const parts = name.replaceAll("\\", "/").split("/").filter((part) => part !== "" && part !== ".")
+    const parts = name
+      .replaceAll("\\", "/")
+      .split("/")
+      .filter((part) => part !== "" && part !== ".")
     const stripped = parts.slice(stripComponents)
     const target = safeEntry(destDir, stripped.join("/"))
     if (!target) {

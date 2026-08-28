@@ -16,7 +16,7 @@ export type { SessionID, MessageID, ToolRegistrationError }
  */
 export interface ToolDefinition<
   Parameters extends Schema.Schema<unknown> = Schema.Schema<unknown>,
-  Output extends Schema.Schema<unknown> = Schema.Schema<unknown>
+  Output extends Schema.Schema<unknown> = Schema.Schema<unknown>,
 > {
   readonly id: string
   readonly description: string
@@ -25,14 +25,12 @@ export interface ToolDefinition<
   readonly jsonSchema: JSONSchema7
   readonly execute: (
     input: Schema.Schema.Type<Parameters>,
-    context: ToolContext
+    context: ToolContext,
   ) => Effect.Effect<ToolExecutionResult, ToolFailure>
-  readonly toModelOutput?: (
-    input: {
-      readonly input: Schema.Schema.Type<Parameters>
-      readonly output: unknown
-    }
-  ) => ReadonlyArray<ToolContent>
+  readonly toModelOutput?: (input: {
+    readonly input: Schema.Schema.Type<Parameters>
+    readonly output: unknown
+  }) => ReadonlyArray<ToolContent>
   readonly maxResultSizeChars?: number
   readonly permission?: string
   readonly subagentSafe?: boolean
@@ -136,10 +134,10 @@ export interface ToolFailure {
   readonly cause?: unknown
 }
 
-export class ToolFailureError extends Schema.TaggedErrorClass<ToolFailureError>()(
-  "ToolFailure",
-  { message: Schema.String, cause: Schema.Unknown }
-) {}
+export class ToolFailureError extends Schema.TaggedErrorClass<ToolFailureError>()("ToolFailure", {
+  message: Schema.String,
+  cause: Schema.Unknown,
+}) {}
 
 /**
  * ExternalToolLoader - Separate service for external tool discovery
@@ -161,18 +159,22 @@ export interface ExternalToolLoader {
  */
 export interface ToolRegistryInterface {
   readonly register: <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-    def: ToolDefinition<P, O>
+    def: ToolDefinition<P, O>,
   ) => Effect.Effect<void>
   readonly get: <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-    id: string
+    id: string,
   ) => Effect.Effect<ToolDefinition<P, O> | undefined>
   readonly list: () => Effect.Effect<ReadonlyArray<ToolDefinition>>
-  readonly tools: (model: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info }) => Effect.Effect<ReadonlyArray<ToolDefinition>>
+  readonly tools: (model: {
+    providerID: ProviderV2.ID
+    modelID: ModelV2.ID
+    agent: Agent.Info
+  }) => Effect.Effect<ReadonlyArray<ToolDefinition>>
   readonly named: () => Effect.Effect<{ task: ToolDefinition; read: ToolDefinition }>
   readonly settle: <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
     tool: ToolDefinition<P, O>,
     call: ToolCall,
-    context: ToolContext
+    context: ToolContext,
   ) => Effect.Effect<ToolExecutionResult, ToolFailure, P["DecodingServices"] | O["EncodingServices"]>
 }
 

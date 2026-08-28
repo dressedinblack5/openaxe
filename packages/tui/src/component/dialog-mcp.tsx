@@ -33,7 +33,7 @@ export function DialogMcp() {
     const loadingMcp = loading()
 
     const mcpEntries = Object.entries(mcpData ?? {})
-    mcpEntries.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+    mcpEntries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     return mcpEntries.map(([name, status]) => ({
       value: name,
       title: name,

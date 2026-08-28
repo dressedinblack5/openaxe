@@ -2,13 +2,7 @@
 import { Effect, Layer, Context } from "effect"
 import { LSP as CoreLSP } from "../lsp"
 
-export type {
-  Status,
-  Range,
-  Symbol,
-  DocumentSymbol,
-  Diagnostic,
-} from "../types"
+export type { Status, Range, Symbol, DocumentSymbol, Diagnostic } from "../types"
 
 export const LSPAdapterLayer = (lsp: Layer.Layer<CoreLSP.Service, unknown, unknown>) =>
   Layer.effect(

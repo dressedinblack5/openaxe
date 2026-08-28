@@ -198,7 +198,9 @@ export function make(config: TypedToolConfig | DynamicToolConfig): AnyTool {
     toModelOutput: config.toModelOutput,
     toStructuredOutput: config.toStructuredOutput,
     // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- @internal codec: erases the schema's DecodingServices (R) to never; codecs run where schema services are already satisfied.
-    _decode: Schema.decodeUnknownEffect(config.parameters) as (input: unknown) => Effect.Effect<unknown, Schema.SchemaError>,
+    _decode: Schema.decodeUnknownEffect(config.parameters) as (
+      input: unknown,
+    ) => Effect.Effect<unknown, Schema.SchemaError>,
     // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- @internal codec: erases the schema's EncodingServices (R) to never; codecs run where schema services are already satisfied.
     _encode: Schema.encodeEffect(config.success) as (value: unknown) => Effect.Effect<unknown, Schema.SchemaError>,
     _project: (parameters, callID, output) =>

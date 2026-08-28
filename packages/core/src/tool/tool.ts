@@ -149,18 +149,23 @@ export function make<Input extends SchemaType<any>, Output extends SchemaType<an
               return Effect.serviceOption(Guardrail.Service).pipe(
                 Effect.flatMap((option) => {
                   if (option._tag === "None") return Effect.succeed(toOutput())
-                  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- verifyProject returns VerificationResult[]
-                  return (option.value.verifyProject(files) as Effect.Effect<readonly Guardrail.VerificationResult[]>).pipe(
+                  const guardrail = option.value
+                  // The guardrail.verifyProject effect requires ChildProcessSpawner, but the tool execution
+                  // context may not provide it. The catchCause handles missing service errors at runtime.
+                  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+                  return guardrail.verifyProject(files).pipe(
                     Effect.flatMap((results) => {
                       const failed = results.filter((r) => !r.passed)
                       if (failed.length === 0) return Effect.succeed(toOutput())
                       const details = failed
-                        .flatMap((r) => r.diagnostics.map((d) => `${d.file}:${d.line}:${d.column}: ${d.severity}: ${d.message}`))
+                        .flatMap((r) =>
+                          r.diagnostics.map((d) => `${d.file}:${d.line}:${d.column}: ${d.severity}: ${d.message}`),
+                        )
                         .join("\n")
                       return Effect.fail(new ToolFailure({ message: `Auto-verification failed:\n${details}` }))
                     }),
                     Effect.catchCause(() => Effect.succeed(toOutput())),
-                  )
+                  ) as unknown as Effect.Effect<ToolOutput, ToolFailure>
                 }),
               )
             }),

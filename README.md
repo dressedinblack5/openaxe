@@ -12,14 +12,14 @@ A fork of [anomalyco/opencode](https://github.com/anomalyco/opencode) that strip
 
 New to openaxe? Here's what to read in order:
 
-| If you want to... | Start here |
-|---|---|
-| **Try it now** | [Quick Start](#quick-start) → [User Guide](#user-guide) |
+| If you want to...          | Start here                                                                    |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| **Try it now**             | [Quick Start](#quick-start) → [User Guide](#user-guide)                       |
 | **Understand the project** | [Features](#features) → [Architecture](#architecture) → [Security](#security) |
-| **Configure your setup** | [Configuration](#configuration) → [Providers](#preinstalled-plugins) |
-| **Extend openaxe** | [Plugin System](#plugins) → [External Plugins](#external-plugins) |
-| **Compare with upstream** | [Advantages](#advantages-over-official-opencode) |
-| **Develop openaxe** | [Architecture](#architecture) → repo `AGENTS.md` |
+| **Configure your setup**   | [Configuration](#configuration) → [Providers](#preinstalled-plugins)          |
+| **Extend openaxe**         | [Plugin System](#plugins) → [External Plugins](#external-plugins)             |
+| **Compare with upstream**  | [Advantages](#advantages-over-official-opencode)                              |
+| **Develop openaxe**        | [Architecture](#architecture) → repo `AGENTS.md`                              |
 
 ## Quick Start
 
@@ -78,6 +78,7 @@ bun install
 cd packages/openaxe
 bun dev          # Primary: run TUI directly (no binary)
 ```
+
 > **`bun dev` is the primary way to run openaxe.** It runs the TUI directly from source with no build step. On Linux/macOS, the rolling release (`--dev`) install keeps you on latest without ever touching a binary. The binary is only needed for **Windows distribution** and official releases.
 
 ### First Run
@@ -121,18 +122,18 @@ openaxe run "explain this codebase"
 
 Ships with auth plugins for these providers — no npm install needed, just run `openaxe providers login <provider>`:
 
-| Plugin | Provider |
-|---|---|
-| **Codex** | OpenAI Codex (o1, o3, GPT) |
-| **GitHub Copilot** | GitHub Copilot chat models |
-| **GitLab** | GitLab Duo Agent Platform |
-| **Poe** | Poe by Quora |
-| **Cloudflare Workers AI** | Cloudflare Workers AI inference |
+| Plugin                    | Provider                                     |
+| ------------------------- | -------------------------------------------- |
+| **Codex**                 | OpenAI Codex (o1, o3, GPT)                   |
+| **GitHub Copilot**        | GitHub Copilot chat models                   |
+| **GitLab**                | GitLab Duo Agent Platform                    |
+| **Poe**                   | Poe by Quora                                 |
+| **Cloudflare Workers AI** | Cloudflare Workers AI inference              |
 | **Cloudflare AI Gateway** | Cloudflare AI Gateway (multi-provider proxy) |
-| **Azure** | Azure OpenAI Service |
-| **DigitalOcean** | DigitalOcean GPU Droplets / Paperspace |
-| **Snowflake Cortex** | Snowflake Cortex AI |
-| **xAI** | xAI Grok models |
+| **Azure**                 | Azure OpenAI Service                         |
+| **DigitalOcean**          | DigitalOcean GPU Droplets / Paperspace       |
+| **Snowflake Cortex**      | Snowflake Cortex AI                          |
+| **xAI**                   | xAI Grok models                              |
 
 ### External Plugins
 
@@ -148,7 +149,7 @@ Plugins are npm packages that declare entrypoints in `package.json` under `expor
 
 ```jsonc
 {
-  "plugin": ["my-plugin"]
+  "plugin": ["my-plugin"],
 }
 ```
 
@@ -156,12 +157,12 @@ Plugins are npm packages that declare entrypoints in `package.json` under `expor
 
 Auto-configured on first run. They auto-install the first time you run `openaxe`:
 
-| Plugin | Description | Kind |
-|---|---|---|
-| **oh-my-openagent** | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents | server + tui |
-| **opencode-plugin-selector** | Interactive plugin manager | server only |
-| **@tarquinen/opencode-dcp** | Context compression for long sessions | server + tui |
-| **ecc-universal** | Everything Claude Code — agents, skills, hooks, MCP, and rules | server only |
+| Plugin                       | Description                                                    | Kind         |
+| ---------------------------- | -------------------------------------------------------------- | ------------ |
+| **oh-my-openagent**          | Agent orchestration: Sisyphus, Prometheus, Momus, Metis agents | server + tui |
+| **opencode-plugin-selector** | Interactive plugin manager                                     | server only  |
+| **@tarquinen/opencode-dcp**  | Context compression for long sessions                          | server + tui |
+| **ecc-universal**            | Everything Claude Code — agents, skills, hooks, MCP, and rules | server only  |
 
 Write your own using the [@opencode-ai/plugin](https://www.npmjs.com/package/@opencode-ai/plugin) SDK.
 
@@ -177,12 +178,12 @@ Configure via `.openaxe/openaxe.jsonc` in your project root:
     "my-server": {
       "type": "local",
       "command": "npx",
-      "args": ["-y", "@org/mcp-server"]
-    }
+      "args": ["-y", "@org/mcp-server"],
+    },
   },
   "permission": {
-    "bash": "allow"
-  }
+    "bash": "allow",
+  },
 }
 ```
 
@@ -210,25 +211,25 @@ The tool bridge lives in `src/tool/lsp.ts` — exposes all operations to the AI 
 
 #### 17 Tool Operations
 
-| Operation | LSP Request | What it does |
-|---|---|---|
-| `goToDefinition` | `textDocument/definition` | Find where a symbol is defined |
-| `findReferences` | `textDocument/references` | Find all references to a symbol |
-| `hover` | `textDocument/hover` | Get documentation and type info |
-| `documentSymbol` | `textDocument/documentSymbol` | List all symbols in a document |
-| `workspaceSymbol` | `workspace/symbol` | Search project-wide symbols |
-| `goToImplementation` | `textDocument/implementation` | Find implementations of an interface/abstract |
-| `prepareCallHierarchy` | `textDocument/prepareCallHierarchy` | Get call hierarchy entry point |
-| `incomingCalls` | `callHierarchy/incomingCalls` | What calls this function |
-| `outgoingCalls` | `callHierarchy/outgoingCalls` | What this function calls |
-| `codeAction` | `textDocument/codeAction` | List available quick fixes and refactorings |
-| `applyCodeAction` | `textDocument/codeAction` + edit | Apply a quick fix by title |
-| `rename` | `textDocument/rename` | Rename symbol across the codebase |
-| `prepareRename` | `textDocument/prepareRename` | Check if a symbol can be renamed |
-| `typeDefinition` | `textDocument/typeDefinition` | Find the type definition (e.g. class of a variable) |
-| `signatureHelp` | `textDocument/signatureHelp` | Get parameter info at a call site |
-| `completion` | `textDocument/completion` | Get code completion suggestions |
-| `formatting` | `textDocument/formatting` | Format a document |
+| Operation              | LSP Request                         | What it does                                        |
+| ---------------------- | ----------------------------------- | --------------------------------------------------- |
+| `goToDefinition`       | `textDocument/definition`           | Find where a symbol is defined                      |
+| `findReferences`       | `textDocument/references`           | Find all references to a symbol                     |
+| `hover`                | `textDocument/hover`                | Get documentation and type info                     |
+| `documentSymbol`       | `textDocument/documentSymbol`       | List all symbols in a document                      |
+| `workspaceSymbol`      | `workspace/symbol`                  | Search project-wide symbols                         |
+| `goToImplementation`   | `textDocument/implementation`       | Find implementations of an interface/abstract       |
+| `prepareCallHierarchy` | `textDocument/prepareCallHierarchy` | Get call hierarchy entry point                      |
+| `incomingCalls`        | `callHierarchy/incomingCalls`       | What calls this function                            |
+| `outgoingCalls`        | `callHierarchy/outgoingCalls`       | What this function calls                            |
+| `codeAction`           | `textDocument/codeAction`           | List available quick fixes and refactorings         |
+| `applyCodeAction`      | `textDocument/codeAction` + edit    | Apply a quick fix by title                          |
+| `rename`               | `textDocument/rename`               | Rename symbol across the codebase                   |
+| `prepareRename`        | `textDocument/prepareRename`        | Check if a symbol can be renamed                    |
+| `typeDefinition`       | `textDocument/typeDefinition`       | Find the type definition (e.g. class of a variable) |
+| `signatureHelp`        | `textDocument/signatureHelp`        | Get parameter info at a call site                   |
+| `completion`           | `textDocument/completion`           | Get code completion suggestions                     |
+| `formatting`           | `textDocument/formatting`           | Format a document                                   |
 
 **Common parameters:** Each operation accepts `filePath`, with `line`/`character` (1-based) for location-based ops. Operation-specific params: `query` (workspaceSymbol), `newName` (rename), `title` (applyCodeAction), `tabSize`/`insertSpaces` (formatting).
 
@@ -270,10 +271,10 @@ Trigger: after every process() returning "continue"
 {
   "experimental": {
     "learning": {
-      "review": true,            // enable post-turn learning eval
-      "model": "provider/model"  // optional: separate model for reviews
-    }
-  }
+      "review": true, // enable post-turn learning eval
+      "model": "provider/model", // optional: separate model for reviews
+    },
+  },
 }
 ```
 
@@ -296,10 +297,10 @@ Hook: called during compaction before the compaction LLM prompt
 {
   "experimental": {
     "compressor": {
-      "enabled": true,             // enable LLM-driven structured compression
-      "model": "provider/model"    // optional: separate model for compression
-    }
-  }
+      "enabled": true, // enable LLM-driven structured compression
+      "model": "provider/model", // optional: separate model for compression
+    },
+  },
 }
 ```
 
@@ -355,21 +356,21 @@ Tool: skill_write   write|list → project .openaxe/skills/<name>/SKILL.md
 
 The monorepo ships 13 packages:
 
-| Package | Role |
-|---|---|
-| `openaxe` | CLI orchestrator — yargs entry, lazy-loaded commands |
-| `core` | Session/agent/project/tool orchestration, DB, permissions |
-| `llm` | LLM integrations — 25+ providers, 6 protocol adapters |
-| `tui` | SolidJS terminal UI via OpenTUI |
-| `ui` | Shared SolidJS component library |
-| `schema` | Data validation schemas (Effect) |
-| `server` | HTTP server and API |
-| `plugin` | Plugin system — tool, TUI, effect, promise entry points |
-| `sdk` | Generated JS SDK |
-| `cli` | Alternative Effect-runtime CLI |
-| `effect-drizzle-sqlite` | SQLite layer — Drizzle ORM + Effect |
-| `http-recorder` | Record/replay HTTP for testing |
-| `script` | Utility package |
+| Package                 | Role                                                      |
+| ----------------------- | --------------------------------------------------------- |
+| `openaxe`               | CLI orchestrator — yargs entry, lazy-loaded commands      |
+| `core`                  | Session/agent/project/tool orchestration, DB, permissions |
+| `llm`                   | LLM integrations — 25+ providers, 6 protocol adapters     |
+| `tui`                   | SolidJS terminal UI via OpenTUI                           |
+| `ui`                    | Shared SolidJS component library                          |
+| `schema`                | Data validation schemas (Effect)                          |
+| `server`                | HTTP server and API                                       |
+| `plugin`                | Plugin system — tool, TUI, effect, promise entry points   |
+| `sdk`                   | Generated JS SDK                                          |
+| `cli`                   | Alternative Effect-runtime CLI                            |
+| `effect-drizzle-sqlite` | SQLite layer — Drizzle ORM + Effect                       |
+| `http-recorder`         | Record/replay HTTP for testing                            |
+| `script`                | Utility package                                           |
 
 ## Security
 
@@ -386,16 +387,16 @@ The monorepo ships 13 packages:
 
 ## Advantages Over Official OpenCode
 
-| | openaxe | official opencode |
-|---|---|---|
-| **Monorepo size** | 13 packages | 36 |
-| **Dependency footprint** | ~1.1 GB | ~2 GB+ |
-| **Architecture** | TUI/CLI only | TUI + Electron + web apps |
-| **Effects** | Effect v4 throughout | Mixed patterns |
-| **Plugin audit** | All plugins reviewed for TUI/CLI compliance | Unrestricted |
-| **Security surface** | No Electron, no web app attack surface | Electron + Astro/Starlight/Storybook/SST Cloud |
-| **Startup** | Lazy-loaded CLI commands | Eager imports |
-| **Identity** | Renamed project-wide (`openaxe`) | N/A |
+|                          | openaxe                                     | official opencode                              |
+| ------------------------ | ------------------------------------------- | ---------------------------------------------- |
+| **Monorepo size**        | 13 packages                                 | 36                                             |
+| **Dependency footprint** | ~1.1 GB                                     | ~2 GB+                                         |
+| **Architecture**         | TUI/CLI only                                | TUI + Electron + web apps                      |
+| **Effects**              | Effect v4 throughout                        | Mixed patterns                                 |
+| **Plugin audit**         | All plugins reviewed for TUI/CLI compliance | Unrestricted                                   |
+| **Security surface**     | No Electron, no web app attack surface      | Electron + Astro/Starlight/Storybook/SST Cloud |
+| **Startup**              | Lazy-loaded CLI commands                    | Eager imports                                  |
+| **Identity**             | Renamed project-wide (`openaxe`)            | N/A                                            |
 
 > Contributions welcome — see `AGENTS.md` for development guidelines.
 

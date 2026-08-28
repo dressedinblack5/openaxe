@@ -62,7 +62,9 @@ export const layer = Layer.effectDiscard(
                 sessionTitle: result.sessionTitle,
                 snippet: result.snippet,
               }))
-            }).pipe(Effect.mapError(() => new ToolFailure({ message: `Unable to search sessions for ${input.query}` }))),
+            }).pipe(
+              Effect.mapError(() => new ToolFailure({ message: `Unable to search sessions for ${input.query}` })),
+            ),
         }),
       })
       .pipe(Effect.orDie)

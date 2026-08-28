@@ -20,9 +20,7 @@ type AsyncSQLiteDatabaseWithSession = BaseSQLiteDatabase<"async", unknown, Recor
 type SQLiteMigrationBackfillEntry = {
   name: string
   selector:
-    | { column: "id"; value: number }
-    | { column: "created_at"; value: number }
-    | { column: "hash"; value: string }
+    { column: "id"; value: number } | { column: "created_at"; value: number } | { column: "hash"; value: string }
 }
 
 function unmatchedMigrationError(unmatched: SQLiteMigrationTableRow[]) {

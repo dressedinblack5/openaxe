@@ -16,8 +16,8 @@ export const DynamicProviderPlugin = define({
           : (yield* npm.add(evt.package).pipe(Effect.orDie)).entrypoint
         if (!installedPath) throw new Error(`Package ${evt.package} has no import entrypoint`)
 
-        const mod = yield* Effect.promise(async () =>
-          import(installedPath.startsWith("file://") ? installedPath : pathToFileURL(installedPath).href),
+        const mod = yield* Effect.promise(
+          async () => import(installedPath.startsWith("file://") ? installedPath : pathToFileURL(installedPath).href),
         ).pipe(Effect.orDie)
         const match = Object.keys(mod).find((name) => name.startsWith("create"))
         if (!match) throw new Error(`Package ${evt.package} has no provider factory export`)

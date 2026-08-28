@@ -1,7 +1,7 @@
 import { Cause, Context, Effect, Layer, Queue, Stream } from "effect"
 import { Headers } from "effect/unstable/http"
 import { LLMError, TransportReason } from "../../schema"
-import { jsonRequestParts } from "./http";
+import { jsonRequestParts } from "./http"
 import type { Transport } from "./index"
 
 export interface WebSocketRequest {
@@ -145,9 +145,15 @@ export const fromWebSocket = (
     const messages = yield* Queue.bounded<string | Uint8Array, LLMError | Cause.Done>(128)
 
     const onMessage = (event: MessageEvent) => {
-      if (typeof event.data === "string") { Queue.offerUnsafe(messages, event.data); return }
+      if (typeof event.data === "string") {
+        Queue.offerUnsafe(messages, event.data)
+        return
+      }
       const binary = binaryMessage(event.data)
-      if (binary) { Queue.offerUnsafe(messages, binary); return }
+      if (binary) {
+        Queue.offerUnsafe(messages, binary)
+        return
+      }
       Queue.failCauseUnsafe(
         messages,
         Cause.fail(
@@ -164,7 +170,10 @@ export const fromWebSocket = (
       )
     }
     const onClose = (event: CloseEvent) => {
-      if (event.code === 1000 || event.code === 1005) { Queue.endUnsafe(messages); return }
+      if (event.code === 1000 || event.code === 1005) {
+        Queue.endUnsafe(messages)
+        return
+      }
       Queue.failCauseUnsafe(
         messages,
         Cause.fail(
@@ -201,9 +210,8 @@ export const fromWebSocket = (
           }),
         ),
       ),
-}
+    }
   })
-
 
 export const messageText = (message: string | Uint8Array, decoder: TextDecoder) =>
   typeof message === "string" ? message : decoder.decode(message)

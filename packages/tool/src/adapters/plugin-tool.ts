@@ -11,11 +11,7 @@ import { zodToJsonSchema } from "zod-to-json-schema"
  */
 
 // Re-export plugin types
-export type {
-  PluginToolContext,
-  ToolExecutionResult,
-  ToolCall,
-}
+export type { PluginToolContext, ToolExecutionResult, ToolCall }
 
 /**
  * Zod-based tool definition (legacy plugin format)
@@ -26,22 +22,20 @@ export interface ZodToolDefinition<Args extends z.ZodRawShape = z.ZodRawShape> {
   readonly args: Args
   readonly execute: (
     args: z.infer<z.ZodObject<Args>>,
-    context: PluginToolContext
+    context: PluginToolContext,
   ) => Promise<ToolExecutionResult | string>
 }
 
 /**
  * Convert Zod tool definition to unified Effect Schema tool
  */
-export const fromZodTool = <Args extends z.ZodRawShape>(
-  zodTool: ZodToolDefinition<Args>
-): ToolDefinition => {
+export const fromZodTool = <Args extends z.ZodRawShape>(zodTool: ZodToolDefinition<Args>): ToolDefinition => {
   const zodSchema = z.object(zodTool.args)
   const _jsonSchema = zodJsonSchema(zodSchema)
 
   // Create Effect Schema from Zod
   const parameters = Schema.declare<unknown>(
-    (u): u is unknown => zodSchema.safeParse(u).success
+    (u): u is unknown => zodSchema.safeParse(u).success,
   ) as Schema.Schema<unknown>
 
   const output = Schema.String // Default output schema
@@ -60,16 +54,17 @@ export const fromZodTool = <Args extends z.ZodRawShape>(
           ...baseContext,
           directory: baseContext.directory ?? process.cwd(),
           worktree: baseContext.worktree ?? process.cwd(),
-          ask: (req) => Promise.resolve(
-            // This would need the actual ask implementation from CLI context
-            // For now, we'll use a no-op that logs
-            console.log("[plugin] ask called:", req)
-          ),
+          ask: (req) =>
+            Promise.resolve(
+              // This would need the actual ask implementation from CLI context
+              // For now, we'll use a no-op that logs
+              console.log("[plugin] ask called:", req),
+            ),
         }
 
         const result = yield* Effect.promise(() =>
           // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- args validated by Zod schema at runtime
-          zodTool.execute(args as z.infer<z.ZodObject<Args>>, pluginContext)
+          zodTool.execute(args as z.infer<z.ZodObject<Args>>, pluginContext),
         )
 
         return typeof result === "string" ? result : JSON.stringify(result)
@@ -83,7 +78,7 @@ export const fromZodTool = <Args extends z.ZodRawShape>(
  * Convert unified tool to Zod-compatible definition (for plugin consumption)
  */
 export const toZodTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  unified: ToolDefinition<P, O>
+  unified: ToolDefinition<P, O>,
 ): ZodToolDefinition => {
   // This is lossy - we can't fully reconstruct Zod schema from Effect Schema
   // But we provide the JSON Schema for plugin consumption
@@ -94,7 +89,7 @@ export const toZodTool = <P extends Schema.Schema<unknown>, O extends Schema.Sch
     execute: async (args, context) => {
       const result = await Effect.runPromise(
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- args match unified tool input schema
-        unified.execute(args as Schema.Schema.Type<P>, context)
+        unified.execute(args as Schema.Schema.Type<P>, context),
       )
       // Convert to string or ToolExecutionResult
       return typeof result === "string" ? result : JSON.stringify(result)

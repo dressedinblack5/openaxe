@@ -281,12 +281,7 @@ export type TuiAttentionNotifyInput = {
 }
 
 export type TuiAttentionNotifySkipReason =
-  | "attention_disabled"
-  | "empty_message"
-  | "blurred"
-  | "focused"
-  | "focus_unknown"
-  | "renderer_destroyed"
+  "attention_disabled" | "empty_message" | "blurred" | "focused" | "focus_unknown" | "renderer_destroyed"
 
 export type TuiAttentionNotifyResult = {
   ok: boolean

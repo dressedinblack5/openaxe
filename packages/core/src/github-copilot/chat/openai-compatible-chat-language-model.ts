@@ -26,7 +26,11 @@ import { convertToOpenAICompatibleChatMessages } from "./convert-to-openai-compa
 import { getResponseMetadata } from "./get-response-metadata"
 import { mapOpenAICompatibleFinishReason } from "./map-openai-compatible-finish-reason"
 import { type OpenAICompatibleChatModelId, openaiCompatibleProviderOptions } from "./openai-compatible-chat-options"
-import { defaultOpenAICompatibleErrorStructure, type OpenAICompatibleErrorData, type ProviderErrorStructure } from "../openai-compatible-error"
+import {
+  defaultOpenAICompatibleErrorStructure,
+  type OpenAICompatibleErrorData,
+  type ProviderErrorStructure,
+} from "../openai-compatible-error"
 import type { MetadataExtractor } from "./openai-compatible-metadata-extractor"
 import { prepareTools } from "./openai-compatible-prepare-tools"
 
@@ -157,7 +161,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         presence_penalty: presencePenalty,
         response_format:
           responseFormat?.type === "json"
-            ?  this.supportsStructuredOutputs && responseFormat.schema != null
+            ? this.supportsStructuredOutputs && responseFormat.schema != null
               ? {
                   type: "json_schema",
                   json_schema: {

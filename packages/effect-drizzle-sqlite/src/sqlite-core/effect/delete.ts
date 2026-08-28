@@ -1,5 +1,5 @@
 /* oxlint-disable */
-import type { Effect } from "effect/Effect";
+import type { Effect } from "effect/Effect"
 import { applyEffectWrapper, type QueryEffectHKTBase } from "drizzle-orm/effect-core/query-effect"
 import { entityKind } from "drizzle-orm/entity"
 import type { SelectResultFields } from "drizzle-orm/query-builders/select.types"
@@ -116,13 +116,11 @@ export interface SQLiteEffectDeleteBase<
   TDynamic extends boolean = false,
   _TExcludedMethods extends string = never,
   TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
-> extends RunnableQuery<TReturning extends undefined ? TRunResult : TReturning[], "sqlite">,
+>
+  extends
+    RunnableQuery<TReturning extends undefined ? TRunResult : TReturning[], "sqlite">,
     SQLWrapper,
-    Effect<
-      TReturning extends undefined ? TRunResult : TReturning[],
-      TEffectHKT["error"],
-      TEffectHKT["context"]
-    > {
+    Effect<TReturning extends undefined ? TRunResult : TReturning[], TEffectHKT["error"], TEffectHKT["context"]> {
   readonly _: {
     dialect: "sqlite"
     readonly table: TTable
@@ -137,13 +135,13 @@ export interface SQLiteEffectDeleteBase<
 }
 
 export class SQLiteEffectDeleteBase<
-    TTable extends SQLiteTable,
-    TRunResult,
-    TReturning extends Record<string, unknown> | undefined = undefined,
-    TDynamic extends boolean = false,
-    _TExcludedMethods extends string = never,
-    TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
-  >
+  TTable extends SQLiteTable,
+  TRunResult,
+  TReturning extends Record<string, unknown> | undefined = undefined,
+  TDynamic extends boolean = false,
+  _TExcludedMethods extends string = never,
+  TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
+>
   implements RunnableQuery<TReturning extends undefined ? TRunResult : TReturning[], "sqlite">, SQLWrapper
 {
   static readonly [entityKind]: string = "SQLiteEffectDelete"
@@ -171,8 +169,7 @@ export class SQLiteEffectDeleteBase<
   orderBy(...columns: (SQLiteColumn | SQL | SQL.Aliased)[]): SQLiteEffectDeleteWithout<this, TDynamic, "orderBy">
   orderBy(
     ...columns:
-      | [(deleteTable: TTable) => ValueOrArray<SQLiteColumn | SQL | SQL.Aliased>]
-      | (SQLiteColumn | SQL | SQL.Aliased)[]
+      [(deleteTable: TTable) => ValueOrArray<SQLiteColumn | SQL | SQL.Aliased>] | (SQLiteColumn | SQL | SQL.Aliased)[]
   ): SQLiteEffectDeleteWithout<this, TDynamic, "orderBy"> {
     if (typeof columns[0] === "function") {
       const orderBy = columns[0](

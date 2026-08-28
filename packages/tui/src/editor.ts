@@ -98,5 +98,5 @@ export function discoverEditorConnection(directory: string) {
 
 export const editorIntegration = {
   connection: discoverEditorConnection,
-  selection:  async (directory: string) => resolveZedSelection(resolveZedDbPath() ?? "", directory),
+  selection: async (directory: string) => resolveZedSelection(resolveZedDbPath() ?? "", directory),
 }

@@ -67,8 +67,8 @@ function toCommand(item: TuiCommand, dialog: LegacyDialog) {
 function toBindings(commands: TuiCommand[], keybinds: LegacyKeybinds) {
   return commands.flatMap((item) =>
     item.keybind
-      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- CommandMap lookup by dynamic keybind string; ?? fallback keeps unknown keys
-      ? keybinds.has(TuiKeybind.CommandMap[item.keybind as keyof typeof TuiKeybind.CommandMap] ?? item.keybind)
+      ? // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- CommandMap lookup by dynamic keybind string; ?? fallback keeps unknown keys
+        keybinds.has(TuiKeybind.CommandMap[item.keybind as keyof typeof TuiKeybind.CommandMap] ?? item.keybind)
         ? keybinds
             // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- CommandMap lookup by dynamic keybind string; ?? fallback keeps unknown keys
             .get(TuiKeybind.CommandMap[item.keybind as keyof typeof TuiKeybind.CommandMap] ?? item.keybind)

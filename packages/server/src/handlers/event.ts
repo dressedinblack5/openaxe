@@ -2,7 +2,7 @@ import { EventV2 } from "@opencode-ai/core/event"
 import { Effect, Stream } from "effect"
 import { HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
-import { Event, encode } from "effect/unstable/encoding/Sse";
+import { Event, encode } from "effect/unstable/encoding/Sse"
 import { Api } from "../api"
 
 function eventData(data: unknown): Event {

@@ -77,7 +77,7 @@ export const Plugin = define({
             : (yield* npm.add(ref.package)).entrypoint
           if (!entrypoint) return
 
-          const mod = yield* Effect.promise( async () => import(entrypoint))
+          const mod = yield* Effect.promise(async () => import(entrypoint))
           const value = (yield* Schema.decodeUnknownEffect(PluginModule)(mod)).default
           const plugin = "effect" in value ? value : PluginPromise.fromPromise(value)
           yield* ctx.plugin.add({

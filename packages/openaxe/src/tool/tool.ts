@@ -96,8 +96,7 @@ export interface Info<
 }
 
 type Init<Parameters extends Schema.Decoder<unknown>, M extends Metadata> =
-  | DefWithoutID<Parameters, M>
-  | (() => Effect.Effect<DefWithoutID<Parameters, M>>)
+  DefWithoutID<Parameters, M> | (() => Effect.Effect<DefWithoutID<Parameters, M>>)
 
 export type InferParameters<T> =
   T extends Info<infer P, any>

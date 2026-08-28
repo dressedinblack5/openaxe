@@ -25,7 +25,16 @@ import { SessionSchema } from "@opencode-ai/core/session/schema"
 import { SessionStore } from "@opencode-ai/core/session/store"
 import { SessionTable } from "@opencode-ai/core/session/sql"
 import { eq } from "drizzle-orm"
-import { LLM, LLMClient, LLMError, LLMEvent, Message, SystemPart, isContextOverflowFailure, type ProviderErrorEvent } from "@opencode-ai/llm"
+import {
+  LLM,
+  LLMClient,
+  LLMError,
+  LLMEvent,
+  Message,
+  SystemPart,
+  isContextOverflowFailure,
+  type ProviderErrorEvent,
+} from "@opencode-ai/llm"
 import { SessionRunnerModel } from "./model"
 import { createLLMEventPublisher } from "./publish-llm-event"
 import { toLLMMessage } from "./to-llm-message"
@@ -164,7 +173,9 @@ export const layer = Layer.effect(
       const system =
         initialized ?? (yield* SessionContextEpoch.prepare(db, events, loadSystemContext(agent), session.id))
       const model = yield* models.resolve(session)
-      const pagination = yield* SessionHistory.entriesForRunnerPaginated(db, session.id, system.baselineSeq, { limit: 100 })
+      const pagination = yield* SessionHistory.entriesForRunnerPaginated(db, session.id, system.baselineSeq, {
+        limit: 100,
+      })
       let entries = pagination.entries
       const isLastStep = agent.info?.steps !== undefined && currentStep >= agent.info.steps
       const toolMaterialization = isLastStep ? undefined : yield* tools.materialize(agent.info?.permissions)
@@ -226,7 +237,9 @@ export const layer = Layer.effect(
             yield* publish(event)
             if (event.type !== "tool-call" || event.providerExecuted) return
             if (!toolMaterialization) {
-              yield* withPublication(safePublish(publisher.failUnsettledTools("Tools are disabled after the maximum agent steps")))
+              yield* withPublication(
+                safePublish(publisher.failUnsettledTools("Tools are disabled after the maximum agent steps")),
+              )
               return
             }
             needsContinuation = true
@@ -274,7 +287,9 @@ export const layer = Layer.effect(
           if (overflowFailure) yield* publish(overflowFailure)
           const llmFailure = failure instanceof LLMError ? failure : undefined
           if (llmFailure && !publisher.hasProviderError()) {
-            yield* withPublication(safePublish(publisher.failUnsettledTools("Provider did not return a tool result", true)))
+            yield* withPublication(
+              safePublish(publisher.failUnsettledTools("Provider did not return a tool result", true)),
+            )
             yield* withPublication(safePublish(publisher.failAssistant(llmFailure.reason.message)))
           }
           if (stream._tag === "Failure" && Cause.hasInterrupts(stream.cause)) yield* FiberSet.clear(toolFibers)
@@ -302,7 +317,9 @@ export const layer = Layer.effect(
           if (publisher.hasProviderError())
             yield* withPublication(safePublish(publisher.failUnsettledTools("Tool execution interrupted")))
           if (stream._tag === "Success" && !publisher.hasProviderError())
-            yield* withPublication(safePublish(publisher.failUnsettledTools("Provider did not return a tool result", true)))
+            yield* withPublication(
+              safePublish(publisher.failUnsettledTools("Provider did not return a tool result", true)),
+            )
           if (stream._tag === "Failure") return yield* Effect.failCause(stream.cause)
           if (settled._tag === "Failure") return yield* Effect.failCause(settled.cause)
           return { needsContinuation: !publisher.hasProviderError() && needsContinuation, step: currentStep }
@@ -351,7 +368,12 @@ export const layer = Layer.effect(
       if (!input.force && !hasSteer && !hasQueue) return
       let promotion: SessionInput.Delivery | undefined = hasSteer ? "steer" : hasQueue ? "queue" : undefined
       let shouldRun = input.force || hasSteer || hasQueue
-      yield* emitRunnerState(input.sessionID, { _tag: "Running", sessionID: input.sessionID, step: 1, providerTurnID: crypto.randomUUID() })
+      yield* emitRunnerState(input.sessionID, {
+        _tag: "Running",
+        sessionID: input.sessionID,
+        step: 1,
+        providerTurnID: crypto.randomUUID(),
+      })
       while (shouldRun) {
         let needsContinuation = true
         let step = 1
@@ -370,25 +392,34 @@ export const layer = Layer.effect(
 
     const cancel = Effect.fn("UnifiedRunner.cancel")(function* (sessionID: SessionSchema.ID) {
       yield* emitRunnerState(sessionID, { _tag: "Idle" })
-      yield* safePublish(events.publish(Interrupted, {
-        timestamp: yield* DateTime.now,
-        sessionID,
-        reason: "Cancelled by user",
-      }))
+      yield* safePublish(
+        events.publish(Interrupted, {
+          timestamp: yield* DateTime.now,
+          sessionID,
+          reason: "Cancelled by user",
+        }),
+      )
     })
 
     const drainSubagents = Effect.fn("UnifiedRunner.drainSubagents")(function* (parentSessionID: SessionSchema.ID) {
       const db = (yield* Database.Service).db
-      const rows = yield* db.select().from(SessionTable).where(eq(SessionTable.parent_id, parentSessionID)).all().pipe(Effect.orDie)
+      const rows = yield* db
+        .select()
+        .from(SessionTable)
+        .where(eq(SessionTable.parent_id, parentSessionID))
+        .all()
+        .pipe(Effect.orDie)
       const subagents = rows.filter((row) => row.metadata?.subagent === true)
       for (const subagent of subagents) {
         yield* run({ sessionID: subagent.id, force: true }).pipe(Effect.catchCause(Effect.logError))
-        yield* safePublish(events.publish(SubagentCompleted, {
-          timestamp: yield* DateTime.now,
-          sessionID: parentSessionID,
-          subagentSessionID: subagent.id,
-          success: true,
-        }))
+        yield* safePublish(
+          events.publish(SubagentCompleted, {
+            timestamp: yield* DateTime.now,
+            sessionID: parentSessionID,
+            subagentSessionID: subagent.id,
+            success: true,
+          }),
+        )
       }
     })
 

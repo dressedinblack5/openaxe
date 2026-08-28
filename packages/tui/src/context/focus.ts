@@ -32,12 +32,12 @@ export function focusPrev() {
 }
 
 export function pushFocus(region: FocusRegion) {
-  setFocusStack(prev => [...prev, current()])
+  setFocusStack((prev) => [...prev, current()])
   setCurrent(region)
 }
 
 export function popFocus() {
-  setFocusStack(prev => {
+  setFocusStack((prev) => {
     const previous = prev[prev.length - 1]
     if (!previous) return prev
     setCurrent(previous)
@@ -46,7 +46,7 @@ export function popFocus() {
 }
 
 export function replaceFocus(region: FocusRegion) {
-  setFocusStack(prev => [...prev.slice(0, -1), current()])
+  setFocusStack((prev) => [...prev.slice(0, -1), current()])
   setCurrent(region)
 }
 

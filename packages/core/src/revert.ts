@@ -30,9 +30,9 @@ function getBuffer(): SnapshotEntry[] {
  */
 export function recordRevertSnapshot(fs: FileSystem.FileSystem, path: string): Effect.Effect<void> {
   return Effect.gen(function* () {
-    const content: string | null = yield* fs.readFileString(path).pipe(
-      Effect.catchTag("PlatformError", () => Effect.succeed(null)),
-    )
+    const content: string | null = yield* fs
+      .readFileString(path)
+      .pipe(Effect.catchTag("PlatformError", () => Effect.succeed(null)))
     const buffer = getBuffer()
     const entry: SnapshotEntry = {
       path,
@@ -59,14 +59,12 @@ export function revert(count: number): Effect.Effect<number, PlatformError, File
     let reverted = 0
     for (const entry of toRevert) {
       if (entry.content === null) {
-        yield* fs.remove(entry.path).pipe(
-          Effect.catchReason("PlatformError", "NotFound", () => Effect.void),
-        )
+        yield* fs.remove(entry.path).pipe(Effect.catchReason("PlatformError", "NotFound", () => Effect.void))
         reverted++
       } else {
-        yield* fs.writeFileString(entry.path, entry.content).pipe(
-          Effect.catchReason("PlatformError", "NotFound", () => Effect.void),
-        )
+        yield* fs
+          .writeFileString(entry.path, entry.content)
+          .pipe(Effect.catchReason("PlatformError", "NotFound", () => Effect.void))
         reverted++
       }
     }

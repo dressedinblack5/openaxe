@@ -8,7 +8,9 @@ import { pathToFileURL } from "url"
 /**
  * ExternalToolLoader Service - Separate service for external tool discovery
  */
-export class ExternalToolLoaderService extends Context.Service<ExternalToolLoaderService, ExternalToolLoader>()("@openaxe/ExternalToolLoader") {}
+export class ExternalToolLoaderService extends Context.Service<ExternalToolLoaderService, ExternalToolLoader>()(
+  "@openaxe/ExternalToolLoader",
+) {}
 
 interface ToolModule {
   default?: ExternalToolDefinition
@@ -37,7 +39,7 @@ export const ExternalToolLoaderLive = Layer.effect(
 
         for (const dir of directories) {
           const prev = cacheStore.dirs[dir]
-// oxlint-disable-next-line typescript/no-redundant-type-constituents -- FileSignature from DiscoveryCache
+          // oxlint-disable-next-line typescript/no-redundant-type-constituents -- FileSignature from DiscoveryCache
           const subdirs: Record<string, DiscoveryCache.FileSignature | undefined> = {}
           for (const sub of DiscoveryCache.SCAN_SUBDIRS) {
             subdirs[sub] = DiscoveryCache.statPath(path.join(dir, sub))
@@ -76,7 +78,8 @@ export const ExternalToolLoaderLive = Layer.effect(
             const cached = updated[file]
             if (cached && DiscoveryCache.sameSignature(cached, sig)) {
               if (!cached.exports.length && cached.failedAt === undefined) continue
-              if (cached.failedAt !== undefined && Date.now() - cached.failedAt < DiscoveryCache.FAILURE_GRACE_MS) continue
+              if (cached.failedAt !== undefined && Date.now() - cached.failedAt < DiscoveryCache.FAILURE_GRACE_MS)
+                continue
               continue
             }
 
@@ -114,7 +117,7 @@ export const ExternalToolLoaderLive = Layer.effect(
       })
 
     return { load, watch }
-  })
+  }),
 )
 
 function importTool(file: string): Effect.Effect<ToolModule | undefined> {

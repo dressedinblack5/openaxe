@@ -15,7 +15,6 @@ type Commit = {
   areas: Set<string>
 }
 
-
 type Diff = {
   sha: string
   login: string | null
@@ -114,7 +113,16 @@ async function commits(from: string, to: string) {
     for (const file of diffOutput.split("\n").filter(Boolean)) {
       if (file.startsWith("packages/tui/") || file.startsWith("packages/ui/")) areas.add("tui")
       else if (file.startsWith("packages/openaxe/") || file.startsWith("packages/cli/")) areas.add("cli")
-      else if (file.startsWith("packages/core/") || file.startsWith("packages/llm/") || file.startsWith("packages/schema/") || file.startsWith("packages/effect-drizzle-sqlite/") || file.startsWith("packages/server/") || file.startsWith("packages/http-recorder/") || file.startsWith("packages/script/")) areas.add("core")
+      else if (
+        file.startsWith("packages/core/") ||
+        file.startsWith("packages/llm/") ||
+        file.startsWith("packages/schema/") ||
+        file.startsWith("packages/effect-drizzle-sqlite/") ||
+        file.startsWith("packages/server/") ||
+        file.startsWith("packages/http-recorder/") ||
+        file.startsWith("packages/script/")
+      )
+        areas.add("core")
       else if (file.startsWith("packages/sdk/") || file.startsWith("packages/plugin/")) areas.add("sdk")
       else if (file.startsWith(".github/")) areas.add("github")
     }
@@ -190,13 +198,22 @@ function format(from: string, to: string, list: Commit[], thanks: string[]) {
     if (!typeOrder.includes(type)) continue
     const attr = commit.author && !team.includes(commit.author) ? ` (@${commit.author})` : ""
     const entries = grouped.get(type)
-    if (entries) entries.push(`- \`${commit.hash}\` ${type}(${commit.message.split("(")[1]?.split(")")[0] ?? "openaxe"}): ${message}${attr}`)
+    if (entries)
+      entries.push(
+        `- \`${commit.hash}\` ${type}(${commit.message.split("(")[1]?.split(")")[0] ?? "openaxe"}): ${message}${attr}`,
+      )
   }
 
   const lines = ["## What's Changed", ""]
 
   let hasContent = false
-  const emojiMap = { feat: "🚀 Features", fix: "🐛 Fixes", perf: "⚡ Performance", refactor: "🧹 Chore & Refactor", chore: "🧹 Chore & Refactor" } as const
+  const emojiMap = {
+    feat: "🚀 Features",
+    fix: "🐛 Fixes",
+    perf: "⚡ Performance",
+    refactor: "🧹 Chore & Refactor",
+    chore: "🧹 Chore & Refactor",
+  } as const
   const seenEmoji = new Set<string>()
   for (const type of ["feat", "fix", "perf", "refactor", "chore"] as const) {
     const entries = grouped.get(type) ?? []
@@ -208,8 +225,19 @@ function format(from: string, to: string, list: Commit[], thanks: string[]) {
     lines.push(`### ${emoji}`)
     // Collect all entries for this emoji
     const allEntries = ["feat", "fix", "perf", "refactor", "chore"]
-      .filter(t => ({ feat: "🚀 Features", fix: "🐛 Fixes", perf: "⚡ Performance", refactor: "🧹 Chore & Refactor", chore: "🧹 Chore & Refactor" } as const)[t] === emoji)
-      .flatMap(t => grouped.get(t) ?? [])
+      .filter(
+        (t) =>
+          (
+            ({
+              feat: "🚀 Features",
+              fix: "🐛 Fixes",
+              perf: "⚡ Performance",
+              refactor: "🧹 Chore & Refactor",
+              chore: "🧹 Chore & Refactor",
+            }) as const
+          )[t] === emoji,
+      )
+      .flatMap((t) => grouped.get(t) ?? [])
     lines.push(...allEntries)
     lines.push("")
   }

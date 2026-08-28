@@ -41,11 +41,7 @@ export interface RunnerStateIdle {
   readonly _tag: "Idle"
 }
 
-export type RunnerState =
-  | RunnerStateIdle
-  | RunnerStateRunning
-  | RunnerStateShell
-  | RunnerStateShellThenRun
+export type RunnerState = RunnerStateIdle | RunnerStateRunning | RunnerStateShell | RunnerStateShellThenRun
 
 export const RunnerState = {
   idle: (): RunnerState => ({ _tag: "Idle" }),
@@ -164,13 +160,10 @@ export interface UnifiedRunnerRunResult {
   readonly step: number
 }
 
-export class UnifiedRunnerError extends Schema.TaggedErrorClass<UnifiedRunnerError>()(
-  "UnifiedRunnerError",
-  {
-    sessionID: SessionID,
-    cause: Schema.Unknown.pipe(Schema.optional),
-  },
-) {
+export class UnifiedRunnerError extends Schema.TaggedErrorClass<UnifiedRunnerError>()("UnifiedRunnerError", {
+  sessionID: SessionID,
+  cause: Schema.Unknown.pipe(Schema.optional),
+}) {
   override get message(): string {
     return `UnifiedRunner error for session ${this.sessionID}`
   }
@@ -195,7 +188,9 @@ export interface UnifiedRunnerInterface {
   readonly drainSubagents: (parentSessionID: SessionID) => Effect.Effect<void>
 }
 
-export class UnifiedRunnerService extends Context.Service<UnifiedRunnerService, UnifiedRunnerInterface>()("@opencode/UnifiedRunner") {}
+export class UnifiedRunnerService extends Context.Service<UnifiedRunnerService, UnifiedRunnerInterface>()(
+  "@opencode/UnifiedRunner",
+) {}
 
 // ============================================================================
 // SessionEffectRunner - Internal minimal executor
@@ -260,10 +255,7 @@ export interface SessionDataOutput {
   readonly footer?: SessionEvent.FooterOutput
 }
 
-export type SessionDataReducer = (
-  state: SessionData,
-  event: SessionEvent.Event
-) => SessionDataOutput
+export type SessionDataReducer = (state: SessionData, event: SessionEvent.Event) => SessionDataOutput
 
 // ============================================================================
 // SessionEventSubscriber Service Interface

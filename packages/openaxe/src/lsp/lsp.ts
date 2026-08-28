@@ -30,10 +30,7 @@ function checkBroken(s: State, root: string, serverID: string): boolean {
   return false
 }
 
-function filterExperimentalServers(
-  servers: Record<string, ServerInfo>,
-  flags: RuntimeFlags.Info,
-) {
+function filterExperimentalServers(servers: Record<string, ServerInfo>, flags: RuntimeFlags.Info) {
   if (flags.experimentalLspTy) {
     if (servers["pyright"]) delete servers["pyright"]
   } else {

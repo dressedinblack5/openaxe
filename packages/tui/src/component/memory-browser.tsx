@@ -24,9 +24,7 @@ async function fetchJson<T>(url: string, fetchFn: typeof fetch, validate: (value
   return value
 }
 
-type View =
-  | { type: "list" }
-  | { type: "content"; key: string }
+type View = { type: "list" } | { type: "content"; key: string }
 
 export function MemoryBrowser() {
   const dialog = useDialog()
@@ -40,11 +38,7 @@ export function MemoryBrowser() {
   const [list] = createResource(
     () => view().type === "list",
     async () => {
-      return fetchJson(
-        `${baseUrl()}/memory`,
-        doFetch,
-        (value): value is MemoryEntry[] => Array.isArray(value),
-      )
+      return fetchJson(`${baseUrl()}/memory`, doFetch, (value): value is MemoryEntry[] => Array.isArray(value))
     },
   )
 
@@ -83,39 +77,61 @@ export function MemoryBrowser() {
   const showContent = () => view().type === "content"
 
   return (
-    <Show when={showList()} fallback={
-      <Show when={showContent()} fallback={
-        <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
-          <text fg={theme.error}>Unknown view</text>
-        </box>
-      }>
-        <ContentDisplay
-          entry={selectedEntry()}
-          showFull={showFull()}
-          onToggle={() => setShowFull(!showFull())}
-          onBack={() => { setView({ type: "list" }); setShowFull(false) }}
-        />
-      </Show>
-    }>
-      <Show when={!list.loading} fallback={
-        <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
-          <text fg={theme.textMuted}>Loading memory...</text>
-        </box>
-      }>
-        <Show when={!list.error} fallback={
-          <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
-            <text fg={theme.error}>Failed to load memory</text>
-          </box>
-        }>
-          <Show when={options().length > 0} fallback={
-            <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1}>
-              <box flexDirection="row" justifyContent="space-between">
-                <text fg={theme.text} attributes={TextAttributes.BOLD}>Memory</text>
-                <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>esc</text>
-              </box>
-              <text fg={theme.textMuted}>No memory entries found</text>
+    <Show
+      when={showList()}
+      fallback={
+        <Show
+          when={showContent()}
+          fallback={
+            <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
+              <text fg={theme.error}>Unknown view</text>
             </box>
-          }>
+          }
+        >
+          <ContentDisplay
+            entry={selectedEntry()}
+            showFull={showFull()}
+            onToggle={() => setShowFull(!showFull())}
+            onBack={() => {
+              setView({ type: "list" })
+              setShowFull(false)
+            }}
+          />
+        </Show>
+      }
+    >
+      <Show
+        when={!list.loading}
+        fallback={
+          <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
+            <text fg={theme.textMuted}>Loading memory...</text>
+          </box>
+        }
+      >
+        <Show
+          when={!list.error}
+          fallback={
+            <box paddingLeft={2} paddingRight={2} paddingTop={1} paddingBottom={1}>
+              <text fg={theme.error}>Failed to load memory</text>
+            </box>
+          }
+        >
+          <Show
+            when={options().length > 0}
+            fallback={
+              <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1}>
+                <box flexDirection="row" justifyContent="space-between">
+                  <text fg={theme.text} attributes={TextAttributes.BOLD}>
+                    Memory
+                  </text>
+                  <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
+                    esc
+                  </text>
+                </box>
+                <text fg={theme.textMuted}>No memory entries found</text>
+              </box>
+            }
+          >
             <DialogSelect
               title="Memory Browser"
               options={options()}
@@ -163,43 +179,43 @@ function ContentDisplay(props: {
         <text fg={theme.text} attributes={TextAttributes.BOLD}>
           {data() ? data()?.key : "Memory entry"}
         </text>
-        <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>esc</text>
+        <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
+          esc
+        </text>
       </box>
-          <Show when={data()} fallback={
-            <text fg={theme.textMuted}>Entry not found</text>
-          }>
-            {(d) => (
-              <box flexDirection="column" gap={1} paddingBottom={1}>
-                <box flexDirection="row" gap={2} paddingBottom={1}>
-                  <text fg={theme.textMuted}>kind: {d().kind}</text>
-                  <text fg={theme.textMuted}>scope: {d().scope}</text>
-                  <text fg={theme.textMuted}>source: {d().source}</text>
-                </box>
-                <box flexGrow={1} flexShrink={1} paddingLeft={1} paddingRight={1} backgroundColor={theme.backgroundElement}>
-                  <text wrapMode="word" fg={theme.text}>
-                    {formatted()}
-                  </text>
-                </box>
-                <Show when={isTruncated()}>
-                  <box flexDirection="row" justifyContent="space-between" paddingTop={1}>
-                    <Button variant="primary" onMouseUp={props.onToggle}>
-                      {props.showFull ? "Show less" : "Show all content"}
-                    </Button>
-                    <Button variant="secondary" onMouseUp={props.onBack}>
-                      Back
-                    </Button>
-                  </box>
-                </Show>
-                <Show when={!isTruncated()}>
-                  <box paddingTop={1}>
-                    <Button variant="secondary" onMouseUp={props.onBack}>
-                      Back
-                    </Button>
-                  </box>
-                </Show>
+      <Show when={data()} fallback={<text fg={theme.textMuted}>Entry not found</text>}>
+        {(d) => (
+          <box flexDirection="column" gap={1} paddingBottom={1}>
+            <box flexDirection="row" gap={2} paddingBottom={1}>
+              <text fg={theme.textMuted}>kind: {d().kind}</text>
+              <text fg={theme.textMuted}>scope: {d().scope}</text>
+              <text fg={theme.textMuted}>source: {d().source}</text>
+            </box>
+            <box flexGrow={1} flexShrink={1} paddingLeft={1} paddingRight={1} backgroundColor={theme.backgroundElement}>
+              <text wrapMode="word" fg={theme.text}>
+                {formatted()}
+              </text>
+            </box>
+            <Show when={isTruncated()}>
+              <box flexDirection="row" justifyContent="space-between" paddingTop={1}>
+                <Button variant="primary" onMouseUp={props.onToggle}>
+                  {props.showFull ? "Show less" : "Show all content"}
+                </Button>
+                <Button variant="secondary" onMouseUp={props.onBack}>
+                  Back
+                </Button>
               </box>
-            )}
-          </Show>
+            </Show>
+            <Show when={!isTruncated()}>
+              <box paddingTop={1}>
+                <Button variant="secondary" onMouseUp={props.onBack}>
+                  Back
+                </Button>
+              </box>
+            </Show>
+          </box>
+        )}
+      </Show>
     </box>
   )
 }

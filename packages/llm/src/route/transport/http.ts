@@ -4,7 +4,7 @@ import { Auth } from "../auth"
 import { render } from "../endpoint"
 import { Framing } from "../framing"
 import type { Transport, TransportPrepareInput } from "./index"
-import { encodeJson, errorText, eventError, invalidRequest, isRecord, jsonPost } from "../../protocols/shared";
+import { encodeJson, errorText, eventError, invalidRequest, isRecord, jsonPost } from "../../protocols/shared"
 import { mergeJsonRecords, type LLMRequest } from "../../schema"
 
 export type JsonRequestInput<Body> = TransportPrepareInput<Body>

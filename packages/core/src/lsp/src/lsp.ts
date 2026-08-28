@@ -9,10 +9,7 @@ import { InstanceState } from "@opencode-ai/openaxe/effect/instance-state"
 import { containsPath } from "@opencode-ai/openaxe/project/instance-context"
 import { LspEvent } from "@opencode-ai/schema/lsp-event"
 
-import {
-  LSPClientFactory,
-  makeLSPClient,
-} from "./client"
+import { LSPClientFactory, makeLSPClient } from "./client"
 import {
   makeBrokenServerTracker,
   BrokenServerTracker,
@@ -44,12 +41,7 @@ function clientKey(root: string, serverID: string): string {
   return `${root}#${serverID}`
 }
 
-function selectIdleKeys(
-  clients: ClientInfo[],
-  used: Map<string, number>,
-  now: number,
-  ttl: number,
-): string[] {
+function selectIdleKeys(clients: ClientInfo[], used: Map<string, number>, now: number, ttl: number): string[] {
   return clients
     .filter((c) => now - (used.get(clientKey(c.root, c.serverID)) ?? now) > ttl)
     .map((c) => clientKey(c.root, c.serverID))
@@ -83,14 +75,30 @@ export interface Interface {
   readonly prepareCallHierarchy: (input: { file: string; line: number; character: number }) => Effect.Effect<unknown[]>
   readonly incomingCalls: (input: { file: string; line: number; character: number }) => Effect.Effect<unknown[]>
   readonly outgoingCalls: (input: { file: string; line: number; character: number }) => Effect.Effect<unknown[]>
-  readonly codeAction: (input: { file: string; line: number; character: number; range?: Range }) => Effect.Effect<unknown[]>
-  readonly rename: (input: { file: string; line: number; character: number; newName: string }) => Effect.Effect<unknown[]>
+  readonly codeAction: (input: {
+    file: string
+    line: number
+    character: number
+    range?: Range
+  }) => Effect.Effect<unknown[]>
+  readonly rename: (input: {
+    file: string
+    line: number
+    character: number
+    newName: string
+  }) => Effect.Effect<unknown[]>
   readonly prepareRename: (input: { file: string; line: number; character: number }) => Effect.Effect<unknown>
   readonly typeDefinition: (input: { file: string; line: number; character: number }) => Effect.Effect<unknown[]>
   readonly signatureHelp: (input: { file: string; line: number; character: number }) => Effect.Effect<unknown>
   readonly completion: (input: { file: string; line: number; character: number }) => Effect.Effect<unknown[]>
   readonly formatting: (input: { file: string; tabSize?: number; insertSpaces?: boolean }) => Effect.Effect<unknown[]>
-  readonly applyCodeAction: (input: { file: string; line: number; character: number; title: string; range?: Range }) => Effect.Effect<unknown[]>
+  readonly applyCodeAction: (input: {
+    file: string
+    line: number
+    character: number
+    title: string
+    range?: Range
+  }) => Effect.Effect<unknown[]>
   readonly removeClients: (root: string) => Effect.Effect<void>
 }
 
@@ -180,7 +188,8 @@ export const layer = Layer.effect(
           let task = s.spawning.get(spawnKey)
           if (!task) {
             task = (async () => {
-              const handle = await server.spawn(root, ctx, flags)
+              const handle = await server
+                .spawn(root, ctx, flags)
                 .then((value) => {
                   if (!value) s.brokenServerTracker.markBroken(root, server.id)
                   return value
@@ -231,7 +240,8 @@ export const layer = Layer.effect(
 
         return { result }
       })
-      for (const client of clients.result) s.used = HashMap.set(s.used, clientKey(client.root, client.serverID), Date.now())
+      for (const client of clients.result)
+        s.used = HashMap.set(s.used, clientKey(client.root, client.serverID), Date.now())
       return clients.result
     })
 
@@ -308,11 +318,7 @@ export const layer = Layer.effect(
 
     const makeRequest = <T>(method: string, params: Record<string, unknown>) =>
       Effect.fnUntraced(function* (file: string) {
-        return yield* run(file, (client) =>
-          client.connection
-            .sendRequest<T>(method, params)
-            .catch(() => null),
-        )
+        return yield* run(file, (client) => client.connection.sendRequest<T>(method, params).catch(() => null))
       })
 
     const hover = Effect.fn("LSP.hover")(function* (input: { file: string; line: number; character: number }) {
@@ -322,7 +328,11 @@ export const layer = Layer.effect(
       })(input.file)
     })
 
-    const definition = Effect.fn("LSP.definition")(function* (input: { file: string; line: number; character: number }) {
+    const definition = Effect.fn("LSP.definition")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/definition", {
         textDocument: { uri: pathToFileURL(input.file).href },
         position: { line: input.line, character: input.character },
@@ -330,7 +340,11 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const references = Effect.fn("LSP.references")(function* (input: { file: string; line: number; character: number }) {
+    const references = Effect.fn("LSP.references")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/references", {
         textDocument: { uri: pathToFileURL(input.file).href },
         position: { line: input.line, character: input.character },
@@ -339,7 +353,11 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const implementation = Effect.fn("LSP.implementation")(function* (input: { file: string; line: number; character: number }) {
+    const implementation = Effect.fn("LSP.implementation")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/implementation", {
         textDocument: { uri: pathToFileURL(input.file).href },
         position: { line: input.line, character: input.character },
@@ -358,14 +376,24 @@ export const layer = Layer.effect(
       const results = yield* runAll((client) =>
         client.connection
           .sendRequest<unknown[]>("workspace/symbol", { query })
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- filtering symbol kinds from unknown
-          .then((result) => result.filter((x: unknown) => [5, 6, 7, 11, 13, 14, 23].includes((x as { kind?: number }).kind ?? 0)).slice(0, 10))
+          .then((result) =>
+            result
+              .filter((x: unknown): x is { kind: number } =>
+                typeof x === "object" && x !== null && "kind" in x && typeof (x as { kind: unknown }).kind === "number"
+              )
+              .filter((x) => [5, 6, 7, 11, 13, 14, 23].includes(x.kind))
+              .slice(0, 10),
+          )
           .catch(() => []),
       )
       return results.flat()
     })
 
-    const prepareCallHierarchy = Effect.fn("LSP.prepareCallHierarchy")(function* (input: { file: string; line: number; character: number }) {
+    const prepareCallHierarchy = Effect.fn("LSP.prepareCallHierarchy")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/prepareCallHierarchy", {
         textDocument: { uri: pathToFileURL(input.file).href },
         position: { line: input.line, character: input.character },
@@ -390,15 +418,28 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const incomingCalls = Effect.fn("LSP.incomingCalls")(function* (input: { file: string; line: number; character: number }) {
+    const incomingCalls = Effect.fn("LSP.incomingCalls")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       return yield* callHierarchyRequest(input, "callHierarchy/incomingCalls")
     })
 
-    const outgoingCalls = Effect.fn("LSP.outgoingCalls")(function* (input: { file: string; line: number; character: number }) {
+    const outgoingCalls = Effect.fn("LSP.outgoingCalls")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       return yield* callHierarchyRequest(input, "callHierarchy/outgoingCalls")
     })
 
-    const codeAction = Effect.fn("LSP.codeAction")(function* (input: { file: string; line: number; character: number; range?: Range }) {
+    const codeAction = Effect.fn("LSP.codeAction")(function* (input: {
+      file: string
+      line: number
+      character: number
+      range?: Range
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/codeAction", {
         textDocument: { uri: pathToFileURL(input.file).href },
         range: input.range ?? {
@@ -410,7 +451,11 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const prepareRename = Effect.fn("LSP.prepareRename")(function* (input: { file: string; line: number; character: number }) {
+    const prepareRename = Effect.fn("LSP.prepareRename")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/prepareRename", {
         textDocument: { uri: pathToFileURL(input.file).href },
         position: { line: input.line, character: input.character },
@@ -418,7 +463,12 @@ export const layer = Layer.effect(
       return results.filter(Boolean)
     })
 
-    const rename = Effect.fn("LSP.rename")(function* (input: { file: string; line: number; character: number; newName: string }) {
+    const rename = Effect.fn("LSP.rename")(function* (input: {
+      file: string
+      line: number
+      character: number
+      newName: string
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/rename", {
         textDocument: { uri: pathToFileURL(input.file).href },
         position: { line: input.line, character: input.character },
@@ -427,7 +477,11 @@ export const layer = Layer.effect(
       return results.filter(Boolean)
     })
 
-    const typeDefinition = Effect.fn("LSP.typeDefinition")(function* (input: { file: string; line: number; character: number }) {
+    const typeDefinition = Effect.fn("LSP.typeDefinition")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/typeDefinition", {
         textDocument: { uri: pathToFileURL(input.file).href },
         position: { line: input.line, character: input.character },
@@ -435,7 +489,11 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const signatureHelp = Effect.fn("LSP.signatureHelp")(function* (input: { file: string; line: number; character: number }) {
+    const signatureHelp = Effect.fn("LSP.signatureHelp")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/signatureHelp", {
         textDocument: { uri: pathToFileURL(input.file).href },
         position: { line: input.line, character: input.character },
@@ -443,7 +501,11 @@ export const layer = Layer.effect(
       return results.filter(Boolean)
     })
 
-    const completion = Effect.fn("LSP.completion")(function* (input: { file: string; line: number; character: number }) {
+    const completion = Effect.fn("LSP.completion")(function* (input: {
+      file: string
+      line: number
+      character: number
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/completion", {
         textDocument: { uri: pathToFileURL(input.file).href },
         position: { line: input.line, character: input.character },
@@ -451,7 +513,11 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const formatting = Effect.fn("LSP.formatting")(function* (input: { file: string; tabSize?: number; insertSpaces?: boolean }) {
+    const formatting = Effect.fn("LSP.formatting")(function* (input: {
+      file: string
+      tabSize?: number
+      insertSpaces?: boolean
+    }) {
       const results = yield* makeRequest<unknown>("textDocument/formatting", {
         textDocument: { uri: pathToFileURL(input.file).href },
         options: {
@@ -462,9 +528,13 @@ export const layer = Layer.effect(
       return results.flat().filter(Boolean)
     })
 
-    const applyCodeAction = Effect.fn("LSP.applyCodeAction")(function* (
-      input: { file: string; line: number; character: number; title: string; range?: Range },
-    ) {
+    const applyCodeAction = Effect.fn("LSP.applyCodeAction")(function* (input: {
+      file: string
+      line: number
+      character: number
+      title: string
+      range?: Range
+    }) {
       const results = yield* run(input.file, async (client) => {
         const actions = await client.connection
           .sendRequest<unknown[]>("textDocument/codeAction", {
@@ -477,7 +547,7 @@ export const layer = Layer.effect(
           })
           .catch(() => [])
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- finding code action by title
-          return actions.find((a: unknown) => (a as { title?: string }).title === input.title) ?? null
+        return actions.find((a: unknown) => (a as { title?: string }).title === input.title) ?? null
       })
       return results.filter(Boolean)
     })
@@ -531,11 +601,6 @@ export const defaultLayer = layer.pipe(
   Layer.provide(LSPLaunchLive),
 )
 
-export const node = LayerNode.make(layer, [
-  Config.node,
-  RuntimeFlags.node,
-  FSUtil.node,
-  EventV2Bridge.node,
-])
+export const node = LayerNode.make(layer, [Config.node, RuntimeFlags.node, FSUtil.node, EventV2Bridge.node])
 
 export * as LSP from "./lsp"

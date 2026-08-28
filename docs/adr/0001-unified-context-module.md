@@ -8,12 +8,12 @@
 
 The codebase contained four context abstractions with nearly identical responsibilities:
 
-| Module | Location | Responsibility |
-|--------|----------|----------------|
-| `SystemContext` | `packages/core/src/system-context/` | Budget, selection, registry, epoch management for provider turns |
-| `InstanceContext` | `packages/openaxe/src/effect/instance-state.ts` | Per-directory project state via `InstanceState`, scoped cache |
-| `WorkspaceContext` | `packages/openaxe/src/control-plane/workspace-context.ts` | Workspace-scoped state for multi-project coordination |
-| `PluginContext` | `packages/plugin/src/v2/effect|promise/context.ts` | Plugin runtime context (defined identically in both) |
+| Module             | Location                                                  | Responsibility                                                   |
+| ------------------ | --------------------------------------------------------- | ---------------------------------------------------------------- |
+| `SystemContext`    | `packages/core/src/system-context/`                       | Budget, selection, registry, epoch management for provider turns |
+| `InstanceContext`  | `packages/openaxe/src/effect/instance-state.ts`           | Per-directory project state via `InstanceState`, scoped cache    |
+| `WorkspaceContext` | `packages/openaxe/src/control-plane/workspace-context.ts` | Workspace-scoped state for multi-project coordination            |
+| `PluginContext`    | `packages/plugin/src/v2/effect                            | promise/context.ts`                                              | Plugin runtime context (defined identically in both) |
 
 Each exported a similar interface: `get`, `set`, `with`, `snapshot`, `restore`. The **deletion test** confirmed shallowness: deleting any one would concentrate complexity into the others, not eliminate it. Callers imported from multiple context modules depending on their layer, creating a seam that leaked implementation details.
 
@@ -74,11 +74,11 @@ Create a new top-level package `packages/context` with a unified `Context.Servic
 
 ## Alternatives Considered
 
-| Alternative | Rejected Because |
-|-------------|------------------|
-| Keep separate modules, add facade | Doesn't solve deletion test; still four implementations |
-| Merge only `SystemContext` + `InstanceContext` | Leaves `WorkspaceContext` and `PluginContext` as outliers |
-| Put cross-scope ops in service | Bloats interface; cross-scope logic varies by caller (violates "one adapter = hypothetical seam") |
+| Alternative                                    | Rejected Because                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Keep separate modules, add facade              | Doesn't solve deletion test; still four implementations                                           |
+| Merge only `SystemContext` + `InstanceContext` | Leaves `WorkspaceContext` and `PluginContext` as outliers                                         |
+| Put cross-scope ops in service                 | Bloats interface; cross-scope logic varies by caller (violates "one adapter = hypothetical seam") |
 
 ## Related
 

@@ -216,7 +216,10 @@ export const layer = Layer.effect(
       if (filter?.status) conditions.push(eq(KanbanCardTable.status, filter.status))
       const query = db.select().from(KanbanCardTable)
       const rows = conditions.length
-        ? yield* query.where(and(...conditions)).all().pipe(Effect.orDie)
+        ? yield* query
+            .where(and(...conditions))
+            .all()
+            .pipe(Effect.orDie)
         : yield* query.all().pipe(Effect.orDie)
       return rows.map(toCard)
     })

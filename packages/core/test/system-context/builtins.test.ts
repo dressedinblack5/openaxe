@@ -36,9 +36,7 @@ const baseLayer = Layer.mergeAll(
   AppProcess.defaultLayer,
   locationLayer,
 )
-const it = testEffect(
-  SystemContextBuiltIns.locationLayer.pipe(Layer.provideMerge(baseLayer)),
-)
+const it = testEffect(SystemContextBuiltIns.locationLayer.pipe(Layer.provideMerge(baseLayer)))
 const instructionFS = Layer.effect(
   FSUtil.Service,
   FSUtil.Service.pipe(
@@ -52,10 +50,7 @@ const instructionFS = Layer.effect(
   ),
 ).pipe(Layer.provide(FSUtil.defaultLayer))
 const itWithInstructions = testEffect(
-  SystemContextBuiltIns.locationLayer.pipe(
-    Layer.provide(instructionFS),
-    Layer.provideMerge(baseLayer),
-  ),
+  SystemContextBuiltIns.locationLayer.pipe(Layer.provide(instructionFS), Layer.provideMerge(baseLayer)),
 )
 
 describe("SystemContextBuiltIns", () => {

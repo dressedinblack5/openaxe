@@ -183,10 +183,7 @@ export const layer = Layer.effect(
           // cut mid-timestamp never strands the remaining rows forever.
           or(
             gt(SessionMessageTable.time_updated, highWater),
-            and(
-              eq(SessionMessageTable.time_updated, highWater),
-              gt(sql`rowid`, highRowid),
-            ),
+            and(eq(SessionMessageTable.time_updated, highWater), gt(sql`rowid`, highRowid)),
           ),
         )
         .orderBy(asc(SessionMessageTable.time_updated), asc(sql`rowid`))
@@ -234,7 +231,8 @@ export const layer = Layer.effect(
       const limit = Math.min(Math.max(opts?.limit ?? 10, 1), MAX_RESULTS)
       const sessionFilter = opts?.sessionID
       const rows = yield* db
-        .all<SearchRow>(sql`
+        .all<SearchRow>(
+          sql`
           SELECT
             f.session_id AS session_id,
             f.type AS type,
@@ -251,7 +249,8 @@ export const layer = Layer.effect(
           ${sessionFilter ? sql`AND f.session_id = ${sessionFilter}` : sql``}
           ORDER BY rank ASC, m.seq DESC
           LIMIT ${limit}
-        `)
+        `,
+        )
         .pipe(
           Effect.catch((error) =>
             Effect.gen(function* () {

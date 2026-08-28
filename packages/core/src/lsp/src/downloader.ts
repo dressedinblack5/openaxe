@@ -1,10 +1,6 @@
 // @ts-nocheck
 import { Effect, Layer, Context } from "effect"
-import {
-  ServerDownloader,
-  DownloadStrategy,
-  DownloadError,
-} from "./types"
+import { ServerDownloader, DownloadStrategy, DownloadError } from "./types"
 import { Filesystem } from "@opencode-ai/core/util/filesystem"
 import { Archive } from "@opencode-ai/core/util/archive"
 import { Process } from "@opencode-ai/core/util/process"
@@ -17,11 +13,9 @@ import fs from "fs/promises"
  * Supports npm, go, cargo, binary, mason, github strategies
  */
 
-const run = (cmd: string[], opts: Process.RunOptions = {}) =>
-  Process.run(cmd, { ...opts, nothrow: true })
+const run = (cmd: string[], opts: Process.RunOptions = {}) => Process.run(cmd, { ...opts, nothrow: true })
 
-const _output = (cmd: string[], opts: Process.RunOptions = {}) =>
-  Process.text(cmd, { ...opts, nothrow: true })
+const _output = (cmd: string[], opts: Process.RunOptions = {}) => Process.text(cmd, { ...opts, nothrow: true })
 
 export const makeServerDownloader = (): ServerDownloader => ({
   download(_strategy: DownloadStrategy, _targetDir: string): Effect.Effect<string, DownloadError> {
@@ -40,7 +34,12 @@ export const makeServerDownloader = (): ServerDownloader => ({
           return bin
         }
         case "binary": {
-          const bin = yield* downloadBinary(_strategy.url, _targetDir, _strategy.binary, _strategy.archiveType ?? "tar.gz")
+          const bin = yield* downloadBinary(
+            _strategy.url,
+            _targetDir,
+            _strategy.binary,
+            _strategy.archiveType ?? "tar.gz",
+          )
           return bin
         }
         case "mason": {
@@ -48,7 +47,13 @@ export const makeServerDownloader = (): ServerDownloader => ({
           return bin
         }
         case "github": {
-          const bin = yield* downloadGithubRelease(_strategy.repo, _strategy.assetPattern, _targetDir, _strategy.binary, _strategy.archiveType ?? "tar.gz")
+          const bin = yield* downloadGithubRelease(
+            _strategy.repo,
+            _strategy.assetPattern,
+            _targetDir,
+            _strategy.binary,
+            _strategy.archiveType ?? "tar.gz",
+          )
           return bin
         }
         default: {
@@ -59,17 +64,23 @@ export const makeServerDownloader = (): ServerDownloader => ({
       }
     }).pipe(
       Effect.catchAll((cause) =>
-        Effect.fail(new DownloadError({
-          serverID: "unknown",
-          url: "unknown",
-          message: String(cause),
-          cause,
-        }))
+        Effect.fail(
+          new DownloadError({
+            serverID: "unknown",
+            url: "unknown",
+            message: String(cause),
+            cause,
+          }),
+        ),
       ),
     )
   },
 
-  extract(_archivePath: string, _targetDir: string, _archiveType: "zip" | "tar.gz" | "tar.xz"): Effect.Effect<void, DownloadError> {
+  extract(
+    _archivePath: string,
+    _targetDir: string,
+    _archiveType: "zip" | "tar.gz" | "tar.xz",
+  ): Effect.Effect<void, DownloadError> {
     return Effect.tryPromise({
       try: async () => {
         if (_archiveType === "zip") {
@@ -80,14 +91,15 @@ export const makeServerDownloader = (): ServerDownloader => ({
           await run(["tar", "-xJf", _archivePath], { cwd: _targetDir })
         }
       },
-      catch: (cause) => new DownloadError({
-        serverID: "unknown",
-        url: _archivePath,
-        // oxlint-disable-next-line typescript/no-unnecessary-type-conversion -- explicit string conversion for template literal
-        // oxlint-disable-next-line typescript/restrict-template-expressions -- cause is error type converted to string
-        message: `Failed to extract ${_archiveType}: ${cause}`,
-        cause,
-      }),
+      catch: (cause) =>
+        new DownloadError({
+          serverID: "unknown",
+          url: _archivePath,
+          // oxlint-disable-next-line typescript/no-unnecessary-type-conversion -- explicit string conversion for template literal
+          // oxlint-disable-next-line typescript/restrict-template-expressions -- cause is error type converted to string
+          message: `Failed to extract ${_archiveType}: ${cause}`,
+          cause,
+        }),
     })
   },
 
@@ -135,7 +147,12 @@ async function downloadCargoCrate(crate: string, targetDir: string, binary?: str
   return path.join(Global.Path.bin, binary ?? crate)
 }
 
-async function downloadBinary(url: string, targetDir: string, binary?: string, archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz"): Promise<string> {
+async function downloadBinary(
+  url: string,
+  targetDir: string,
+  binary?: string,
+  archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz",
+): Promise<string> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Download failed: ${response.status}`)
   if (!response.body) throw new Error("No response body")
@@ -170,7 +187,7 @@ async function downloadGithubRelease(
   assetPattern: string,
   targetDir: string,
   binary?: string,
-  archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz"
+  archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz",
 ): Promise<string> {
   const releaseResponse = await fetch(`https://api.github.com/repos/${repo}/releases/latest`)
   if (!releaseResponse.ok) throw new Error("Failed to fetch release")
@@ -179,7 +196,14 @@ async function downloadGithubRelease(
   if (!tag) throw new Error("No tag in release")
 
   const assets = release.assets ?? []
-  const asset = assets.find((a: unknown) => a && typeof a === "object" && "name" in a && typeof a.name === "string" && a.name.match(assetPattern.replace("{version}", tag.slice(1))))
+  const asset = assets.find(
+    (a: unknown) =>
+      a &&
+      typeof a === "object" &&
+      "name" in a &&
+      typeof a.name === "string" &&
+      a.name.match(assetPattern.replace("{version}", tag.slice(1))),
+  )
   if (!asset?.browser_download_url) throw new Error("Asset not found")
 
   return downloadBinary(asset.browser_download_url, targetDir, binary, archiveType)
@@ -194,7 +218,9 @@ function findBinary(_dir: string): string | undefined {
  * Service
  */
 
-export class ServerDownloaderService extends Context.Service<ServerDownloaderService>()("@opencode/LSP/ServerDownloader") {
+export class ServerDownloaderService extends Context.Service<ServerDownloaderService>()(
+  "@opencode/LSP/ServerDownloader",
+) {
   static Live = Layer.succeed(ServerDownloaderService, makeServerDownloader())
 }
 

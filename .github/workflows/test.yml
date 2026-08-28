@@ -122,5 +122,3 @@ jobs:
         working-directory: packages/sdk/js
         run: bun run typecheck
         timeout-minutes: 5
-
-

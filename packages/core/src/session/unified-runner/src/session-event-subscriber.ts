@@ -45,21 +45,19 @@ export const layer = Layer.scoped(
       // Subscribe to EventV2 stream for this session
       yield* Scope.extend(
         childScope,
-        events
-          .stream({ sessionID })
-          .pipe(
-            Effect.flatMap((event) =>
-              Effect.gen(function* () {
-                const currentState = yield* InstanceState.get(instanceState)
-                const reducerState = HashMap.get(currentState.reducers, sessionID)
-                if (Option.isNone(reducerState)) return
-                const result = reduceEvent(reducerState.value, event)
-                const updatedReducers = HashMap.set(currentState.reducers, sessionID, result.data)
-                yield* Ref.set(instanceState.ref, { ...currentState, reducers: updatedReducers })
-              }),
-            ),
-            Effect.catchAllCause(Effect.logError),
+        events.stream({ sessionID }).pipe(
+          Effect.flatMap((event) =>
+            Effect.gen(function* () {
+              const currentState = yield* InstanceState.get(instanceState)
+              const reducerState = HashMap.get(currentState.reducers, sessionID)
+              if (Option.isNone(reducerState)) return
+              const result = reduceEvent(reducerState.value, event)
+              const updatedReducers = HashMap.set(currentState.reducers, sessionID, result.data)
+              yield* Ref.set(instanceState.ref, { ...currentState, reducers: updatedReducers })
+            }),
           ),
+          Effect.catchAllCause(Effect.logError),
+        ),
       )
     })
 
@@ -76,9 +74,7 @@ export const layer = Layer.scoped(
 
     const getData = Effect.fn("SessionEventSubscriber.getData")(function* (sessionID: SessionID) {
       const state = yield* InstanceState.get(instanceState)
-      return HashMap.get(state.reducers, sessionID).pipe(
-        Effect.map((opt) => opt.value),
-      )
+      return HashMap.get(state.reducers, sessionID).pipe(Effect.map((opt) => opt.value))
     })
 
     return { subscribe, unsubscribe, getData }

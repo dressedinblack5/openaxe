@@ -61,12 +61,7 @@ export class PathKindError extends Schema.TaggedErrorClass<PathKindError>()("Rea
 
 export type InspectError = FSUtil.Error | PathKindError
 export type ReadError =
-  | FSUtil.Error
-  | BinaryFileError
-  | MediaIngestLimitError
-  | MalformedUtf8Error
-  | OffsetOutOfRangeError
-  | PathKindError
+  FSUtil.Error | BinaryFileError | MediaIngestLimitError | MalformedUtf8Error | OffsetOutOfRangeError | PathKindError
 
 export const PageInput = Schema.Struct({
   offset: PositiveInt.pipe(Schema.optional),

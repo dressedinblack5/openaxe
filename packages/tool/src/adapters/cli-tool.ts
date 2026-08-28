@@ -1,5 +1,15 @@
 import { Effect, Schema } from "effect"
-import type { ToolDefinition, ToolContext, CliToolContext, ToolExecutionResult, ToolCall, ToolContent, AvailabilityInput, PermissionRequest, ToolFailure } from "../types"
+import type {
+  ToolDefinition,
+  ToolContext,
+  CliToolContext,
+  ToolExecutionResult,
+  ToolCall,
+  ToolContent,
+  AvailabilityInput,
+  PermissionRequest,
+  ToolFailure,
+} from "../types"
 import { make, settle, isAvailable, describe } from "../tool"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
 import type { ProviderV2 } from "@opencode-ai/core/provider"
@@ -14,29 +24,28 @@ import type { ModelV2 } from "@opencode-ai/core/model"
  */
 
 // Re-export CLI-specific types
-export type {
-  CliToolContext,
-  ToolExecutionResult,
-  ToolCall,
-  ToolContent,
-  AvailabilityInput,
-  PermissionRequest,
-}
+export type { CliToolContext, ToolExecutionResult, ToolCall, ToolContent, AvailabilityInput, PermissionRequest }
 
 /**
  * CLI tool definition wraps unified with CLI-specific execution
  */
 export interface CliToolDefinition<
   P extends Schema.Schema<unknown> = Schema.Schema<unknown>,
-  O extends Schema.Schema<unknown> = Schema.Schema<unknown>
+  O extends Schema.Schema<unknown> = Schema.Schema<unknown>,
 > {
   readonly id: string
   readonly description: string
   readonly parameters: P
   readonly output: O
   readonly jsonSchema: import("@ai-sdk/provider").JSONSchema7
-  readonly execute: (input: Schema.Schema.Type<P>, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure>
-  readonly toModelOutput?: (input: { readonly input: Schema.Schema.Type<P>; readonly output: unknown }) => ReadonlyArray<ToolContent>
+  readonly execute: (
+    input: Schema.Schema.Type<P>,
+    context: ToolContext,
+  ) => Effect.Effect<ToolExecutionResult, ToolFailure>
+  readonly toModelOutput?: (input: {
+    readonly input: Schema.Schema.Type<P>
+    readonly output: unknown
+  }) => ReadonlyArray<ToolContent>
   readonly maxResultSizeChars?: number
   readonly permission?: string
   readonly subagentSafe?: boolean
@@ -48,13 +57,13 @@ export interface CliToolDefinition<
  * Convert unified tool to CLI tool with truncation and enrichment
  */
 export const toCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  unified: ToolDefinition<P, O>
+  unified: ToolDefinition<P, O>,
 ): CliToolDefinition<P, O> => {
   const baseExecute = unified.execute
 
   const enrichedExecute = (
     input: Schema.Schema.Type<P>,
-    context: ToolContext
+    context: ToolContext,
   ): Effect.Effect<ToolExecutionResult, ToolFailure> =>
     Effect.gen(function* () {
       // Execute base tool - returns the decoded output (Type<O>)
@@ -83,7 +92,7 @@ export const toCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Sch
  * Convert CLI tool definition to unified tool
  */
 export const fromCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  cli: CliToolDefinition<P, O>
+  cli: CliToolDefinition<P, O>,
 ): ToolDefinition<P, O> => {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CliToolDefinition compatible with ToolDefinition
   return cli as ToolDefinition<P, O>
@@ -92,21 +101,25 @@ export const fromCliTool = <P extends Schema.Schema<unknown>, O extends Schema.S
 /**
  * Create a CLI tool directly (convenience)
  */
-export const makeCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  config: {
-    readonly id: string
-    readonly description: string
-    readonly parameters: P
-    readonly output: O
-    readonly execute: (input: Schema.Schema.Type<P>, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure>
-    readonly toModelOutput?: (input: { readonly input: Schema.Schema.Type<P>; readonly output: unknown }) => ReadonlyArray<ToolContent>
-    readonly maxResultSizeChars?: number
-    readonly permission?: string
-    readonly subagentSafe?: boolean
-    readonly availability?: (input: AvailabilityInput) => boolean
-    readonly describe?: (agent: Agent.Info) => Effect.Effect<string>
-  }
-): CliToolDefinition<P, O> => {
+export const makeCliTool = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(config: {
+  readonly id: string
+  readonly description: string
+  readonly parameters: P
+  readonly output: O
+  readonly execute: (
+    input: Schema.Schema.Type<P>,
+    context: ToolContext,
+  ) => Effect.Effect<ToolExecutionResult, ToolFailure>
+  readonly toModelOutput?: (input: {
+    readonly input: Schema.Schema.Type<P>
+    readonly output: unknown
+  }) => ReadonlyArray<ToolContent>
+  readonly maxResultSizeChars?: number
+  readonly permission?: string
+  readonly subagentSafe?: boolean
+  readonly availability?: (input: AvailabilityInput) => boolean
+  readonly describe?: (agent: Agent.Info) => Effect.Effect<string>
+}): CliToolDefinition<P, O> => {
   // Create a unified tool with a wrapper execute that converts ToolExecutionResult to the output type
   const unifiedConfig = {
     ...config,
@@ -125,31 +138,25 @@ export const makeCliTool = <P extends Schema.Schema<unknown>, O extends Schema.S
 /**
  * Check tool availability for a specific model/agent
  */
-export const checkCliAvailability = <
-  P extends Schema.Schema<unknown>,
-  O extends Schema.Schema<unknown>
->(
+export const checkCliAvailability = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   tool: CliToolDefinition<P, O>,
   model: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info },
-  flags: Record<string, unknown>
+  flags: Record<string, unknown>,
 ): boolean =>
-  isAvailable(tool, { 
+  isAvailable(tool, {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- flags validated by AvailabilityInput
-    flags: flags as Record<string, boolean | string | number | undefined>, 
-    providerID: model.providerID, 
-    modelID: model.modelID, 
-    agentID: model.agent.id 
+    flags: flags as Record<string, boolean | string | number | undefined>,
+    providerID: model.providerID,
+    modelID: model.modelID,
+    agentID: model.agent.id,
   })
 
 /**
  * Get enhanced description for a model
  */
-export const getCliDescription = <
-  P extends Schema.Schema<unknown>,
-  O extends Schema.Schema<unknown>
->(
+export const getCliDescription = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   tool: CliToolDefinition<P, O>,
-  agent: Agent.Info
+  agent: Agent.Info,
 ): Effect.Effect<string | undefined> => describe(tool, agent)
 
 /**

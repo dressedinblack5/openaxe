@@ -401,46 +401,42 @@ export function Autocomplete(props: {
   const agents = createMemo(() => {
     return sync.data.agent
       .filter((agent) => !agent.hidden && agent.mode !== "primary")
-      .map(
-        (agent): AutocompleteOption => ({
-          display: "@" + agent.name,
-          onSelect: () => {
-            insertPart(agent.name, {
-              type: "agent",
-              name: agent.name,
-              source: {
-                start: 0,
-                end: 0,
-                value: "",
-              },
-            })
-          },
-        }),
-      )
+      .map((agent): AutocompleteOption => ({
+        display: "@" + agent.name,
+        onSelect: () => {
+          insertPart(agent.name, {
+            type: "agent",
+            name: agent.name,
+            source: {
+              start: 0,
+              end: 0,
+              value: "",
+            },
+          })
+        },
+      }))
   })
 
   const referenceAliases = createMemo(() =>
     references()
       .filter((reference) => !reference.hidden)
-      .map(
-        (reference): AutocompleteOption => ({
-          display: "@" + reference.name,
-          description: ` ${reference.source.type === "git" ? reference.source.repository : reference.source.path}`,
-          onSelect: () => {
-            insertPart(reference.name, {
+      .map((reference): AutocompleteOption => ({
+        display: "@" + reference.name,
+        description: ` ${reference.source.type === "git" ? reference.source.repository : reference.source.path}`,
+        onSelect: () => {
+          insertPart(reference.name, {
+            type: "file",
+            mime: "application/x-directory",
+            filename: reference.name,
+            url: pathToFileURL(reference.path).href,
+            source: {
               type: "file",
-              mime: "application/x-directory",
-              filename: reference.name,
-              url: pathToFileURL(reference.path).href,
-              source: {
-                type: "file",
-                text: { start: 0, end: 0, value: "" },
-                path: reference.name,
-              },
-            })
-          },
-        }),
-      ),
+              text: { start: 0, end: 0, value: "" },
+              path: reference.name,
+            },
+          })
+        },
+      })),
   )
 
   const commands = createMemo((): AutocompleteOption[] => {

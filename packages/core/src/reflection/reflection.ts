@@ -13,14 +13,7 @@ import { SessionMessageTable, SessionTable } from "../session/sql"
  * `retry_policy_overrides` table the runner consults.
  */
 export type RetryReason =
-  | "rate_limit"
-  | "context_length"
-  | "timeout"
-  | "refusal"
-  | "auth"
-  | "invalid_request"
-  | "server"
-  | "unclassified"
+  "rate_limit" | "context_length" | "timeout" | "refusal" | "auth" | "invalid_request" | "server" | "unclassified"
 
 interface Policy {
   readonly maxAttempts: number
@@ -146,7 +139,11 @@ export function classify(error: unknown): RetryReason {
     return "rate_limit"
   if (status === 413 || /context length|context window|context_length|maximum context|too long/.test(haystack))
     return "context_length"
-  if (status === 401 || status === 403 || /unauthorized|invalid api key|authentication|forbidden|permission denied/.test(haystack))
+  if (
+    status === 401 ||
+    status === 403 ||
+    /unauthorized|invalid api key|authentication|forbidden|permission denied/.test(haystack)
+  )
     return "auth"
   if (status === 408 || /timed out|timeout|etimedout/.test(haystack)) return "timeout"
   if (/refus|content filter|content_filter|moderation|safety|filtered/.test(haystack)) return "refusal"

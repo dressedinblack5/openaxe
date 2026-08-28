@@ -10,8 +10,14 @@ export interface Interface {
   readonly set: (key: string, value: unknown, kind?: string, scope?: string, source?: string) => Effect.Effect<void>
   readonly get: (key: string) => Effect.Effect<unknown>
   readonly remove: (key: string) => Effect.Effect<void>
-  readonly list: (kind?: string, scope?: string, source?: string) => Effect.Effect<Array<{ key: string; value: unknown; kind: string; scope: string; source: string }>>
-  readonly onSet: (fn: (key: string, value: unknown, kind?: string, scope?: string, source?: string) => Effect.Effect<void>) => Effect.Effect<void>
+  readonly list: (
+    kind?: string,
+    scope?: string,
+    source?: string,
+  ) => Effect.Effect<Array<{ key: string; value: unknown; kind: string; scope: string; source: string }>>
+  readonly onSet: (
+    fn: (key: string, value: unknown, kind?: string, scope?: string, source?: string) => Effect.Effect<void>,
+  ) => Effect.Effect<void>
   readonly onRemove: (fn: (key: string) => Effect.Effect<void>) => Effect.Effect<void>
 }
 
@@ -21,10 +27,18 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const { db } = yield* Database.Service
-    const setCallbacks: Array<(key: string, value: unknown, kind?: string, scope?: string, source?: string) => Effect.Effect<void>> = []
+    const setCallbacks: Array<
+      (key: string, value: unknown, kind?: string, scope?: string, source?: string) => Effect.Effect<void>
+    > = []
     const removeCallbacks: Array<(key: string) => Effect.Effect<void>> = []
 
-    const set = Effect.fn("Memory.set")(function* (key: string, value: unknown, kind?: string, scope?: string, source?: string) {
+    const set = Effect.fn("Memory.set")(function* (
+      key: string,
+      value: unknown,
+      kind?: string,
+      scope?: string,
+      source?: string,
+    ) {
       const existing = yield* db.select().from(MemoryTable).where(eq(MemoryTable.key, key)).get().pipe(Effect.orDie)
       if (existing) {
         yield* db.update(MemoryTable).set({ value }).where(eq(MemoryTable.key, key)).run().pipe(Effect.orDie)
@@ -55,12 +69,23 @@ export const layer = Layer.effect(
       if (source) conditions.push(eq(MemoryTable.source, source))
       const query = db.select().from(MemoryTable)
       const rows = conditions.length
-        ? yield* query.where(and(...conditions)).all().pipe(Effect.orDie)
+        ? yield* query
+            .where(and(...conditions))
+            .all()
+            .pipe(Effect.orDie)
         : yield* query.all().pipe(Effect.orDie)
-      return rows.map((row) => ({ key: row.key, value: row.value, kind: row.kind, scope: row.scope, source: row.source }))
+      return rows.map((row) => ({
+        key: row.key,
+        value: row.value,
+        kind: row.kind,
+        scope: row.scope,
+        source: row.source,
+      }))
     })
 
-    const onSet = Effect.fn("Memory.onSet")(function* (fn: (key: string, value: unknown, kind?: string, scope?: string, source?: string) => Effect.Effect<void>) {
+    const onSet = Effect.fn("Memory.onSet")(function* (
+      fn: (key: string, value: unknown, kind?: string, scope?: string, source?: string) => Effect.Effect<void>,
+    ) {
       setCallbacks.push(fn)
     })
 

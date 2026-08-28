@@ -11,16 +11,18 @@ import type { RuntimeFlags } from "./types"
 export interface AvailabilityServiceInterface {
   readonly check: (
     tool: ToolDefinition,
-    input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info }
+    input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info },
   ) => Effect.Effect<boolean>
   readonly filter: (
     tools: ReadonlyArray<ToolDefinition>,
-    input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info }
+    input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info },
   ) => Effect.Effect<ReadonlyArray<ToolDefinition>>
   readonly clearCache: () => Effect.Effect<void>
 }
 
-export class AvailabilityService extends Context.Service<AvailabilityService, AvailabilityServiceInterface>()("@openaxe/ToolAvailability") {}
+export class AvailabilityService extends Context.Service<AvailabilityService, AvailabilityServiceInterface>()(
+  "@openaxe/ToolAvailability",
+) {}
 
 const makeAvailabilityKey = (input: AvailabilityInput): AvailabilityKey => ({
   flagsHash: hashFlags(input.flags),
@@ -46,7 +48,7 @@ export const AvailabilityLive = Layer.effect(
 
     const check = (
       tool: ToolDefinition,
-      input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info }
+      input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info },
     ): Effect.Effect<boolean> =>
       Effect.gen(function* () {
         const availInput: AvailabilityInput = {
@@ -68,28 +70,24 @@ export const AvailabilityLive = Layer.effect(
 
     const filter = (
       tools: ReadonlyArray<ToolDefinition>,
-      input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info }
+      input: { providerID: ProviderV2.ID; modelID: ModelV2.ID; agent: Agent.Info; flags: RuntimeFlags.Info },
     ): Effect.Effect<ReadonlyArray<ToolDefinition>> =>
       Effect.gen(function* () {
         return yield* Effect.filter(tools, (tool) => check(tool, input))
       })
 
-    const clearCache = (): Effect.Effect<void> =>
-      Ref.set(cache, HashMap.empty())
+    const clearCache = (): Effect.Effect<void> => Ref.set(cache, HashMap.empty())
 
     return { check, filter, clearCache }
-  })
+  }),
 )
 
 /**
  * Static availability check (doesn't use cache)
  */
-export const isAvailable = <
-  P extends Schema.Schema<unknown>,
-  O extends Schema.Schema<unknown>
->(
+export const isAvailable = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   tool: ToolDefinition<P, O>,
-  input: AvailabilityInput
+  input: AvailabilityInput,
 ): boolean => {
   const runtimeAvail = tool.availability
   return typeof runtimeAvail === "function" ? runtimeAvail(input) : true

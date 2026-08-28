@@ -3,7 +3,16 @@
  * Replaces 48+ unsafe `as` casts throughout the codebase
  */
 
-import type { AnyError, IntegrationError, ModelError, SessionError, SessionEventError, LSPError, ToolError, ContextError } from "./error"
+import type {
+  AnyError,
+  IntegrationError,
+  ModelError,
+  SessionError,
+  SessionEventError,
+  LSPError,
+  ToolError,
+  ContextError,
+} from "./error"
 
 /**
  * Type guard for checking if a value is a discriminated error with _tag
@@ -19,7 +28,9 @@ export function isTaggedError<TTag extends string>(
  * Check if value is an error with a specific tag
  */
 export function hasErrorTag<TTag extends string>(value: unknown, tag: TTag): value is { readonly _tag: TTag } {
-  return typeof value === "object" && value !== null && "_tag" in value && (value as Record<string, unknown>)._tag === tag
+  return (
+    typeof value === "object" && value !== null && "_tag" in value && (value as Record<string, unknown>)._tag === tag
+  )
 }
 
 /**
@@ -39,8 +50,7 @@ export function narrowError<T extends { readonly _tag: PropertyKey }>(
 export const isIntegrationError = {
   codeRequired: isTaggedError("Integration.CodeRequired"),
   authorization: isTaggedError("Integration.Authorization"),
-  any: (error: AnyError): error is IntegrationError =>
-    error._tag.startsWith("Integration."),
+  any: (error: AnyError): error is IntegrationError => error._tag.startsWith("Integration."),
 }
 
 /**
@@ -49,8 +59,7 @@ export const isIntegrationError = {
 export const isModelError = {
   variantNotFound: isTaggedError("Model.VariantNotFound"),
   providerError: isTaggedError("Model.ProviderError"),
-  any: (error: AnyError): error is ModelError =>
-    error._tag.startsWith("Model."),
+  any: (error: AnyError): error is ModelError => error._tag.startsWith("Model."),
 }
 
 /**
@@ -59,8 +68,7 @@ export const isModelError = {
 export const isSessionError = {
   notFound: isTaggedError("Session.NotFound"),
   invalidState: isTaggedError("Session.InvalidState"),
-  any: (error: AnyError): error is SessionError =>
-    error._tag.startsWith("Session."),
+  any: (error: AnyError): error is SessionError => error._tag.startsWith("Session."),
 }
 
 /**
@@ -68,8 +76,7 @@ export const isSessionError = {
  */
 export const isSessionEventError = {
   footerOutput: isTaggedError("SessionEvent.FooterOutput"),
-  any: (error: AnyError): error is SessionEventError =>
-    error._tag.startsWith("SessionEvent."),
+  any: (error: AnyError): error is SessionEventError => error._tag.startsWith("SessionEvent."),
 }
 
 /**
@@ -84,8 +91,7 @@ export const isLSPError = {
   download: isTaggedError("LSP.Download"),
   platform: isTaggedError("LSP.Platform"),
   processOptions: isTaggedError("LSP.ProcessOptions"),
-  any: (error: AnyError): error is LSPError =>
-    error._tag.startsWith("LSP."),
+  any: (error: AnyError): error is LSPError => error._tag.startsWith("LSP."),
 }
 
 /**
@@ -96,8 +102,7 @@ export const isToolError = {
   execution: isTaggedError("Tool.Execution"),
   registry: isTaggedError("Tool.Registry"),
   externalLoader: isTaggedError("Tool.ExternalLoader"),
-  any: (error: AnyError): error is ToolError =>
-    error._tag.startsWith("Tool."),
+  any: (error: AnyError): error is ToolError => error._tag.startsWith("Tool."),
 }
 
 /**
@@ -109,14 +114,15 @@ export const isContextError = {
   pluginScope: isTaggedError("Context.PluginScope"),
   scopeNotFound: isTaggedError("Context.ScopeNotFound"),
   json: isTaggedError("Context.Json"),
-  any: (error: AnyError): error is ContextError =>
-    error._tag.startsWith("Context."),
+  any: (error: AnyError): error is ContextError => error._tag.startsWith("Context."),
 }
 
 /**
  * Generic type guard for AppError class instances
  */
-export function isAppErrorInstance(error: unknown): error is { readonly _tag: string; readonly _message: string; readonly message: string } {
+export function isAppErrorInstance(
+  error: unknown,
+): error is { readonly _tag: string; readonly _message: string; readonly message: string } {
   return error instanceof Error && "_tag" in error
 }
 

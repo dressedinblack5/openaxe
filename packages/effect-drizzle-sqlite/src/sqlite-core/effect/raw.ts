@@ -1,5 +1,5 @@
 /* oxlint-disable */
-import type { Effect } from "effect/Effect";
+import type { Effect } from "effect/Effect"
 import { applyEffectWrapper, type QueryEffectHKTBase } from "drizzle-orm/effect-core/query-effect"
 import { entityKind } from "drizzle-orm/entity"
 import type { RunnableQuery } from "drizzle-orm/runnable-query"
@@ -10,9 +10,7 @@ import type { SQLiteAsyncDialect } from "drizzle-orm/sqlite-core/dialect"
 type SQLiteEffectRawAction = "all" | "get" | "values" | "run"
 
 export interface SQLiteEffectRaw<TResult, TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase>
-  extends Effect<TResult, TEffectHKT["error"], TEffectHKT["context"]>,
-    RunnableQuery<TResult, "sqlite">,
-    SQLWrapper {}
+  extends Effect<TResult, TEffectHKT["error"], TEffectHKT["context"]>, RunnableQuery<TResult, "sqlite">, SQLWrapper {}
 
 export class SQLiteEffectRaw<TResult, TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase>
   implements RunnableQuery<TResult, "sqlite">, SQLWrapper, PreparedQuery

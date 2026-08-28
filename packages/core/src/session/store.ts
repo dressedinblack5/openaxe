@@ -12,7 +12,9 @@ import { fromRow } from "./info"
 
 export interface Interface {
   readonly get: (sessionID: SessionSchema.ID) => Effect.Effect<SessionSchema.Info | undefined>
-  readonly context: (sessionID: SessionSchema.ID) => Effect.Effect<readonly SessionMessage.Message[], MessageDecodeError>
+  readonly context: (
+    sessionID: SessionSchema.ID,
+  ) => Effect.Effect<readonly SessionMessage.Message[], MessageDecodeError>
   readonly runnerContext: (
     sessionID: SessionSchema.ID,
     baselineSeq: number,

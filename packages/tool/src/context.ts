@@ -1,13 +1,28 @@
 import { Effect, Layer, Context } from "effect"
-import type { BaseToolContext, CliToolContext, PluginToolContext, PermissionRequest, AskInput, SessionMessage, SessionID, MessageID } from "./types"
+import type {
+  BaseToolContext,
+  CliToolContext,
+  PluginToolContext,
+  PermissionRequest,
+  AskInput,
+  SessionMessage,
+  SessionID,
+  MessageID,
+} from "./types"
 
 /**
  * Context services for dependency injection (Effect v4 style)
  */
 
-export class BaseContextService extends Context.Service<BaseContextService, BaseToolContext>()("@openaxe/BaseToolContext") {}
-export class CliContextService extends Context.Service<CliContextService, CliToolContext>()("@openaxe/CliToolContext") {}
-export class PluginContextService extends Context.Service<PluginContextService, PluginToolContext>()("@openaxe/PluginToolContext") {}
+export class BaseContextService extends Context.Service<BaseContextService, BaseToolContext>()(
+  "@openaxe/BaseToolContext",
+) {}
+export class CliContextService extends Context.Service<CliContextService, CliToolContext>()(
+  "@openaxe/CliToolContext",
+) {}
+export class PluginContextService extends Context.Service<PluginContextService, PluginToolContext>()(
+  "@openaxe/PluginToolContext",
+) {}
 
 /**
  * Create a base tool context
@@ -35,7 +50,7 @@ export const makeCliContext = (
   base: BaseToolContext,
   messages: ReadonlyArray<SessionMessage>,
   metadataService: { metadata: (input: { title?: string; metadata?: Record<string, unknown> }) => Effect.Effect<void> },
-  askService: { ask: (input: Omit<PermissionRequest, "id" | "sessionID" | "tool">) => Effect.Effect<void> }
+  askService: { ask: (input: Omit<PermissionRequest, "id" | "sessionID" | "tool">) => Effect.Effect<void> },
 ): CliToolContext => ({
   ...base,
   messages,
@@ -50,7 +65,7 @@ export const makePluginContext = (
   base: BaseToolContext,
   directory: string,
   worktree: string,
-  askFn: (input: AskInput) => Promise<void>
+  askFn: (input: AskInput) => Promise<void>,
 ): PluginToolContext => ({
   ...base,
   directory,
@@ -61,20 +76,17 @@ export const makePluginContext = (
 /**
  * Layer that provides a base context
  */
-export const BaseContextLayer = (ctx: BaseToolContext) =>
-  Layer.succeed(BaseContextService, ctx)
+export const BaseContextLayer = (ctx: BaseToolContext) => Layer.succeed(BaseContextService, ctx)
 
 /**
  * Layer that provides a CLI context
  */
-export const CliContextLayer = (ctx: CliToolContext) =>
-  Layer.succeed(CliContextService, ctx)
+export const CliContextLayer = (ctx: CliToolContext) => Layer.succeed(CliContextService, ctx)
 
 /**
  * Layer that provides a plugin context
  */
-export const PluginContextLayer = (ctx: PluginToolContext) =>
-  Layer.succeed(PluginContextService, ctx)
+export const PluginContextLayer = (ctx: PluginToolContext) => Layer.succeed(PluginContextService, ctx)
 
 /**
  * Get base context from environment

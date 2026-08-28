@@ -12,7 +12,7 @@ import {
   ContextEpoch as ContextEpochUtils,
   ContextSnapshot as ContextSnapshotUtils,
   ScopeState as ScopeStateUtils,
-  type Generation
+  type Generation,
 } from "./types"
 
 /**
@@ -35,17 +35,24 @@ export interface ContextService {
   readonly delete: (scope: ContextScope, key: string) => Effect.Effect<boolean, ScopeNotFoundError>
   readonly snapshot: (scope: ContextScope) => Effect.Effect<ContextSnapshot, ScopeNotFoundError>
   readonly restore: (scope: ContextScope, snapshot: ContextSnapshot) => Effect.Effect<void, ScopeNotFoundError>
-  readonly initializeEpoch: (scope: ContextScope, baseline: unknown, budget?: ContextBudget) => Effect.Effect<ContextEpoch, ScopeNotFoundError>
+  readonly initializeEpoch: (
+    scope: ContextScope,
+    baseline: unknown,
+    budget?: ContextBudget,
+  ) => Effect.Effect<ContextEpoch, ScopeNotFoundError>
   readonly getEpoch: (scope: ContextScope) => Effect.Effect<Option.Option<ContextEpoch>, ScopeNotFoundError>
   readonly replaceEpoch: (scope: ContextScope, epoch: ContextEpoch) => Effect.Effect<void, ScopeNotFoundError>
   readonly getBudget: (scope: ContextScope) => Effect.Effect<ContextBudget, ScopeNotFoundError>
   readonly setBudget: (scope: ContextScope, budget: ContextBudget) => Effect.Effect<void, ScopeNotFoundError>
-  readonly compact: (scope: ContextScope, strategy?: CompactionStrategy) => Effect.Effect<ContextBudget, ScopeNotFoundError>
+  readonly compact: (
+    scope: ContextScope,
+    strategy?: CompactionStrategy,
+  ) => Effect.Effect<ContextBudget, ScopeNotFoundError>
   readonly releaseScope: (scope: ContextScope) => Effect.Effect<void>
   readonly getOrLoad: (
     scope: ContextScope,
     key: string,
-    loader: () => Effect.Effect<unknown>
+    loader: () => Effect.Effect<unknown>,
   ) => Effect.Effect<unknown, ScopeNotFoundError>
 }
 
@@ -69,17 +76,20 @@ const acquireLock = (state: ContextState, scopeKey: string): Effect.Effect<void>
     state.latches.set(scopeKey, count)
     if (count > 1) {
       // Wait for lock to be released
-      yield* Effect.promise(() => new Promise<void>((resolve) => {
-        const check = () => {
-          const current = state.latches.get(scopeKey)
-          if (current !== undefined && current <= 1) {
-            resolve()
-          } else {
-            setTimeout(check, 1)
-          }
-        }
-        check()
-      }))
+      yield* Effect.promise(
+        () =>
+          new Promise<void>((resolve) => {
+            const check = () => {
+              const current = state.latches.get(scopeKey)
+              if (current !== undefined && current <= 1) {
+                resolve()
+              } else {
+                setTimeout(check, 1)
+              }
+            }
+            check()
+          }),
+      )
     }
   })
 
@@ -93,11 +103,7 @@ const releaseLock = (state: ContextState, scopeKey: string): void => {
 /**
  * Get or initialize scope state
  */
-const getOrInitScope = (
-  state: ContextState,
-  scope: ContextScope,
-  initialBudget?: ContextBudget
-): ScopeState => {
+const getOrInitScope = (state: ContextState, scope: ContextScope, initialBudget?: ContextBudget): ScopeState => {
   const key = ContextScopeUtils.hash(scope)
   const existing = state.scopes.get(key)
   if (existing) return existing
@@ -113,7 +119,7 @@ const getOrInitScope = (
  */
 const performIncrementalCompaction = (
   state: ContextState,
-  scope: ContextScope
+  scope: ContextScope,
 ): Effect.Effect<ContextBudget, ScopeNotFoundError> =>
   Effect.gen(function* () {
     const key = ContextScopeUtils.hash(scope)
@@ -147,7 +153,7 @@ const performIncrementalCompaction = (
     const newBudget = ContextBudgetUtils.make(
       current.budget.limit,
       Math.max(0, current.budget.used - freed),
-      current.budget.reserved
+      current.budget.reserved,
     )
 
     const updated: ScopeState = {
@@ -155,7 +161,7 @@ const performIncrementalCompaction = (
       data: newData,
       budget: newBudget,
       version: current.version + 1,
-      dirtyKeys: new Set()
+      dirtyKeys: new Set(),
     }
 
     state.scopes.set(key, updated)
@@ -167,7 +173,7 @@ const performIncrementalCompaction = (
  */
 const performFullCompaction = (
   state: ContextState,
-  scope: ContextScope
+  scope: ContextScope,
 ): Effect.Effect<ContextBudget, ScopeNotFoundError> =>
   Effect.gen(function* () {
     const key = ContextScopeUtils.hash(scope)
@@ -185,8 +191,9 @@ const performFullCompaction = (
       return current.budget
     }
 
-    const entries = Array.from(current.data.entries())
-      .sort((a, b) => JSON.stringify(b[1]).length - JSON.stringify(a[1]).length)
+    const entries = Array.from(current.data.entries()).sort(
+      (a, b) => JSON.stringify(b[1]).length - JSON.stringify(a[1]).length,
+    )
 
     for (const [k, v] of entries) {
       if (currentUsed <= targetUsed) break
@@ -202,7 +209,7 @@ const performFullCompaction = (
       data: newData,
       budget: newBudget,
       version: current.version + 1,
-      dirtyKeys: new Set()
+      dirtyKeys: new Set(),
     }
 
     state.scopes.set(key, updated)
@@ -212,10 +219,7 @@ const performFullCompaction = (
 /**
  * Schedule periodic full compaction for a scope
  */
-const schedulePeriodicCompaction = (
-  state: ContextState,
-  scope: ContextScope
-): Effect.Effect<void> =>
+const schedulePeriodicCompaction = (state: ContextState, scope: ContextScope): Effect.Effect<void> =>
   Effect.gen(function* () {
     const key = ContextScopeUtils.hash(scope)
     const existing = state.compactionTimers.get(key)
@@ -254,7 +258,7 @@ export const layer = Layer.effect(
     const state = yield* Ref.make({
       scopes: new Map(),
       latches: new Map(),
-      compactionTimers: new Map()
+      compactionTimers: new Map(),
     })
 
     const getScopeState = (scope: ContextScope): Effect.Effect<ScopeState, ScopeNotFoundError> =>
@@ -270,7 +274,7 @@ export const layer = Layer.effect(
 
     const withScopeLock = <A, E>(
       scope: ContextScope,
-      effect: Effect.Effect<A, E>
+      effect: Effect.Effect<A, E>,
     ): Effect.Effect<A, E | ScopeNotFoundError> =>
       Effect.gen(function* () {
         const s = yield* Ref.get(state)
@@ -292,79 +296,80 @@ export const layer = Layer.effect(
 
       set: (scope: ContextScope, key: string, value: unknown) =>
         Effect.gen(function* () {
-          yield* withScopeLock(scope, Effect.gen(function* () {
-            const s = yield* Ref.get(state)
-            const scopeState = getOrInitScope(s, scope)
-            const prevValue = scopeState.data.get(key)
-            const prevSize = prevValue ? JSON.stringify(prevValue).length : 0
-            const newSize = JSON.stringify(value).length
-            const sizeDiff = newSize - prevSize
+          yield* withScopeLock(
+            scope,
+            Effect.gen(function* () {
+              const s = yield* Ref.get(state)
+              const scopeState = getOrInitScope(s, scope)
+              const prevValue = scopeState.data.get(key)
+              const prevSize = prevValue ? JSON.stringify(prevValue).length : 0
+              const newSize = JSON.stringify(value).length
+              const sizeDiff = newSize - prevSize
 
-            const newBudget = ContextBudgetUtils.make(
-              scopeState.budget.limit,
-              Math.max(0, scopeState.budget.used + sizeDiff),
-              scopeState.budget.reserved
-            )
+              const newBudget = ContextBudgetUtils.make(
+                scopeState.budget.limit,
+                Math.max(0, scopeState.budget.used + sizeDiff),
+                scopeState.budget.reserved,
+              )
 
-            const newDirtyKeys = new Set(scopeState.dirtyKeys)
-            newDirtyKeys.add(key)
+              const newDirtyKeys = new Set(scopeState.dirtyKeys)
+              newDirtyKeys.add(key)
 
-            const updated: ScopeState = {
-              ...scopeState,
-              data: new Map(scopeState.data).set(key, value),
-              budget: newBudget,
-              version: scopeState.version + 1,
-              dirtyKeys: newDirtyKeys
-            }
+              const updated: ScopeState = {
+                ...scopeState,
+                data: new Map(scopeState.data).set(key, value),
+                budget: newBudget,
+                version: scopeState.version + 1,
+                dirtyKeys: newDirtyKeys,
+              }
 
-            s.scopes.set(ContextScopeUtils.hash(scope), updated)
+              s.scopes.set(ContextScopeUtils.hash(scope), updated)
 
-            if (ContextBudgetUtils.isOverBudget(newBudget)) {
-              yield* performIncrementalCompaction(s, scope)
-            }
-          }))
+              if (ContextBudgetUtils.isOverBudget(newBudget)) {
+                yield* performIncrementalCompaction(s, scope)
+              }
+            }),
+          )
         }),
 
       delete: (scope: ContextScope, key: string) =>
         Effect.gen(function* () {
-          return yield* withScopeLock(scope, Effect.gen(function* () {
-            const s = yield* Ref.get(state)
-            const scopeState = yield* getScopeState(scope)
-            const prevValue = scopeState.data.get(key)
-            if (prevValue === undefined) return false
+          return yield* withScopeLock(
+            scope,
+            Effect.gen(function* () {
+              const s = yield* Ref.get(state)
+              const scopeState = yield* getScopeState(scope)
+              const prevValue = scopeState.data.get(key)
+              if (prevValue === undefined) return false
 
-            const prevSize = JSON.stringify(prevValue).length
-            const newBudget = ContextBudgetUtils.make(
-              scopeState.budget.limit,
-              Math.max(0, scopeState.budget.used - prevSize),
-              scopeState.budget.reserved
-            )
+              const prevSize = JSON.stringify(prevValue).length
+              const newBudget = ContextBudgetUtils.make(
+                scopeState.budget.limit,
+                Math.max(0, scopeState.budget.used - prevSize),
+                scopeState.budget.reserved,
+              )
 
-            const newData = new Map(scopeState.data)
-            newData.delete(key)
+              const newData = new Map(scopeState.data)
+              newData.delete(key)
 
-            const updated: ScopeState = {
-              ...scopeState,
-              data: newData,
-              budget: newBudget,
-              version: scopeState.version + 1,
-              dirtyKeys: new Set(scopeState.dirtyKeys).add(key)
-            }
+              const updated: ScopeState = {
+                ...scopeState,
+                data: newData,
+                budget: newBudget,
+                version: scopeState.version + 1,
+                dirtyKeys: new Set(scopeState.dirtyKeys).add(key),
+              }
 
-            s.scopes.set(ContextScopeUtils.hash(scope), updated)
-            return true
-          }))
+              s.scopes.set(ContextScopeUtils.hash(scope), updated)
+              return true
+            }),
+          )
         }),
 
       snapshot: (scope: ContextScope) =>
         Effect.gen(function* () {
           const scopeState = yield* getScopeState(scope)
-          return ContextSnapshotUtils.make(
-            scope,
-            new Map(scopeState.data),
-            scopeState.epoch,
-            scopeState.version
-          )
+          return ContextSnapshotUtils.make(scope, new Map(scopeState.data), scopeState.epoch, scopeState.version)
         }),
 
       restore: (scope: ContextScope, snapshot: ContextSnapshot) =>
@@ -373,54 +378,60 @@ export const layer = Layer.effect(
             return yield* Effect.fail(new ScopeNotFoundError({ scope }))
           }
 
-          yield* withScopeLock(scope, Effect.gen(function* () {
-            const s = yield* Ref.get(state)
-            let budget = ContextBudgetUtils.make(DEFAULT_BUDGET_LIMIT)
-            for (const [, value] of snapshot.data) {
-              budget = ContextBudgetUtils.consume(budget, JSON.stringify(value).length)
-            }
+          yield* withScopeLock(
+            scope,
+            Effect.gen(function* () {
+              const s = yield* Ref.get(state)
+              let budget = ContextBudgetUtils.make(DEFAULT_BUDGET_LIMIT)
+              for (const [, value] of snapshot.data) {
+                budget = ContextBudgetUtils.consume(budget, JSON.stringify(value).length)
+              }
 
-            const updated: ScopeState = {
-              data: new Map(snapshot.data),
-              epoch: snapshot.epoch,
-              budget,
-              version: snapshot.version,
-              dirtyKeys: new Set()
-            }
+              const updated: ScopeState = {
+                data: new Map(snapshot.data),
+                epoch: snapshot.epoch,
+                budget,
+                version: snapshot.version,
+                dirtyKeys: new Set(),
+              }
 
-            s.scopes.set(ContextScopeUtils.hash(scope), updated)
-            return undefined
-          }))
+              s.scopes.set(ContextScopeUtils.hash(scope), updated)
+              return undefined
+            }),
+          )
           return undefined
         }),
 
       initializeEpoch: (scope: ContextScope, baseline: unknown, budget?: ContextBudget) =>
         Effect.gen(function* () {
-          return yield* withScopeLock(scope, Effect.gen(function* () {
-            const s = yield* Ref.get(state)
-            const scopeState = getOrInitScope(s, scope, budget)
-            const initialBudget = budget ?? scopeState.budget
-            const epoch = ContextEpochUtils.make(
-              yield* Effect.gen(function* () {
-                const gen: Generation = { baseline: String(baseline), snapshot: {} }
-                return gen
-              }),
-              baseline,
-              initialBudget
-            )
+          return yield* withScopeLock(
+            scope,
+            Effect.gen(function* () {
+              const s = yield* Ref.get(state)
+              const scopeState = getOrInitScope(s, scope, budget)
+              const initialBudget = budget ?? scopeState.budget
+              const epoch = ContextEpochUtils.make(
+                yield* Effect.gen(function* () {
+                  const gen: Generation = { baseline: String(baseline), snapshot: {} }
+                  return gen
+                }),
+                baseline,
+                initialBudget,
+              )
 
-            const updated: ScopeState = {
-              ...scopeState,
-              epoch,
-              budget: initialBudget,
-              version: scopeState.version + 1
-            }
+              const updated: ScopeState = {
+                ...scopeState,
+                epoch,
+                budget: initialBudget,
+                version: scopeState.version + 1,
+              }
 
-            s.scopes.set(ContextScopeUtils.hash(scope), updated)
+              s.scopes.set(ContextScopeUtils.hash(scope), updated)
 
-            yield* schedulePeriodicCompaction(s, scope)
-            return epoch
-          }))
+              yield* schedulePeriodicCompaction(s, scope)
+              return epoch
+            }),
+          )
         }),
 
       getEpoch: (scope: ContextScope) =>
@@ -431,16 +442,19 @@ export const layer = Layer.effect(
 
       replaceEpoch: (scope: ContextScope, epoch: ContextEpoch) =>
         Effect.gen(function* () {
-          yield* withScopeLock(scope, Effect.gen(function* () {
-            const s = yield* Ref.get(state)
-            const scopeState = yield* getScopeState(scope)
-            const updated: ScopeState = {
-              ...scopeState,
-              epoch,
-              version: scopeState.version + 1
-            }
-            s.scopes.set(ContextScopeUtils.hash(scope), updated)
-          }))
+          yield* withScopeLock(
+            scope,
+            Effect.gen(function* () {
+              const s = yield* Ref.get(state)
+              const scopeState = yield* getScopeState(scope)
+              const updated: ScopeState = {
+                ...scopeState,
+                epoch,
+                version: scopeState.version + 1,
+              }
+              s.scopes.set(ContextScopeUtils.hash(scope), updated)
+            }),
+          )
         }),
 
       getBudget: (scope: ContextScope) =>
@@ -451,16 +465,19 @@ export const layer = Layer.effect(
 
       setBudget: (scope: ContextScope, budget: ContextBudget) =>
         Effect.gen(function* () {
-          yield* withScopeLock(scope, Effect.gen(function* () {
-            const s = yield* Ref.get(state)
-            const scopeState = yield* getScopeState(scope)
-            const updated: ScopeState = {
-              ...scopeState,
-              budget,
-              version: scopeState.version + 1
-            }
-            s.scopes.set(ContextScopeUtils.hash(scope), updated)
-          }))
+          yield* withScopeLock(
+            scope,
+            Effect.gen(function* () {
+              const s = yield* Ref.get(state)
+              const scopeState = yield* getScopeState(scope)
+              const updated: ScopeState = {
+                ...scopeState,
+                budget,
+                version: scopeState.version + 1,
+              }
+              s.scopes.set(ContextScopeUtils.hash(scope), updated)
+            }),
+          )
         }),
 
       compact: (scope: ContextScope, strategy: CompactionStrategy = "hybrid") =>
@@ -491,7 +508,7 @@ export const layer = Layer.effect(
           const loaded = yield* loader()
           yield* service.set(scope, key, loaded)
           return loaded
-        })
+        }),
     }
 
     yield* Effect.addFinalizer(() =>
@@ -500,11 +517,11 @@ export const layer = Layer.effect(
         for (const [, timer] of s.compactionTimers) {
           clearTimeout(timer)
         }
-      }).pipe(Effect.asVoid)
+      }).pipe(Effect.asVoid),
     )
 
     return service
-  })
+  }),
 )
 
 export const defaultLayer = layer
@@ -518,7 +535,7 @@ export {
   type CompactionStrategy,
   ScopeNotFoundError,
   ContextError,
-  type Generation
+  type Generation,
 } from "./types"
 
 export * as Context from "./context"

@@ -117,7 +117,7 @@ const headless = {
         callback: Effect.gen(function* () {
           while (true) {
             const response = yield* Effect.tryPromise({
-              try:  async (signal) =>
+              try: async (signal) =>
                 fetch(`${issuer}/api/accounts/deviceauth/token`, {
                   method: "POST",
                   headers: headers("application/json"),
@@ -127,7 +127,7 @@ const headless = {
               catch: (cause) => cause,
             })
             if (response.ok) {
-              const body: unknown = yield* Effect.promise( async () => response.json())
+              const body: unknown = yield* Effect.promise(async () => response.json())
               const authorizationCode = stringField(body, "authorization_code")
               const codeVerifier = stringField(body, "code_verifier")
               if (authorizationCode === undefined || codeVerifier === undefined) {
@@ -176,7 +176,7 @@ export const OpenAIPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/openai") return
-        const mod = yield* Effect.promise( async () => import("@ai-sdk/openai"))
+        const mod = yield* Effect.promise(async () => import("@ai-sdk/openai"))
         evt.sdk = mod.createOpenAI(evt.options)
       }),
     )
@@ -260,18 +260,20 @@ function base64UrlEncode(buffer: ArrayBuffer) {
 }
 
 function authorizeURL(redirect: string, pkce: Pkce, state: string) {
-  return `${issuer}/oauth/authorize?${String(new URLSearchParams({
-    response_type: "code",
-    client_id: clientID,
-    redirect_uri: redirect,
-    scope: "openid profile email offline_access",
-    code_challenge: pkce.challenge,
-    code_challenge_method: "S256",
-    id_token_add_organizations: "true",
-    codex_cli_simplified_flow: "true",
-    state,
-    originator: "opencode",
-  }))}`
+  return `${issuer}/oauth/authorize?${String(
+    new URLSearchParams({
+      response_type: "code",
+      client_id: clientID,
+      redirect_uri: redirect,
+      scope: "openid profile email offline_access",
+      code_challenge: pkce.challenge,
+      code_challenge_method: "S256",
+      id_token_add_organizations: "true",
+      codex_cli_simplified_flow: "true",
+      state,
+      originator: "opencode",
+    }),
+  )}`
 }
 
 function extractAccountID(tokens: TokenResponse) {
@@ -294,7 +296,13 @@ function firstClaim(value: unknown): string | undefined {
   if ("chatgpt_account_id" in value && typeof value.chatgpt_account_id === "string") return value.chatgpt_account_id
   if ("https://api.openai.com/auth" in value) {
     const auth = value["https://api.openai.com/auth"]
-    if (typeof auth === "object" && auth !== null && "chatgpt_account_id" in auth && typeof auth.chatgpt_account_id === "string") return auth.chatgpt_account_id
+    if (
+      typeof auth === "object" &&
+      auth !== null &&
+      "chatgpt_account_id" in auth &&
+      typeof auth.chatgpt_account_id === "string"
+    )
+      return auth.chatgpt_account_id
   }
   if ("organizations" in value) {
     const organizations = value.organizations

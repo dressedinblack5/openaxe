@@ -72,11 +72,14 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
   onCleanup(stop)
 
   const grouped = createMemo(() => {
-    const groupedBy = local.options.reduce((acc, item) => {
-      const key = local.groupBy ? local.groupBy(item) : ""
-      ;(acc[key] ??= []).push(item)
-      return acc
-    }, {} as Record<string, typeof local.options>)
+    const groupedBy = local.options.reduce(
+      (acc, item) => {
+        const key = local.groupBy ? local.groupBy(item) : ""
+        ;(acc[key] ??= []).push(item)
+        return acc
+      },
+      {} as Record<string, typeof local.options>,
+    )
     return Object.entries(groupedBy).map(([k, v]) => ({ category: k, options: v }))
   })
 

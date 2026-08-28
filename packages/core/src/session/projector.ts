@@ -40,7 +40,8 @@ function usage(part: unknown): Usage | undefined {
   const { cost, tokens } = part
   if (typeof cost !== "number") return undefined
   if (typeof tokens !== "object" || tokens === null) return undefined
-  if (!("input" in tokens) || !("output" in tokens) || !("reasoning" in tokens) || !("cache" in tokens)) return undefined
+  if (!("input" in tokens) || !("output" in tokens) || !("reasoning" in tokens) || !("cache" in tokens))
+    return undefined
   const { input, output, reasoning, cache } = tokens
   if (typeof input !== "number" || typeof output !== "number" || typeof reasoning !== "number") return undefined
   if (typeof cache !== "object" || cache === null || !("read" in cache) || !("write" in cache)) return undefined

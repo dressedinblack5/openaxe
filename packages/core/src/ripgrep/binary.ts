@@ -74,14 +74,14 @@ export const layer = Layer.effect(
 
       if (config.extension === "zip") {
         const unzipOk = yield* Effect.tryPromise({
-          try:  async () => execAsync(`unzip -o "${archive}" -d "${dir}"`, { shell: true }),
+          try: async () => execAsync(`unzip -o "${archive}" -d "${dir}"`, { shell: true }),
           catch: (cause) => cause,
         }).pipe(Effect.isSuccess)
         if (!unzipOk) {
           const shell = which("powershell.exe") ?? which("pwsh.exe") ?? "powershell.exe"
           const psCmd = `& { $global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force }`
           yield* Effect.tryPromise({
-            try:  async () =>
+            try: async () =>
               execAsync(`"${shell}" -NoProfile -NonInteractive -Command "${psCmd.replaceAll('"', '\\"')}"`, {
                 shell: true,
               }),
@@ -113,7 +113,8 @@ export const layer = Layer.effect(
         }
       }
 
-      if (!(yield* fs.isFile(extracted).pipe(Effect.orDie))) throw new Error(`ripgrep archive did not contain executable: ${extracted}`)
+      if (!(yield* fs.isFile(extracted).pipe(Effect.orDie)))
+        throw new Error(`ripgrep archive did not contain executable: ${extracted}`)
 
       yield* fs.copyFile(extracted, target)
       if (process.platform !== "win32") yield* fs.chmod(target, 0o755)
@@ -129,7 +130,7 @@ export const layer = Layer.effect(
           if (yield* fs.isFile(target).pipe(Effect.orDie)) return target
 
           // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- the runtime guard below validates the arch-platform tuple against PLATFORM.
-      const platformKey = `${process.arch}-${process.platform}` as keyof typeof PLATFORM
+          const platformKey = `${process.arch}-${process.platform}` as keyof typeof PLATFORM
           const config = PLATFORM[platformKey]
           if (!config) throw new Error(`unsupported platform for ripgrep: ${platformKey}`)
 

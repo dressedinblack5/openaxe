@@ -1,5 +1,5 @@
 /* oxlint-disable */
-import type { Effect } from "effect/Effect";
+import type { Effect } from "effect/Effect"
 import { applyEffectWrapper, type QueryEffectHKTBase } from "drizzle-orm/effect-core/query-effect"
 import { entityKind, is } from "drizzle-orm/entity"
 import type { SelectResultFields } from "drizzle-orm/query-builders/select.types"
@@ -200,13 +200,11 @@ export interface SQLiteEffectUpdateBase<
   TDynamic extends boolean = false,
   _TExcludedMethods extends string = never,
   TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
-> extends SQLWrapper,
+>
+  extends
+    SQLWrapper,
     RunnableQuery<TReturning extends undefined ? TRunResult : TReturning[], "sqlite">,
-    Effect<
-      TReturning extends undefined ? TRunResult : TReturning[],
-      TEffectHKT["error"],
-      TEffectHKT["context"]
-    > {
+    Effect<TReturning extends undefined ? TRunResult : TReturning[], TEffectHKT["error"], TEffectHKT["context"]> {
   readonly _: {
     readonly dialect: "sqlite"
     readonly table: TTable
@@ -222,14 +220,14 @@ export interface SQLiteEffectUpdateBase<
 }
 
 export class SQLiteEffectUpdateBase<
-    TTable extends SQLiteTable = SQLiteTable,
-    TRunResult = unknown,
-    TFrom extends SQLiteTable | Subquery | SQLiteViewBase | SQL | undefined = undefined,
-    TReturning = undefined,
-    TDynamic extends boolean = false,
-    _TExcludedMethods extends string = never,
-    TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
-  >
+  TTable extends SQLiteTable = SQLiteTable,
+  TRunResult = unknown,
+  TFrom extends SQLiteTable | Subquery | SQLiteViewBase | SQL | undefined = undefined,
+  TReturning = undefined,
+  TDynamic extends boolean = false,
+  _TExcludedMethods extends string = never,
+  TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
+>
   implements RunnableQuery<TReturning extends undefined ? TRunResult : TReturning[], "sqlite">, SQLWrapper
 {
   static readonly [entityKind]: string = "SQLiteEffectUpdate"
@@ -312,8 +310,7 @@ export class SQLiteEffectUpdateBase<
   orderBy(...columns: (SQLiteColumn | SQL | SQL.Aliased)[]): SQLiteEffectUpdateWithout<this, TDynamic, "orderBy">
   orderBy(
     ...columns:
-      | [(updateTable: TTable) => ValueOrArray<SQLiteColumn | SQL | SQL.Aliased>]
-      | (SQLiteColumn | SQL | SQL.Aliased)[]
+      [(updateTable: TTable) => ValueOrArray<SQLiteColumn | SQL | SQL.Aliased>] | (SQLiteColumn | SQL | SQL.Aliased)[]
   ): SQLiteEffectUpdateWithout<this, TDynamic, "orderBy"> {
     if (typeof columns[0] === "function") {
       const orderBy = columns[0](

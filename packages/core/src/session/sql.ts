@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, index, primaryKey, real, uniqueIndex, blob } from "drizzle-orm/sqlite-core"
-import { directoryColumn, pathColumn } from "../database/path";
+import { directoryColumn, pathColumn } from "../database/path"
 import { ProjectTable } from "../project/sql"
 import type { SessionMessage } from "./message"
 import type { Prompt } from "./prompt"

@@ -19,7 +19,7 @@ import { HealthHandler } from "./handlers/health"
 import { PtyHandler } from "./handlers/pty"
 import { QuestionHandler } from "./handlers/question"
 import { ReferenceHandler } from "./handlers/reference"
-import { defaultLayer } from "@opencode-ai/core/session/execution/local";
+import { defaultLayer } from "@opencode-ai/core/session/execution/local"
 import { LocationHandler } from "./handlers/location"
 import { IntegrationHandler } from "./handlers/integration"
 import { CredentialHandler } from "./handlers/credential"

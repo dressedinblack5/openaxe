@@ -29,7 +29,9 @@ export interface Interface {
   readonly delete: (key: string) => Effect.Effect<void>
   readonly search: (query: string, k: number) => Effect.Effect<ReadonlyArray<SearchHit>>
   readonly list: () => Effect.Effect<ReadonlyArray<string>>
-  readonly listEntries: (limit: number) => Effect.Effect<ReadonlyArray<{ readonly key: string; readonly value: string; readonly updatedAt: number }>>
+  readonly listEntries: (
+    limit: number,
+  ) => Effect.Effect<ReadonlyArray<{ readonly key: string; readonly value: string; readonly updatedAt: number }>>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/v2/WorkspaceMemory") {}
@@ -50,27 +52,36 @@ export const layer = Layer.effect(
     )
 
     const projectID = (): Effect.Effect<Project.ID> =>
-      Effect.map(
-        Effect.serviceOption(Location.Service),
-        (location) =>
-          Option.getOrElse(Option.map(location, (loc) => loc.project.id), () => DEFAULT_PROJECT),
+      Effect.map(Effect.serviceOption(Location.Service), (location) =>
+        Option.getOrElse(
+          Option.map(location, (loc) => loc.project.id),
+          () => DEFAULT_PROJECT,
+        ),
       )
 
     const ensureVecTable = (dimension: number): Effect.Effect<void, unknown> =>
-      db.run(sql`CREATE VIRTUAL TABLE IF NOT EXISTS ${sql.raw(VEC_TABLE)} USING vec0(
+      db
+        .run(
+          sql`CREATE VIRTUAL TABLE IF NOT EXISTS ${sql.raw(VEC_TABLE)} USING vec0(
         vector float[${sql.raw(String(dimension))}] distance_metric=cosine, project_id text, key text
-      )`).pipe(Effect.map(() => undefined))
+      )`,
+        )
+        .pipe(Effect.map(() => undefined))
 
     const upsertVecRow = (pid: Project.ID, key: string, vector: Buffer): Effect.Effect<void, unknown> =>
       Effect.gen(function* () {
         yield* db.run(sql`DELETE FROM ${sql.raw(VEC_TABLE)} WHERE project_id = ${pid} AND key = ${key}`)
-        yield* db.run(sql`INSERT INTO ${sql.raw(VEC_TABLE)} (vector, project_id, key) VALUES (${vector}, ${pid}, ${key})`)
+        yield* db.run(
+          sql`INSERT INTO ${sql.raw(VEC_TABLE)} (vector, project_id, key) VALUES (${vector}, ${pid}, ${key})`,
+        )
       })
 
     // Rebuild the search index from the durable blobs (idempotent) — covers the
     // dropped-at-teardown table and rows whose vec write failed at set time.
     const backfillVecTable = (): Effect.Effect<void, unknown> =>
-      db.run(sql`
+      db
+        .run(
+          sql`
         INSERT INTO ${sql.raw(VEC_TABLE)} (vector, project_id, key)
         SELECT vector, project_id, key FROM ${sql.identifier("workspace_memory")}
         WHERE vector IS NOT NULL
@@ -78,7 +89,9 @@ export const layer = Layer.effect(
             SELECT 1 FROM ${sql.raw(VEC_TABLE)} v
             WHERE v.key = workspace_memory.key AND v.project_id = workspace_memory.project_id
           )
-      `).pipe(Effect.map(() => undefined))
+      `,
+        )
+        .pipe(Effect.map(() => undefined))
 
     // Embedding is an enhancement: a failure (provider down, dimension mismatch,
     // vec0 unavailable) never blocks the durable key-value write.
@@ -88,7 +101,9 @@ export const layer = Layer.effect(
         if (Result.isFailure(result)) {
           const failure = result.failure
           const detail = "message" in failure ? `: ${failure.message}` : ""
-          yield* Effect.logWarning(`WorkspaceMemory: embedding failed, persisting without vector (${failure._tag}${detail})`)
+          yield* Effect.logWarning(
+            `WorkspaceMemory: embedding failed, persisting without vector (${failure._tag}${detail})`,
+          )
           return undefined
         }
         const vector = result.success.vectors[0]
@@ -167,7 +182,9 @@ export const layer = Layer.effect(
         return rows.map((row) => row.key)
       })
 
-    const listEntries = (limit: number): Effect.Effect<ReadonlyArray<{ key: string; value: string; updatedAt: number }>> =>
+    const listEntries = (
+      limit: number,
+    ): Effect.Effect<ReadonlyArray<{ key: string; value: string; updatedAt: number }>> =>
       Effect.gen(function* () {
         const pid = yield* projectID()
         const rows = yield* db
@@ -197,11 +214,13 @@ export const layer = Layer.effect(
           .pipe(Effect.flatMap(() => backfillVecTable()))
           .pipe(Effect.catchCause(() => Effect.void))
         const matches = yield* db
-          .all<{ key: string; distance: number }>(sql`
+          .all<{ key: string; distance: number }>(
+            sql`
             SELECT key, distance FROM ${sql.raw(VEC_TABLE)}
             WHERE vector MATCH ${Buffer.from(new Float32Array(vector).buffer)} AND project_id = ${pid}
             ORDER BY distance LIMIT ${k}
-          `)
+          `,
+          )
           .pipe(Effect.catchCause(() => Effect.succeed([] as Array<{ key: string; distance: number }>))) // ponytail: vec unavailable / dim mismatch → no hits, not an error
         if (matches.length === 0) return []
         const keys = [...new Set(matches.map((match) => match.key))]
@@ -222,7 +241,4 @@ export const layer = Layer.effect(
   }),
 )
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Database.defaultLayer),
-  Layer.provide(Embedding.defaultLayer),
-)
+export const defaultLayer = layer.pipe(Layer.provide(Database.defaultLayer), Layer.provide(Embedding.defaultLayer))

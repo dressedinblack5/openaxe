@@ -81,7 +81,11 @@ const seed = (
 // Fresh temp DB per test; the body gets the service, a direct db handle for
 // seeding/asserting, and the temp dir path (session directory) for file asserts.
 const withGenerator = <A, E>(
-  body: (service: SkillGenerator.Interface, db: Database.Interface["db"], dir: string) => Effect.Effect<A, E, Scope.Scope>,
+  body: (
+    service: SkillGenerator.Interface,
+    db: Database.Interface["db"],
+    dir: string,
+  ) => Effect.Effect<A, E, Scope.Scope>,
 ) =>
   Effect.acquireRelease(
     Effect.promise(async () => {
@@ -112,11 +116,23 @@ describe("SkillGenerator", () => {
       Effect.gen(function* () {
         const projectID = ProjectV2.ID.make("proj_gen_happy")
         const sessionID = SessionSchema.ID.descending("ses_gen_happy")
-        const sequence = [tool("p1", "bash", { command: "bun test" }), tool("p2", "edit", { filePath: "a.ts", content: "x" }), tool("p3", "read", { filePath: "a.ts" })]
+        const sequence = [
+          tool("p1", "bash", { command: "bun test" }),
+          tool("p2", "edit", { filePath: "a.ts", content: "x" }),
+          tool("p3", "read", { filePath: "a.ts" }),
+        ]
         yield* seed(db, projectID, sessionID, dir, [
           assistant("msg_1", sequence),
-          assistant("msg_2", [tool("p4", "bash", { command: "bun typecheck" }), tool("p5", "edit", { filePath: "b.ts", content: "y" }), tool("p6", "read", { filePath: "b.ts" })]),
-          assistant("msg_3", [tool("p7", "bash", { command: "bun test" }), tool("p8", "edit", { filePath: "c.ts", content: "z" }), tool("p9", "read", { filePath: "c.ts" })]),
+          assistant("msg_2", [
+            tool("p4", "bash", { command: "bun typecheck" }),
+            tool("p5", "edit", { filePath: "b.ts", content: "y" }),
+            tool("p6", "read", { filePath: "b.ts" }),
+          ]),
+          assistant("msg_3", [
+            tool("p7", "bash", { command: "bun test" }),
+            tool("p8", "edit", { filePath: "c.ts", content: "z" }),
+            tool("p9", "read", { filePath: "c.ts" }),
+          ]),
         ])
 
         const drafts = yield* service.analyzeSession(sessionID)
@@ -140,7 +156,8 @@ describe("SkillGenerator", () => {
         expect(agent.skills).toEqual(["auto-bash-edit"])
         expect(agent.model).toEqual({ id: "model", providerID: "provider" })
       }),
-    ))
+    ),
+  )
 
   it.effect("generateFromHistory aggregates patterns across sessions", () =>
     withGenerator((service, db, dir) =>
@@ -164,7 +181,8 @@ describe("SkillGenerator", () => {
         expect(bashEdit).toBeDefined()
         expect(bashEdit?.description).toContain("6 similar tool sequences")
       }),
-    ))
+    ),
+  )
 
   it.effect("no repeated patterns returns empty and writes nothing", () =>
     withGenerator((service, db, dir) =>
@@ -181,7 +199,8 @@ describe("SkillGenerator", () => {
         expect(drafts).toEqual([])
         expect(exists(path.join(dir, ".openaxe"))).toBe(false)
       }),
-    ))
+    ),
+  )
 
   it.effect("invalid tool names are filtered from detection", () =>
     withGenerator((service, db, dir) =>
@@ -202,5 +221,6 @@ describe("SkillGenerator", () => {
         expect(names).toContain("auto-bash")
         expect(names.some((name) => name.includes("bad") || name.includes(".."))).toBe(false)
       }),
-    ))
+    ),
+  )
 })

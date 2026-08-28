@@ -18,11 +18,15 @@ import { getScrollAcceleration } from "../util/scroll"
 import { useTuiConfig } from "../config"
 import { formatKeyBindings, useBindings, useKeymapSelector } from "../keymap"
 
-function groupBy<T, K extends string>(arr: T[], fn: (item: T) => K): Record<K, T[]> {
-  return arr.reduce((acc, item) => {
-    (acc[fn(item)] ??= []).push(item); return acc
-  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- empty accumulator typed via the reduce generic
-  }, {} as Record<K, T[]>)
+function groupBy<T>(arr: T[], fn: (item: T) => string): Record<string, T[]> {
+  const map = new Map<string, T[]>()
+  for (const item of arr) {
+    const key = fn(item)
+    const existing = map.get(key)
+    if (existing) existing.push(item)
+    else map.set(key, [item])
+  }
+  return Object.fromEntries(map)
 }
 function deepEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b)

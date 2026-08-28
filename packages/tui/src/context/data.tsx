@@ -125,10 +125,7 @@ const Data = createSimpleContext({
     function handleEvent(event: Event, location: LocationRef) {
       switch (event.type) {
         case "catalog.updated":
-          void Promise.all([
-            result.location.model.refresh(location),
-            result.location.provider.refresh(location),
-          ])
+          void Promise.all([result.location.model.refresh(location), result.location.provider.refresh(location)])
           break
         case "session.next.agent.switched":
           message.update(event.properties.sessionID, (draft) => {
@@ -254,13 +251,19 @@ const Data = createSimpleContext({
           break
         case "session.next.text.delta":
           message.update(event.properties.sessionID, (draft) => {
-            const match = message.latestText(message.assistant(draft, event.properties.assistantMessageID), event.properties.textID)
+            const match = message.latestText(
+              message.assistant(draft, event.properties.assistantMessageID),
+              event.properties.textID,
+            )
             if (match) match.text += event.properties.delta
           })
           break
         case "session.next.text.ended":
           message.update(event.properties.sessionID, (draft) => {
-            const match = message.latestText(message.assistant(draft, event.properties.assistantMessageID), event.properties.textID)
+            const match = message.latestText(
+              message.assistant(draft, event.properties.assistantMessageID),
+              event.properties.textID,
+            )
             if (match) match.text = event.properties.text
           })
           break
@@ -277,19 +280,28 @@ const Data = createSimpleContext({
           break
         case "session.next.tool.input.delta":
           message.update(event.properties.sessionID, (draft) => {
-            const match = message.latestTool(message.assistant(draft, event.properties.assistantMessageID), event.properties.callID)
+            const match = message.latestTool(
+              message.assistant(draft, event.properties.assistantMessageID),
+              event.properties.callID,
+            )
             if (match?.state.status === "pending") match.state.input += event.properties.delta
           })
           break
         case "session.next.tool.input.ended":
           message.update(event.properties.sessionID, (draft) => {
-            const match = message.latestTool(message.assistant(draft, event.properties.assistantMessageID), event.properties.callID)
+            const match = message.latestTool(
+              message.assistant(draft, event.properties.assistantMessageID),
+              event.properties.callID,
+            )
             if (match?.state.status === "pending") match.state.input = event.properties.text
           })
           break
         case "session.next.tool.called":
           message.update(event.properties.sessionID, (draft) => {
-            const match = message.latestTool(message.assistant(draft, event.properties.assistantMessageID), event.properties.callID)
+            const match = message.latestTool(
+              message.assistant(draft, event.properties.assistantMessageID),
+              event.properties.callID,
+            )
             if (!match) return
             match.time.ran = event.properties.timestamp
             match.provider = event.properties.provider
@@ -298,7 +310,10 @@ const Data = createSimpleContext({
           break
         case "session.next.tool.progress":
           message.update(event.properties.sessionID, (draft) => {
-            const match = message.latestTool(message.assistant(draft, event.properties.assistantMessageID), event.properties.callID)
+            const match = message.latestTool(
+              message.assistant(draft, event.properties.assistantMessageID),
+              event.properties.callID,
+            )
             if (match?.state.status !== "running") return
             match.state.structured = event.properties.structured
             match.state.content = [...event.properties.content]
@@ -306,7 +321,10 @@ const Data = createSimpleContext({
           break
         case "session.next.tool.success":
           message.update(event.properties.sessionID, (draft) => {
-            const match = message.latestTool(message.assistant(draft, event.properties.assistantMessageID), event.properties.callID)
+            const match = message.latestTool(
+              message.assistant(draft, event.properties.assistantMessageID),
+              event.properties.callID,
+            )
             if (match?.state.status !== "running") return
             match.state = {
               status: "completed",
@@ -325,7 +343,10 @@ const Data = createSimpleContext({
           break
         case "session.next.tool.failed":
           message.update(event.properties.sessionID, (draft) => {
-            const match = message.latestTool(message.assistant(draft, event.properties.assistantMessageID), event.properties.callID)
+            const match = message.latestTool(
+              message.assistant(draft, event.properties.assistantMessageID),
+              event.properties.callID,
+            )
             if (!match || (match.state.status !== "pending" && match.state.status !== "running")) return
             match.state = {
               status: "error",
@@ -370,7 +391,8 @@ const Data = createSimpleContext({
             )
             if (match) {
               match.text = event.properties.text
-              if (event.properties.providerMetadata !== undefined) match.providerMetadata = event.properties.providerMetadata
+              if (event.properties.providerMetadata !== undefined)
+                match.providerMetadata = event.properties.providerMetadata
             }
           })
           break

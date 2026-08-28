@@ -121,16 +121,25 @@ const mine = (db: Database.Interface["db"], scope: { sessionId: SessionSchema.ID
     const bySession = new Map<SessionSchema.ID, ToolCall[]>()
     // eq() keeps its column's table qualification, so the message query filters
     // session_message.session_id directly (project scope joins session, like reflection).
-    const messages = "sessionId" in scope
-      ? db
-          .select({ sessionId: SessionMessageTable.session_id, type: SessionMessageTable.type, data: SessionMessageTable.data })
-          .from(SessionMessageTable)
-          .where(eq(SessionMessageTable.session_id, scope.sessionId))
-      : db
-          .select({ sessionId: SessionMessageTable.session_id, type: SessionMessageTable.type, data: SessionMessageTable.data })
-          .from(SessionMessageTable)
-          .innerJoin(SessionTable, eq(SessionMessageTable.session_id, SessionTable.id))
-          .where(eq(SessionTable.project_id, scope.projectId))
+    const messages =
+      "sessionId" in scope
+        ? db
+            .select({
+              sessionId: SessionMessageTable.session_id,
+              type: SessionMessageTable.type,
+              data: SessionMessageTable.data,
+            })
+            .from(SessionMessageTable)
+            .where(eq(SessionMessageTable.session_id, scope.sessionId))
+        : db
+            .select({
+              sessionId: SessionMessageTable.session_id,
+              type: SessionMessageTable.type,
+              data: SessionMessageTable.data,
+            })
+            .from(SessionMessageTable)
+            .innerJoin(SessionTable, eq(SessionMessageTable.session_id, SessionTable.id))
+            .where(eq(SessionTable.project_id, scope.projectId))
     const messageRows = yield* messages.orderBy(SessionMessageTable.seq).all().pipe(Effect.orDie)
     for (const row of messageRows) {
       if (row.type !== "assistant") continue
@@ -267,7 +276,10 @@ const writeSkill = (skillsDir: string, pattern: Pattern, draft: SkillDraft): Eff
       : ["", "## Parameters", ...Object.entries(draft.params).map(([tool, keys]) => `- ${tool}: ${keys.join(", ")}`)]),
   ].join("\n")
   // Frontmatter name is required for SkillV2 directory discovery (see tool/skill-write.ts).
-  return writeFile(path.join(skillsDir, draft.name, "SKILL.md"), matter.stringify(body, { name: draft.name, description: draft.description, tools: draft.tools }))
+  return writeFile(
+    path.join(skillsDir, draft.name, "SKILL.md"),
+    matter.stringify(body, { name: draft.name, description: draft.description, tools: draft.tools }),
+  )
 }
 
 const writeAgent = (agentsDir: string, draft: AgentDraft): Effect.Effect<void> =>

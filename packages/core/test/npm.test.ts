@@ -11,7 +11,7 @@ import { tmpdir } from "./fixture/tmpdir"
 
 const win = process.platform === "win32"
 
-const writePackage =  async (dir: string, pkg: Record<string, unknown>) =>
+const writePackage = async (dir: string, pkg: Record<string, unknown>) =>
   Bun.write(
     path.join(dir, "package.json"),
     JSON.stringify({
@@ -85,7 +85,7 @@ describe("Npm.install", () => {
 
     await Npm.install(tmp.path)
 
-     expect(fs.stat(path.join(tmp.path, "node_modules", "prod-pkg"))).resolves.toBeDefined()
-     expect(fs.stat(path.join(tmp.path, "node_modules", "dev-pkg"))).rejects.toThrow()
+    expect(fs.stat(path.join(tmp.path, "node_modules", "prod-pkg"))).resolves.toBeDefined()
+    expect(fs.stat(path.join(tmp.path, "node_modules", "dev-pkg"))).rejects.toThrow()
   })
 })

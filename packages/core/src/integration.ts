@@ -309,7 +309,7 @@ export const locationLayer = Layer.effect(
               current.implementations.set(
                 implementation.method.id,
                 // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- DeepMutable is a compile-time transform of the frozen implementation type.
-        implementation as Types.DeepMutable<OAuthImplementation>,
+                implementation as Types.DeepMutable<OAuthImplementation>,
               )
             }
           },
@@ -547,8 +547,8 @@ export const locationLayer = Layer.effect(
           const callback =
             attempt.authorization.mode === "auto"
               ? attempt.authorization.callback
-              // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- manual (non-auto) mode completion guarantees the code is present by protocol.
-              : attempt.authorization.callback(input.code!)
+              : // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- manual (non-auto) mode completion guarantees the code is present by protocol.
+                attempt.authorization.callback(input.code!)
           const exit = yield* authorizeIntegration(callback).pipe(Effect.exit)
           yield* settle(input.attemptID, exit)
           // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- authorizeIntegration only fails with IntegrationError

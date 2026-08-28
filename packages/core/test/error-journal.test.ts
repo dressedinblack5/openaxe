@@ -9,16 +9,18 @@ const gw = testEffect(NodeFileSystem.layer)
 
 function withTmpDir<A, E, R>(body: (dir: string) => Effect.Effect<A, E, R>) {
   return Effect.acquireRelease(
-    Effect.promise( async () => tmpdir()),
-    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+    Effect.promise(async () => tmpdir()),
+    (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
   ).pipe(
     Effect.flatMap((tmp) => {
       const origCwd = process.cwd
       process.cwd = () => tmp.path
       return body(tmp.path).pipe(
-        Effect.ensuring(Effect.sync(() => {
-          process.cwd = origCwd
-        })),
+        Effect.ensuring(
+          Effect.sync(() => {
+            process.cwd = origCwd
+          }),
+        ),
       )
     }),
   )

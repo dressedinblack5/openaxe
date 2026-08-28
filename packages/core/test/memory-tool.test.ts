@@ -26,7 +26,11 @@ const bagOfWords = (text: string) => {
 const fakeEmbedding = Layer.succeed(
   Embedding.Service,
   Embedding.Service.of({
-    provider: { model: "fake", dimension: alphabet.length, embed: () => Effect.succeed({ vectors: [], dimension: alphabet.length, model: "fake" }) },
+    provider: {
+      model: "fake",
+      dimension: alphabet.length,
+      embed: () => Effect.succeed({ vectors: [], dimension: alphabet.length, model: "fake" }),
+    },
     embed: (texts) =>
       Effect.sync(() => ({
         vectors: [...texts].map((text) => bagOfWords(text)),
@@ -171,7 +175,12 @@ describe("MemoryTool", () => {
       Effect.gen(function* () {
         const settled = yield* settleTool(
           registry,
-          call({ operation: "set", namespace: "bogus", key: "foo", value: "bar" } as unknown as typeof MemoryTool.Input.Type),
+          call({
+            operation: "set",
+            namespace: "bogus",
+            key: "foo",
+            value: "bar",
+          } as unknown as typeof MemoryTool.Input.Type),
         )
         expect(settled.result.type).toBe("error")
         expect(settled.result.value).toContain("Invalid tool input")

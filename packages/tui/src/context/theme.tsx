@@ -131,7 +131,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       if (theme) setStore("active", theme)
     })
 
-     async function syncCustomThemes() {
+    async function syncCustomThemes() {
       return themes
         .discover()
         .then((themes) => {
@@ -160,7 +160,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     let systemThemeSignature: string | undefined
     let systemThemeMode: "dark" | "light" | undefined
     let hasResolvedSystemTheme = false
-     async function resolveSystemTheme(mode: "dark" | "light" = store.mode) {
+    async function resolveSystemTheme(mode: "dark" | "light" = store.mode) {
       return renderer
         .getPalette({ size: 16 })
         .then((colors: TerminalColors) => {

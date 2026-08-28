@@ -65,11 +65,7 @@ export class UnsupportedApiError extends Schema.TaggedErrorClass<UnsupportedApiE
 }
 
 export type Error =
-  | NoModelAvailableError
-  | ModelUnavailableError
-  | VariantUnavailableError
-  | UnsupportedApiError
-  | IntegrationError
+  NoModelAvailableError | ModelUnavailableError | VariantUnavailableError | UnsupportedApiError | IntegrationError
 
 export interface Interface {
   readonly resolve: (session: SessionSchema.Info) => Effect.Effect<Model, Error>

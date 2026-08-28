@@ -21,8 +21,14 @@ export function apply(db: Database) {
       const tables = yield* db.all<{ name: string }>(
         sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`,
       )
-      if (tables.some((table) => table.name === "session")) { yield* applyOnly(db, migrations); return }
-      if (tables.length > 0) { yield* Effect.die("Database is not empty and has no session table"); return }
+      if (tables.some((table) => table.name === "session")) {
+        yield* applyOnly(db, migrations)
+        return
+      }
+      if (tables.length > 0) {
+        yield* Effect.die("Database is not empty and has no session table")
+        return
+      }
       yield* db.transaction((tx) =>
         Effect.gen(function* () {
           yield* schema.up(tx)
@@ -76,10 +82,10 @@ export function applyOnly(db: Database, input: Migration[]) {
         for (let i = 0; i < pendingMigrations.length; i++) {
           const migration = pendingMigrations[i]
           const savepointName = `migration_${migration.id.replace(/-/g, "_")}`
-          
+
           // Create savepoint before each migration
           yield* tx.run(sql`SAVEPOINT ${sql.identifier(savepointName)}`)
-          
+
           try {
             yield* migration.up(tx)
             yield* tx.run(

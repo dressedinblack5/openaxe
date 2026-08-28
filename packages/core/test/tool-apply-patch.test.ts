@@ -93,10 +93,7 @@ const withTool = <A, E, R>(directory: string, body: (registry: ToolRegistry.Inte
   const resolution = LocationMutation.layer.pipe(Layer.provide(filesystem), Layer.provide(activeLocation))
   const mutation = FileMutation.layer.pipe(Layer.provide(filesystem))
   const registry = ToolRegistry.defaultLayer.pipe(Layer.provide(permission))
-  const config = Config.locationLayer.pipe(
-    Layer.provide(activeLocation),
-    Layer.provide(Global.defaultLayer),
-  )
+  const config = Config.locationLayer.pipe(Layer.provide(activeLocation), Layer.provide(Global.defaultLayer))
   const patch = ApplyPatchTool.layer.pipe(
     Layer.provide(config),
     Layer.provide(registry),
@@ -117,7 +114,7 @@ const call = (patchText: string, id = "call-apply-patch") => ({
 })
 
 const exists = (target: string) =>
-  Effect.promise( async () =>
+  Effect.promise(async () =>
     fs.stat(target).then(
       () => true,
       () => false,
@@ -128,12 +125,12 @@ const it = testEffect(Layer.empty)
 describe("ApplyPatchTool", () => {
   it.live("registers and sequentially applies add, update, and delete hunks", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) => {
         reset()
         const update = path.join(tmp.path, "update.txt")
         const remove = path.join(tmp.path, "remove.txt")
-        return Effect.promise( async () =>
+        return Effect.promise(async () =>
           Promise.all([fs.writeFile(update, "before\n"), fs.writeFile(remove, "remove\n")]),
         ).pipe(
           Effect.andThen(
@@ -161,27 +158,27 @@ describe("ApplyPatchTool", () => {
                   { sessionID, action: "edit", resources: ["nested/new.txt", "update.txt", "remove.txt"], save: ["*"] },
                 ])
                 expect(readsBeforeEditApproval).toBe(0)
-                expect(yield* Effect.promise( async () => fs.readFile(path.join(tmp.path, "nested/new.txt"), "utf8"))).toBe(
-                  "created\n",
-                )
-                expect(yield* Effect.promise( async () => fs.readFile(update, "utf8"))).toBe("after\n")
+                expect(
+                  yield* Effect.promise(async () => fs.readFile(path.join(tmp.path, "nested/new.txt"), "utf8")),
+                ).toBe("created\n")
+                expect(yield* Effect.promise(async () => fs.readFile(update, "utf8"))).toBe("after\n")
                 expect(yield* exists(remove)).toBe(false)
               }),
             ),
           ),
         )
       },
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("rejects moves before applying any hunk", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) => {
         reset()
         const source = path.join(tmp.path, "old.txt")
-        return Effect.promise( async () => fs.writeFile(source, "before\n")).pipe(
+        return Effect.promise(async () => fs.writeFile(source, "before\n")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               Effect.gen(function* () {
@@ -200,17 +197,17 @@ describe("ApplyPatchTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("approves an external directory and the batch before reading external update content", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
+      Effect.promise(async () => Promise.all([tmpdir(), tmpdir()])),
       ([active, outside]) => {
         reset()
         const target = path.join(outside.path, "external.txt")
-        return Effect.promise( async () => fs.writeFile(target, "before\n")).pipe(
+        return Effect.promise(async () => fs.writeFile(target, "before\n")).pipe(
           Effect.andThen(
             withTool(active.path, (registry) =>
               Effect.gen(function* () {
@@ -222,14 +219,14 @@ describe("ApplyPatchTool", () => {
                 ).toMatchObject({ type: "text" })
                 expect(assertions.map((input) => input.action)).toEqual(["external_directory", "edit"])
                 expect(readsBeforeEditApproval).toBe(0)
-                expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("after\n")
+                expect(yield* Effect.promise(async () => fs.readFile(target, "utf8"))).toBe("after\n")
               }),
             ),
           ),
         )
       },
       ([active, outside]) =>
-        Effect.promise( async () =>
+        Effect.promise(async () =>
           Promise.all([active[Symbol.asyncDispose](), outside[Symbol.asyncDispose]()]).then(() => undefined),
         ),
     ),
@@ -237,12 +234,12 @@ describe("ApplyPatchTool", () => {
 
   it.live("approves one external directory scope for multiple files under the same parent", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
+      Effect.promise(async () => Promise.all([tmpdir(), tmpdir()])),
       ([active, outside]) => {
         reset()
         const first = path.join(outside.path, "first.txt")
         const second = path.join(outside.path, "second.txt")
-        return Effect.promise( async () =>
+        return Effect.promise(async () =>
           Promise.all([fs.writeFile(first, "before\n"), fs.writeFile(second, "before\n")]),
         ).pipe(
           Effect.andThen(
@@ -258,7 +255,7 @@ describe("ApplyPatchTool", () => {
                 ).toMatchObject({ type: "text" })
                 expect(assertions.map((input) => input.action)).toEqual(["external_directory", "edit"])
                 expect(assertions[0]?.resources).toEqual([
-                  path.join(yield* Effect.promise( async () => fs.realpath(outside.path)), "*").replaceAll("\\", "/"),
+                  path.join(yield* Effect.promise(async () => fs.realpath(outside.path)), "*").replaceAll("\\", "/"),
                 ])
               }),
             ),
@@ -266,7 +263,7 @@ describe("ApplyPatchTool", () => {
         )
       },
       ([active, outside]) =>
-        Effect.promise( async () =>
+        Effect.promise(async () =>
           Promise.all([active[Symbol.asyncDispose](), outside[Symbol.asyncDispose]()]).then(() => undefined),
         ),
     ),
@@ -274,7 +271,7 @@ describe("ApplyPatchTool", () => {
 
   it.live("rejects invalid later update before applying an earlier add", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) => {
         reset()
         return withTool(tmp.path, (registry) =>
@@ -291,17 +288,17 @@ describe("ApplyPatchTool", () => {
           }),
         )
       },
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("rejects add hunks targeting an existing file without replacing it", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) => {
         reset()
         const target = path.join(tmp.path, "existing.txt")
-        return Effect.promise( async () => fs.writeFile(target, "sentinel\n")).pipe(
+        return Effect.promise(async () => fs.writeFile(target, "sentinel\n")).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               Effect.gen(function* () {
@@ -311,23 +308,23 @@ describe("ApplyPatchTool", () => {
                     call("*** Begin Patch\n*** Add File: existing.txt\n+replacement\n*** End Patch"),
                   ),
                 ).toEqual({ type: "error", value: "Unable to apply patch at existing.txt" })
-                expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("sentinel\n")
+                expect(yield* Effect.promise(async () => fs.readFile(target, "utf8"))).toBe("sentinel\n")
               }),
             ),
           ),
         )
       },
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("rejects an add target that appears during permission approval", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) => {
         reset()
         const target = path.join(tmp.path, "appeared.txt")
-        afterEditApproval = () => Effect.promise( async () => fs.writeFile(target, "winner\n")).pipe(Effect.orDie)
+        afterEditApproval = () => Effect.promise(async () => fs.writeFile(target, "winner\n")).pipe(Effect.orDie)
         return withTool(tmp.path, (registry) =>
           Effect.gen(function* () {
             expect(
@@ -336,23 +333,25 @@ describe("ApplyPatchTool", () => {
                 call("*** Begin Patch\n*** Add File: appeared.txt\n+replacement\n*** End Patch"),
               ),
             ).toEqual({ type: "error", value: "Unable to apply patch at appeared.txt" })
-            expect(yield* Effect.promise( async () => fs.readFile(target, "utf8"))).toBe("winner\n")
+            expect(yield* Effect.promise(async () => fs.readFile(target, "utf8"))).toBe("winner\n")
           }),
         )
       },
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("preserves a later commit defect after earlier sequential applications", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) => {
         reset()
         const first = path.join(tmp.path, "first.txt")
         const second = path.join(tmp.path, "second.txt")
         failRemoveTarget = path.basename(second)
-        return Effect.promise( async () => Promise.all([fs.writeFile(first, "first"), fs.writeFile(second, "second")])).pipe(
+        return Effect.promise(async () =>
+          Promise.all([fs.writeFile(first, "first"), fs.writeFile(second, "second")]),
+        ).pipe(
           Effect.andThen(
             withTool(tmp.path, (registry) =>
               Effect.gen(function* () {
@@ -371,13 +370,13 @@ describe("ApplyPatchTool", () => {
           ),
         )
       },
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("finishes the sequential commit phase when interrupted after the first mutation", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) => {
         reset()
         const first = path.join(tmp.path, "first.txt")
@@ -386,7 +385,7 @@ describe("ApplyPatchTool", () => {
         return Effect.gen(function* () {
           removeStarted = yield* Deferred.make<void>()
           releaseRemove = yield* Deferred.make<void>()
-          yield* Effect.promise( async () => Promise.all([fs.writeFile(first, "first"), fs.writeFile(second, "second")]))
+          yield* Effect.promise(async () => Promise.all([fs.writeFile(first, "first"), fs.writeFile(second, "second")]))
           yield* withTool(tmp.path, (registry) =>
             Effect.gen(function* () {
               const run = yield* executeTool(
@@ -405,7 +404,7 @@ describe("ApplyPatchTool", () => {
           )
         })
       },
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 })

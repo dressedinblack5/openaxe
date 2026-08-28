@@ -26,7 +26,7 @@ function rebuildIndexes(state: MemoryState) {
   state.assistantIndex.clear()
   state.shellIndex.clear()
   state.latestAssistantIndex = -1
-  
+
   for (let i = 0; i < state.messages.length; i++) {
     const message = state.messages[i]
     if (message.type === "assistant") {
@@ -38,8 +38,8 @@ function rebuildIndexes(state: MemoryState) {
       state.shellIndex.set(message.callID, i)
     }
   }
-  
-  // If we have a completed assistant after the latest incomplete, 
+
+  // If we have a completed assistant after the latest incomplete,
   // we should not return the incomplete one - find the actual latest
   if (state.latestAssistantIndex >= 0) {
     // Check if there's any assistant message after this one

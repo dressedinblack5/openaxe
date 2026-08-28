@@ -19,7 +19,7 @@ describe("SessionRunnerAdapter - Strangler Fig", () => {
   it("should implement SessionRunnerService interface", () => {
     // The adapter should provide the same interface as the original SessionRunnerService
     const adapterLayer = Layer.provide(SessionRunnerAdapter.layer, UnifiedRunnerInterface.defaultLayer)
-    
+
     expect(adapterLayer).toBeDefined()
     // This test verifies the adapter compiles and provides the correct interface
   })
@@ -29,10 +29,7 @@ describe("SessionRunStateAdapter - Strangler Fig", () => {
   it("should implement SessionRunState interface", () => {
     const adapterLayer = Layer.provide(
       SessionRunStateAdapter.layer,
-      Layer.mergeAll(
-        UnifiedRunnerInterface.defaultLayer,
-        SessionEventSubscriberInterface.defaultLayer
-      )
+      Layer.mergeAll(UnifiedRunnerInterface.defaultLayer, SessionEventSubscriberInterface.defaultLayer),
     )
 
     expect(adapterLayer).toBeDefined()
@@ -41,10 +38,7 @@ describe("SessionRunStateAdapter - Strangler Fig", () => {
 
 describe("SessionDataAdapter - Strangler Fig", () => {
   it("should implement SessionDataAdapter interface", () => {
-    const adapterLayer = Layer.provide(
-      SessionDataAdapter.layer,
-      SessionEventSubscriberInterface.defaultLayer
-    )
+    const adapterLayer = Layer.provide(SessionDataAdapter.layer, SessionEventSubscriberInterface.defaultLayer)
 
     expect(adapterLayer).toBeDefined()
   })

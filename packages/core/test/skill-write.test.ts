@@ -69,8 +69,7 @@ const call = (input: typeof SkillWriteTool.Input.Type = {}, id = "call-skill-wri
   call: { type: "tool-call" as const, id, name: "skill_write", input },
 })
 
-const skillsFile = (directory: string, name: string) =>
-  path.join(directory, ".openaxe", "skills", name, "SKILL.md")
+const skillsFile = (directory: string, name: string) => path.join(directory, ".openaxe", "skills", name, "SKILL.md")
 
 const it = testEffect(Layer.empty)
 
@@ -94,9 +93,18 @@ describe("SkillWriteTool", () => {
           Effect.gen(function* () {
             const settled = yield* settleTool(
               registry,
-              call({ operation: "write", name: "my-skill", description: "A demo skill", content: "# My Skill\n\nBody" }),
+              call({
+                operation: "write",
+                name: "my-skill",
+                description: "A demo skill",
+                content: "# My Skill\n\nBody",
+              }),
             )
-            expect(settled.output?.structured).toMatchObject({ operation: "write", name: "my-skill", action: "created" })
+            expect(settled.output?.structured).toMatchObject({
+              operation: "write",
+              name: "my-skill",
+              action: "created",
+            })
             expect(settled.output?.structured as { path: string; directory: string }).toMatchObject({
               path: target,
               directory: path.join(tmp.path, ".openaxe", "skills"),
@@ -139,7 +147,11 @@ describe("SkillWriteTool", () => {
                   registry,
                   call({ operation: "write", name: "my-skill", content: "new content" }),
                 )
-                expect(settled.output?.structured).toMatchObject({ operation: "write", name: "my-skill", action: "updated" })
+                expect(settled.output?.structured).toMatchObject({
+                  operation: "write",
+                  name: "my-skill",
+                  action: "updated",
+                })
                 const written = yield* Effect.promise(async () => fs.readFile(target, "utf8"))
                 expect(written).toContain("name: my-skill")
                 expect(written).toContain("new content")
@@ -163,7 +175,11 @@ describe("SkillWriteTool", () => {
             const first = yield* settleTool(registry, call(input))
             expect(first.output?.structured).toMatchObject({ action: "created" })
             const second = yield* settleTool(registry, call(input))
-            expect(second.output?.structured).toMatchObject({ operation: "write", name: "my-skill", action: "unchanged" })
+            expect(second.output?.structured).toMatchObject({
+              operation: "write",
+              name: "my-skill",
+              action: "unchanged",
+            })
           }),
         )
       },
@@ -180,10 +196,7 @@ describe("SkillWriteTool", () => {
           Effect.gen(function* () {
             const badNames = ["../evil", "bad/name", ".", "..", "has space", "-lead", "x".repeat(65)]
             for (const bad of badNames) {
-              const result = yield* executeTool(
-                registry,
-                call({ operation: "write", name: bad, content: "body" }),
-              )
+              const result = yield* executeTool(registry, call({ operation: "write", name: bad, content: "body" }))
               expect(result).toEqual({
                 type: "error",
                 value: `Invalid skill name '${bad}'. Use 1-64 letters, digits, or hyphens starting with a letter or digit.`,
@@ -253,7 +266,10 @@ describe("SkillWriteTool", () => {
         reset()
         return withTool(tmp.path, (registry) =>
           Effect.gen(function* () {
-            yield* executeTool(registry, call({ operation: "write", name: "alpha", description: "first", content: "# Alpha" }))
+            yield* executeTool(
+              registry,
+              call({ operation: "write", name: "alpha", description: "first", content: "# Alpha" }),
+            )
             yield* executeTool(registry, call({ operation: "write", name: "beta", content: "# Beta" }))
             const settled = yield* settleTool(registry, call({ operation: "list" }))
             expect(settled.output?.structured).toMatchObject({
@@ -261,8 +277,7 @@ describe("SkillWriteTool", () => {
               directory: path.join(tmp.path, ".openaxe", "skills"),
             })
             const structured = settled.output?.structured as
-              | { skills: { name: string; description?: string; path: string }[] }
-              | undefined
+              { skills: { name: string; description?: string; path: string }[] } | undefined
             expect(structured?.skills.map((skill) => skill.name).sort()).toEqual(["alpha", "beta"])
             expect(structured?.skills.find((skill) => skill.name === "alpha")?.description).toBe("first")
             expect(structured?.skills.every((skill) => path.basename(skill.path) === "SKILL.md")).toBe(true)
@@ -280,18 +295,13 @@ describe("SkillWriteTool", () => {
         reset()
         return withTool(tmp.path, (registry) =>
           Effect.gen(function* () {
-            const settled = yield* settleTool(
-              registry,
-              call({ operation: "write", name: "my-skill", content: "body" }),
-            )
+            const settled = yield* settleTool(registry, call({ operation: "write", name: "my-skill", content: "body" }))
             expect(settled.output?.structured).toMatchObject({ action: "created" })
             const target = path.join(tmp.path, ".openaxe", "skills", "my-skill", "SKILL.md")
             const structured = settled.output?.structured as { path: string; directory: string } | undefined
             expect(structured?.path).toBe(target)
             expect(yield* Effect.promise(async () => fs.readFile(target, "utf8"))).toContain("name: my-skill")
-            expect(structured?.directory).toBe(
-              path.join(tmp.path, ".openaxe", "skills"),
-            )
+            expect(structured?.directory).toBe(path.join(tmp.path, ".openaxe", "skills"))
           }),
         )
       },
@@ -320,9 +330,14 @@ describe("SkillWriteTool", () => {
             const target = path.join(tmp.path, ".openaxe", "skills", "my-skill", "SKILL.md")
             expect(yield* Effect.promise(async () => fs.readFile(target, "utf8"))).toContain("name: my-skill")
             const overrideTarget = path.join(override, "my-skill", "SKILL.md")
-            expect(yield* Effect.promise(async () => fs.access(overrideTarget).then(() => true, () => false))).toBe(
-              false,
-            )
+            expect(
+              yield* Effect.promise(async () =>
+                fs.access(overrideTarget).then(
+                  () => true,
+                  () => false,
+                ),
+              ),
+            ).toBe(false)
           }),
         )
       },

@@ -1868,8 +1868,7 @@ describe("session.llm.stream", () => {
         const capture = yield* Effect.promise(() => request)
         const body = capture.body
         const config = body.generationConfig as
-          | { temperature?: number; topP?: number; maxOutputTokens?: number }
-          | undefined
+          { temperature?: number; topP?: number; maxOutputTokens?: number } | undefined
 
         expect(capture.url.pathname).toBe(pathSuffix)
         expect(body.contents).toEqual([{ role: "user", parts: [{ text: "Hello" }] }])

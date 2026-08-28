@@ -1,6 +1,16 @@
 import { Effect, Schema } from "effect"
 import { ToolFailureError } from "./types"
-import type { ToolDefinition, ToolContext, ToolExecutionResult, ToolFailure, ToolCall, ToolContent, AvailabilityInput, ToolAvailability, JSONSchema7 } from "./types"
+import type {
+  ToolDefinition,
+  ToolContext,
+  ToolExecutionResult,
+  ToolFailure,
+  ToolCall,
+  ToolContent,
+  AvailabilityInput,
+  ToolAvailability,
+  JSONSchema7,
+} from "./types"
 import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
 
 /**
@@ -8,10 +18,13 @@ import type { AgentV2 as Agent } from "@opencode-ai/core/agent"
  */
 interface ToolRuntime<
   P extends Schema.Schema<unknown> = Schema.Schema<unknown>,
-  O extends Schema.Schema<unknown> = Schema.Schema<unknown>
+  O extends Schema.Schema<unknown> = Schema.Schema<unknown>,
 > {
   readonly definition: (name: string) => ToolDefinition<P, O>
-  readonly settle: (call: ToolCall, context: ToolContext) => Effect.Effect<ToolExecutionResult, ToolFailure, P["DecodingServices"] | O["EncodingServices"]>
+  readonly settle: (
+    call: ToolCall,
+    context: ToolContext,
+  ) => Effect.Effect<ToolExecutionResult, ToolFailure, P["DecodingServices"] | O["EncodingServices"]>
   readonly maxResultSizeChars?: number
   readonly permission?: string
   readonly subagentSafe: boolean
@@ -38,37 +51,33 @@ export const validateName = (name: string): Effect.Effect<void, ToolRegistration
     ? Effect.void
     : Effect.fail(new ToolRegistrationError({ name, message: `Invalid tool name: ${name}` }))
 
-export class ToolRegistrationError extends Schema.TaggedErrorClass<ToolRegistrationError>()(
-  "Tool.RegistrationError",
-  { name: Schema.String, message: Schema.String }
-) {}
+export class ToolRegistrationError extends Schema.TaggedErrorClass<ToolRegistrationError>()("Tool.RegistrationError", {
+  name: Schema.String,
+  message: Schema.String,
+}) {}
 
 /**
  * Create a tool definition from configuration
  */
-export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  config: {
-    readonly id: string
-    readonly description: string
-    readonly parameters: P
-    readonly output: O
-    readonly execute: (
-      input: Schema.Schema.Type<P>,
-      context: ToolContext
-    ) => Effect.Effect<Schema.Schema.Type<O>, ToolFailure>
-    readonly toModelOutput?: (
-      input: {
-        readonly input: Schema.Schema.Type<P>
-        readonly output: unknown
-      }
-    ) => ReadonlyArray<ToolContent>
-    readonly maxResultSizeChars?: number
-    readonly permission?: string
-    readonly subagentSafe?: boolean
-    readonly availability?: ToolAvailability
-    readonly describe?: (agent: Agent.Info) => Effect.Effect<string>
-  }
-): ToolDefinition<P, O> {
+export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(config: {
+  readonly id: string
+  readonly description: string
+  readonly parameters: P
+  readonly output: O
+  readonly execute: (
+    input: Schema.Schema.Type<P>,
+    context: ToolContext,
+  ) => Effect.Effect<Schema.Schema.Type<O>, ToolFailure>
+  readonly toModelOutput?: (input: {
+    readonly input: Schema.Schema.Type<P>
+    readonly output: unknown
+  }) => ReadonlyArray<ToolContent>
+  readonly maxResultSizeChars?: number
+  readonly permission?: string
+  readonly subagentSafe?: boolean
+  readonly availability?: ToolAvailability
+  readonly describe?: (agent: Agent.Info) => Effect.Effect<string>
+}): ToolDefinition<P, O> {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- creating base tool definition
   const tool = Object.freeze({}) as ToolDefinition<P, O>
   const definitions = new Map<string, ToolDefinition<P, O>>()
@@ -91,7 +100,7 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
         subagentSafe: config.subagentSafe ?? true,
         availability: config.availability,
         describe: config.describe,
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- building tool definition from config
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- building tool definition from config
       } as ToolDefinition<P, O>
       definitions.set(name, def)
       return def
@@ -160,7 +169,7 @@ export function make<P extends Schema.Schema<unknown>, O extends Schema.Schema<u
  */
 export const withPermission = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   tool: ToolDefinition<P, O>,
-  permission: string
+  permission: string,
 ): ToolDefinition<P, O> => {
   const runtime = runtimes.get(tool)
   if (!runtime) throw new TypeError("Invalid tool: not created by make()")
@@ -175,7 +184,7 @@ export const withPermission = <P extends Schema.Schema<unknown>, O extends Schem
  * Get tool runtime (internal)
  */
 function getRuntime<P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  tool: ToolDefinition<P, O>
+  tool: ToolDefinition<P, O>,
 ): ToolRuntime {
   const runtime = runtimes.get(tool)
   if (!runtime) throw new TypeError("Invalid tool: not created by make()")
@@ -187,7 +196,7 @@ function getRuntime<P extends Schema.Schema<unknown>, O extends Schema.Schema<un
  */
 export const definition = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   name: string,
-  tool: ToolDefinition<P, O>
+  tool: ToolDefinition<P, O>,
 ): ToolDefinition => getRuntime(tool).definition(name)
 
 /**
@@ -196,29 +205,30 @@ export const definition = <P extends Schema.Schema<unknown>, O extends Schema.Sc
 export const settle = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   tool: ToolDefinition<P, O>,
   call: ToolCall,
-  context: ToolContext
-): Effect.Effect<ToolExecutionResult, ToolFailure, P["DecodingServices"] | O["EncodingServices"]> => getRuntime(tool).settle(call, context)
+  context: ToolContext,
+): Effect.Effect<ToolExecutionResult, ToolFailure, P["DecodingServices"] | O["EncodingServices"]> =>
+  getRuntime(tool).settle(call, context)
 
 /**
  * Get tool permission
  */
 export const permission = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   tool: ToolDefinition<P, O>,
-  name: string
+  name: string,
 ): string | undefined => getRuntime(tool).permission ?? name
 
 /**
  * Get max result size
  */
 export const maxResultSizeChars = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  tool: ToolDefinition<P, O>
+  tool: ToolDefinition<P, O>,
 ): number | undefined => getRuntime(tool).maxResultSizeChars
 
 /**
  * Check if tool is subagent-safe
  */
 export const subagentSafe = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
-  tool: ToolDefinition<P, O>
+  tool: ToolDefinition<P, O>,
 ): boolean => getRuntime(tool).subagentSafe
 
 /**
@@ -226,7 +236,7 @@ export const subagentSafe = <P extends Schema.Schema<unknown>, O extends Schema.
  */
 export const isAvailable = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   tool: ToolDefinition<P, O>,
-  input: AvailabilityInput
+  input: AvailabilityInput,
 ): boolean => getRuntime(tool).availability?.(input) ?? true
 
 /**
@@ -234,7 +244,7 @@ export const isAvailable = <P extends Schema.Schema<unknown>, O extends Schema.S
  */
 export const describe = <P extends Schema.Schema<unknown>, O extends Schema.Schema<unknown>>(
   tool: ToolDefinition<P, O>,
-  agent: Agent.Info
+  agent: Agent.Info,
 ): Effect.Effect<string | undefined> => {
   const runtime = getRuntime(tool)
   return runtime.describe ? runtime.describe(agent) : Effect.succeed(undefined)

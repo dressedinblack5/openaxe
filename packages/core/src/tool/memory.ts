@@ -71,8 +71,7 @@ export const layer = Layer.effectDiscard(
                     return { ok: true }
                   }
                   case "get": {
-                    if (!input.key)
-                      return yield* Effect.fail(new ToolFailure({ message: "memory get requires a key" }))
+                    if (!input.key) return yield* Effect.fail(new ToolFailure({ message: "memory get requires a key" }))
                     const value = yield* workspaceMemory.get(input.key)
                     return { value: Option.getOrNull(value) }
                   }
@@ -102,8 +101,7 @@ export const layer = Layer.effectDiscard(
                   return { ok: true }
                 }
                 case "get": {
-                  if (!input.key)
-                    return yield* Effect.fail(new ToolFailure({ message: "memory get requires a key" }))
+                  if (!input.key) return yield* Effect.fail(new ToolFailure({ message: "memory get requires a key" }))
                   const value = yield* memory.get(input.key)
                   return { value: value === null ? null : typeof value === "string" ? value : JSON.stringify(value) }
                 }
@@ -121,8 +119,7 @@ export const layer = Layer.effectDiscard(
                   const results = entries
                     .filter(
                       (entry) =>
-                        entry.key.toLowerCase().includes(query) ||
-                        String(entry.value).toLowerCase().includes(query),
+                        entry.key.toLowerCase().includes(query) || String(entry.value).toLowerCase().includes(query),
                     )
                     .slice(0, input.limit ?? 10)
                     .map((entry) => ({ key: entry.key, value: String(entry.value), score: 0 }))

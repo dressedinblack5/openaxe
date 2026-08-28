@@ -18,7 +18,7 @@ export function DialogSkill(props: DialogSkillProps) {
 
   const [loadError, setLoadError] = createSignal<unknown>()
 
-  const [skills] = createResource( async () =>
+  const [skills] = createResource(async () =>
     sdk.client.app
       .skills({}, { throwOnError: true })
       .then((result) => result.data ?? [])

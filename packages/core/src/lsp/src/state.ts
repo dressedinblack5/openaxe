@@ -141,7 +141,12 @@ export const makeDiagnosticStore = (): DiagnosticStore => {
       const startedAt = after ?? Date.now()
       const controller = new AbortController()
 
-      const waitForFreshPush = (request: { path: string; version: number; after: number; timeout: number }): Promise<boolean> =>
+      const waitForFreshPush = (request: {
+        path: string
+        version: number
+        after: number
+        timeout: number
+      }): Promise<boolean> =>
         new Promise((resolve) => {
           let finished = false
           let debounceTimer: ReturnType<typeof setTimeout> | undefined
@@ -187,8 +192,12 @@ export const makeDiagnosticStore = (): DiagnosticStore => {
           const remaining = DIAGNOSTICS_DOCUMENT_WAIT_TIMEOUT_MS - (Date.now() - startedAt)
           if (remaining <= 0) return
           const next = await Promise.race([
-            waitForFreshPush({ path, version, after: startedAt, timeout: remaining }).then((ready) => ready ? "push" : ("timeout" as const)),
-            waitForRegistrationChange(remaining, controller.signal).then((changed) => changed ? "registration" : ("timeout" as const)),
+            waitForFreshPush({ path, version, after: startedAt, timeout: remaining }).then((ready) =>
+              ready ? "push" : ("timeout" as const),
+            ),
+            waitForRegistrationChange(remaining, controller.signal).then((changed) =>
+              changed ? "registration" : ("timeout" as const),
+            ),
             new Promise<"delay">((resolve) => setTimeout(() => resolve("delay"), Math.min(50, remaining))),
           ])
           if (next !== "registration") return
@@ -201,7 +210,12 @@ export const makeDiagnosticStore = (): DiagnosticStore => {
       const startedAt = after ?? Date.now()
       const controller = new AbortController()
 
-      const waitForFreshPush = (request: { path: string; version: number; after: number; timeout: number }): Promise<boolean> =>
+      const waitForFreshPush = (request: {
+        path: string
+        version: number
+        after: number
+        timeout: number
+      }): Promise<boolean> =>
         new Promise((resolve) => {
           let finished = false
           let debounceTimer: ReturnType<typeof setTimeout> | undefined
@@ -247,8 +261,12 @@ export const makeDiagnosticStore = (): DiagnosticStore => {
           const remaining = DIAGNOSTICS_FULL_WAIT_TIMEOUT_MS - (Date.now() - startedAt)
           if (remaining <= 0) return
           const next = await Promise.race([
-            waitForFreshPush({ path, version, after: startedAt, timeout: remaining }).then((ready) => ready ? "push" : ("timeout" as const)),
-            waitForRegistrationChange(remaining, controller.signal).then((changed) => changed ? "registration" : ("timeout" as const)),
+            waitForFreshPush({ path, version, after: startedAt, timeout: remaining }).then((ready) =>
+              ready ? "push" : ("timeout" as const),
+            ),
+            waitForRegistrationChange(remaining, controller.signal).then((changed) =>
+              changed ? "registration" : ("timeout" as const),
+            ),
             new Promise<"delay">((resolve) => setTimeout(() => resolve("delay"), Math.min(50, remaining))),
           ])
           if (next !== "registration") return
@@ -405,7 +423,11 @@ export const makeServerDownloader = (): ServerDownloader => ({
       catch: (cause) => new ServerSpawnError({ serverID: "unknown", reason: String(cause), cause }),
     })
   },
-  extract(_archivePath: string, _targetDir: string, _archiveType: "zip" | "tar.gz" | "tar.xz"): Effect.Effect<void, ServerSpawnError> {
+  extract(
+    _archivePath: string,
+    _targetDir: string,
+    _archiveType: "zip" | "tar.gz" | "tar.xz",
+  ): Effect.Effect<void, ServerSpawnError> {
     return Effect.tryPromise({
       try: async () => {
         // Implementation would extract based on archive type
@@ -429,7 +451,9 @@ export const makeServerDownloader = (): ServerDownloader => ({
  * Services for Effect DI - using Effect v4 Context.Service pattern
  */
 
-export class BrokenServerTrackerService extends Context.Service<BrokenServerTrackerService>()("@opencode/LSP/BrokenServerTracker") {
+export class BrokenServerTrackerService extends Context.Service<BrokenServerTrackerService>()(
+  "@opencode/LSP/BrokenServerTracker",
+) {
   static Live = Layer.succeed(BrokenServerTrackerService, makeBrokenServerTracker())
 }
 
@@ -442,15 +466,21 @@ export class ServerRegistryService extends Context.Service<ServerRegistryService
     Layer.succeed(ServerRegistryService, makeServerRegistry(servers))
 }
 
-export class CapabilityRegistryService extends Context.Service<CapabilityRegistryService>()("@opencode/LSP/CapabilityRegistry") {
+export class CapabilityRegistryService extends Context.Service<CapabilityRegistryService>()(
+  "@opencode/LSP/CapabilityRegistry",
+) {
   static Live = Layer.succeed(CapabilityRegistryService, makeCapabilityRegistry())
 }
 
-export class PlatformResolverService extends Context.Service<PlatformResolverService>()("@opencode/LSP/PlatformResolver") {
+export class PlatformResolverService extends Context.Service<PlatformResolverService>()(
+  "@opencode/LSP/PlatformResolver",
+) {
   static Live = Layer.succeed(PlatformResolverService, makePlatformResolver())
 }
 
-export class ServerDownloaderService extends Context.Service<ServerDownloaderService>()("@opencode/LSP/ServerDownloader") {
+export class ServerDownloaderService extends Context.Service<ServerDownloaderService>()(
+  "@opencode/LSP/ServerDownloader",
+) {
   static Live = Layer.succeed(ServerDownloaderService, makeServerDownloader())
 }
 

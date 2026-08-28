@@ -17,8 +17,7 @@ function buildZip(entries: Array<{ name: string; data?: Uint8Array; method?: num
     const name = Buffer.from(entry.name, "utf8")
     const data = entry.data ?? Buffer.alloc(0)
     const method = entry.method ?? (entry.name.endsWith("/") ? 0 : 8)
-    const compressed =
-      method === 8 ? deflateRawSync(data) : method === 0 ? Buffer.from(data) : Buffer.alloc(0)
+    const compressed = method === 8 ? deflateRawSync(data) : method === 0 ? Buffer.from(data) : Buffer.alloc(0)
     const crc = crc32(data)
 
     const local = Buffer.alloc(30)

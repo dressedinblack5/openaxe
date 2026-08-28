@@ -96,7 +96,8 @@ const resolveEntryPoint = (name: string, dir: string): EntryPoint => {
   let entrypoint: string | undefined
   try {
     entrypoint = typeof Bun !== "undefined" ? import.meta.resolve(name, dir) : import.meta.resolve(dir)
-  } catch { /* ponytail: package not installed yet, defer to first install */
+  } catch {
+    /* ponytail: package not installed yet, defer to first install */
     entrypoint = undefined
   }
   return {
@@ -125,7 +126,7 @@ export const layer = Layer.effect(
     const reify = (input: { dir: string; add?: string[] }) =>
       Effect.gen(function* () {
         yield* flock.acquire(`npm-install:${input.dir}`)
-        const { Arborist } = yield* Effect.promise( async () => import("@npmcli/arborist"))
+        const { Arborist } = yield* Effect.promise(async () => import("@npmcli/arborist"))
         const add = input.add ?? []
         const npmOptions = yield* NpmConfig.load(input.dir)
         const arborist = new Arborist({
@@ -139,7 +140,7 @@ export const layer = Layer.effect(
         })
         // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- arborist.reify resolves the full dependency tree; pin its shape for the caller.
         return yield* Effect.tryPromise({
-          try:  async () =>
+          try: async () =>
             arborist.reify({
               ...npmOptions,
               add,
@@ -165,7 +166,8 @@ export const layer = Layer.effect(
       const name = (() => {
         try {
           return parsePackageName(pkg)
-        } catch { /* ponytail: npa can fail on edge case package specs, fall back to raw name */
+        } catch {
+          /* ponytail: npa can fail on edge case package specs, fall back to raw name */
           return pkg
         }
       })()
@@ -286,7 +288,15 @@ export const layer = Layer.effect(
           optionalDependencies?: Record<string, string>
         }
         type LockFile = {
-          packages?: Record<string, { dependencies?: Record<string, string>; devDependencies?: Record<string, string>; peerDependencies?: Record<string, string>; optionalDependencies?: Record<string, string> }>
+          packages?: Record<
+            string,
+            {
+              dependencies?: Record<string, string>
+              devDependencies?: Record<string, string>
+              peerDependencies?: Record<string, string>
+              optionalDependencies?: Record<string, string>
+            }
+          >
         }
 
         // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- package.json/lockfile read from disk: arbitrary JSON, narrowed to the known schemas.

@@ -31,8 +31,7 @@ export const createInitialSessionData = (includeUserText = false): SessionData =
 /**
  * Helper to safely get object from unknown
  */
-const dict = (v: unknown): Record<string, unknown> =>
-  v && typeof v === "object" && !Array.isArray(v) ? { ...v } : {}
+const dict = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? { ...v } : {})
 
 /**
  * Main reducer function - pure function that reduces EventV2 to SessionData

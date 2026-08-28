@@ -47,8 +47,6 @@ await publishPackage("./packages/sdk/js/package.json", "./packages/sdk/js/script
 console.log("\n=== plugin ===\n")
 await publishPackage("./packages/plugin/package.json", "./packages/plugin/script/publish.ts")
 
-
-
 if (Script.release && !Script.preview) {
   await $`git commit -am "release: ${tag}"`
   await $`git tag -d ${tag}`.nothrow()

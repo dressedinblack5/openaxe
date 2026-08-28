@@ -24,10 +24,7 @@ const permission = Layer.succeed(
 
 const withTool = <A, E, R>(body: (registry: ToolRegistry.Interface) => Effect.Effect<A, E, R>) => {
   const registry = ToolRegistry.defaultLayer
-  const toolSearch = ToolSearchTool.layer.pipe(
-    Layer.provide(registry),
-    Layer.provide(permission),
-  )
+  const toolSearch = ToolSearchTool.layer.pipe(Layer.provide(registry), Layer.provide(permission))
   return Effect.gen(function* () {
     return yield* body(yield* ToolRegistry.Service)
   }).pipe(Effect.provide(Layer.mergeAll(registry, toolSearch, permission)))
@@ -106,11 +103,13 @@ describe("ToolSearchTool", () => {
     withTool((registry) =>
       Effect.gen(function* () {
         yield* registry.register({ gizmo: stubTool("gizmo", "turns widgets into gizmos") })
-        const settled = yield* registry.materialize().pipe(
-          Effect.flatMap((materialized) =>
-            materialized.settle(call({ query: "gizmo", limit: 10 }, "call-tool-search-gizmo")),
-          ),
-        )
+        const settled = yield* registry
+          .materialize()
+          .pipe(
+            Effect.flatMap((materialized) =>
+              materialized.settle(call({ query: "gizmo", limit: 10 }, "call-tool-search-gizmo")),
+            ),
+          )
         expect(settled.result.type).toBe("json")
         expect(settled.result.value).toEqual([{ name: "gizmo", description: "turns widgets into gizmos" }])
       }),

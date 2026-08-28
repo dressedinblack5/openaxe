@@ -1,9 +1,6 @@
 // @ts-nocheck
 import { Layer, Context } from "effect"
-import {
-  Diagnostic,
-  DiagnosticStore,
-} from "./types"
+import { Diagnostic, DiagnosticStore } from "./types"
 import type { MessageConnection } from "vscode-jsonrpc/node"
 
 const _DIAGNOSTICS_DEBOUNCE_MS = 150

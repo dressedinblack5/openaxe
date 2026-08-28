@@ -279,7 +279,9 @@ export const makeClientCapabilities = (): ClientCapabilities => ({
  * Service
  */
 
-export class CapabilityRegistryService extends Context.Service<CapabilityRegistryService>()("@opencode/LSP/CapabilityRegistry") {
+export class CapabilityRegistryService extends Context.Service<CapabilityRegistryService>()(
+  "@opencode/LSP/CapabilityRegistry",
+) {
   static Live = Layer.succeed(CapabilityRegistryService, makeCapabilityRegistry())
 }
 

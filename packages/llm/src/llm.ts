@@ -73,7 +73,10 @@ export const request = (input: RequestInput) => {
   return new LLMRequest({
     ...rest,
     system: SystemPart.content(requestSystem),
-    messages: [...(messages?.map((m) => Message.make(m)) ?? []), ...(prompt === undefined ? [] : [Message.user(prompt)])],
+    messages: [
+      ...(messages?.map((m) => Message.make(m)) ?? []),
+      ...(prompt === undefined ? [] : [Message.user(prompt)]),
+    ],
     tools: tools?.map((t) => ToolDefinition.make(t)) ?? [],
     toolChoice: requestToolChoice ? ToolChoice.make(requestToolChoice) : undefined,
     generation: requestGeneration === undefined ? undefined : GenerationOptions.make(requestGeneration),

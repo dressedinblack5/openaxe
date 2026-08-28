@@ -183,7 +183,11 @@ export const layer = Layer.effect(
               type: "text" as const,
               text:
                 input.maxResultSizeChars != null
-                  ? boundedCharsWithMarker(boundedPreview(contextual, marker, outputLimits.maxLines, outputLimits.maxBytes), marker, input.maxResultSizeChars)
+                  ? boundedCharsWithMarker(
+                      boundedPreview(contextual, marker, outputLimits.maxLines, outputLimits.maxBytes),
+                      marker,
+                      input.maxResultSizeChars,
+                    )
                   : boundedPreview(contextual, marker, outputLimits.maxLines, outputLimits.maxBytes),
             },
             ...media,

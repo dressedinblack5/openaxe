@@ -85,11 +85,13 @@ function dedupeDiagnostics(items: Diagnostic[]): Diagnostic[] {
 
 function configurationValue(settings: unknown, section?: string): unknown {
   if (!section) return settings ?? null
-  return section.split(".").reduce((acc, key) => {
-    if (!acc || typeof acc !== "object" || !(key in acc)) return undefined
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- traversing unknown object by string key
-    return (acc as Record<string, unknown>)[key]
-  }, settings) ?? null
+  return (
+    section.split(".").reduce((acc, key) => {
+      if (!acc || typeof acc !== "object" || !(key in acc)) return undefined
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- traversing unknown object by string key
+      return (acc as Record<string, unknown>)[key]
+    }, settings) ?? null
+  )
 }
 
 function shouldSeedDiagnosticsOnFirstPush(serverID: string): boolean {
@@ -216,40 +218,46 @@ export const makeLSPClient = () => {
     // Initialize handshake
     const initialized = await Effect.runPromise(
       Timeout.timeout(
-        Effect.tryPromise(() => connection.sendRequest<{ capabilities?: ServerCapabilitiesInternal }>("initialize", {
-          rootUri: new URL(`file://${input.root}`).href,
-          processId: input.server.process.pid,
-          workspaceFolders: [
-            {
-              name: "workspace",
-              uri: new URL(`file://${input.root}`).href,
+        Effect.tryPromise(() =>
+          connection.sendRequest<{ capabilities?: ServerCapabilitiesInternal }>("initialize", {
+            rootUri: new URL(`file://${input.root}`).href,
+            processId: input.server.process.pid,
+            workspaceFolders: [
+              {
+                name: "workspace",
+                uri: new URL(`file://${input.root}`).href,
+              },
+            ],
+            initializationOptions: {
+              ...input.server.initialization,
             },
-          ],
-          initializationOptions: {
-            ...input.server.initialization,
-          },
-          capabilities: {
-            window: { workDoneProgress: true },
-            workspace: {
-              configuration: true,
-              didChangeWatchedFiles: { dynamicRegistration: true },
-              diagnostics: { refreshSupport: false },
+            capabilities: {
+              window: { workDoneProgress: true },
+              workspace: {
+                configuration: true,
+                didChangeWatchedFiles: { dynamicRegistration: true },
+                diagnostics: { refreshSupport: false },
+              },
+              textDocument: {
+                synchronization: { didOpen: true, didChange: true },
+                diagnostic: { dynamicRegistration: true, relatedDocumentSupport: true },
+                publishDiagnostics: { versionSupport: false },
+              },
             },
-            textDocument: {
-              synchronization: { didOpen: true, didChange: true },
-              diagnostic: { dynamicRegistration: true, relatedDocumentSupport: true },
-              publishDiagnostics: { versionSupport: false },
-            },
-          },
-        })),
+          }),
+        ),
         Duration.millis(INITIALIZE_TIMEOUT_MS),
       ).pipe(
-        Effect.catchAll((err) => Effect.fail(new InitializeError({
-          serverID: input.serverID,
-          cause: err,
-          ...(stderrBuffer.length > 0 ? { stderr: stderrBuffer.join("\n") } : {}),
-        })))
-      )
+        Effect.catchAll((err) =>
+          Effect.fail(
+            new InitializeError({
+              serverID: input.serverID,
+              cause: err,
+              ...(stderrBuffer.length > 0 ? { stderr: stderrBuffer.join("\n") } : {}),
+            }),
+          ),
+        ),
+      ),
     )
 
     const syncKind = getSyncKind(initialized.capabilities)
@@ -275,7 +283,10 @@ export const makeLSPClient = () => {
       }
     }
 
-    const mergeResults = (filePath: string, results: DiagnosticRequestResult[]): { handled: boolean; matched: boolean } => {
+    const mergeResults = (
+      filePath: string,
+      results: DiagnosticRequestResult[],
+    ): { handled: boolean; matched: boolean } => {
       const handled = results.some((result) => result.handled)
       const matched = results.some((result) => result.matched)
       if (!handled) return { handled: false, matched: false }
@@ -299,12 +310,14 @@ export const makeLSPClient = () => {
     async function requestDiagnosticReport(filePath: string, identifier?: string): Promise<DiagnosticRequestResult> {
       const report = await Effect.runPromise(
         Timeout.timeout(
-          Effect.tryPromise(() => connection.sendRequest<DocumentDiagnosticReport | null>("textDocument/diagnostic", {
-            ...(identifier ? { identifier } : {}),
-            textDocument: { uri: new URL(`file://${filePath}`).href },
-          })),
+          Effect.tryPromise(() =>
+            connection.sendRequest<DocumentDiagnosticReport | null>("textDocument/diagnostic", {
+              ...(identifier ? { identifier } : {}),
+              textDocument: { uri: new URL(`file://${filePath}`).href },
+            }),
+          ),
           Duration.millis(DIAGNOSTICS_REQUEST_TIMEOUT_MS),
-        ).pipe(Effect.catchAll(() => Effect.succeed(null)))
+        ).pipe(Effect.catchAll(() => Effect.succeed(null))),
       )
       if (!report) return { handled: false, matched: false, byFile: new Map() }
 
@@ -338,12 +351,14 @@ export const makeLSPClient = () => {
     ): Promise<DiagnosticRequestResult> {
       const report = await Effect.runPromise(
         Timeout.timeout(
-          Effect.tryPromise(() => connection.sendRequest<WorkspaceDiagnosticReport | null>("workspace/diagnostic", {
-            ...(identifier ? { identifier } : {}),
-            previousResultIds: [],
-          })),
+          Effect.tryPromise(() =>
+            connection.sendRequest<WorkspaceDiagnosticReport | null>("workspace/diagnostic", {
+              ...(identifier ? { identifier } : {}),
+              previousResultIds: [],
+            }),
+          ),
           Duration.millis(DIAGNOSTICS_REQUEST_TIMEOUT_MS),
-        ).pipe(Effect.catchAll(() => Effect.succeed(null)))
+        ).pipe(Effect.catchAll(() => Effect.succeed(null))),
       )
       if (!report) return { handled: false, matched: false, byFile: new Map() }
 
@@ -509,7 +524,11 @@ export const makeLSPClient = () => {
       })
     }
 
-    async function waitForDocumentDiagnostics(request: { path: string; version: number; after?: number }): Promise<void> {
+    async function waitForDocumentDiagnostics(request: {
+      path: string
+      version: number
+      after?: number
+    }): Promise<void> {
       const startedAt = request.after ?? Date.now()
       const controller = new AbortController()
       const pushWait = waitForFreshPush(
@@ -743,7 +762,7 @@ const LANGUAGE_EXTENSIONS: Record<string, string> = {
   ".gql": "graphql",
   ".proto": "protobuf",
   ".dockerfile": "dockerfile",
-  "Dockerfile": "dockerfile",
+  Dockerfile: "dockerfile",
   ".tf": "terraform",
   ".tfvars": "terraform",
   ".nix": "nix",

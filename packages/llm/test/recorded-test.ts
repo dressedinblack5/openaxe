@@ -29,10 +29,7 @@ type RecordedCaseOptions = RunnerCaseOptions & {
   readonly options?: RecorderOptions
 }
 
-const mergeOptions = (
-  base: RecorderOptions | undefined,
-  override: RecorderOptions | undefined,
-) => {
+const mergeOptions = (base: RecorderOptions | undefined, override: RecorderOptions | undefined) => {
   if (!base) return override
   if (!override) return base
   return {

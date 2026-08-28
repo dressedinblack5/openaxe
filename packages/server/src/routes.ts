@@ -39,5 +39,4 @@ export function createRoutes(password?: string): Layer.Layer<never, Config.Confi
 
 export const routes = createRoutes()
 
-export const webHandler = () =>
-  HttpRouter.toWebHandler(routes, { disableLogger: true })
+export const webHandler = () => HttpRouter.toWebHandler(routes, { disableLogger: true })

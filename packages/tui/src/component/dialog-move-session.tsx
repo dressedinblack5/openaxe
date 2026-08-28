@@ -59,7 +59,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
   // swallow it and let the directory list render without a current marker.
   const [loadedProject] = createResource(
     () => (projectContext.project() === props.projectID ? undefined : props.projectID),
-     async (projectID) =>
+    async (projectID) =>
       sdk.client.project
         .current({}, { throwOnError: true })
         .then((result) => (result.data?.id === projectID ? result.data.worktree : undefined))

@@ -14,7 +14,7 @@ import { DialogPrompt } from "../ui/dialog-prompt"
 import { DialogSelect, type DialogSelectOption as SelectOption } from "../ui/dialog-select"
 import { Prompt } from "../component/prompt"
 import type { useToast } from "../ui/toast"
-import { formatKeyBindings, formatKeySequence, getOpencodeModeStack } from "../keymap";
+import { formatKeyBindings, formatKeySequence, getOpencodeModeStack } from "../keymap"
 import { createCommandShim } from "./command-shim"
 import type { PluginRoutes } from "./api"
 export type { RouteMap } from "./api"

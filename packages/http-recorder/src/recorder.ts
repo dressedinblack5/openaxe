@@ -1,5 +1,5 @@
 import { Effect, Scope, SynchronizedRef } from "effect"
-import type { Interface } from "./cassette.js";
+import type { Interface } from "./cassette.js"
 import type { CassetteNotFoundError } from "./cassette.js"
 import type { Interaction } from "./schema.js"
 
