@@ -1,6 +1,6 @@
 import path from "path"
 import { statSync } from "fs"
-import { Effect } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { Global } from "@opencode-ai/core/global"
 import { Flock } from "@opencode-ai/core/util/flock"
 import { Filesystem } from "@/util/filesystem"
@@ -25,25 +25,25 @@ export type FileSignature = {
 
 export type FileCacheEntry = FileSignature & {
   // Module export keys (e.g. "default") that registered plugin tools.
-  exports: string[]
+  readonly exports: readonly string[]
   // Epoch-ms of the last failed import. Retries are suppressed for
   // FAILURE_GRACE_MS so a transient failure is surfaced once instead of on
   // every warm run (Hermes uses the same 60s grace window). Absent when the
   // file imports cleanly.
-  failedAt?: number
+  readonly failedAt?: number
 }
 
 export type DirCache = {
   // Per-subdirectory stat of the `tool`/`tools` scan targets — detects
   // added/removed/renamed files so a fully-covered directory can skip the
   // glob. `undefined` means the subdirectory does not exist.
-  subdirs: Record<string, FileSignature | undefined>
-  files: Record<string, FileCacheEntry>
+  readonly subdirs: Record<string, FileSignature | undefined>
+  readonly files: Record<string, FileCacheEntry>
 }
 
 export type CacheStore = {
-  version: number
-  dirs: Record<string, DirCache>
+  readonly version: number
+  readonly dirs: Record<string, DirCache>
 }
 
 export const FAILURE_GRACE_MS = 60_000
@@ -51,16 +51,36 @@ export const FAILURE_GRACE_MS = 60_000
 // The glob in registry.ts scans these subdirectories of each config dir.
 export const SCAN_SUBDIRS = ["tool", "tools"] as const
 
+const FileSignatureSchema = Schema.Struct({
+  mtimeNs: Schema.String,
+  size: Schema.Number,
+})
+
+const FileCacheEntrySchema = Schema.Struct({
+  mtimeNs: Schema.String,
+  size: Schema.Number,
+  exports: Schema.Array(Schema.String),
+  failedAt: Schema.optional(Schema.Number),
+})
+
+const DirCacheSchema = Schema.Struct({
+  subdirs: Schema.Record(Schema.String, Schema.optional(FileSignatureSchema)),
+  files: Schema.Record(Schema.String, FileCacheEntrySchema),
+})
+
+const CacheStoreSchema = Schema.Struct({
+  version: Schema.Literal(CACHE_VERSION),
+  dirs: Schema.Record(Schema.String, DirCacheSchema),
+})
+
+const decodeOptions = { errors: "all", onExcessProperty: "ignore", propertyOrder: "original" } as const
+
 function cachePath() {
   return path.join(Global.Path.state, CACHE_FILE)
 }
 
 function lock(file: string) {
   return `tool-discovery:${file}`
-}
-
-export function emptyStore(): CacheStore {
-  return { version: CACHE_VERSION, dirs: {} }
 }
 
 // Sync stat of a path (file or directory), keyed by mtime+size.
@@ -92,34 +112,16 @@ export function sameSubdirs(
   return true
 }
 
-// Structural validation so a corrupt/foreign cache file falls back to a cold
-// scan instead of being trusted.
+function emptyStore(): CacheStore {
+  return { version: CACHE_VERSION, dirs: {} }
+}
+
+export { emptyStore }
+
+// Structural validation using Schema (replaces custom isValidStore/isValidDir/isValidFile functions)
 export function isValidStore(value: unknown): value is CacheStore {
-  if (typeof value !== "object" || value === null) return false
-  const store = value as Record<string, unknown>
-  if (store.version !== CACHE_VERSION) return false
-  if (typeof store.dirs !== "object" || store.dirs === null) return false
-  return Object.values(store.dirs).every(isValidDir)
-}
-
-function isValidDir(value: unknown): value is DirCache {
-  if (typeof value !== "object" || value === null) return false
-  const dir = value as Record<string, unknown>
-  if (typeof dir.subdirs !== "object" || dir.subdirs === null) return false
-  if (!Object.values(dir.subdirs).every((sig) => sig === undefined || isValidFileSignature(sig))) return false
-  if (typeof dir.files !== "object" || dir.files === null) return false
-  return Object.values(dir.files).every(isValidFile)
-}
-
-function isValidFileSignature(value: unknown): value is FileSignature {
-  if (typeof value !== "object" || value === null) return false
-  const sig = value as Record<string, unknown>
-  return (typeof sig.mtimeNs === "string" || typeof sig.mtimeNs === "number") && typeof sig.size === "number"
-}
-
-function isValidFile(value: unknown): value is FileCacheEntry {
-  if (!isValidFileSignature(value)) return false
-  return Array.isArray((value as Record<string, unknown>).exports)
+  const decoded = Schema.decodeUnknownOption(CacheStoreSchema, decodeOptions)(value)
+  return Option.isSome(decoded)
 }
 
 // Read the manifest, tolerating a missing/corrupt file (cold scan + overwrite).
@@ -132,7 +134,8 @@ export const load = Effect.fn("DiscoveryCache.load")(function* () {
       onSuccess: (value) => value,
     },
   )
-  return isValidStore(store) ? store : emptyStore()
+  const decoded = Schema.decodeUnknownOption(CacheStoreSchema, decodeOptions)(store)
+  return Option.getOrElse(decoded, emptyStore)
 })
 
 // Persist the given per-directory entries, merging under a cross-process lock
@@ -163,7 +166,8 @@ export const save = Effect.fn("DiscoveryCache.save")(function* (updates: Record<
 
 async function readStore(file: string): Promise<CacheStore> {
   const raw = await Filesystem.readJson<unknown>(file).catch(() => undefined)
-  return isValidStore(raw) ? raw : emptyStore()
+  const decoded = Schema.decodeUnknownOption(CacheStoreSchema, decodeOptions)(raw)
+  return Option.getOrElse(decoded, emptyStore)
 }
 
 export * as DiscoveryCache from "./discovery-cache"

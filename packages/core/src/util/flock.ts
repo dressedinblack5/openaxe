@@ -72,30 +72,17 @@ function code(err: unknown) {
   return value
 }
 
-async function sleep(ms: number, signal?: AbortSignal) {
-  return new Promise<void>((resolve, reject) => {
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(signal.reason ?? new Error("Aborted"))
       return
     }
-
-    let timer: NodeJS.Timeout | undefined
-
-    const done = () => {
-      signal?.removeEventListener("abort", abort)
-      resolve()
-    }
-
-    const abort = () => {
-      if (timer) {
-        clearTimeout(timer)
-      }
-      signal?.removeEventListener("abort", abort)
-      reject(signal?.reason ?? new Error("Aborted"))
-    }
-
-    signal?.addEventListener("abort", abort, { once: true })
-    timer = setTimeout(done, ms)
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer)
+      reject(signal.reason ?? new Error("Aborted"))
+    }, { once: true })
   })
 }
 

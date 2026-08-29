@@ -20,26 +20,16 @@ export interface PluginOptions {
   readonly devDependencies?: Record<string, string>
 }
 
-export interface AgentHooks {}
-export interface AISDKHooks {}
-export interface CatalogHooks {}
-export interface CommandHooks {}
-export interface IntegrationHooks {}
-export interface PluginDomain {}
-export interface ReferenceHooks {}
-export interface SkillHooks {}
-export interface Reload {}
-
 export interface PluginContext {
   readonly options: PluginOptions
-  readonly agent: AgentHooks & Reload
-  readonly aisdk: AISDKHooks
-  readonly catalog: CatalogHooks & Reload
-  readonly command: CommandHooks & Reload
-  readonly integration: IntegrationHooks & Reload
-  readonly plugin: PluginDomain
-  readonly reference: ReferenceHooks & Reload
-  readonly skill: SkillHooks & Reload
+  readonly agent: unknown
+  readonly aisdk: unknown
+  readonly catalog: unknown
+  readonly command: unknown
+  readonly integration: unknown
+  readonly plugin: unknown
+  readonly reference: unknown
+  readonly skill: unknown
 }
 
 const PLUGIN_CONTEXT_KEYS = {
