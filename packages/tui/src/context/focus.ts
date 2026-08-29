@@ -2,8 +2,6 @@ import { createSignal, createMemo } from "solid-js"
 
 export type FocusRegion = "sidebar" | "messages" | "prompt" | "dialog" | "autocomplete"
 
-const CYCLE: readonly FocusRegion[] = ["sidebar", "messages", "prompt"]
-
 const [current, setCurrent] = createSignal<FocusRegion>("prompt")
 const [_focusStack, setFocusStack] = createSignal<FocusRegion[]>([])
 
@@ -15,20 +13,6 @@ export function isFocused(region: FocusRegion) {
 
 export function focusRegion(region: FocusRegion) {
   setCurrent(region)
-}
-
-export function focusNext() {
-  const index = CYCLE.indexOf(current())
-  if (index === -1) return
-  const nextIndex = (index + 1) % CYCLE.length
-  setCurrent(CYCLE[nextIndex])
-}
-
-export function focusPrev() {
-  const index = CYCLE.indexOf(current())
-  if (index === -1) return
-  const prevIndex = (index - 1 + CYCLE.length) % CYCLE.length
-  setCurrent(CYCLE[prevIndex])
 }
 
 export function pushFocus(region: FocusRegion) {

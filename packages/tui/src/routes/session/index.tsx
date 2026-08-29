@@ -81,7 +81,7 @@ import { getRevertDiffFiles } from "../../util/revert-diff"
 import { OPENCODE_BASE_MODE, useBindings, useCommandShortcut, useOpencodeKeymap } from "../../keymap"
 import { usePathFormatter } from "../../context/path-format"
 import { LocationProvider } from "../../context/location"
-import { focusNext, focusPrev, focusRegion, isFocused } from "../../context/focus"
+import { focusRegion, isFocused } from "../../context/focus"
 
 addDefaultParsers(parsers.parsers)
 
@@ -1131,18 +1131,6 @@ export function Session() {
   useBindings(() => ({
     mode: OPENCODE_BASE_MODE,
     bindings: [
-      {
-        key: "tab",
-        cmd: () => {
-          focusNext()
-        },
-      },
-      {
-        key: "shift+tab",
-        cmd: () => {
-          focusPrev()
-        },
-      },
       {
         key: "ctrl+1",
         cmd: () => {
