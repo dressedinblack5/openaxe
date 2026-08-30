@@ -39,6 +39,10 @@ src/
 - **No direct Effect imports in components**: Domain effects go through context hooks. Only `app.tsx` and runtime bootstrap use Effect directly.
 - **No barrel imports across subdirs**: Import from specific module paths (`./context/route`), not a barrel.
 
+## Fork Divergence from Upstream
+
+- **`src/context/focus.ts`** — openaxe-only region-based focus manager (no upstream equivalent). Tracks active focus region (`sidebar | messages | prompt | dialog | autocomplete`) with a stack for nested overlays. Wired by `app.tsx` (focus sidebar/messages/prompt commands), `keybind.ts` (Ctrl+1/2/3 + Tab/Shift+Tab bindings), `routes/session/index.tsx` + `sidebar.tsx` (visual focus borders), `component/prompt/{index,autocomplete}.tsx` (prompt + autocomplete focus transitions), and `ui/dialog.tsx` (dialog push/pop). **Do not delete** — 7 files depend on it. If upstream ever adds an equivalent, port the callers and remove this file.
+
 ## Commands
 
 ```bash
