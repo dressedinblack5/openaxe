@@ -9,6 +9,9 @@ import { isFocused } from "../../context/focus"
 
 import { getScrollAcceleration } from "../../util/scroll"
 import { WorkspaceLabel } from "../../component/workspace-label"
+import { Locale } from "../../util/locale"
+
+const SIDEBAR_INNER = 38 // width 42 - paddingLeft 2 - paddingRight 2
 
 export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const pluginRuntime = usePluginRuntime()
@@ -64,21 +67,23 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 >
                   <box paddingRight={1}>
                     <text fg={theme.text}>
-                      <b>{s.title}</b>
+                      <b>{Locale.truncate(s.title, SIDEBAR_INNER)}</b>
                     </text>
                     <Show when={InstallationChannel !== "latest"}>
-                      <text fg={theme.textMuted}>{props.sessionID}</text>
+                      <text fg={theme.textMuted}>{Locale.truncate(props.sessionID, SIDEBAR_INNER)}</text>
                     </Show>
                     {workspaceID && (
                       <text fg={theme.textMuted}>
                         <Show
                           when={workspace()}
-                          fallback={<WorkspaceLabel type="unknown" name={workspaceID} status="error" icon />}
+                          fallback={
+                            <WorkspaceLabel type="unknown" name={Locale.truncate(workspaceID, SIDEBAR_INNER)} status="error" icon />
+                          }
                         >
                           {(item) => (
                             <WorkspaceLabel
                               type={item().type}
-                              name={item().name}
+                              name={Locale.truncate(item().name, SIDEBAR_INNER)}
                               status={project.workspace.status(item().id) ?? "error"}
                               icon
                             />
@@ -86,7 +91,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                         </Show>
                       </text>
                     )}
-                    {shareURL && <text fg={theme.textMuted}>{shareURL}</text>}
+                    {shareURL && <text fg={theme.textMuted}>{Locale.truncateLeft(shareURL, SIDEBAR_INNER)}</text>}
                   </box>
                 </pluginRuntime.Slot>
                 <pluginRuntime.Slot name="sidebar_content" session_id={props.sessionID} />
