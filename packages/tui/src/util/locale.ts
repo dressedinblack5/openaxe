@@ -58,38 +58,24 @@ export function duration(input: number) {
   return `${days}d ${hours}h`
 }
 
-const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
-
-function offsetByWidth(str: string, maxWidth: number): number {
-  let width = 0
-  for (const part of graphemes.segment(str)) {
-    const next = width + Bun.stringWidth(part.segment)
-    if (next > maxWidth) return part.index
-    width = next
-  }
-  return str.length
-}
-
 export function truncate(str: string, len: number): string {
-  if (Bun.stringWidth(str) <= len) return str
-  return str.slice(0, offsetByWidth(str, len - 1)) + "…"
+  if (str.length <= len) return str
+  return str.slice(0, len - 1) + "…"
 }
 
 export function truncateLeft(str: string, len: number): string {
-  if (Bun.stringWidth(str) <= len) return str
-  return "…" + str.slice(offsetByWidth(str, Bun.stringWidth(str) - (len - 1)))
+  if (str.length <= len) return str
+  return "…" + str.slice(-(len - 1))
 }
 
 export function truncateMiddle(str: string, maxLength: number = 35): string {
-  const width = Bun.stringWidth(str)
-  if (width <= maxLength) return str
+  if (str.length <= maxLength) return str
 
   const ellipsis = "…"
-  const budget = maxLength - ellipsis.length
-  const keepStart = Math.ceil(budget / 2)
-  const keepEnd = Math.floor(budget / 2)
+  const keepStart = Math.ceil((maxLength - ellipsis.length) / 2)
+  const keepEnd = Math.floor((maxLength - ellipsis.length) / 2)
 
-  return str.slice(0, offsetByWidth(str, keepStart)) + ellipsis + str.slice(offsetByWidth(str, width - keepEnd))
+  return str.slice(0, keepStart) + ellipsis + str.slice(-keepEnd)
 }
 
 export function pluralize(count: number, singular: string, plural: string): string {
