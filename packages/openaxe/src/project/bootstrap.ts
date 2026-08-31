@@ -9,6 +9,7 @@ import { InstanceState } from "@/effect/instance-state"
 import { ShareNext } from "@/share/share-next"
 import { Effect, Layer } from "effect"
 import { Config } from "@/config/config"
+import { Provider } from "../provider/provider"
 import { Service } from "./bootstrap-service"
 import { mark } from "@/cli/startup-timing"
 
@@ -18,9 +19,6 @@ export type { Interface } from "./bootstrap-service"
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-    // Yield each bootstrap dep at layer init so `run` itself has R = never.
-    // InstanceStore imports only the lightweight tag from bootstrap-service.ts,
-    // so it can depend on bootstrap without importing this implementation graph.
     const config = yield* Config.Service
     const format = yield* Format.Service
     const plugin = yield* Plugin.Service
@@ -28,16 +26,26 @@ export const layer = Layer.effect(
     const shareNext = yield* ShareNext.Service
     const snapshot = yield* Snapshot.Service
     const vcs = yield* Vcs.Service
+    const provider = yield* Provider.Service
 
     const run = Effect.gen(function* () {
       const ctx = yield* InstanceState.context
       yield* Effect.logInfo("bootstrapping", { directory: ctx.directory })
-      // everything depends on config so eager load it for nice traces
       yield* config.get().pipe(Effect.tap(() => Effect.sync(() => mark("boot-config-done"))))
-      // Plugin can mutate config so it has to be initialized before anything else.
       yield* plugin.init().pipe(Effect.tap(() => Effect.sync(() => mark("boot-plugin-done"))))
-      // Each service self-manages its own slow work via Effect.forkScoped against
-      // its per-instance state scope. We just await materialization here.
+      yield* provider.validateApiKeys().pipe(
+        Effect.tap((results) => {
+          const invalid = Object.entries(results).filter(([, v]) => !v.valid)
+          if (invalid.length > 0) {
+            for (const [providerID, result] of invalid) {
+              Effect.logWarning("API key validation failed", { providerID, error: result.error })
+            }
+          }
+          return Effect.void
+        }),
+        Effect.tap(() => Effect.sync(() => mark("boot-apikeys-done"))),
+        Effect.catchCause((cause) => Effect.logWarning("API key validation failed", { cause })),
+      )
       yield* Effect.forEach(
         [
           ["shareNext", shareNext],
@@ -69,6 +77,7 @@ export const defaultLayer: Layer.Layer<Service> = layer.pipe(
     ShareNext.defaultLayer,
     Snapshot.defaultLayer,
     Vcs.defaultLayer,
+    Provider.defaultLayer,
   ]),
 )
 
@@ -81,6 +90,7 @@ export const node = LayerNode.make(layer, [
   ShareNext.node,
   Snapshot.node,
   Vcs.node,
+  Provider.node,
 ])
 
 export * as InstanceBootstrap from "./bootstrap"

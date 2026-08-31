@@ -21,6 +21,7 @@ import {
   readPackageThemes,
   readPluginId,
   readV1Plugin,
+  type ReadV1PluginResult,
   resolvePluginId,
   type PluginPackage,
   type PluginSource,
@@ -676,8 +677,8 @@ async function resolveExternalPlugins(list: ConfigPlugin.Origin[], wait: () => P
       await wait().catch(() => {})
     },
     finish: async (loaded, origin, retry) => {
-      const mod = await Promise.resolve()
-        .then(() => readV1Plugin(loaded.mod, loaded.spec, "tui") as TuiPluginModule)
+      const modResult = await Promise.resolve()
+        .then(() => readV1Plugin(loaded.mod, loaded.spec, "tui") as ReadV1PluginResult)
         .catch((error) => {
           fail("failed to load tui plugin", {
             path: loaded.spec,
@@ -685,9 +686,10 @@ async function resolveExternalPlugins(list: ConfigPlugin.Origin[], wait: () => P
             retry,
             error,
           })
-          return
+          return { ok: false as const, error: new TypeError(String(error)) }
         })
-      if (!mod) return
+      if (!modResult.ok) return
+      const mod = modResult.value as TuiPluginModule
 
       const id = await resolvePluginId(
         loaded.source,

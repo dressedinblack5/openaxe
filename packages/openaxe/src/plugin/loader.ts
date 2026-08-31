@@ -3,6 +3,8 @@ import {
   createPluginEntry,
   isDeprecatedPlugin,
   pluginSource,
+  readV1Plugin,
+  type ReadV1PluginResult,
   resolvePluginTarget,
   type PluginKind,
   type PluginPackage,

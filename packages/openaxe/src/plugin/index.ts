@@ -28,7 +28,7 @@ import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { errorMessage } from "@/util/error"
 import { PluginLoader } from "./loader"
-import { parsePluginSpecifier, readPluginId, readV1Plugin, resolvePluginId, resolveToolsEntrypoint } from "./shared"
+import { parsePluginSpecifier, readPluginId, readV1Plugin, type ReadV1PluginResult, resolvePluginId, resolveToolsEntrypoint } from "./shared"
 import { registerAdapter } from "@/control-plane/adapters"
 import type { WorkspaceAdapter } from "@/control-plane/types"
 import { RuntimeFlags } from "@/effect/runtime-flags"
@@ -99,8 +99,9 @@ function getLegacyPlugins(mod: Record<string, unknown>) {
 }
 
 async function applyPlugin(load: PluginLoader.Loaded, input: PluginInput, hooks: Hooks[]) {
-  const plugin = readV1Plugin(load.mod, load.spec, "server", "detect")
-  if (plugin) {
+  const pluginResult = readV1Plugin(load.mod, load.spec, "server", "detect")
+  if (pluginResult.ok) {
+    const plugin = pluginResult.value
     await resolvePluginId(load.source, load.spec, load.target, readPluginId(plugin.id, load.spec), load.pkg)
     hooks.push(await (plugin as PluginModule).server(input, load.options))
     return

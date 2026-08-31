@@ -354,38 +354,44 @@ export async function resolveToolsEntrypoint(spec: string, pkg: PluginPackage): 
   return pathToFileURL(file).href
 }
 
+export type ReadV1PluginResult =
+  | { ok: true; value: Record<string, unknown> }
+  | { ok: false; error: TypeError }
+
 export function readV1Plugin(
   mod: Record<string, unknown>,
   spec: string,
   kind: PluginKind,
   mode: PluginMode = "strict",
-) {
+): ReadV1PluginResult {
   const value = mod.default
   if (!isRecord(value)) {
-    if (mode === "detect") return
-    throw new TypeError(`Plugin ${spec} must default export an object with ${kind}()`)
+    if (mode === "detect") return { ok: false, error: new TypeError(`Plugin ${spec} must default export an object with ${kind}()`) }
+    return { ok: false, error: new TypeError(`Plugin ${spec} must default export an object with ${kind}()`) }
   }
-  if (mode === "detect" && !("id" in value) && !("server" in value) && !("tui" in value)) return
+  if (mode === "detect" && !("id" in value) && !("server" in value) && !("tui" in value)) {
+    return { ok: false, error: new TypeError(`Plugin ${spec} has no valid exports`) }
+  }
 
   const server = "server" in value ? value.server : undefined
   const tui = "tui" in value ? value.tui : undefined
   if (server !== undefined && typeof server !== "function") {
-    throw new TypeError(`Plugin ${spec} has invalid server export`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} has invalid server export`) }
   }
   if (tui !== undefined && typeof tui !== "function") {
-    throw new TypeError(`Plugin ${spec} has invalid tui export`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} has invalid tui export`) }
   }
   if (server !== undefined && tui !== undefined) {
-    throw new TypeError(`Plugin ${spec} must default export either server() or tui(), not both`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} must default export either server() or tui(), not both`) }
   }
   if (kind === "server" && server === undefined) {
-    throw new TypeError(`Plugin ${spec} must default export an object with server()`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} must default export an object with server()`) }
   }
   if (kind === "tui" && tui === undefined) {
-    throw new TypeError(`Plugin ${spec} must default export an object with tui()`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} must default export an object with tui()`) }
   }
 
-  return value
+  return { ok: true, value }
 }
 
 export async function resolvePluginId(
