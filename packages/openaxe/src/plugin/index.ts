@@ -28,7 +28,7 @@ import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { errorMessage } from "@/util/error"
 import { PluginLoader } from "./loader"
-import { parsePluginSpecifier, readPluginId, readV1Plugin, type ReadV1PluginResult, resolvePluginId, resolveToolsEntrypoint } from "./shared"
+import { parsePluginSpecifier, readPluginId, readV1Plugin, type ReadV1PluginResult, resolvePluginId, resolveToolsEntrypoint, isRecord } from "./shared"
 import { registerAdapter } from "@/control-plane/adapters"
 import type { WorkspaceAdapter } from "@/control-plane/types"
 import { RuntimeFlags } from "@/effect/runtime-flags"
@@ -104,6 +104,12 @@ async function applyPlugin(load: PluginLoader.Loaded, input: PluginInput, hooks:
     const plugin = pluginResult.value
     await resolvePluginId(load.source, load.spec, load.target, readPluginId(plugin.id, load.spec), load.pkg)
     hooks.push(await (plugin as PluginModule).server(input, load.options))
+    return
+  }
+
+  // If the plugin explicitly exports both server and tui, it's invalid - don't fall through to legacy
+  const value = load.mod.default
+  if (isRecord(value) && "server" in value && "tui" in value) {
     return
   }
 
