@@ -3,10 +3,13 @@ import { describe, expect, test } from "bun:test"
 import { RGBA } from "@opentui/core"
 import { testRender } from "@opentui/solid"
 import type { JSX } from "solid-js"
+import { mkdir } from "node:fs/promises"
+import path from "node:path"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
 import { KVProvider } from "../../../src/context/kv"
 import { ThemeProvider } from "../../../src/context/theme"
 import { TuiConfigProvider } from "../../../src/config"
+import { ToastProvider } from "../../../src/ui/toast"
 import { DiffViewerFileTree } from "../../../src/feature-plugins/system/diff-viewer-file-tree"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import {
@@ -25,6 +28,10 @@ const theme = {
   textMuted: RGBA.fromHex("#888888"),
   error: RGBA.fromHex("#ff0000"),
 }
+
+const state = "/tmp/openaxe/state"
+await mkdir(state, { recursive: true })
+await Bun.write(path.join(state, "kv.json"), "{}")
 
 describe("DiffViewerFileTree", () => {
   test.skip("renders sorted hierarchical file rows", async () => {
@@ -185,7 +192,9 @@ function withTheme(component: () => JSX.Element) {
     <TestTuiContexts>
       <TuiConfigProvider config={createTuiResolvedConfig()}>
         <KVProvider>
-          <ThemeProvider mode="dark">{component()}</ThemeProvider>
+          <ToastProvider>
+            <ThemeProvider mode="dark">{component()}</ThemeProvider>
+          </ToastProvider>
         </KVProvider>
       </TuiConfigProvider>
     </TestTuiContexts>

@@ -5,11 +5,14 @@ import { DiffRenderable, type Renderable, ScrollBoxRenderable } from "@opentui/c
 import { testRender, useRenderer } from "@opentui/solid"
 import type { TuiPluginApi, TuiPluginMeta, TuiRouteCurrent, TuiRouteDefinition } from "@opencode-ai/plugin/tui"
 import type { Session } from "@opencode-ai/sdk/v2"
+import { mkdir } from "node:fs/promises"
+import path from "node:path"
 import { KVProvider } from "../../../src/context/kv"
 import { ThemeProvider } from "../../../src/context/theme"
 import { TuiConfigProvider } from "../../../src/config"
 import { TuiKeybind } from "../../../src/config/keybind"
 import { OpencodeKeymapProvider } from "../../../src/keymap"
+import { ToastProvider } from "../../../src/ui/toast"
 import diffViewerPlugin from "../../../src/feature-plugins/system/diff-viewer"
 import { createTuiPluginApi } from "../../fixture/tui-plugin"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
@@ -109,6 +112,11 @@ async function renderDiffViewer(vcsDiff: unknown[], height = 20, initialRoute?: 
   let vcsDiffInput: unknown
   let sessionDiffInput: unknown
   const config = createTuiResolvedConfig()
+  
+  const state = "/tmp/openaxe/state"
+  await mkdir(state, { recursive: true })
+  await Bun.write(path.join(state, "kv.json"), "{}")
+
   function Harness() {
     const renderer = useRenderer()
     const keymap = createDefaultOpenTuiKeymap(renderer)
@@ -163,9 +171,11 @@ async function renderDiffViewer(vcsDiff: unknown[], height = 20, initialRoute?: 
         <OpencodeKeymapProvider keymap={keymap}>
           <TuiConfigProvider config={config}>
             <KVProvider>
-              <ThemeProvider mode="dark">
-                {renderDiff?.({ params: "params" in current ? current.params : undefined })}
-              </ThemeProvider>
+              <ToastProvider>
+                <ThemeProvider mode="dark">
+                  {renderDiff?.({ params: "params" in current ? current.params : undefined })}
+                </ThemeProvider>
+              </ToastProvider>
             </KVProvider>
           </TuiConfigProvider>
         </OpencodeKeymapProvider>
