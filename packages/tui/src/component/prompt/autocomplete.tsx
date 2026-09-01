@@ -22,7 +22,6 @@ import { useFrecency } from "../../prompt/frecency"
 import { useBindings, useCommandSlashes } from "../../keymap"
 import { displayCharAt, mentionTriggerIndex } from "../../prompt/display"
 import type { FileSystemEntry } from "@opencode-ai/sdk/v2"
-import { pushFocus, popFocus } from "../../context/focus"
 
 function removeLineRange(input: string) {
   const hashIndex = input.lastIndexOf("#")
@@ -104,14 +103,6 @@ export function Autocomplete(props: {
   })
 
   const [positionTick, setPositionTick] = createSignal(0)
-
-  createEffect(() => {
-    if (store.visible) {
-      pushFocus("autocomplete")
-    } else {
-      popFocus()
-    }
-  })
 
   createEffect(() => {
     if (store.visible) {

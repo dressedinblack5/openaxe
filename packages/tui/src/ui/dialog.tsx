@@ -7,7 +7,6 @@ import { useToast } from "./toast"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { useBindings, useOpencodeModeStack } from "../keymap"
 import { useClipboard } from "../context/clipboard"
-import { popFocus, replaceFocus, clearFocusStack } from "../context/focus"
 
 export function Dialog(
   props: ParentProps<{
@@ -96,7 +95,6 @@ function init() {
           const current = store.stack.at(-1)
           current?.onClose?.()
           setStore("stack", store.stack.slice(0, -1))
-          popFocus()
         },
       },
       {
@@ -110,7 +108,6 @@ function init() {
           const current = store.stack.at(-1)
           current?.onClose?.()
           setStore("stack", store.stack.slice(0, -1))
-          popFocus()
         },
       },
     ],
@@ -125,13 +122,9 @@ function init() {
         setStore("size", "medium")
         setStore("stack", [])
       })
-      clearFocusStack()
     },
     // oxlint-disable-next-line typescript-eslint/no-explicit-any -- replace accepts arbitrary render inputs from plugins
     replace(input: any, onClose?: () => void) {
-      if (store.stack.length === 0) {
-        replaceFocus("dialog")
-      }
       for (const item of store.stack) {
         if (item.onClose) item.onClose()
       }

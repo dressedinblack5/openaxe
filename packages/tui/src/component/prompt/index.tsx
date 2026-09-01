@@ -56,7 +56,6 @@ import { useTuiConfig } from "../../config"
 import { usePromptWorkspace } from "./workspace"
 import { usePromptMove } from "./move"
 import { readLocalAttachment } from "./local-attachment"
-import { isFocused } from "../../context/focus"
 
 export type PromptProps = {
   sessionID?: string
@@ -1308,13 +1307,7 @@ export function Prompt(props: PromptProps) {
     () => !!local.agent.current() && store.mode === "normal" && showVariant(),
     animationsEnabled,
   )
-  const promptFocused = createMemo(() => isFocused("prompt"))
-
-  const borderHighlight = createMemo(() => {
-    const base = tint(theme.border, highlight(), agentMetaAlpha())
-    if (promptFocused()) return theme.primary
-    return base
-  })
+  const borderHighlight = createMemo(() => tint(theme.border, highlight(), agentMetaAlpha()))
 
   const placeholderText = createMemo(() => {
     if (props.showPlaceholder === false) return undefined

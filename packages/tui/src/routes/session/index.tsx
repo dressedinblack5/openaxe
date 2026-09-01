@@ -81,7 +81,6 @@ import { getRevertDiffFiles } from "../../util/revert-diff"
 import { OPENCODE_BASE_MODE, useBindings, useCommandShortcut, useOpencodeKeymap } from "../../keymap"
 import { usePathFormatter } from "../../context/path-format"
 import { LocationProvider } from "../../context/location"
-import { focusRegion, isFocused } from "../../context/focus"
 
 addDefaultParsers(parsers.parsers)
 
@@ -1128,30 +1127,6 @@ export function Session() {
     bindings: tuiConfig.keybinds.get("session.background"),
   }))
 
-  useBindings(() => ({
-    mode: OPENCODE_BASE_MODE,
-    bindings: [
-      {
-        key: "ctrl+1",
-        cmd: () => {
-          focusRegion("sidebar")
-        },
-      },
-      {
-        key: "ctrl+2",
-        cmd: () => {
-          focusRegion("messages")
-        },
-      },
-      {
-        key: "ctrl+3",
-        cmd: () => {
-          focusRegion("prompt")
-        },
-      },
-    ],
-  }))
-
   const revertInfo = createMemo(() => session()?.revert)
   const revertMessageID = createMemo(() => revertInfo()?.messageID)
 
@@ -1206,8 +1181,6 @@ export function Session() {
             paddingLeft={2}
             paddingRight={2}
             gap={1}
-            border={isFocused("messages")() ? ["right"] : []}
-            borderColor={isFocused("messages")() ? theme.primary : undefined}
           >
             <Show when={session()}>
               <scrollbox
@@ -1350,11 +1323,7 @@ export function Session() {
                   <SubagentFooter />
                 </Show>
                 <Show when={visible()}>
-                  <box
-                    border={isFocused("prompt")() ? ["top"] : []}
-                    borderColor={isFocused("prompt")() ? theme.primary : undefined}
-                    marginTop={1}
-                  >
+                  <box marginTop={1}>
                     <pluginRuntime.Slot
                       name="session_prompt"
                       mode="replace"
@@ -1383,12 +1352,7 @@ export function Session() {
           <Show when={sidebarVisible()}>
             <Switch>
               <Match when={wide()}>
-                <box
-                  border={isFocused("sidebar")() ? ["right"] : []}
-                  borderColor={isFocused("sidebar")() ? theme.primary : undefined}
-                >
-                  <Sidebar sessionID={route.sessionID} />
-                </box>
+                <Sidebar sessionID={route.sessionID} />
               </Match>
               <Match when={!wide()}>
                 <box

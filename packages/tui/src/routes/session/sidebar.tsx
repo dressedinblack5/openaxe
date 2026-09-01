@@ -5,13 +5,13 @@ import { useTheme } from "../../context/theme"
 import { useTuiConfig } from "../../config"
 import { InstallationChannel, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { usePluginRuntime } from "../../plugin/runtime"
-import { isFocused } from "../../context/focus"
 
 import { getScrollAcceleration } from "../../util/scroll"
 import { WorkspaceLabel } from "../../component/workspace-label"
 import { Locale } from "../../util/locale"
 
 const SIDEBAR_INNER = 38 // width 42 - paddingLeft 2 - paddingRight 2
+const SIDEBAR_CONTENT = SIDEBAR_INNER - 2 // = 36 — inner minus scroll gutter (paddingRight 1 + inner box paddingRight 1)
 
 export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const pluginRuntime = usePluginRuntime()
@@ -33,7 +33,6 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
         const s = current()
         const workspaceID = s.workspaceID
         const shareURL = s.share?.url
-        const sidebarFocused = isFocused("sidebar")
         return (
           <box
             backgroundColor={theme.backgroundPanel}
@@ -44,8 +43,6 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
             paddingLeft={2}
             paddingRight={2}
             position={props.overlay ? "absolute" : "relative"}
-            border={sidebarFocused() ? ["right"] : []}
-            borderColor={sidebarFocused() ? theme.primary : undefined}
           >
             <scrollbox
               flexGrow={1}
@@ -67,23 +64,23 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 >
                   <box paddingRight={1}>
                     <text fg={theme.text}>
-                      <b>{Locale.truncate(s.title, SIDEBAR_INNER)}</b>
+                      <b>{Locale.truncate(s.title, SIDEBAR_CONTENT)}</b>
                     </text>
                     <Show when={InstallationChannel !== "latest"}>
-                      <text fg={theme.textMuted}>{Locale.truncate(props.sessionID, SIDEBAR_INNER)}</text>
+                      <text fg={theme.textMuted}>{Locale.truncate(props.sessionID, SIDEBAR_CONTENT)}</text>
                     </Show>
                     {workspaceID && (
                       <text fg={theme.textMuted}>
                         <Show
                           when={workspace()}
                           fallback={
-                            <WorkspaceLabel type="unknown" name={Locale.truncate(workspaceID, SIDEBAR_INNER)} status="error" icon />
+                            <WorkspaceLabel type="unknown" name={Locale.truncate(workspaceID, SIDEBAR_CONTENT)} status="error" icon />
                           }
                         >
                           {(item) => (
                             <WorkspaceLabel
                               type={item().type}
-                              name={Locale.truncate(item().name, SIDEBAR_INNER)}
+                              name={Locale.truncate(item().name, SIDEBAR_CONTENT)}
                               status={project.workspace.status(item().id) ?? "error"}
                               icon
                             />
@@ -91,7 +88,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                         </Show>
                       </text>
                     )}
-                    {shareURL && <text fg={theme.textMuted}>{Locale.truncateLeft(shareURL, SIDEBAR_INNER)}</text>}
+                    {shareURL && <text fg={theme.textMuted}>{Locale.truncateLeft(shareURL, SIDEBAR_CONTENT)}</text>}
                   </box>
                 </pluginRuntime.Slot>
                 <pluginRuntime.Slot name="sidebar_content" session_id={props.sessionID} />
