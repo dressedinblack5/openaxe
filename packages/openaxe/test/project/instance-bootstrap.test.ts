@@ -1,5 +1,5 @@
 import { afterEach, expect } from "bun:test"
-import { existsSync } from "node:fs"
+import { existsSync, mkdirSync } from "node:fs"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
@@ -27,6 +27,7 @@ afterEach(async () => {
 
 const bootstrapFixture = Effect.gen(function* () {
   const dir = yield* tmpdirScoped({ git: true })
+  mkdirSync(path.join(dir, "node_modules", "@opencode-ai", "plugin"), { recursive: true })
   const marker = path.join(dir, "config-hook-fired")
   const pluginFile = path.join(dir, "plugin.ts")
   yield* Effect.promise(() =>
