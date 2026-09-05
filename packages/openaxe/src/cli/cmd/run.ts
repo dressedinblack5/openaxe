@@ -665,7 +665,12 @@ export const RunCommand = effectCmd({
         }
         const sessionID = sess.id
 
+        let errorEmitted = false
         function emit(type: string, data: Record<string, unknown>) {
+          if (type === "error") {
+            if (errorEmitted) return true
+            errorEmitted = true
+          }
           if (args.format === "json") {
             process.stdout.write(
               JSON.stringify({
@@ -823,8 +828,16 @@ export const RunCommand = effectCmd({
           })
           async function finish() {
             if (args.attach) return
-            const error = await completed
-            if (error) process.exitCode = 1
+            let timer: ReturnType<typeof setTimeout> | undefined
+            const timeout = new Promise<undefined>((resolve) => {
+              timer = setTimeout(() => resolve(undefined), 3000)
+            })
+            try {
+              const error = await Promise.race([completed, timeout])
+              if (error) process.exitCode = 1
+            } finally {
+              if (timer !== undefined) clearTimeout(timer)
+            }
           }
 
           if (args.command) {
@@ -870,10 +883,7 @@ export const RunCommand = effectCmd({
             parts: [...files, { type: "text", text: message }],
           })
           if (result.error) {
-            // Wait for the SSE event loop to process the session.error and
-            // session.status.idle events before we exit.  Without this await
-            // the process may terminate before the error event is emitted to
-            // stdout (--format json) or surfaced in the UI (default format).
+            if (!emit("error", { error: result.error })) UI.error(formatRunError(result.error))
             await finish()
             process.exitCode = 1
             return
