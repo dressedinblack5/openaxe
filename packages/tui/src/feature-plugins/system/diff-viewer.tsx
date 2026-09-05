@@ -11,13 +11,27 @@ import {
 import { LANGUAGE_EXTENSIONS } from "../../util/filetype"
 import { useBindings, useCommandShortcut } from "../../keymap"
 import { useTheme } from "../../context/theme"
-import { useTerminalDimensions } from "@opentui/solid"
+import { useRenderer, useTerminalDimensions } from "@opentui/solid"
 import path from "node:path"
-import { createEffect, createMemo, createResource, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js"
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  Match,
+  on,
+  onCleanup,
+  Show,
+  Switch,
+  useContext,
+} from "solid-js"
+import { PromptRefContext } from "../../context/prompt"
 import { DiffViewerFileTree } from "./diff-viewer-file-tree"
 import { Panel, PanelGroup, Separator } from "./diff-viewer-ui"
 import { DialogSelect } from "../../ui/dialog-select"
 import { getScrollAcceleration } from "../../util/scroll"
+import { setDiffViewerFocus } from "./diff-viewer-focus"
 import {
   allExpandedFileTreeDirectories,
   buildFileTree,
@@ -131,6 +145,13 @@ function DiffViewer(props: { api: TuiPluginApi }) {
   })
   const files = createMemo(() => diff() ?? [])
   const [focus, setFocus] = createSignal<DiffViewerFocus>("patches")
+
+  createEffect(() => {
+    setDiffViewerFocus(focus())
+  })
+
+  onCleanup(() => setDiffViewerFocus("patches"))
+
   const [fileTreeEnabled, setFileTreeEnabled] = createSignal(props.api.kv.get(KV_SHOW_FILE_TREE, true))
   const showFileTree = createMemo(() => showDiffViewerFileTree(fileTreeEnabled(), files().length))
   const [singlePatch, setSinglePatch] = createSignal(props.api.kv.get(KV_SINGLE_PATCH, false))
@@ -154,6 +175,23 @@ function DiffViewer(props: { api: TuiPluginApi }) {
   const fileRows = createMemo(() => flattenFileTree(fileTree(), expandedFileNodes()))
   const patchFileIndexes = createMemo(() => orderedPatchFileIndexes(flattenFileTree(fileTree())))
   const focusRunner = (input: Record<DiffViewerFocus, () => void>) => () => input[focus()]()
+  const promptRef = useContext(PromptRefContext)
+  const renderer = useRenderer()
+  createEffect(
+    on(
+      () => focus(),
+      (current, prev) => {
+        if (current !== "patches") return
+        if (prev !== "files") return
+        if (props.api.ui.dialog.open) return
+        if (renderer.currentFocusedEditor !== null) return
+        setTimeout(() => {
+          if (props.api.ui.dialog.open) return
+          promptRef?.current?.focus()
+        }, 1)
+      },
+    ),
+  )
   const switchFocusShortcut = useCommandShortcut("diff.switch_focus")
   const nextHunkShortcut = useCommandShortcut("diff.next_hunk")
   const previousHunkShortcut = useCommandShortcut("diff.previous_hunk")
