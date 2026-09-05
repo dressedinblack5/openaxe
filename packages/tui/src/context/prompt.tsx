@@ -18,3 +18,4 @@ const PromptRef = createSimpleContext({
 })
 export const usePromptRef = PromptRef.use
 export const PromptRefProvider = PromptRef.provider
+export const PromptRefContext = PromptRef.context
