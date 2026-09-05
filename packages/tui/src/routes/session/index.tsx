@@ -305,6 +305,13 @@ export function Session() {
       editor.reconnect(result.data.directory)
       await sync.session.sync(sessionID)
       if (route.sessionID === sessionID && scroll) scroll.scrollBy(100_000)
+      if (route.sessionID === sessionID && dialog.stack.length === 0 && renderer.currentFocusedEditor === null) {
+        setTimeout(() => {
+          if (dialog.stack.length !== 0) return
+          if (route.sessionID !== sessionID) return
+          promptRef.current?.focus()
+        }, 1)
+      }
     })().catch((error) => {
       if (route.sessionID !== sessionID) return
       toast.show({
@@ -1174,14 +1181,7 @@ export function Session() {
         }}
       >
         <box flexDirection="row" flexGrow={1} minHeight={0}>
-          <box
-            flexGrow={1}
-            minHeight={0}
-            paddingBottom={1}
-            paddingLeft={2}
-            paddingRight={2}
-            gap={1}
-          >
+          <box flexGrow={1} minHeight={0} paddingBottom={1} paddingLeft={2} paddingRight={2} gap={1}>
             <Show when={session()}>
               <scrollbox
                 ref={(r) => (scroll = r)}
