@@ -83,6 +83,7 @@ import { DialogVariant } from "./component/dialog-variant"
 import { ArtifactPreview } from "./component/artifact-preview"
 import { MemoryBrowser } from "./component/memory-browser"
 import { createTuiAttention } from "./attention"
+import { getDiffViewerFocus } from "./feature-plugins/system/diff-viewer-focus"
 import { dispose } from "./audio"
 import {
   win32DisableProcessedInput,
@@ -385,6 +386,31 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
   const pluginRuntime = usePluginRuntime()
   const attention = createTuiAttention({ renderer, config: tuiConfig, kv })
   const clipboard = useClipboard()
+
+  const onWindowFocus = () => {
+    if (dialog.stack.length > 0) return
+    if (getDiffViewerFocus() === "files") return
+    if (renderer.currentFocusedEditor) return
+    promptRef.current?.focus()
+  }
+
+  renderer.on("focus", onWindowFocus)
+  onCleanup(() => renderer.off("focus", onWindowFocus))
+
+  createEffect(
+    on(
+      () => dialog.stack.length,
+      (len, prev) => {
+        if (len !== 0) return
+        if (prev === undefined || prev === 0) return
+        setTimeout(() => {
+          if (dialog.stack.length !== 0) return
+          if (renderer.currentFocusedEditor !== null) return
+          promptRef.current?.focus()
+        }, 1)
+      },
+    ),
+  )
 
   const api = createTuiApi(
     createTuiApiAdapters({

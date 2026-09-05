@@ -610,14 +610,39 @@ export function Prompt(props: PromptProps) {
   onMount(() => {
     const saved = stashed
     stashed = undefined
-    if (store.prompt.input) return
-    if (saved && saved.prompt.input) {
+    if (!store.prompt.input && saved && saved.prompt.input) {
       input.setText(saved.prompt.input)
       setStore("prompt", saved.prompt)
       restoreExtmarksFromParts(saved.prompt.parts)
       input.cursorOffset = saved.cursor
     }
+    setTimeout(() => {
+      if (dialog.stack.length !== 0) return
+      if (renderer.currentFocusedEditor !== null) return
+      if (props.disabled) return
+      if (!input || input.isDestroyed) return
+      input.focus()
+    }, 1)
   })
+
+  createEffect(
+    on(
+      () => [props.visible, props.disabled, dialog.stack.length] as const,
+      ([visible, disabled, len]) => {
+        if (visible === false) return
+        if (disabled) return
+        if (len !== 0) return
+        setTimeout(() => {
+          if (dialog.stack.length !== 0) return
+          if (props.visible === false) return
+          if (props.disabled) return
+          if (renderer.currentFocusedEditor !== null) return
+          if (!input || input.isDestroyed) return
+          input.focus()
+        }, 1)
+      },
+    ),
+  )
 
   onCleanup(() => {
     if (store.prompt.input) {
