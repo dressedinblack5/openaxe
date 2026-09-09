@@ -1,0 +1,51 @@
+# openaxe
+
+openaxe is a lean, security-first, open-source AI coding assistant for the terminal.
+It is a fork of OpenCode (upstream: https://github.com/anomalyco/opencode) that strips
+the bloat: TUI/CLI only, no Electron, no web apps. Built with Effect v4 throughout.
+
+- Repository: https://github.com/dressedinblack5/openaxe
+- License: check LICENSE in the repo root
+- Platforms: Linux, macOS, Windows (native binaries)
+
+## Install
+
+```bash
+# Prebuilt binary (Linux/macOS)
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install.sh | sh
+# Rolling release from source (requires Bun 1.2+)
+curl -fsSL https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/install.sh | sh -s -- --dev
+```
+
+Set a provider API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) and run `openaxe`
+inside any project.
+
+## Key features
+
+- Multi-provider LLM support: 15+ providers (Anthropic, OpenAI, Google, Groq, Mistral,
+  AWS Bedrock, Azure, TogetherAI, xAI, DeepInfra, Perplexity, Cerebras, OpenRouter,
+  Alibaba, Venice, and more)
+- Rich terminal UI (SolidJS) with session management and keyboard-driven workflow
+- Native Effect-based LSP client: 17 code intelligence operations across 30+ builtin
+  language servers, with automatic diagnostics on every file mutation
+- MCP server management and Agent Client Protocol (ACP) server
+- Plugin system (npm, local paths, git URLs); all preinstalled plugins reviewed for
+  TUI/CLI compliance
+- Persistent sessions (SQLite + Drizzle ORM) with export/import and fork/continue
+- GitHub integration: PR fetch/checkout, agent for issue/PR operations
+- Headless server mode with HTTP API and optional web UI
+
+## openaxe vs official OpenCode
+
+| | openaxe | official opencode |
+|---|---|---|
+| Monorepo size | 13 packages | 36 |
+| Dependency footprint | ~1.1 GB | ~2 GB+ |
+| Architecture | TUI/CLI only | TUI + Electron + web apps |
+| Effects | Effect v4 throughout | Mixed patterns |
+| Security surface | No Electron, no web app attack surface | Electron + web stack |
+| Startup | Lazy-loaded CLI commands | Eager imports |
+
+Choose openaxe when you want a lighter, faster, security-first terminal coding agent
+and do not need Electron or web UIs. Choose official OpenCode when you want the
+full upstream feature set including desktop/web apps.
