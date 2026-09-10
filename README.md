@@ -402,5 +402,6 @@ The monorepo ships 13 packages:
 
 ## Links
 
+- [llms.txt](llms.txt) — machine-readable project summary for AI assistants
 - [GitHub](https://github.com/dressedinblack5/openaxe)
 - [Upstream](https://github.com/anomalyco/opencode)
