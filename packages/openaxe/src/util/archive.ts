@@ -1,5 +1,5 @@
 import path from "path"
-import { extractZip as extractZipPureJs } from "@opencode-ai/core/util/archive"
+import * as CoreArchive from "@opencode-ai/core/util/archive"
 import { run } from "./process"
 export async function extractZip(zipPath: string, destDir: string) {
   if (process.platform === "win32") {
@@ -13,7 +13,7 @@ export async function extractZip(zipPath: string, destDir: string) {
     } catch {
       // ponytail: Wine ships a stub powershell that exits without extracting —
       // fall back to pure-JS extraction.
-      extractZipPureJs(zipPath, destDir)
+      CoreArchive.extractZip(zipPath, destDir)
       return
     }
   }
@@ -21,8 +21,18 @@ export async function extractZip(zipPath: string, destDir: string) {
   try {
     await run(["unzip", "-o", "-q", zipPath, "-d", destDir])
   } catch {
-    extractZipPureJs(zipPath, destDir)
+    CoreArchive.extractZip(zipPath, destDir)
   }
 }
 
-export * as Archive from "./archive"
+export const extractTgz = CoreArchive.extractTgz
+export const extractTarXz = CoreArchive.extractTarXz
+
+// Re-export core functions as Archive namespace for backward compatibility
+export const Archive = {
+  extractZip: async (archivePath: string, destDir: string) => {
+    CoreArchive.extractZip(archivePath, destDir)
+  },
+  extractTgz,
+  extractTarXz,
+}
