@@ -10,12 +10,12 @@ const options = {
   },
   hostname: {
     type: "string" as const,
-    describe: "hostname to listen on",
+    describe: "hostname to listen on (default: 127.0.0.1; use 0.0.0.0 for all interfaces)",
     default: "127.0.0.1",
   },
   mdns: {
     type: "boolean" as const,
-    describe: "enable mDNS service discovery (defaults hostname to 0.0.0.0)",
+    describe: "enable mDNS service discovery (requires --hostname=0.0.0.0 to publish on LAN)",
     default: false,
   },
   "mdns-domain": {
@@ -50,11 +50,13 @@ export function resolveNetworkOptionsNoConfig(args: NetworkOptions, config?: Con
   const mdns = mdnsExplicitlySet ? args.mdns : (config?.server?.mdns ?? args.mdns)
   const mdnsDomain = mdnsDomainExplicitlySet ? args["mdns-domain"] : (config?.server?.mdnsDomain ?? args["mdns-domain"])
   const port = portExplicitlySet ? args.port : (config?.server?.port ?? args.port)
+  // Default to loopback; only bind 0.0.0.0 if explicitly requested
   const hostname = hostnameExplicitlySet
     ? args.hostname
-    : mdns && !config?.server?.hostname
-      ? "0.0.0.0"
-      : (config?.server?.hostname ?? args.hostname)
+    : (config?.server?.hostname ?? args.hostname)
+  if (mdns && hostname === "127.0.0.1") {
+    console.error("WARNING: mDNS enabled but hostname is 127.0.0.1; service will not be discoverable on LAN. Use --hostname=0.0.0.0 to publish (requires authentication).")
+  }
   const configCors = config?.server?.cors ?? []
   const argsCors = Array.isArray(args.cors) ? args.cors : args.cors ? [args.cors] : []
   const cors = [...configCors, ...argsCors]
