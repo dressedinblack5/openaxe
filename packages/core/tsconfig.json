@@ -2,7 +2,8 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@tsconfig/bun/tsconfig.json",
   "compilerOptions": {
-    "noUncheckedIndexedAccess": false
+    "noUncheckedIndexedAccess": false,
+    "typeRoots": ["./src/types", "node_modules/@types"]
   },
-  "_ponytail": "src/lsp/src and src/session/unified-runner are WIP - files carry // @ts-nocheck; remove nocheck when promoting WIP to strict (re-enable checks then)"
+  "_ponytail": "src/lsp/src and src/session/unified-runer are WIP - files carry // @ts-nocheck; remove nocheck when promoting WIP to strict (re-enable checks then)"
 }
