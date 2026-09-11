@@ -174,7 +174,7 @@ export function extractTarXz(archivePath: string, destDir: string, stripComponen
   while (offset + TAR_BLOCK <= bytes.length) {
     const header = bytes.subarray(offset, offset + TAR_BLOCK)
     // Two zero blocks mark the end of the archive.
-    if (header.every((byte) => byte === 0)) break
+    if (header.every((byte: number) => byte === 0)) break
 
     const typeflag = String.fromCharCode(header[156])
     let name = pendingName ?? tarString(header, 0, 100)
