@@ -38,7 +38,7 @@ const probeLayer = HttpRouter.serve(
 ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
 
 const itSecret = testEffect(
-  probeLayer.pipe(Layer.provide(ServerAuth.Config.layer({ password: Option.some("secret"), username: "opencode" }))),
+  probeLayer.pipe(Layer.provide(ServerAuth.Config.layer({ password: Option.some("secret"), username: "opencode", noAuth: false }))),
 )
 
 describe("HttpApi instance route authorization", () => {
