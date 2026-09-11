@@ -366,10 +366,8 @@ export const layer = Layer.effect(
       yield* s.deferredExternal
       const fns = s.hookMap.get(name)
       if (fns) {
-        // Clone output to prevent hooks from mutating the original object
-        const clonedOutput = JSON.parse(JSON.stringify(output))
         for (const fn of fns) {
-          yield* Effect.promise(async () => fn(input, clonedOutput))
+          yield* Effect.promise(async () => fn(input, output))
         }
       }
       return output
