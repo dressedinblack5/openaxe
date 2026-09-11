@@ -1,5 +1,4 @@
 import { expect, mock, beforeEach } from "bun:test"
-import { EventEmitter } from "events"
 import { Deferred, Effect, Layer, Option } from "effect"
 import { awaitWithTimeout, testEffect } from "../lib/effect"
 import type { MCP as MCPNS } from "../../src/mcp/index"
@@ -9,20 +8,15 @@ let openShouldFail = false
 let openCalledWith: string | undefined
 let openDeferred: Deferred.Deferred<string> | undefined
 
-void mock.module("open", () => ({
-  default: async (url: string) => {
+void mock.module("../../src/mcp/browser", () => ({
+  openBrowser: (url: string) => {
     openCalledWith = url
     if (openDeferred) Effect.runSync(Deferred.succeed(openDeferred, url).pipe(Effect.ignore))
 
-    // Return a mock subprocess that emits an error if openShouldFail is true
-    const subprocess = new EventEmitter()
     if (openShouldFail) {
-      // Emit error asynchronously like a real subprocess would
-      setTimeout(() => {
-        subprocess.emit("error", new Error("spawn xdg-open ENOENT"))
-      }, 10)
+      return Effect.fail(new Error("spawn xdg-open ENOENT"))
     }
-    return subprocess
+    return Effect.void
   },
 }))
 
