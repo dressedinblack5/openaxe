@@ -1,6 +1,7 @@
 export * as ServerAuth from "./auth"
 
 import { Config as EffectConfig, Context, Effect, Layer, Option, Redacted } from "effect"
+import { timingSafeStringEqual } from "@opencode-ai/core/util/timing-safe-equal"
 
 export type Credentials = {
   password?: string
@@ -44,8 +45,8 @@ export function required(config: Info) {
 export function authorized(credentials: DecodedCredentials, config: Info) {
   return (
     Option.isSome(config.password) &&
-    credentials.username === config.username &&
-    Redacted.value(credentials.password) === config.password.value
+    timingSafeStringEqual(credentials.username, config.username) &&
+    timingSafeStringEqual(Redacted.value(credentials.password), config.password.value)
   )
 }
 
