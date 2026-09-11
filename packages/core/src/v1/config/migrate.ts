@@ -135,28 +135,43 @@ function mcp(info: typeof ConfigV1.Info.Type) {
   return { timeout, servers }
 }
 
+function isLocalMcp(info: ConfigMCPV1.Info): info is ConfigMCPV1.Info & { type: "local" } {
+  return info.type === "local"
+}
+
+function isRemoteMcp(info: ConfigMCPV1.Info): info is ConfigMCPV1.Info & { type: "remote" } {
+  return info.type === "remote"
+}
+
 function migrateMcp(info: ConfigMCPV1.Info) {
   const disabled = info.enabled === undefined ? undefined : !info.enabled
-  if (info.type === "local")
+  if (isLocalMcp(info))
     return {
-      type: info.type,
+      type: "local" as const,
       command: info.command,
       cwd: info.cwd,
       environment: info.environment,
       disabled,
       timeout: info.timeout,
     }
+  if (isRemoteMcp(info)) {
+    return {
+      type: "remote" as const,
+      url: info.url,
+      headers: info.headers,
+      oauth: info.oauth && {
+        client_id: info.oauth.clientId,
+        client_secret: info.oauth.clientSecret,
+        scope: info.oauth.scope,
+        callback_port: info.oauth.callbackPort,
+        redirect_uri: info.oauth.redirectUri,
+      },
+      disabled,
+      timeout: info.timeout,
+    }
+  }
   return {
     type: info.type,
-    url: info.url,
-    headers: info.headers,
-    oauth: info.oauth && {
-      client_id: info.oauth.clientId,
-      client_secret: info.oauth.clientSecret,
-      scope: info.oauth.scope,
-      callback_port: info.oauth.callbackPort,
-      redirect_uri: info.oauth.redirectUri,
-    },
     disabled,
     timeout: info.timeout,
   }

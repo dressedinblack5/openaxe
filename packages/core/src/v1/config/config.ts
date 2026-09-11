@@ -19,6 +19,13 @@ import { ConfigSkillsV1 } from "./skills"
 
 export type Layout = ConfigLayoutV1.Layout
 
+export const PluginAllowlistEntry = Schema.Struct({
+  pkg: Schema.String,
+  version: Schema.String,
+  integrity: Schema.optional(Schema.String),
+})
+export type PluginAllowlistEntry = Schema.Schema.Type<typeof PluginAllowlistEntry>
+
 export const WellKnown = Schema.Struct({
   config: Schema.optional(Schema.Json),
   remote_config: Schema.optional(Schema.Json),
@@ -48,6 +55,14 @@ export const Info = Schema.Struct({
   reference: Schema.optional(ConfigReference.Info).annotate({
     description: "@deprecated Use 'references' field instead. Named git or local directory references",
   }),
+  pluginAllowlist: Schema.optional(Schema.Array(PluginAllowlistEntry)
+  ).annotate({ description: "Allowlist of approved plugin packages with exact versions and optional integrity hashes" }),
+  toolAllowlist: Schema.optional(Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      integrity: Schema.optional(Schema.String),
+    })
+  )).annotate({ description: "Allowlist of approved custom tools with exact IDs and optional integrity hashes" }),
   watcher: Schema.optional(Schema.Struct({ ignore: Schema.optional(Schema.mutable(Schema.Array(Schema.String))) })),
   snapshot: Schema.optional(Schema.Boolean).annotate({
     description:
