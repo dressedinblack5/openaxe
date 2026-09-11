@@ -11,7 +11,9 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { withTransientReadRetry } from "@/util/effect-http-client"
 import { Global } from "@opencode-ai/core/global"
+import { safeFetch } from "@/util/safe-fetch"
 import type { MessageID } from "./schema"
+import { FileSystemError } from "@opencode-ai/core/fs-util"
 
 function extract(messages: SessionV1.WithParts[]) {
   const paths = new Set<string>()
@@ -159,7 +161,16 @@ export const layer: Layer.Layer<
       )
 
       const files = yield* Effect.forEach(Array.from(paths), read, { concurrency: 8 })
-      const remote = yield* Effect.forEach(urls, fetch, { concurrency: 4 })
+      const safeFetchUrls = Effect.fnUntraced(function* (url: string) {
+        return yield* Effect.tryPromise({
+          try: async () => {
+            const response = await safeFetch(url, { redirect: "error" })
+            return response.text()
+          },
+          catch: (cause) => new FileSystemError({ method: "fetch", cause: cause instanceof Error ? cause : new Error(String(cause)) }),
+        })
+      })
+      const remote = yield* Effect.forEach(urls, safeFetchUrls, { concurrency: 4 })
 
       return [
         ...Array.from(paths).flatMap((item, i) => (files[i] ? [`Instructions from: ${item}\n${files[i]}`] : [])),

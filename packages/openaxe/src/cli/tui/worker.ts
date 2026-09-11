@@ -3,6 +3,9 @@ import { GlobalBus } from "@/bus/global"
 import { writeHeapSnapshot } from "node:v8"
 import { Heap } from "@/cli/heap"
 import { mark } from "@/cli/startup-timing"
+import { safeFetch } from "@/util/safe-fetch"
+import { tmpdir } from "node:os"
+import { join, resolve } from "node:path"
 
 mark("worker-start")
 
@@ -27,6 +30,25 @@ GlobalBus.on("event", (event) => {
 
 let server: { stop(force?: boolean): Promise<void>; url?: URL } | undefined
 
+const ALLOWED_HOSTNAMES = new Set(["127.0.0.1", "localhost", "::1"])
+
+function validateHostname(hostname: string): string {
+  if (!ALLOWED_HOSTNAMES.has(hostname)) {
+    throw new Error(`Hostname not allowed: ${hostname}. Only localhost bindings permitted.`)
+  }
+  return hostname
+}
+
+function sanitizeSnapshotPath(filename: string): string {
+  const safeDir = tmpdir()
+  const safePath = resolve(safeDir, filename)
+  // Ensure the resolved path is within the temp directory (prevent traversal)
+  if (!safePath.startsWith(resolve(safeDir))) {
+    throw new Error("Invalid snapshot path")
+  }
+  return safePath
+}
+
 export const rpc = {
   async fetch(input: { url: string; method: string; headers: Record<string, string>; body?: string }) {
     const { ServerAuth } = await import("@/server/auth")
@@ -42,7 +64,9 @@ export const rpc = {
     const incomingUrl = new URL(input.url)
     const proxyUrl = new URL(incomingUrl.pathname, server.url)
     proxyUrl.search = incomingUrl.search
-    const response = await fetch(proxyUrl.toString(), {
+    
+    // Use safeFetch to block private IPs (metadata endpoints) and enforce HTTPS
+    const response = await safeFetch(proxyUrl.toString(), {
       method: input.method,
       headers,
       body: input.body,
@@ -55,14 +79,19 @@ export const rpc = {
     }
   },
   snapshot() {
-    const result = writeHeapSnapshot("server.heapsnapshot")
-    return result
+    const safePath = sanitizeSnapshotPath("server.heapsnapshot")
+    const result = writeHeapSnapshot(safePath)
+    return { path: safePath, result }
   },
-  async server(input: { port: number; hostname: string; mdns?: boolean; cors?: string[] }) {
+  async server(input: { port: number; hostname: string; mdns?: boolean; cors?: string[]; noAuth?: boolean }) {
     mark("server-handler-start")
+    const hostname = validateHostname(input.hostname)
+    if (input.noAuth) {
+      process.env.OPENCODE_SERVER_NO_AUTH = "1"
+    }
     const { Server } = await import("@/server/server")
     if (server) await server.stop(true)
-    server = await Server.listen(input)
+    server = await Server.listen({ ...input, hostname })
     mark("server-url-ready")
     return { url: server.url!.toString() }
   },
