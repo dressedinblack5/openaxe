@@ -62,6 +62,7 @@ import { SessionSearchTool } from "./session-search"
 import { SkillWriteV1Tool } from "./skill-write"
 import { ToolSearchTool } from "./tool-search"
 import { KanbanSwarmTool } from "./kanban-swarm"
+import { validateToolSpec, type ToolAllowlist } from "@/plugin/shared"
 
 export { webSearchEnabled }
 
@@ -124,6 +125,10 @@ export const layer = Layer.effect(
     const agents = yield* Agent.Service
     const truncate = yield* Truncate.Service
     const flags = yield* RuntimeFlags.Service
+    
+    // Get tool allowlist from config
+    const cfg = yield* Config.Service.use((c) => c.getGlobal())
+    const toolAllowlist = cfg.toolAllowlist
 
     const infos: Info[] = yield* Effect.all(manifest)
     const defs: Def[] = yield* Effect.forEach(infos, (info) => init(info))
@@ -199,6 +204,11 @@ export const layer = Layer.effect(
           const namespace = path.basename(match, path.extname(match))
           for (const [id, def] of Object.entries(mod)) {
             if (!isPluginTool(def)) continue
+            const toolId = id === "default" ? namespace : `${namespace}_${id}`
+            // Validate tool against allowlist if configured
+            if (toolAllowlist && toolAllowlist.length > 0) {
+              validateToolSpec(toolId, toolAllowlist)
+            }
             custom.push(fromPlugin(id === "default" ? namespace : `${namespace}_${id}`, def))
           }
         }
