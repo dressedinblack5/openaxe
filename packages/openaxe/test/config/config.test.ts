@@ -1763,17 +1763,23 @@ describe("resolvePluginSpec", () => {
   })
 
   test("resolves plugin directories without package.json to index.ts", async () => {
-    await using tmp = await tmpdir({
-      init: async (dir) => {
-        const plugin = path.join(dir, "plugin")
-        await fs.mkdir(plugin, { recursive: true })
-        await Filesystem.write(path.join(plugin, "index.ts"), "export default {}")
-      },
-    })
+    const pluginName = "plugin-" + Math.random().toString(36).slice(2)
+    const testPluginDir = path.join(process.cwd(), "test-plugins", pluginName)
+    await fs.mkdir(testPluginDir, { recursive: true })
+    await Filesystem.write(path.join(testPluginDir, "index.ts"), "export default {}")
 
-    const file = path.join(tmp.path, "openaxe.json")
-    const hit = await ConfigPlugin.resolvePluginSpec("./plugin", file)
-    expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(tmp.path, "plugin", "index.ts")).href)
+    const configDir = path.join(process.cwd(), "test-plugins")
+    await fs.mkdir(configDir, { recursive: true })
+    const configFile = path.join(configDir, "openaxe.json")
+    await Filesystem.writeJson(configFile, { plugins: [] })
+
+    try {
+      const hit = await ConfigPlugin.resolvePluginSpec("./" + pluginName, configFile)
+      expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(testPluginDir, "index.ts")).href)
+    } finally {
+      await fs.rm(testPluginDir, { recursive: true, force: true }).catch(() => {})
+      await fs.rm(configFile, { force: true }).catch(() => {})
+    }
   })
 })
 

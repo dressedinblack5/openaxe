@@ -206,10 +206,13 @@ export const layer = Layer.effect(
             }
             if (plugins.length) yield* config.waitForDependencies()
 
+            const allowlist = cfg.pluginAllowlist
+
             const loaded = yield* Effect.promise(() =>
               PluginLoader.loadExternal({
                 items: plugins,
                 kind: "server",
+                allowlist,
                 report: {
                   start(_candidate) {},
                   missing(_candidate, _retry, _message) {},
@@ -363,8 +366,10 @@ export const layer = Layer.effect(
       yield* s.deferredExternal
       const fns = s.hookMap.get(name)
       if (fns) {
+        // Clone output to prevent hooks from mutating the original object
+        const clonedOutput = JSON.parse(JSON.stringify(output))
         for (const fn of fns) {
-          yield* Effect.promise(async () => fn(input, output))
+          yield* Effect.promise(async () => fn(input, clonedOutput))
         }
       }
       return output
