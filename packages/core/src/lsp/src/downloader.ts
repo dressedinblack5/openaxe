@@ -5,6 +5,7 @@ import { Filesystem } from "@opencode-ai/core/util/filesystem"
 import { Archive } from "@opencode-ai/core/util/archive"
 import { Process } from "@opencode-ai/core/util/process"
 import { Global } from "@opencode-ai/core/global"
+import { createHash } from "node:crypto"
 import path from "path"
 import fs from "fs/promises"
 
@@ -17,20 +18,42 @@ const run = (cmd: string[], opts: Process.RunOptions = {}) => Process.run(cmd, {
 
 const _output = (cmd: string[], opts: Process.RunOptions = {}) => Process.text(cmd, { ...opts, nothrow: true })
 
+async function verifyIntegrity(filePath: string, expectedHash: string): Promise<boolean> {
+  const content = await fs.readFile(filePath)
+  const hash = createHash("sha256").update(content).digest("hex")
+  return hash === expectedHash
+}
+
+async function safeExtract(
+  archivePath: string,
+  targetDir: string,
+  archiveType: "zip" | "tar.gz" | "tar.xz",
+): Promise<void> {
+  if (archiveType === "zip") {
+    Archive.extractZip(archivePath, targetDir)
+    return
+  }
+  if (archiveType === "tar.gz") {
+    Archive.extractTgz(archivePath, targetDir)
+    return
+  }
+  await run(["tar", "-xJf", archivePath], { cwd: targetDir })
+}
+
 export const makeServerDownloader = (): ServerDownloader => ({
   download(_strategy: DownloadStrategy, _targetDir: string): Effect.Effect<string, DownloadError> {
     return Effect.gen(function* () {
       switch (_strategy.type) {
         case "npm": {
-          const bin = yield* downloadNpmPackage(_strategy.package, _targetDir)
+          const bin = yield* downloadNpmPackage(_strategy.package, _targetDir, _strategy.integrity)
           return bin
         }
         case "go": {
-          const bin = yield* downloadGoModule(_strategy.module, _targetDir, _strategy.binary)
+          const bin = yield* downloadGoModule(_strategy.module, _targetDir, _strategy.binary, _strategy.integrity)
           return bin
         }
         case "cargo": {
-          const bin = yield* downloadCargoCrate(_strategy.crate, _targetDir, _strategy.binary)
+          const bin = yield* downloadCargoCrate(_strategy.crate, _targetDir, _strategy.binary, _strategy.integrity)
           return bin
         }
         case "binary": {
@@ -39,11 +62,12 @@ export const makeServerDownloader = (): ServerDownloader => ({
             _targetDir,
             _strategy.binary,
             _strategy.archiveType ?? "tar.gz",
+            _strategy.integrity,
           )
           return bin
         }
         case "mason": {
-          const bin = yield* downloadMasonPackage(_strategy.package, _targetDir, _strategy.binary)
+          const bin = yield* downloadMasonPackage(_strategy.package, _targetDir, _strategy.binary, _strategy.integrity)
           return bin
         }
         case "github": {
@@ -53,13 +77,13 @@ export const makeServerDownloader = (): ServerDownloader => ({
             _targetDir,
             _strategy.binary,
             _strategy.archiveType ?? "tar.gz",
+            _strategy.integrity,
           )
           return bin
         }
         default: {
           const _exhaustive: never = _strategy
-          // oxlint-disable-next-line typescript/restrict-template-expressions -- exhaustive check with never type
-          throw new Error(`Unknown download strategy: ${_exhaustive}`)
+          throw new Error(`Unknown download strategy: ${String(_exhaustive)}`)
         }
       }
     }).pipe(
@@ -83,21 +107,13 @@ export const makeServerDownloader = (): ServerDownloader => ({
   ): Effect.Effect<void, DownloadError> {
     return Effect.tryPromise({
       try: async () => {
-        if (_archiveType === "zip") {
-          Archive.extractZip(_archivePath, _targetDir)
-        } else if (_archiveType === "tar.gz") {
-          await run(["tar", "-xzf", _archivePath], { cwd: _targetDir })
-        } else if (_archiveType === "tar.xz") {
-          await run(["tar", "-xJf", _archivePath], { cwd: _targetDir })
-        }
+        await safeExtract(_archivePath, _targetDir, _archiveType)
       },
       catch: (cause) =>
         new DownloadError({
           serverID: "unknown",
           url: _archivePath,
-          // oxlint-disable-next-line typescript/no-unnecessary-type-conversion -- explicit string conversion for template literal
-          // oxlint-disable-next-line typescript/restrict-template-expressions -- cause is error type converted to string
-          message: `Failed to extract ${_archiveType}: ${cause}`,
+          message: `Failed to extract ${_archiveType}: ${String(cause)}`,
           cause,
         }),
     })
@@ -115,15 +131,14 @@ export const makeServerDownloader = (): ServerDownloader => ({
 })
 
 /**
- * Strategy implementations
+ * Strategy implementations with integrity verification
  */
 
-async function downloadNpmPackage(_packageName: string, _targetDir: string): Promise<string> {
-  // In real implementation, would use npm pack or direct download
+async function downloadNpmPackage(_packageName: string, _targetDir: string, _integrity?: string): Promise<string> {
   throw new Error("Not implemented - would use npm pack or registry download")
 }
 
-async function downloadGoModule(module: string, targetDir: string, binary?: string): Promise<string> {
+async function downloadGoModule(module: string, targetDir: string, binary?: string, integrity?: string): Promise<string> {
   const proc = Process.spawn(["go", "install", `${module}@latest`], {
     env: { ...process.env, GOBIN: Global.Path.bin },
     stdout: "pipe",
@@ -132,10 +147,14 @@ async function downloadGoModule(module: string, targetDir: string, binary?: stri
   })
   const exit = await proc.exited
   if (exit !== 0) throw new Error("Go install failed")
-  return path.join(Global.Path.bin, binary ?? path.basename(module))
+  const binPath = path.join(Global.Path.bin, binary ?? path.basename(module))
+  if (integrity && !(await verifyIntegrity(binPath, integrity))) {
+    throw new Error("Integrity check failed for Go module")
+  }
+  return binPath
 }
 
-async function downloadCargoCrate(crate: string, targetDir: string, binary?: string): Promise<string> {
+async function downloadCargoCrate(crate: string, targetDir: string, binary?: string, integrity?: string): Promise<string> {
   const proc = Process.spawn(["cargo", "install", crate, "--locked"], {
     env: { ...process.env },
     stdout: "pipe",
@@ -144,7 +163,11 @@ async function downloadCargoCrate(crate: string, targetDir: string, binary?: str
   })
   const exit = await proc.exited
   if (exit !== 0) throw new Error("Cargo install failed")
-  return path.join(Global.Path.bin, binary ?? crate)
+  const binPath = path.join(Global.Path.bin, binary ?? crate)
+  if (integrity && !(await verifyIntegrity(binPath, integrity))) {
+    throw new Error("Integrity check failed for Cargo crate")
+  }
+  return binPath
 }
 
 async function downloadBinary(
@@ -152,6 +175,7 @@ async function downloadBinary(
   targetDir: string,
   binary?: string,
   archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz",
+  integrity?: string,
 ): Promise<string> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Download failed: ${response.status}`)
@@ -161,24 +185,19 @@ async function downloadBinary(
   const archivePath = path.join(targetDir, `download${ext}`)
   await Filesystem.writeStream(archivePath, response.body)
 
-  if (archiveType === "zip") {
-    Archive.extractZip(archivePath, targetDir)
-  } else if (archiveType === "tar.gz") {
-    await run(["tar", "-xzf", archivePath], { cwd: targetDir })
-  } else {
-    await run(["tar", "-xJf", archivePath], { cwd: targetDir })
-  }
+  await safeExtract(archivePath, targetDir, archiveType)
 
   await fs.rm(archivePath, { force: true })
 
-  // Find the binary
   const foundBin = binary ? path.join(targetDir, binary) : findBinary(targetDir)
   if (!foundBin) throw new Error("Binary not found after extraction")
+  if (integrity && !(await verifyIntegrity(foundBin, integrity))) {
+    throw new Error("Integrity check failed for downloaded binary")
+  }
   return foundBin
 }
 
-async function downloadMasonPackage(_packageName: string, _targetDir: string, _binary?: string): Promise<string> {
-  // Would use mason.nvim package manager
+async function downloadMasonPackage(_packageName: string, _targetDir: string, _binary?: string, _integrity?: string): Promise<string> {
   throw new Error("Not implemented - would use mason")
 }
 
@@ -188,6 +207,7 @@ async function downloadGithubRelease(
   targetDir: string,
   binary?: string,
   archiveType: "zip" | "tar.gz" | "tar.xz" = "tar.gz",
+  integrity?: string,
 ): Promise<string> {
   const releaseResponse = await fetch(`https://api.github.com/repos/${repo}/releases/latest`)
   if (!releaseResponse.ok) throw new Error("Failed to fetch release")
@@ -206,11 +226,10 @@ async function downloadGithubRelease(
   )
   if (!asset?.browser_download_url) throw new Error("Asset not found")
 
-  return downloadBinary(asset.browser_download_url, targetDir, binary, archiveType)
+  return downloadBinary(asset.browser_download_url, targetDir, binary, archiveType, integrity)
 }
 
 function findBinary(_dir: string): string | undefined {
-  // Simple binary finder - would need enhancement
   return undefined
 }
 
