@@ -14,6 +14,7 @@ import { writeHeapSnapshot } from "v8"
 import { validateSession } from "../tui/validate-session"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
 import { mark, report } from "@/cli/startup-timing"
+import { SERVER_AUTH_REQUIRED_MESSAGE, SERVER_NO_AUTH_WARNING, resolveServerAuth } from "./auth-gate"
 import type { TuiConfig } from "@/config/tui"
 
 declare global {
@@ -209,6 +210,17 @@ export const TuiCommand = cmd({
       .option("demo", {
         type: "boolean",
         hidden: true,
+      })
+      .option("auth", {
+        type: "boolean",
+        describe: "require authentication (use --no-auth to disable)",
+        default: true,
+        hidden: true,
+      })
+      .option("no-auth", {
+        type: "boolean",
+        describe: "Allow unauthenticated access (DANGEROUS - only for trusted networks)",
+        default: false,
       }),
   handler: async (args) => {
     // OPENCODE_FAST_BOOT (read at packages/tui app.tsx) skips the StartupLoading screen.
@@ -277,6 +289,15 @@ export const TuiCommand = cmd({
       // overlaps worker boot; void import keeps it off handler-start→run-start
       // critical path. Internal fetch keeps lazy import inside fn (first-call only).
       const network = resolveNetworkOptionsNoConfig(args)
+      const { hasPassword, noAuth } = resolveServerAuth(args)
+      if (!hasPassword && !noAuth) {
+        UI.error(SERVER_AUTH_REQUIRED_MESSAGE)
+        process.exitCode = 1
+        return
+      }
+      if (!hasPassword && noAuth) {
+        console.error(SERVER_NO_AUTH_WARNING)
+      }
       const external =
         process.argv.includes("--port") ||
         process.argv.includes("--hostname") ||
@@ -367,7 +388,7 @@ export const TuiCommand = cmd({
       let transport: { url: string; fetch: typeof fetch; events?: EventSource }
       if (external) {
         // External mode: start HTTP server and proxy through it
-        const serverResult = await client!.call("server", network)
+        const serverResult = await client!.call("server", { ...network, noAuth })
         mark("server-url")
         transport = {
           url: serverResult.url,
@@ -468,7 +489,7 @@ export const TuiCommand = cmd({
                 const tui = writeHeapSnapshot("tui.heapsnapshot")
                 if (!client) return [tui]
                 const server = await client.call("snapshot", undefined)
-                return [tui, server]
+                return [tui, server.path]
               },
               config: { ...config, plugin_origins: pluginOrigins } as TuiConfig.Resolved & TuiConfig.HostMetadata,
               pluginHost: createLegacyTuiPluginHost(),
