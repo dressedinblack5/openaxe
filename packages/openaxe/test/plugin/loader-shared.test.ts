@@ -33,6 +33,21 @@ function withTmp<T, A, E, R>(
   })
 }
 
+function withProjectTmp<T, A, E, R>(
+  init: (dir: string) => Promise<T>,
+  body: (tmp: { path: string; extra: T }) => Effect.Effect<A, E, R>,
+) {
+  return Effect.gen(function* () {
+    const dir = path.join(process.cwd(), ".tmp-plugin-test-" + Math.random().toString(36).slice(2))
+    yield* Effect.promise(() => fs.mkdir(dir, { recursive: true }))
+    yield* Effect.addFinalizer(() =>
+      Effect.promise(() => fs.rm(dir, { recursive: true, force: true }).catch(() => undefined)),
+    )
+    const extra = yield* Effect.promise(() => init(dir))
+    return yield* body({ path: dir, extra })
+  })
+}
+
 function load(dir: string, flags?: Parameters<typeof RuntimeFlags.layer>[0]) {
   const source = path.join(dir, "openaxe.json")
   return Effect.gen(function* () {
@@ -1112,7 +1127,7 @@ export default {
   )
 
   it.live("retries failed file plugins once after wait and keeps order", () =>
-    withTmp(
+    withProjectTmp(
       async (dir) => {
         const a = path.join(dir, "a")
         const b = path.join(dir, "b")
@@ -1161,7 +1176,7 @@ export default {
   )
 
   it.live("does not retry permanent file plugin entry errors", () =>
-    withTmp(
+    withProjectTmp(
       async (dir) => {
         const mod = path.join(dir, "bad-entry")
         const spec = pathToFileURL(mod).href
