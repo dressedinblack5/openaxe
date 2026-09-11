@@ -33,6 +33,15 @@ const tryExtractZip = (archivePath: string, destDir: string) =>
     .then(() => true)
     .catch(() => false)
 
+const tryExtract = (extract: () => void): boolean => {
+  try {
+    extract()
+    return true
+  } catch {
+    return false
+  }
+}
+
 export interface Handle {
   process: Process.Child
   initialization?: Record<string, any>
@@ -644,7 +653,7 @@ export const Zls: Info = {
       if (ext === "zip") {
         if (!(await tryExtractZip(tempPath, Global.Path.bin))) return
       } else {
-        await run(["tar", "-xf", tempPath], { cwd: Global.Path.bin })
+        if (!tryExtract(() => Archive.extractTarXz(tempPath, Global.Path.bin))) return
       }
 
       await fs.rm(tempPath, { force: true })
@@ -1021,7 +1030,7 @@ export const Clangd: Info = {
       if (!(await tryExtractZip(archive, Global.Path.bin))) return
     }
     if (tar) {
-      await run(["tar", "-xf", archive], { cwd: Global.Path.bin })
+      if (!tryExtract(() => Archive.extractTarXz(archive, Global.Path.bin))) return
     }
     await fs.rm(archive, { force: true })
 
@@ -1188,10 +1197,7 @@ export const JDTLS: Info = {
 
       if (!(await downloadArchive(releaseURL, path.join(distPath, archiveName)))) return
 
-      const tarResult = await run(["tar", "-xzf", archiveName], { cwd: distPath })
-      if (tarResult.code !== 0) {
-        return
-      }
+      if (!tryExtract(() => Archive.extractTgz(path.join(distPath, archiveName), distPath))) return
 
       await fs.rm(path.join(distPath, archiveName), { force: true })
     }
@@ -1431,12 +1437,7 @@ export const LuaLS: Info = {
       if (ext === "zip") {
         if (!(await tryExtractZip(tempPath, installDir))) return
       } else {
-        const ok = await run(["tar", "-xzf", tempPath, "-C", installDir])
-          .then((result) => result.code === 0)
-          .catch(() => {
-            return false
-          })
-        if (!ok) return
+        if (!tryExtract(() => Archive.extractTgz(tempPath, installDir))) return
       }
 
       await fs.rm(tempPath, { force: true })
@@ -1614,12 +1615,7 @@ export const TerraformLS: Info = {
       const tempPath = path.join(Global.Path.bin, "terraform-ls.zip")
       if (downloadResponse.body) await Filesystem.writeStream(tempPath, downloadResponse.body)
 
-      const ok = await Archive.extractZip(tempPath, Global.Path.bin)
-        .then(() => true)
-        .catch(() => {
-          return false
-        })
-      if (!ok) return
+      if (!(await tryExtractZip(tempPath, Global.Path.bin))) return
       await fs.rm(tempPath, { force: true })
 
       bin = path.join(Global.Path.bin, "terraform-ls" + (platform === "win32" ? ".exe" : ""))
@@ -1694,15 +1690,10 @@ export const TexLab: Info = {
       if (downloadResponse.body) await Filesystem.writeStream(tempPath, downloadResponse.body)
 
       if (ext === "zip") {
-        const ok = await Archive.extractZip(tempPath, Global.Path.bin)
-          .then(() => true)
-          .catch(() => {
-            return false
-          })
-        if (!ok) return
+        if (!(await tryExtractZip(tempPath, Global.Path.bin))) return
       }
       if (ext === "tar.gz") {
-        await run(["tar", "-xzf", tempPath], { cwd: Global.Path.bin })
+        if (!tryExtract(() => Archive.extractTgz(tempPath, Global.Path.bin))) return
       }
 
       await fs.rm(tempPath, { force: true })
@@ -1874,14 +1865,9 @@ export const Tinymist: Info = {
       if (downloadResponse.body) await Filesystem.writeStream(tempPath, downloadResponse.body)
 
       if (ext === "zip") {
-        const ok = await Archive.extractZip(tempPath, Global.Path.bin)
-          .then(() => true)
-          .catch(() => {
-            return false
-          })
-        if (!ok) return
+        if (!(await tryExtractZip(tempPath, Global.Path.bin))) return
       } else {
-        await run(["tar", "-xzf", tempPath, "--strip-components=1"], { cwd: Global.Path.bin })
+        if (!tryExtract(() => Archive.extractTgz(tempPath, Global.Path.bin, 1))) return
       }
 
       await fs.rm(tempPath, { force: true })
