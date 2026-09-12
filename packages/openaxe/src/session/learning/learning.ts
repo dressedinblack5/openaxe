@@ -42,6 +42,19 @@ export interface Interface {
   readonly read: () => Effect.Effect<readonly ReviewEntry[]>
 }
 
+/**
+ * Extract the JSON payload from an LLM response. Models routinely wrap JSON
+ * in markdown fences despite "output ONLY valid JSON" — without this, every
+ * fenced response dies at `JSON.parse` and nothing is ever learned (observed
+ * live: `learning: response not valid JSON, nothing learned`).
+ */
+export const extractJsonPayload = (text: string): string => {
+  const trimmed = text.trim()
+  const fenced = /^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/.exec(trimmed)
+  const inner = fenced?.[1]
+  return (inner ?? trimmed).trim()
+}
+
 export class Service extends Context.Service<Service, Interface>()("@opencode/LearningReview") {}
 
 export const layer = Layer.effect(
@@ -75,8 +88,10 @@ Output ONLY valid JSON:
 
 If nothing worth learning, return empty arrays.`
 
-      // TF learning gate: skip the LLM review when gate confidence is below threshold.
-      // Disabled by default; failures and timeouts fall through to the LLM path.
+      // TF learning gate: skip the LLM review only when the gate confidently
+      // decides the turn is NOT learnable. Uncertainty (low confidence, missing
+      // model, timeout) always falls through to the LLM path — the gate must
+      // never silently suppress learning. Disabled by default.
       const gate = learning.gate
       if (gate?.enabled) {
         const threshold = gate.threshold ?? 0.5
@@ -97,8 +112,9 @@ If nothing worth learning, return empty arrays.`
               confidence: decision.confidence,
               threshold,
             })
-            if (decision.confidence < threshold) {
+            if (!decision.learnable && decision.confidence >= threshold) {
               yield* Effect.logInfo("learning: gate skipped LLM review", {
+                learnable: decision.learnable,
                 confidence: decision.confidence,
                 threshold,
               })
@@ -168,7 +184,7 @@ If nothing worth learning, return empty arrays.`
 
       let parsed: any
       try {
-        parsed = JSON.parse(text)
+        parsed = JSON.parse(extractJsonPayload(text))
       } catch {
         yield* Effect.logInfo("learning: response not valid JSON, nothing learned")
         return

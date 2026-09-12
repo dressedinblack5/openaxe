@@ -100,18 +100,18 @@ describe("LearningGate", () => {
     )
   })
 
-  describe("low confidence skips LLM", () => {
-    const lowGate = Layer.succeed(GateService, {
+  describe("confident not-learnable skips LLM", () => {
+    const junkGate = Layer.succeed(GateService, {
       load: () =>
         Effect.succeed({
-          predict: () => Effect.succeed({ learnable: false, confidence: 0 }),
+          predict: () => Effect.succeed({ learnable: false, confidence: 0.9 }),
         }),
     })
-    const itLow = testEffect(
-      Layer.mergeAll(Learning.layer, mockProvider, lowGate, mockConfigGate({ enabled: true, threshold: 0.5 })),
+    const itJunk = testEffect(
+      Layer.mergeAll(Learning.layer, mockProvider, junkGate, mockConfigGate({ enabled: true, threshold: 0.5 })),
     )
 
-    itLow.effect("skips the LLM review when confidence is below threshold", () =>
+    itJunk.effect("skips the LLM review on a confident not-learnable verdict", () =>
       Effect.gen(function* () {
         resetGateCache()
         cleanJsonl()
@@ -129,6 +129,40 @@ describe("LearningGate", () => {
         expect(result).toBeUndefined()
         expect(llmCalls).toBe(0)
         expect(fs.existsSync(jsonlPath())).toBe(false)
+        resetGateCache()
+      }),
+    )
+  })
+
+  describe("uncertain verdict proceeds to LLM", () => {
+    const unsureGate = Layer.succeed(GateService, {
+      load: () =>
+        Effect.succeed({
+          predict: () => Effect.succeed({ learnable: false, confidence: 0.1 }),
+        }),
+    })
+    const itUnsure = testEffect(
+      Layer.mergeAll(Learning.layer, mockProvider, unsureGate, mockConfigGate({ enabled: true, threshold: 0.5 })),
+    )
+
+    itUnsure.effect("falls through to the LLM review when confidence is below threshold", () =>
+      Effect.gen(function* () {
+        resetGateCache()
+        cleanJsonl()
+        llmCalls = 0
+        const svc = yield* Learning.Service
+        const result = yield* svc.review({
+          sessionID: SessionID.descending("ses_gate_unsure"),
+          trigger: "turn_complete",
+          userMessage: "hello",
+          assistantMessage: "hi there",
+          agent: "build",
+          providerID: "test",
+          modelID: "test-model",
+        })
+        expect(result).toBeUndefined()
+        expect(llmCalls).toBe(1)
+        cleanJsonl()
         resetGateCache()
       }),
     )

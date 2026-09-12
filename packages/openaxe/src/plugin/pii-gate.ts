@@ -1,8 +1,8 @@
 import type { Hooks, Plugin as PluginInstance } from "@opencode-ai/plugin"
-import { PII_DENY_CONFIDENCE } from "../../../tf-triage/src/pii/schema"
-import type { PiiOutput } from "../../../tf-triage/src/pii/schema"
-import { scanTextStub } from "../../../tf-triage/src/pii/service"
-import { redactArgs } from "../../../tf-triage/src/pii/redact"
+import { PII_DENY_CONFIDENCE } from "./pii/schema"
+import type { PiiOutput } from "./pii/schema"
+import { scanTextStub } from "./pii/service"
+import { redactArgs } from "./pii/redact"
 
 /**
  * Internal TF PII gate plugin.
@@ -15,8 +15,8 @@ import { redactArgs } from "../../../tf-triage/src/pii/redact"
  *   `output.args` in place.
  *
  * Internal-only (not an external plugin) so `OPENCODE_PURE=1` stays safe:
- * internal plugins load even in pure mode. Depends on `@openaxe/tf-triage`
- * only — never the reverse, and never `packages/core`.
+ * internal plugins load even in pure mode. Self-contained under
+ * `src/plugin/pii` — never depends on `packages/core`.
  */
 
 export type PiiScanner = (text: string) => Promise<PiiOutput>
@@ -30,11 +30,19 @@ function permissionText(input: PermissionAskInput): string {
   return [input.type ?? "", patterns, JSON.stringify(input.metadata ?? {})].join("\n")
 }
 
-/** Build the gate hooks around an injectable scanner (tests inject mocks). */
+/**
+ * Build the gate hooks around an injectable scanner (tests inject mocks).
+ *
+ * Both hooks are total: a failing scanner degrades to fall-through (stub
+ * abstains) instead of breaking the permission/tool flow. The gate must
+ * never deny by default and never throw — it only denies on an explicit
+ * high-confidence hit.
+ */
 export function createPiiGateHooks(scan: PiiScanner = defaultScanner): Hooks {
   return {
     "permission.ask": async (input, output) => {
-      const result = await scan(permissionText(input))
+      const result = await scan(permissionText(input)).catch(() => undefined)
+      if (!result) return
       if (result.hit && result.confidence >= PII_DENY_CONFIDENCE) output.status = "deny"
     },
     "tool.execute.before": async (_input, output) => {

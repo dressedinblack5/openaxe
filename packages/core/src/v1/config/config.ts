@@ -279,10 +279,10 @@ export const Info = Schema.Struct({
           gate: Schema.optional(
             Schema.Struct({
               enabled: Schema.optional(Schema.Boolean).annotate({
-                description: "Enable TF learning gate — skip LLM review when gate confidence is below threshold",
+                description: "Enable TF learning gate — skip the LLM review only when the gate confidently decides the turn is not learnable",
               }),
               threshold: Schema.optional(Schema.Number).annotate({
-                description: "Gate confidence threshold below which the LLM review is skipped (default: 0.5)",
+                description: "Minimum gate confidence required to trust a not-learnable verdict and skip the LLM review (default: 0.5)",
               }),
               modelPath: Schema.optional(Schema.String).annotate({
                 description: "Optional path to the TF learning gate model artifact",

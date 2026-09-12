@@ -3,10 +3,10 @@ import { Context, Effect, Layer, Schema } from "effect"
 /**
  * TF learning gate stub.
  *
- * Mirrors `packages/tf-triage/src/classify.ts` isolation: Effect Schemas for
- * input/output, a `GateService` Effect Service, and a lazy cached model-load
- * seam. Real TF inference lands later; this module only establishes the seams
- * so `learning.ts` can consult the gate before the LLM candidates loop.
+ * Effect Schemas for input/output, a `GateService` Effect Service, and a
+ * lazy cached model-load seam. Real TF inference lands later; this module
+ * only establishes the seams so `learning.ts` can consult the gate before
+ * the LLM candidates loop.
  */
 
 export const DEFAULT_GATE_MODEL_PATH = "model/learning-gate.tflite"
@@ -19,6 +19,14 @@ export const GateInput = Schema.Struct({
 })
 export type GateInput = Schema.Schema.Type<typeof GateInput>
 
+/**
+ * Gate verdict. `confidence` is the trust in the `learnable` verdict itself.
+ * The consumer (`learning.ts`) skips the LLM review only on a confident
+ * NOT-learnable verdict (`learnable: false` at `confidence >= threshold`);
+ * every other outcome — including low confidence — proceeds to the LLM path.
+ * The stub below abstains as `{ learnable: false, confidence: 0 }`, which
+ * never skips: an unloadable gate must not suppress learning.
+ */
 export const GateOutput = Schema.Struct({
   learnable: Schema.Boolean,
   confidence: Schema.Number,

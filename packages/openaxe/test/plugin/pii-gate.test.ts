@@ -39,6 +39,16 @@ describe("pii-gate", () => {
     expect(output.status).toBe("ask")
   })
 
+  it("falls through when the scanner throws (never breaks the flow)", async () => {
+    const scan: PiiScanner = async () => {
+      throw new Error("model unloadable")
+    }
+    const hooks = createPiiGateHooks(scan)
+    const output: { status: "ask" | "deny" | "allow" } = { status: "ask" }
+    await hooks["permission.ask"]!(askInput, output)
+    expect(output.status).toBe("ask")
+  })
+
   it("redacts tool args in place", async () => {
     const scan: PiiScanner = async () => ({ hit: false, confidence: 0 })
     const hooks = createPiiGateHooks(scan)
