@@ -35,6 +35,7 @@
     "**/dist",
     "**/.build",
     "**/.sst",
+    "**/.venv",
     "**/*.d.ts",
     "**/sdk.gen.ts",
     "**/v2/gen",
