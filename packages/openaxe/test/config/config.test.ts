@@ -1718,17 +1718,18 @@ describe("resolvePluginSpec", () => {
   test("resolves windows-style relative plugin directory specs", async () => {
     if (process.platform !== "win32") return
 
-    await using tmp = await tmpdir({
-      init: async (dir) => {
-        const plugin = path.join(dir, "plugin")
-        await fs.mkdir(plugin, { recursive: true })
-        await Filesystem.write(path.join(plugin, "index.ts"), "export default {}")
-      },
-    })
+    const dir = path.join(process.cwd(), "test-plugins", "win-plugin-" + Math.random().toString(36).slice(2))
+    const plugin = path.join(dir, "plugin")
+    await fs.mkdir(plugin, { recursive: true })
+    await Filesystem.write(path.join(plugin, "index.ts"), "export default {}")
 
-    const file = path.join(tmp.path, "openaxe.json")
-    const hit = await ConfigPlugin.resolvePluginSpec(".\\plugin", file)
-    expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(tmp.path, "plugin", "index.ts")).href)
+    try {
+      const file = path.join(dir, "openaxe.json")
+      const hit = await ConfigPlugin.resolvePluginSpec(".\\plugin", file)
+      expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(dir, "plugin", "index.ts")).href)
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true }).catch(() => {})
+    }
   })
 
   test("resolves relative file plugin paths to file urls", async () => {
