@@ -433,7 +433,6 @@ export const TuiCommand = cmd({
             try {
               const { CoreRuntime } = await import("@/effect/app-runtime")
               const { Config } = await import("@/config/config")
-              const { Effect: Eff } = await import("effect")
               const config = await CoreRuntime.runPromise(Config.Service.use((c) => c.getGlobal()))
               if (config.autoupdate === false) return
               const { Flag } = await import("@opencode-ai/core/flag/flag")

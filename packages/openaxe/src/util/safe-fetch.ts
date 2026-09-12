@@ -1,5 +1,3 @@
-import { Effect } from "effect"
-
 const PRIVATE_IP_RANGES = [
   { start: ipToInt("10.0.0.0"), end: ipToInt("10.255.255.255") },
   { start: ipToInt("172.16.0.0"), end: ipToInt("172.31.255.255") },

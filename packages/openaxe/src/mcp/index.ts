@@ -28,8 +28,6 @@ import { EventV2Bridge } from "@/event-v2-bridge"
 import { TuiEvent } from "@/server/tui-event"
 
 import { Cause, Effect, Exit, Layer, Option, Context, Schema, Stream } from "effect"
-import { createHash } from "node:crypto"
-import { validateMcpUrl, validateMcpUrlSafe, isPrivateIp, ipToInt, ALLOWED_SCHEMES, PRIVATE_IP_RANGES, type RemoteMcpConfig } from "@opencode-ai/core/mcp/validation"
 
 import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
@@ -689,12 +687,12 @@ const connectLocal = Effect.fn("MCP.connectLocal")(function* (
     })
 
     // Connects all servers still in pending status. Uses connectOne per server.
+    // Servers connect independently; connectOne's connecting-set guard keeps
+    // this idempotent under concurrency.
     const connectAll = Effect.fn("MCP.connectAll")(function* () {
       const s = yield* InstanceState.get(state)
       const pending = Object.keys(s.status).filter((name) => s.status[name]?.status === "pending")
-      for (const name of pending) {
-        yield* connectOne(name)
-      }
+      yield* Effect.forEach(pending, (name) => connectOne(name), { concurrency: "unbounded", discard: true })
     })
     const status = Effect.fn("MCP.status")(function* () {
       yield* connectAll()
@@ -1012,7 +1010,7 @@ const connectLocal = Effect.fn("MCP.connectLocal")(function* (
       const callbackPromise = McpOAuthCallback.waitForCallback(result.oauthState, mcpName)
 
       yield* openBrowser(result.authorizationUrl).pipe(
-        Effect.catch((error) => {
+        Effect.catch(() => {
           return events.publish(BrowserOpenFailed, { mcpName, url: result.authorizationUrl }).pipe(Effect.ignore)
         }),
       )

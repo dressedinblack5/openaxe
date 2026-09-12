@@ -527,7 +527,23 @@ export const {
             consoleStatePromise.then((consoleState) => setStore("console_state", reconcile(consoleState))),
             sdk.client.command.list({ workspace }).then((x) => setStore("command", reconcile(x.data ?? []))),
             sdk.client.lsp.status({ workspace }).then((x) => setStore("lsp", reconcile(x.data ?? []))),
-            sdk.client.mcp.status({ workspace }).then((x) => setStore("mcp", reconcile(x.data ?? {}))),
+            sdk.client.mcp.status({ workspace }).then(async (x) => {
+              let data = x.data ?? {}
+              setStore("mcp", reconcile(data))
+              // MCP connects lazily; the first snapshot can race an in-flight
+              // connectAll and read back stale `pending`. Re-poll until settled.
+              for (let i = 0; i < 10; i++) {
+                const names = Object.keys(data)
+                if (names.every((n) => data[n]?.status !== "pending")) break
+                await new Promise((r) => setTimeout(r, 2000))
+                try {
+                  data = (await sdk.client.mcp.status({ workspace })).data ?? {}
+                  setStore("mcp", reconcile(data))
+                } catch {
+                  break
+                }
+              }
+            }),
             sdk.client.experimental.resource
               .list({ workspace })
               .then((x) => setStore("mcp_resource", reconcile(x.data ?? {}))),

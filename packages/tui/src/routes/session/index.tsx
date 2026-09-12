@@ -1182,7 +1182,16 @@ export function Session() {
       >
         <box flexDirection="row" flexGrow={1} minHeight={0}>
           <box flexGrow={1} minHeight={0} paddingBottom={1} paddingLeft={2} paddingRight={2} gap={1}>
-            <Show when={session()}>
+            <Show
+              when={session()}
+              fallback={
+                <Show when={sync.status === "loading"}>
+                  <box flexGrow={1} alignItems="center" justifyContent="center">
+                    <Spinner>Loading...</Spinner>
+                  </box>
+                </Show>
+              }
+            >
               <scrollbox
                 ref={(r) => (scroll = r)}
                 viewportOptions={{

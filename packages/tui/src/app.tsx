@@ -24,7 +24,7 @@ import {
   Show,
   on,
 } from "solid-js"
-import { TuiPathsProvider, TuiStartupProvider, TuiTerminalEnvironmentProvider, useTuiStartup } from "./context/runtime"
+import { TuiPathsProvider, TuiStartupProvider, TuiTerminalEnvironmentProvider } from "./context/runtime"
 import { DialogProvider, useDialog } from "./ui/dialog"
 import { DialogProvider as DialogProviderList } from "./component/dialog-provider"
 import { ErrorComponent } from "./component/error-component"
@@ -243,7 +243,9 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
       yield* Effect.tryPromise(async () => {
         // Prewarm palette before ThemeProvider mounts so `system` theme avoids a first-paint fallback flash.
         void renderer.getPalette({ size: 16 }).catch(() => undefined)
-        const mode = (await renderer.waitForThemeMode(1000)) ?? "dark"
+        // Render immediately with the synchronously-known mode; ThemeProvider
+        // resolves the system theme async via getPalette + THEME_MODE events.
+        const mode = renderer.themeMode ?? "dark"
         if (renderer.isDestroyed) return
 
         await render(() => {
@@ -365,7 +367,6 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
 })
 
 function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPluginHost }) {
-  const startup = useTuiStartup()
   const tuiConfig = useTuiConfig()
   const route = useRoute()
   const dimensions = useTerminalDimensions()
@@ -1220,9 +1221,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         </box>
         <pluginRuntime.Slot name="app" />
       </Show>
-      <Show when={!startup.skipInitialLoading}>
-        <StartupLoading ready={ready} />
-      </Show>
+      <StartupLoading ready={ready} />
     </box>
   )
 }
