@@ -12,39 +12,13 @@
       "mode": "subagent",
     },
   },
-  "triage": {
-    "enabled": true,
-    "modelPath": "model/triage.tflite",
-    "threshold": 0.7
-  },
   "experimental": {
     "learning": {
       "review": true,
       "provider": "deepseek",
       "model": "deepseek-chat",
       "fallback": [{ "provider": "google", "model": "gemini-2.5-flash" }],
-      "gate": {
-        "enabled": false,
-        "threshold": 0.5,
-        "modelPath": "model/learning-gate.tflite"
-      }
     },
-    "tf": {
-      "enabled": true,
-      "triage": {
-        "enabled": true,
-        "threshold": 0.7,
-        "modelPath": "model/triage.tflite"
-      },
-      "gate": {
-        "enabled": false,
-        "threshold": 0.5,
-        "modelPath": "model/learning-gate.tflite"
-      },
-      "pii": {
-        "denyConfidence": 0.8
-      }
-    }
   },
   "mcp": {
     "github": {
