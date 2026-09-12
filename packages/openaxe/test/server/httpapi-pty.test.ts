@@ -264,6 +264,9 @@ describe("pty HttpApi bridge", () => {
       message: `PTY session not found: ${missingID}`,
     })
 
+    // Real PTY spawn is unavailable on Windows CI — 404 assertions above still run there.
+    if (process.platform === "win32") return
+
     const created = await app().request(PtyPaths.create, {
       method: "POST",
       headers: { ...headers, "content-type": "application/json" },
