@@ -689,12 +689,12 @@ const connectLocal = Effect.fn("MCP.connectLocal")(function* (
     })
 
     // Connects all servers still in pending status. Uses connectOne per server.
+    // Servers connect independently; connectOne's connecting-set guard keeps
+    // this idempotent under concurrency.
     const connectAll = Effect.fn("MCP.connectAll")(function* () {
       const s = yield* InstanceState.get(state)
       const pending = Object.keys(s.status).filter((name) => s.status[name]?.status === "pending")
-      for (const name of pending) {
-        yield* connectOne(name)
-      }
+      yield* Effect.forEach(pending, (name) => connectOne(name), { concurrency: "unbounded", discard: true })
     })
     const status = Effect.fn("MCP.status")(function* () {
       yield* connectAll()

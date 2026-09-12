@@ -4,22 +4,17 @@ import { Spinner } from "./spinner"
 
 export function StartupLoading(props: { ready: () => boolean }) {
   const theme = useTheme().theme
-  const [show, setShow] = createSignal(false)
+  const [show, setShow] = createSignal(true)
   const text = createMemo(() => (props.ready() ? "Finishing startup..." : "Whetting the axe..."))
-  let wait: NodeJS.Timeout | undefined
   let hold: NodeJS.Timeout | undefined
-  let stamp = 0
+  let stamp = Date.now()
 
   createEffect(() => {
     if (props.ready()) {
-      if (wait) {
-        clearTimeout(wait)
-        wait = undefined
-      }
       if (!show()) return
       if (hold) return
 
-      const left = 3000 - (Date.now() - stamp)
+      const left = 250 - (Date.now() - stamp)
       if (left <= 0) {
         setShow(false)
         return
@@ -36,18 +31,13 @@ export function StartupLoading(props: { ready: () => boolean }) {
       clearTimeout(hold)
       hold = undefined
     }
-    if (show()) return
-    if (wait) return
-
-    wait = setTimeout(() => {
-      wait = undefined
+    if (!show()) {
       stamp = Date.now()
       setShow(true)
-    }, 500).unref()
+    }
   })
 
   onCleanup(() => {
-    if (wait) clearTimeout(wait)
     if (hold) clearTimeout(hold)
   })
 

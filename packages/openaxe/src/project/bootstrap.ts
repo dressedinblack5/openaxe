@@ -31,21 +31,30 @@ export const layer = Layer.effect(
     const run = Effect.gen(function* () {
       const ctx = yield* InstanceState.context
       yield* Effect.logInfo("bootstrapping", { directory: ctx.directory })
-      yield* config.get().pipe(Effect.tap(() => Effect.sync(() => mark("boot-config-done"))))
-      yield* plugin.init().pipe(Effect.tap(() => Effect.sync(() => mark("boot-plugin-done"))))
-      yield* provider.validateApiKeys().pipe(
-        Effect.tap((results) => {
-          const invalid = Object.entries(results).filter(([, v]) => !v.valid)
-          if (invalid.length > 0) {
-            for (const [providerID, result] of invalid) {
-              Effect.logWarning("API key validation failed", { providerID, error: result.error })
-            }
-          }
-          return Effect.void
-        }),
-        Effect.tap(() => Effect.sync(() => mark("boot-apikeys-done"))),
-        Effect.catchCause((cause) => Effect.logWarning("API key validation failed", { cause })),
+      // config.get() and validateApiKeys() are independent: Provider state init
+      // funnels into the same cached Config/Provider InstanceState (it awaits
+      // plugin.init() internally), so they run concurrently. plugin.init() stays
+      // sequential after to keep plugin hook order deterministic.
+      yield* Effect.all(
+        [
+          config.get().pipe(Effect.tap(() => Effect.sync(() => mark("boot-config-done")))),
+          provider.validateApiKeys().pipe(
+            Effect.tap((results) => {
+              const invalid = Object.entries(results).filter(([, v]) => !v.valid)
+              if (invalid.length > 0) {
+                for (const [providerID, result] of invalid) {
+                  Effect.logWarning("API key validation failed", { providerID, error: result.error })
+                }
+              }
+              return Effect.void
+            }),
+            Effect.tap(() => Effect.sync(() => mark("boot-apikeys-done"))),
+            Effect.catchCause((cause) => Effect.logWarning("API key validation failed", { cause })),
+          ),
+        ],
+        { concurrency: "unbounded", discard: true },
       )
+      yield* plugin.init().pipe(Effect.tap(() => Effect.sync(() => mark("boot-plugin-done"))))
       yield* Effect.forEach(
         [
           ["shareNext", shareNext],

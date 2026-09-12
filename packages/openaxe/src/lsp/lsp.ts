@@ -250,87 +250,87 @@ export const layer = Layer.effect(
       const ctx = yield* InstanceState.context
       if (!containsPath(file, ctx)) return [] as ClientInfo[]
       const s = yield* InstanceState.get(state)
-      const clients = yield* Effect.promise(async () => {
-        const extension = path.parse(file).ext || file
-        const result: ClientInfo[] = []
-        let updated = 0
 
-        async function schedule(server: ServerInfo, root: string, key: string) {
-          const handle = await server
-            .spawn(root, ctx, flags)
-            .then((value) => {
-              if (!value) s.broken.set(key, Date.now())
-              return value
-            })
-            .catch(() => {
-              s.broken.set(key, Date.now())
-              return undefined
-            })
-
-          if (!handle) return undefined
-          const client = await create({
-            serverID: server.id,
-            server: handle,
-            root,
-            directory: ctx.directory,
-            instance: ctx,
-          }).catch(async () => {
+      async function schedule(server: ServerInfo, root: string, key: string) {
+        const handle = await server
+          .spawn(root, ctx, flags)
+          .then((value) => {
+            if (!value) s.broken.set(key, Date.now())
+            return value
+          })
+          .catch(() => {
             s.broken.set(key, Date.now())
-            await Process.stop(handle.process)
             return undefined
           })
 
-          if (!client) return undefined
+        if (!handle) return undefined
+        const client = await create({
+          serverID: server.id,
+          server: handle,
+          root,
+          directory: ctx.directory,
+          instance: ctx,
+        }).catch(async () => {
+          s.broken.set(key, Date.now())
+          await Process.stop(handle.process)
+          return undefined
+        })
 
-          const existing = s.clients.find((x) => x.root === root && x.serverID === server.id)
-          if (existing) {
-            await Process.stop(handle.process)
-            return existing
-          }
+        if (!client) return undefined
 
-          s.clients.push(client)
-          return client
+        const existing = s.clients.find((x) => x.root === root && x.serverID === server.id)
+        if (existing) {
+          await Process.stop(handle.process)
+          return existing
         }
 
-        for (const server of Object.values(s.servers)) {
-          if (server.extensions.length && !server.extensions.includes(extension)) continue
+        s.clients.push(client)
+        return client
+      }
 
-          const root = await server.root(file, ctx)
-          if (!root) continue
-          if (checkBroken(s, root, server.id)) continue
+      const extension = path.parse(file).ext || file
+      const servers = Object.values(s.servers).filter(
+        (server) => !server.extensions.length || server.extensions.includes(extension),
+      )
+      // Servers spawn independently; the spawning map still dedupes concurrent
+      // spawns for the same server+root pair. forEach preserves input order so
+      // the returned client list stays deterministic.
+      const settled = yield* Effect.forEach(
+        servers,
+        (server) =>
+          Effect.promise(async () => {
+            const root = await server.root(file, ctx)
+            if (!root) return undefined
+            if (checkBroken(s, root, server.id)) return undefined
 
-          const match = s.clients.find((x) => x.root === root && x.serverID === server.id)
-          if (match) {
-            result.push(match)
-            continue
-          }
+            const match = s.clients.find((x) => x.root === root && x.serverID === server.id)
+            if (match) return { client: match, fresh: false }
 
-          const spawnKey = clientKey(root, server.id)
-          let task = s.spawning.get(spawnKey)
-          if (!task) {
-            task = schedule(server, root, spawnKey)
-            s.spawning.set(spawnKey, task)
-            void task.finally(() => {
-              if (s.spawning.get(spawnKey) === task) {
-                s.spawning.delete(spawnKey)
-              }
-            })
-          }
+            const spawnKey = clientKey(root, server.id)
+            let task = s.spawning.get(spawnKey)
+            if (!task) {
+              task = schedule(server, root, spawnKey)
+              s.spawning.set(spawnKey, task)
+              void task.finally(() => {
+                if (s.spawning.get(spawnKey) === task) {
+                  s.spawning.delete(spawnKey)
+                }
+              })
+            }
 
-          const client = await task
-          if (!client) continue
-
-          result.push(client)
-          updated++
-        }
-
-        return { result, updated }
-      })
-      yield* Effect.forEach(Array.from({ length: clients.updated }), () => events.publish(LspEvent.Updated, {}), {
+            const client = await task
+            if (!client) return undefined
+            return { client, fresh: true }
+          }),
+        { concurrency: "unbounded" },
+      )
+      const clients = settled.filter((x) => x !== undefined)
+      const fresh = clients.filter((x) => x.fresh)
+      yield* Effect.forEach(Array.from({ length: fresh.length }), () => events.publish(LspEvent.Updated, {}), {
         discard: true,
       })
-      for (const client of clients.result) s.used.set(clientKey(client.root, client.serverID), Date.now())
-      return clients.result
+      for (const { client } of clients) s.used.set(clientKey(client.root, client.serverID), Date.now())
+      return clients.map((x) => x.client)
     })
 
     const run = Effect.fnUntraced(function* <T>(file: string, fn: (client: ClientInfo) => Promise<T>) {

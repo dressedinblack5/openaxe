@@ -487,10 +487,13 @@ export const layer = Layer.effect(
           // `configBoundary: true` must drop every file at-or-above its directory; the deepest
           // boundary wins.
           const files = yield* ConfigPaths.files("openaxe", ctx.directory, ctx.worktree).pipe(Effect.orDie)
-          const loaded: { file: string; config: Info }[] = []
-          for (const file of files) {
-            loaded.push({ file, config: yield* loadFile(file, authEnv) })
-          }
+          // File reads are independent; merges below stay sequential to keep
+          // configBoundary resolution and merge order deterministic.
+          const loaded = yield* Effect.forEach(
+            files,
+            (file) => loadFile(file, authEnv).pipe(Effect.map((config): { file: string; config: Info } => ({ file, config }))),
+            { concurrency: "unbounded" },
+          )
           let start = 0
           for (let i = loaded.length - 1; i >= 0; i--) {
             if (loaded[i].config.configBoundary) {
@@ -522,10 +525,20 @@ export const layer = Layer.effect(
             break
           }
           if (dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR) {
-            for (const file of ["openaxe.json", "openaxe.jsonc"]) {
-              const source = path.join(dir, file)
-              yield* Effect.logDebug(`loading config from ${source}`)
-              const next: Info = yield* loadFile(source, authEnv)
+            // The two file reads are independent; merges below stay sequential
+            // to keep configBoundary handling and merge order deterministic.
+            const pair = yield* Effect.all(
+              ["openaxe.json", "openaxe.jsonc"].map((file) =>
+                Effect.gen(function* () {
+                  const source = path.join(dir, file)
+                  yield* Effect.logDebug(`loading config from ${source}`)
+                  const next: Info = yield* loadFile(source, authEnv)
+                  return { source, next }
+                }),
+              ),
+              { concurrency: "unbounded" },
+            )
+            for (const { source, next } of pair) {
               if (next.configBoundary) boundaryDir = dir
               yield* merge(source, next)
               result.agent ??= {}
@@ -562,12 +575,22 @@ export const layer = Layer.effect(
             deps.push(dep)
           }
 
-          result.command = mergeDeep(result.command ?? {}, yield* Effect.promise(() => ConfigCommand.load(dir)))
-          result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.load(dir)))
-          result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.loadMode(dir)))
-          // Auto-discovered plugins under `.openaxe/plugin(s)` are already local files, so ConfigPlugin.load
-          // returns normalized Specs and we only need to attach origin metadata here.
-          const list = yield* Effect.promise(() => ConfigPlugin.load(dir))
+          // The four directory scans are independent; merges below stay
+          // sequential to keep merge order deterministic.
+          const [command, agent, mode, list] = yield* Effect.all(
+            [
+              Effect.promise(() => ConfigCommand.load(dir)),
+              Effect.promise(() => ConfigAgent.load(dir)),
+              Effect.promise(() => ConfigAgent.loadMode(dir)),
+              // Auto-discovered plugins under `.openaxe/plugin(s)` are already local files, so ConfigPlugin.load
+              // returns normalized Specs and we only need to attach origin metadata here.
+              Effect.promise(() => ConfigPlugin.load(dir)),
+            ],
+            { concurrency: "unbounded" },
+          )
+          result.command = mergeDeep(result.command ?? {}, command)
+          result.agent = mergeDeep(result.agent ?? {}, agent)
+          result.agent = mergeDeep(result.agent ?? {}, mode)
           yield* mergePluginOrigins(dir, list)
         }
 
