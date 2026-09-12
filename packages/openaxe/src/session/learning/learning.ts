@@ -8,6 +8,7 @@ import { ModelV2 } from "@opencode-ai/core/model"
 import fs from "fs"
 import path from "path"
 import { Global } from "@opencode-ai/core/global"
+import { GateService, GateServiceStub, decideLearnable, DEFAULT_GATE_MODEL_PATH } from "./gate"
 
 export type ReviewTrigger = "turn_complete" | "tool_complete" | "error_recovery"
 
@@ -73,6 +74,39 @@ Output ONLY valid JSON:
 }
 
 If nothing worth learning, return empty arrays.`
+
+      // TF learning gate: skip the LLM review when gate confidence is below threshold.
+      // Disabled by default; failures and timeouts fall through to the LLM path.
+      const gate = learning.gate
+      if (gate?.enabled) {
+        const threshold = gate.threshold ?? 0.5
+        const gateOpt = yield* Effect.serviceOption(GateService)
+        if (Option.isSome(gateOpt)) {
+          const decision = yield* decideLearnable(
+            input.userMessage,
+            input.assistantMessage,
+            gate.modelPath ?? DEFAULT_GATE_MODEL_PATH,
+          ).pipe(
+            Effect.provideService(GateService, gateOpt.value),
+            Effect.timeout("500 millis"),
+            Effect.catch(() => Effect.succeed(undefined)),
+          )
+          if (decision) {
+            yield* Effect.logInfo("learning: gate decision", {
+              learnable: decision.learnable,
+              confidence: decision.confidence,
+              threshold,
+            })
+            if (decision.confidence < threshold) {
+              yield* Effect.logInfo("learning: gate skipped LLM review", {
+                confidence: decision.confidence,
+                threshold,
+              })
+              return
+            }
+          }
+        }
+      }
 
       const result = yield* Effect.gen(function* () {
         const candidates = [
@@ -205,8 +239,8 @@ If nothing worth learning, return empty arrays.`
 
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 
-export const defaultLayer = layer
+export const defaultLayer = Layer.provideMerge(layer, GateServiceStub)
 
-export const node = LayerNode.make(layer, [])
+export const node = LayerNode.make(defaultLayer, [])
 
 export * as Learning from "./learning"

@@ -276,6 +276,21 @@ export const Info = Schema.Struct({
           ).annotate({
             description: "Fallback provider/model pairs tried in order when the primary learning review model fails",
           }),
+          gate: Schema.optional(
+            Schema.Struct({
+              enabled: Schema.optional(Schema.Boolean).annotate({
+                description: "Enable TF learning gate — skip LLM review when gate confidence is below threshold",
+              }),
+              threshold: Schema.optional(Schema.Number).annotate({
+                description: "Gate confidence threshold below which the LLM review is skipped (default: 0.5)",
+              }),
+              modelPath: Schema.optional(Schema.String).annotate({
+                description: "Optional path to the TF learning gate model artifact",
+              }),
+            }),
+          ).annotate({
+            description: "TF learning gate settings (additive, optional)",
+          }),
         }),
       ),
       compressor: Schema.optional(
