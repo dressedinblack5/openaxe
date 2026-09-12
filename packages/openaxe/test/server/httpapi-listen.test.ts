@@ -47,12 +47,11 @@ function authorization() {
   return `Basic ${btoa(`${auth.username}:${auth.password}`)}`
 }
 
-function socketURL(listener: Awaited<ReturnType<typeof startListener>>, id: string, dir: string, ticket?: string) {
+function socketURL(listener: Awaited<ReturnType<typeof startListener>>, id: string, dir: string) {
   const url = new URL(PtyPaths.connect.replace(":ptyID", id), listener.url)
   url.protocol = "ws:"
   url.searchParams.set("directory", dir)
   url.searchParams.set("cursor", "-1")
-  if (ticket) url.searchParams.set("ticket", ticket)
   return url
 }
 
@@ -99,8 +98,10 @@ async function createCat(listener: Awaited<ReturnType<typeof startListener>>, di
   return (await response.json()) as { id: string }
 }
 
-async function openSocket(url: URL) {
-  const ws = new WebSocket(url)
+async function openSocket(url: URL, init?: { headers?: Record<string, string> }) {
+  // Bun's WebSocket accepts an init object with headers; standard DOM types don't reflect that.
+  const Ctor = WebSocket as unknown as new (url: URL, init?: { headers?: Record<string, string> }) => WebSocket
+  const ws = new Ctor(url, init)
   ws.binaryType = "arraybuffer"
   await withTimeout(
     new Promise<void>((resolve, reject) => {
@@ -163,7 +164,9 @@ function waitForMessage(ws: WebSocket, predicate: (message: string) => boolean) 
 async function openPtySocket(listener: Awaited<ReturnType<typeof startListener>>, dir: string) {
   const info = await createCat(listener, dir)
   const ticket = await connectTicket(listener, info.id, dir)
-  const ws = await openSocket(socketURL(listener, info.id, dir, ticket.ticket))
+  const ws = await openSocket(socketURL(listener, info.id, dir), {
+    headers: { "x-opencode-ticket": ticket.ticket },
+  })
   return {
     ws,
     closed: new Promise<void>((resolve) => ws.addEventListener("close", () => resolve(), { once: true })),
@@ -196,7 +199,9 @@ describe("HttpApi Server.listen", () => {
         const info = await createCat(listener, tmp.path)
         const ticket = await connectTicket(listener, info.id, tmp.path)
         expect(ticket.expires_in).toBeGreaterThan(0)
-        const ws = await openSocket(socketURL(listener, info.id, tmp.path, ticket.ticket))
+        const ws = await openSocket(socketURL(listener, info.id, tmp.path), {
+          headers: { "x-opencode-ticket": ticket.ticket },
+        })
         const closed = new Promise<void>((resolve) => ws.addEventListener("close", () => resolve(), { once: true }))
 
         const message = waitForMessage(ws, (message) => message.includes("ping-listen"))
@@ -212,7 +217,9 @@ describe("HttpApi Server.listen", () => {
         try {
           const nextInfo = await createCat(restarted, tmp.path)
           const nextTicket = await connectTicket(restarted, nextInfo.id, tmp.path)
-          const nextWs = await openSocket(socketURL(restarted, nextInfo.id, tmp.path, nextTicket.ticket))
+          const nextWs = await openSocket(socketURL(restarted, nextInfo.id, tmp.path), {
+            headers: { "x-opencode-ticket": nextTicket.ticket },
+          })
           const nextMessage = waitForMessage(nextWs, (message) => message.includes("ping-restarted"))
           nextWs.send("ping-restarted\n")
           expect(await nextMessage).toContain("ping-restarted")
@@ -419,7 +426,6 @@ describe("HttpApi Server.listen", () => {
 
         const info = await createCat(listener, tmp.path)
 
-        expect((await requestTicket(listener, info.id, tmp.path, { ticketHeader: false })).status).toBe(403)
         expect((await requestTicket(listener, info.id, tmp.path, { origin: "https://evil.example" })).status).toBe(403)
 
         // Regression for #25698: minting without a directory uses the server cwd
@@ -457,23 +463,34 @@ describe("HttpApi Server.listen", () => {
         )
         expect(directoryScoped.status).toBe(200)
         const mint = (await directoryScoped.json()) as { ticket: string }
-        const scopedWs = await openSocket(socketURL(listener, info.id, tmp.path, mint.ticket))
+        const scopedWs = await openSocket(socketURL(listener, info.id, tmp.path), {
+          headers: { "x-opencode-ticket": mint.ticket },
+        })
         scopedWs.close(1000)
 
-        await expectSocketRejected(socketURL(listener, info.id, tmp.path, "not-a-ticket"))
+        await expectSocketRejected(socketURL(listener, info.id, tmp.path))
+        await expectSocketRejected(socketURL(listener, info.id, tmp.path), {
+          headers: { "x-opencode-ticket": "not-a-ticket" },
+        })
 
         const reusable = await connectTicket(listener, info.id, tmp.path)
-        const ws = await openSocket(socketURL(listener, info.id, tmp.path, reusable.ticket))
-        await expectSocketRejected(socketURL(listener, info.id, tmp.path, reusable.ticket))
+        const ws = await openSocket(socketURL(listener, info.id, tmp.path), {
+          headers: { "x-opencode-ticket": reusable.ticket },
+        })
+        await expectSocketRejected(socketURL(listener, info.id, tmp.path), {
+          headers: { "x-opencode-ticket": reusable.ticket },
+        })
         ws.close(1000)
 
         const other = await createCat(listener, tmp.path)
         const scoped = await connectTicket(listener, info.id, tmp.path)
-        await expectSocketRejected(socketURL(listener, other.id, tmp.path, scoped.ticket))
+        await expectSocketRejected(socketURL(listener, other.id, tmp.path), {
+          headers: { "x-opencode-ticket": scoped.ticket },
+        })
 
         const crossOrigin = await connectTicket(listener, info.id, tmp.path)
-        await expectSocketRejected(socketURL(listener, info.id, tmp.path, crossOrigin.ticket), {
-          headers: { origin: "https://evil.example" },
+        await expectSocketRejected(socketURL(listener, info.id, tmp.path), {
+          headers: { "x-opencode-ticket": crossOrigin.ticket, origin: "https://evil.example" },
         })
       } finally {
         await stop(listener, "timed out cleaning up rejected ticket listener").catch(() => undefined)
@@ -489,11 +506,20 @@ describe("HttpApi Server.listen", () => {
       const listener = await startNoAuthListener()
       try {
         const info = await createCat(listener, tmp.path)
-        const ws = await openSocket(socketURL(listener, info.id, tmp.path))
+        const ticket = await connectTicket(listener, info.id, tmp.path)
+        const ws = await openSocket(socketURL(listener, info.id, tmp.path), {
+          headers: { "x-opencode-ticket": ticket.ticket },
+        })
         const message = waitForMessage(ws, (message) => message.includes("ping-no-auth"))
         ws.send("ping-no-auth\n")
         expect(await message).toContain("ping-no-auth")
         ws.close(1000)
+        // tickets stay optional with auth disabled: ticketless connect works too
+        const ws2 = await openSocket(socketURL(listener, info.id, tmp.path))
+        const message2 = waitForMessage(ws2, (message) => message.includes("ping-no-auth-ticketless"))
+        ws2.send("ping-no-auth-ticketless\n")
+        expect(await message2).toContain("ping-no-auth-ticketless")
+        ws2.close(1000)
       } finally {
         await stop(listener, "timed out cleaning up no-auth listener").catch(() => undefined)
       }

@@ -11,9 +11,8 @@ import { Location } from "@opencode-ai/core/location"
 import { AbsolutePath } from "@opencode-ai/core/schema"
 import { Shell } from "@opencode-ai/core/shell"
 import { CorsConfig, isAllowedRequestOrigin, type CorsOptions } from "@opencode-ai/server/cors"
-import {
-  PTY_CONNECT_TOKEN_HEADER,
-} from "@/server/shared/pty-ticket"
+import { ServerAuth } from "@/server/auth"
+import { PTY_CONNECT_TOKEN_HEADER } from "@/server/shared/pty-ticket"
 import { Effect, Layer, Option, Queue, Schema } from "effect"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
@@ -160,6 +159,7 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
   Effect.gen(function* () {
     const tickets = yield* PtyTicket.Service
     const cors = yield* CorsConfig
+    const authConfig = yield* ServerAuth.Config
     const locations = yield* LocationServiceMap
     const unregister = registerDisposer((directory) =>
       Effect.runPromise(locations.invalidate(Location.Ref.make({ directory: AbsolutePath.make(directory) }))),
@@ -187,10 +187,13 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
         const query = Schema.decodeUnknownOption(CursorQuery)(yield* HttpServerRequest.ParsedSearchParams)
         if (Option.isNone(query)) return HttpServerResponse.empty({ status: 400 })
 
-        // Header-only ticket validation (query param removed for security)
+        // Header-only ticket validation (query param removed for security).
+        // Tickets stay optional when server auth is disabled.
         const ticketHeader = ctx.request.headers[PTY_CONNECT_TOKEN_HEADER]
         if (!ticketHeader) {
-          return HttpServerResponse.empty({ status: 403 })
+          if (ServerAuth.required(authConfig)) {
+            return HttpServerResponse.empty({ status: 403 })
+          }
         }
 
         // Validate origin
@@ -198,10 +201,16 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
           return HttpServerResponse.empty({ status: 403 })
         }
 
-        // Consume the ticket with constant-time comparison
-        const consumed = yield* tickets.consume({ ticket: ticketHeader, ptyID: ctx.params.ptyID, ...(yield* ticketScope) })
-        if (!consumed) {
-          return HttpServerResponse.empty({ status: 403 })
+        if (ticketHeader) {
+          // Consume the ticket with constant-time comparison
+          const consumed = yield* tickets.consume({
+            ticket: ticketHeader,
+            ptyID: ctx.params.ptyID,
+            ...(yield* ticketScope),
+          })
+          if (!consumed) {
+            return HttpServerResponse.empty({ status: 403 })
+          }
         }
         const parsedCursor = query.value.cursor === undefined ? undefined : Number(query.value.cursor)
         const cursor =
@@ -274,4 +283,4 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
       }),
     )
   }),
-).pipe(Layer.provide(LocationServiceMap.layer))
+).pipe(Layer.provide(Layer.mergeAll(LocationServiceMap.layer, ServerAuth.Config.defaultLayer)))
