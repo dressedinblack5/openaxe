@@ -1743,11 +1743,30 @@ unix(
         const { prompt, chat } = yield* boot()
         yield* llm.text("done")
 
+        // The `!`...`` expansion in custom commands asks for `shell`
+        // permission with an empty ruleset, which always resolves to `ask`.
+        // Auto-approve it so the expansion proceeds instead of waiting on a
+        // handler forever.
+        const permission = yield* Permission.Service
+        const approver = yield* Effect.gen(function* () {
+          const pending = yield* pollWithTimeout(
+            Effect.gen(function* () {
+              const list = yield* permission.list()
+              const req = list.find((item) => item.sessionID === chat.id && item.permission === "shell")
+              return req ? req : undefined
+            }),
+            "timed out waiting for shell permission request",
+            "10 seconds",
+          )
+          yield* permission.reply({ requestID: pending.id, reply: "once" })
+        }).pipe(Effect.forkScoped)
+
         const result = yield* prompt.command({
           sessionID: chat.id,
           command: "probe",
           arguments: "",
         })
+        yield* Fiber.join(approver)
 
         expect(result.info.role).toBe("assistant")
         const inputs = yield* llm.inputs
