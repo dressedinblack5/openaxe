@@ -5,7 +5,7 @@ import { Heap } from "@/cli/heap"
 import { mark } from "@/cli/startup-timing"
 import { safeFetch } from "@/util/safe-fetch"
 import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
+import { resolve } from "node:path"
 
 mark("worker-start")
 

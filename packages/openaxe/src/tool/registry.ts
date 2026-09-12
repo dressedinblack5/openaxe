@@ -62,7 +62,7 @@ import { SessionSearchTool } from "./session-search"
 import { SkillWriteV1Tool } from "./skill-write"
 import { ToolSearchTool } from "./tool-search"
 import { KanbanSwarmTool } from "./kanban-swarm"
-import { validateToolSpec, type ToolAllowlist } from "@/plugin/shared"
+import { validateToolSpec } from "@/plugin/shared"
 
 export { webSearchEnabled }
 
