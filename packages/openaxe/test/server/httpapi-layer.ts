@@ -46,7 +46,7 @@ export const httpApiLayer = servedRoutes.pipe(
   Layer.provideMerge(instanceRefLayer),
   Layer.provideMerge(Path.layer),
   Layer.provideMerge(Database.defaultLayer),
-  Layer.provideMerge(ServerAuth.Config.layer({ username: "test", password: Option.some("test") })),
+  Layer.provideMerge(ServerAuth.Config.layer({ username: "test", password: Option.some("test"), noAuth: false })),
   Layer.provideMerge(Workspace.defaultLayer),
   Layer.provideMerge(Ripgrep.defaultLayer),
 )

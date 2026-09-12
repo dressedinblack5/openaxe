@@ -3,7 +3,13 @@ export * as TuiConfig from "."
 import { createBindingLookup } from "@opentui/keymap/extras"
 import { Schema } from "effect"
 import { createContext, type JSX, useContext } from "solid-js"
+import { PluginAllowlistEntry } from "@opencode-ai/core/v1/config/config"
 import { TuiKeybind } from "./keybind"
+
+export type { PluginAllowlistEntry } from "@opencode-ai/core/v1/config/config"
+
+export const PluginAllowlist = Schema.Array(PluginAllowlistEntry)
+export type PluginAllowlist = Schema.Schema.Type<typeof PluginAllowlist>
 
 export const AttentionSoundName = Schema.Literals([
   "default",
@@ -56,6 +62,7 @@ export const Info = Schema.Struct({
   keybinds: Schema.optional(TuiKeybind.KeybindOverrides),
   plugin: Schema.optional(Schema.Array(PluginSpec)),
   plugin_enabled: Schema.optional(Schema.Record(Schema.String, Schema.Boolean)),
+  plugin_allowlist: Schema.optional(PluginAllowlist),
   leader_timeout: Schema.optional(LeaderTimeout),
   attention: Schema.optional(Attention),
   prompt: Schema.optional(Prompt),

@@ -342,6 +342,10 @@ export function withCliFixture<A, E>(
     const serve: (opts?: ServeOpts) => Effect.Effect<ServeHandle, Error, Scope.Scope> = Effect.fn("opencode.serve")(
       function* (opts?: ServeOpts) {
         const argv = ["serve"]
+        // Tests run without a server password; pass --no-auth so the
+        // fail-closed serve gate (CliError without password) doesn't kill
+        // the child before the listening line appears.
+        argv.push("--no-auth")
         // Default port 0 — let the OS pick a free port, parse the actual one
         // off stdout. Hard-coded ports flake under parallel tests.
         argv.push("--port", String(opts?.port ?? 0))

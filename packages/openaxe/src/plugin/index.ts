@@ -206,10 +206,13 @@ export const layer = Layer.effect(
             }
             if (plugins.length) yield* config.waitForDependencies()
 
+            const allowlist = cfg.pluginAllowlist
+
             const loaded = yield* Effect.promise(() =>
               PluginLoader.loadExternal({
                 items: plugins,
                 kind: "server",
+                allowlist,
                 report: {
                   start(_candidate) {},
                   missing(_candidate, _retry, _message) {},

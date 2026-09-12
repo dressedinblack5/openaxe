@@ -26,8 +26,11 @@ import { McpOAuthCallback } from "./oauth-callback"
 import { McpAuth } from "./auth"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { TuiEvent } from "@/server/tui-event"
-import open from "open"
+
 import { Cause, Effect, Exit, Layer, Option, Context, Schema, Stream } from "effect"
+import { createHash } from "node:crypto"
+import { validateMcpUrl, validateMcpUrlSafe, isPrivateIp, ipToInt, ALLOWED_SCHEMES, PRIVATE_IP_RANGES, type RemoteMcpConfig } from "@opencode-ai/core/mcp/validation"
+
 import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
@@ -35,6 +38,7 @@ import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { McpCatalog } from "./catalog"
 import { McpEvent } from "@opencode-ai/schema/mcp-event"
 import { Codegraph } from "./codegraph"
+import { openBrowser } from "./browser"
 
 const DEFAULT_TIMEOUT = 30_000
 const CLIENT_OPTIONS = {
@@ -340,7 +344,37 @@ export const layer = Layer.effect(
       }
     })
 
-    const connectLocal = Effect.fn("MCP.connectLocal")(function* (
+    const SHELL_WRAPPERS = new Set(["sh", "bash", "zsh", "fish", "cmd.exe", "powershell", "pwsh"])
+
+function validateCommand(cmd: string): void {
+  const base = path.basename(cmd).toLowerCase()
+  if (SHELL_WRAPPERS.has(base)) {
+    throw new Error(`Shell wrapper "${cmd}" is not allowed as MCP command. Use the executable directly.`)
+  }
+}
+
+function sanitizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  const sensitiveKeys = new Set([
+    "OPENCODE_SERVER_PASSWORD",
+    "OPENCODE_SERVER_USERNAME",
+    "OPENCODE_AUTH_CONTENT",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GOOGLE_API_KEY",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "GITHUB_TOKEN",
+    "GITLAB_TOKEN",
+  ])
+  const sanitized: Record<string, string> = Object.fromEntries(
+    Object.entries(env).flatMap(([key, value]) =>
+      value !== undefined && !sensitiveKeys.has(key) ? [[key, value] as const] : [],
+    ),
+  )
+  return sanitized
+}
+
+const connectLocal = Effect.fn("MCP.connectLocal")(function* (
       key: string,
       mcp: ConfigMCPV1.Info & { type: "local" },
     ) {
@@ -354,16 +388,22 @@ export const layer = Layer.effect(
         )
         if (runtime) command = [...runtime, "serve", "--mcp"]
       }
+      yield* Effect.sync(() => validateCommand(command[0]))
       const [cmd, ...args] = command
       const baseDir = yield* InstanceState.directory
       const cwd = mcp.cwd ? path.resolve(baseDir, mcp.cwd) : baseDir
+      // Jail cwd to project directory
+      const relative = path.relative(baseDir, cwd)
+      if (relative.startsWith("..") || path.isAbsolute(relative)) {
+        return yield* Effect.fail(new Error(`MCP cwd must be within project directory`))
+      }
       const transport = new StdioClientTransport({
         stderr: "pipe",
         command: cmd,
         args,
         cwd,
         env: {
-          ...process.env,
+          ...sanitizeEnv(process.env),
           ...(cmd === "opencode" ? { BUN_BE_BUN: "1" } : {}),
           ...mcp.environment,
         },
@@ -971,23 +1011,8 @@ export const layer = Layer.effect(
 
       const callbackPromise = McpOAuthCallback.waitForCallback(result.oauthState, mcpName)
 
-      yield* Effect.tryPromise(() => open(result.authorizationUrl)).pipe(
-        Effect.flatMap((subprocess) =>
-          Effect.callback<void, Error>((resume) => {
-            const timer = setTimeout(() => resume(Effect.void), 500)
-            subprocess.on("error", (err) => {
-              clearTimeout(timer)
-              resume(Effect.fail(err))
-            })
-            subprocess.on("exit", (code) => {
-              if (code !== null && code !== 0) {
-                clearTimeout(timer)
-                resume(Effect.fail(new Error(`Browser open failed with exit code ${code}`)))
-              }
-            })
-          }),
-        ),
-        Effect.catch(() => {
+      yield* openBrowser(result.authorizationUrl).pipe(
+        Effect.catch((error) => {
           return events.publish(BrowserOpenFailed, { mcpName, url: result.authorizationUrl }).pipe(Effect.ignore)
         }),
       )
@@ -1087,5 +1112,8 @@ export const defaultLayer = layer.pipe(
 )
 
 export const node = LayerNode.make(layer, [CrossSpawnSpawner.node, McpAuth.node, EventV2Bridge.node, Config.node])
+
+// Re-export validation functions and types from core
+export { validateMcpUrl, validateMcpUrlSafe, isPrivateIp, ipToInt, ALLOWED_SCHEMES, PRIVATE_IP_RANGES, type RemoteMcpConfig } from "@opencode-ai/core/mcp/validation"
 
 export * as MCP from "."

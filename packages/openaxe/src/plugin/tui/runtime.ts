@@ -23,6 +23,7 @@ import {
   readV1Plugin,
   type ReadV1PluginResult,
   resolvePluginId,
+  type PluginAllowlist,
   type PluginPackage,
   type PluginSource,
 } from "@/plugin/shared"
@@ -669,10 +670,11 @@ function applyInitialPluginEnabledState(state: RuntimeState, config: TuiConfig.R
   }
 }
 
-async function resolveExternalPlugins(list: ConfigPlugin.Origin[], wait: () => Promise<void>) {
+async function resolveExternalPlugins(list: ConfigPlugin.Origin[], wait: () => Promise<void>, allowlist?: PluginAllowlist) {
   return PluginLoader.loadExternal({
     items: list,
     kind: "tui",
+    allowlist,
     wait: async () => {
       await wait().catch(() => {})
     },
@@ -1102,7 +1104,7 @@ async function load(input: {
       })
     }
 
-    const ready = await resolveExternalPlugins(records, () => TuiConfig.waitForDependencies())
+    const ready = await resolveExternalPlugins(records, () => TuiConfig.waitForDependencies(), config.plugin_allowlist)
     await addExternalPluginEntries(next, ready)
 
     applyInitialPluginEnabledState(next, config)

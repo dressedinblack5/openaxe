@@ -28,6 +28,7 @@ import { optionalOmitUndefined } from "@opencode-ai/core/schema"
 import { ProviderTransform } from "./transform"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
+import { safeFetch } from "@/util/safe-fetch"
 import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
@@ -547,7 +548,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
             const headers = new Headers(init?.headers)
             headers.set("Authorization", `Bearer ${token.token}`)
 
-            return fetch(input, { ...init, headers })
+            return safeFetch(input, { ...init, headers, redirect: "error" })
           },
         },
         async getModel(sdk: any, modelID: string) {

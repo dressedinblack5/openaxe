@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { gunzipSync, inflateRawSync } from "node:zlib"
+import lzma from "lzma-native"
 
 // ponytail: pure-JS zip/tar extraction. Shell-based extraction (unzip, tar,
 // PowerShell Expand-Archive) is preferred at call sites, but some environments
@@ -111,6 +112,69 @@ export function extractTgz(archivePath: string, destDir: string, stripComponents
     const header = bytes.subarray(offset, offset + TAR_BLOCK)
     // Two zero blocks mark the end of the archive.
     if (header.every((byte) => byte === 0)) break
+
+    const typeflag = String.fromCharCode(header[156])
+    let name = pendingName ?? tarString(header, 0, 100)
+    pendingName = null
+    const prefix = tarString(header, 345, 155)
+    if (prefix) name = `${prefix}/${name}`
+    const size = parseOctal(header, 124, 12)
+    const dataStart = offset + TAR_BLOCK
+    const dataEnd = dataStart + size
+    if (dataEnd > bytes.length) throw new Error(`tar: truncated entry ${name}`)
+
+    if (typeflag === "L") {
+      // GNU long name: the data block holds the real name for the next entry.
+      pendingName = bytes.toString("utf8", dataStart, dataEnd).replace(/\0+$/, "")
+      offset = Math.ceil(dataEnd / TAR_BLOCK) * TAR_BLOCK
+      continue
+    }
+    if (typeflag === "x" || typeflag === "g" || typeflag === "K") {
+      // pax extended header / GNU long link — data is metadata, skip it.
+      offset = Math.ceil(dataEnd / TAR_BLOCK) * TAR_BLOCK
+      continue
+    }
+
+    const parts = name
+      .replaceAll("\\", "/")
+      .split("/")
+      .filter((part) => part !== "" && part !== ".")
+    const stripped = parts.slice(stripComponents)
+    const target = safeEntry(destDir, stripped.join("/"))
+    if (!target) {
+      offset = Math.ceil(dataEnd / TAR_BLOCK) * TAR_BLOCK
+      continue
+    }
+
+    if (typeflag === "5") {
+      mkdirSync(target, { recursive: true })
+    } else if (typeflag === "0" || typeflag === "7" || typeflag === "\0") {
+      mkdirSync(path.dirname(target), { recursive: true })
+      writeFileSync(target, bytes.subarray(dataStart, dataEnd))
+    }
+    // Symlinks (2) and other types are skipped — the bundles we extract (rg,
+    // bundled node.exe) never need them.
+
+    offset = Math.ceil(dataEnd / TAR_BLOCK) * TAR_BLOCK
+  }
+}
+
+/**
+ * Extract a .tar.xz archive in pure JS. `stripComponents` drops leading path
+ * components (npm tarballs nest everything under `package/`). Sync — throws on
+ * failure.
+ */
+export function extractTarXz(archivePath: string, destDir: string, stripComponents = 0): void {
+  const compressed = readFileSync(archivePath)
+  const decompressor = lzma.createDecompressor()
+  const bytes = decompressor(compressed)
+  let offset = 0
+  let pendingName: string | null = null
+
+  while (offset + TAR_BLOCK <= bytes.length) {
+    const header = bytes.subarray(offset, offset + TAR_BLOCK)
+    // Two zero blocks mark the end of the archive.
+    if (header.every((byte: number) => byte === 0)) break
 
     const typeflag = String.fromCharCode(header[156])
     let name = pendingName ?? tarString(header, 0, 100)

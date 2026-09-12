@@ -107,7 +107,7 @@ export interface Interface {
   readonly prompt: (input: PromptInput) => Effect.Effect<SessionV1.WithParts, Image.Error>
   readonly loop: (input: LoopInput) => Effect.Effect<SessionV1.WithParts>
   readonly shell: (input: ShellInput) => Effect.Effect<SessionV1.WithParts, Session.BusyError>
-  readonly command: (input: CommandInput) => Effect.Effect<SessionV1.WithParts, Image.Error>
+  readonly command: (input: CommandInput) => Effect.Effect<SessionV1.WithParts, Image.Error | PermissionV1.Error>
   readonly resolvePromptParts: (template: string) => Effect.Effect<PromptInput["parts"]>
 }
 
@@ -173,6 +173,14 @@ export const layer = Layer.effect(
           const filepath = name.startsWith("~/")
             ? path.join(os.homedir(), name.slice(2))
             : path.resolve(ctx.worktree, name)
+
+          // Containment check: ensure file is within worktree
+          const resolvedPath = path.resolve(filepath)
+          const worktreePath = path.resolve(ctx.worktree)
+          if (!resolvedPath.startsWith(worktreePath + path.sep) && resolvedPath !== worktreePath) {
+            // File escapes worktree - skip or handle as error
+            return
+          }
 
           const info = yield* fsys.stat(filepath).pipe(Effect.option)
           if (Option.isNone(info)) {
@@ -1539,9 +1547,33 @@ export const layer = Layer.effect(
       if (shellMatches.length > 0) {
         const cfg = yield* config.get()
         const sh = Shell.preferred(cfg.shell)
-        const results = yield* Effect.promise(() =>
-          Promise.all(
-            shellMatches.map(async ([, cmd]) => (await Process.text([cmd], { shell: sh, nothrow: true })).text),
+        
+        // Request permission for shell command execution in custom commands
+        const shellCmds = shellMatches.map(([, shellCmd]) => shellCmd)
+        const permissionResult = yield* Effect.all(
+          shellCmds.map((shellCmd) =>
+            permission.ask({
+              id: PermissionV1.ID.ascending(),
+              sessionID: input.sessionID,
+              permission: "shell",
+              patterns: [shellCmd],
+              always: [],
+              metadata: {},
+              tool: undefined,
+              ruleset: [],
+            }).pipe(
+              Effect.as(true),
+              Effect.catchTag("PermissionRejectedError", () => Effect.succeed(false)),
+              Effect.catchTag("PermissionDeniedError", () => Effect.succeed(false)),
+            )
+          ),
+        )
+        
+        const results = yield* Effect.all(
+          shellMatches.map(([, shellCmd], i) =>
+            permissionResult[i]
+              ? Effect.promise(() => Process.text([shellCmd], { shell: sh, nothrow: true }).then((r) => r.text))
+              : Effect.succeed(`[Shell command denied: ${shellCmd}]`),
           ),
         )
         let index = 0

@@ -8,9 +8,11 @@
     "types": [],
     "noUncheckedIndexedAccess": false,
     "customConditions": ["browser"],
+    "typeRoots": ["../core/src/types", "node_modules/@types"],
     "paths": {
       "@/*": ["./src/*"],
       "@test/*": ["./test/*"]
     }
-  }
+  },
+  "include": ["**/*", "../core/src/types/lzma-native.d.ts"]
 }

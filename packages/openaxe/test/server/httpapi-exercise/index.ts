@@ -455,7 +455,7 @@ const scenarios: Scenario[] = [
       path: route("/pty/{ptyID}/connect-token", { ptyID: "pty_httpapi_missing" }),
       headers: ctx.headers(),
     }))
-    .status(403, undefined, "status"),
+    .status(404, undefined, "status"),
   http.protected
     .get("/pty/{ptyID}", "pty.get")
     .at((ctx) => ({ path: route("/pty/{ptyID}", { ptyID: "pty_httpapi_missing" }), headers: ctx.headers() }))
