@@ -15,9 +15,11 @@
   "experimental": {
     "learning": {
       "review": true,
-      "provider": "deepseek",
-      "model": "deepseek-chat",
-      "fallback": [{ "provider": "google", "model": "gemini-2.5-flash" }],
+      "provider": "google",
+      "model": "gemini-2.5-flash",
+      "fallback": [
+        { "provider": "google", "model": "gemini-2.0-flash" },
+      ],
     },
   },
   "mcp": {

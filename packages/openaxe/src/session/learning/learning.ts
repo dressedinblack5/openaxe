@@ -8,6 +8,7 @@ import { ModelV2 } from "@opencode-ai/core/model"
 import fs from "fs"
 import path from "path"
 import { Global } from "@opencode-ai/core/global"
+import { GateService, GateServiceStub, decideLearnable, DEFAULT_GATE_MODEL_PATH } from "./gate"
 
 export type ReviewTrigger = "turn_complete" | "tool_complete" | "error_recovery"
 
@@ -39,6 +40,19 @@ export type ReviewEntry = {
 export interface Interface {
   readonly review: (input: ReviewInput) => Effect.Effect<void>
   readonly read: () => Effect.Effect<readonly ReviewEntry[]>
+}
+
+/**
+ * Extract the JSON payload from an LLM response. Models routinely wrap JSON
+ * in markdown fences despite "output ONLY valid JSON" — without this, every
+ * fenced response dies at `JSON.parse` and nothing is ever learned (observed
+ * live: `learning: response not valid JSON, nothing learned`).
+ */
+export const extractJsonPayload = (text: string): string => {
+  const trimmed = text.trim()
+  const fenced = /^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/.exec(trimmed)
+  const inner = fenced?.[1]
+  return (inner ?? trimmed).trim()
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/LearningReview") {}
@@ -73,6 +87,42 @@ Output ONLY valid JSON:
 }
 
 If nothing worth learning, return empty arrays.`
+
+      // TF learning gate: skip the LLM review only when the gate confidently
+      // decides the turn is NOT learnable. Uncertainty (low confidence, missing
+      // model, timeout) always falls through to the LLM path — the gate must
+      // never silently suppress learning. Disabled by default.
+      const gate = learning.gate
+      if (gate?.enabled) {
+        const threshold = gate.threshold ?? 0.5
+        const gateOpt = yield* Effect.serviceOption(GateService)
+        if (Option.isSome(gateOpt)) {
+          const decision = yield* decideLearnable(
+            input.userMessage,
+            input.assistantMessage,
+            gate.modelPath ?? DEFAULT_GATE_MODEL_PATH,
+          ).pipe(
+            Effect.provideService(GateService, gateOpt.value),
+            Effect.timeout("500 millis"),
+            Effect.catch(() => Effect.succeed(undefined)),
+          )
+          if (decision) {
+            yield* Effect.logInfo("learning: gate decision", {
+              learnable: decision.learnable,
+              confidence: decision.confidence,
+              threshold,
+            })
+            if (!decision.learnable && decision.confidence >= threshold) {
+              yield* Effect.logInfo("learning: gate skipped LLM review", {
+                learnable: decision.learnable,
+                confidence: decision.confidence,
+                threshold,
+              })
+              return
+            }
+          }
+        }
+      }
 
       const result = yield* Effect.gen(function* () {
         const candidates = [
@@ -134,7 +184,7 @@ If nothing worth learning, return empty arrays.`
 
       let parsed: any
       try {
-        parsed = JSON.parse(text)
+        parsed = JSON.parse(extractJsonPayload(text))
       } catch {
         yield* Effect.logInfo("learning: response not valid JSON, nothing learned")
         return
@@ -205,8 +255,8 @@ If nothing worth learning, return empty arrays.`
 
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 
-export const defaultLayer = layer
+export const defaultLayer = Layer.provideMerge(layer, GateServiceStub)
 
-export const node = LayerNode.make(layer, [])
+export const node = LayerNode.make(defaultLayer, [])
 
 export * as Learning from "./learning"

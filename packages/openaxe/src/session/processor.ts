@@ -1062,7 +1062,10 @@ export const layer = Layer.effect(
             if (ctx.blocked || ctx.assistantMessage.error) return "stop"
             if (didFallback) continue
 
-            // ponytail: fire-and-forget learning review
+            // ponytail: fire-and-forget learning review. The fiber outlives the
+            // turn (it is forked into the processor layer scope, not the turn
+            // scope), but a process exit before the ~30s review finishes still
+            // drops it silently — acceptable: reviews are best-effort.
             if (Option.isSome(learning)) {
               const userMessage = lastUserText(currentStreamInput.messages)
               const assistantMessage = ctx.fullAssistantText

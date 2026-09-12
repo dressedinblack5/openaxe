@@ -265,14 +265,22 @@ Trigger: after every process() returning "continue"
 
 - **`review()`** — forked as a background job after each assistant turn
 - Evaluates user request + assistant response to decide if skill definitions or observations should be persisted
-- Config key: `experimental.learning.review` (boolean) + `.model` (optional separate model)
+- Tolerates markdown-fenced LLM responses before `JSON.parse`; only non-empty results are persisted to `data/learning/reviews.jsonl`
+- Optional TF gate (`experimental.learning.gate`) skips the LLM call only on a confident not-learnable verdict — uncertainty always falls through to the LLM path
 
 ```jsonc
 {
   "experimental": {
     "learning": {
       "review": true, // enable post-turn learning eval
-      "model": "provider/model", // optional: separate model for reviews
+      "provider": "google", // review provider
+      "model": "gemini-2.5-flash", // review model
+      "fallback": [{ "provider": "google", "model": "gemini-2.0-flash" }], // tried in order
+      "gate": {
+        "enabled": false, // TF learnability pre-filter (needs learning-gate.tflite)
+        "threshold": 0.5, // min confidence to trust a not-learnable verdict
+        "modelPath": "model/learning-gate.tflite",
+      },
     },
   },
 }
@@ -383,6 +391,7 @@ The monorepo ships 13 packages:
 - **Explicit upgrades** — `openaxe upgrade` is manual. No silent background updates.
 - **No network by default** — server binds to `127.0.0.1:0` (random port). No daemon unless started.
 - **`--pure` mode** — run without plugins to eliminate third-party code.
+- **PII gate (internal plugin)** — regex redaction of emails, AWS keys, GitHub tokens, SSNs, and API keys in tool args on every `tool.execute.before`, plus `permission.ask` denial on high-confidence PII hits (≥ 0.8). Best-effort by design: it never throws and never blocks clean calls; loads even in `--pure` mode.
 - **Supply chain** — native deps use `node-gyp rebuild` during install. For defense-in-depth: `bun install --ignore-scripts` + `bun audit`.
 
 ## Advantages Over Official OpenCode

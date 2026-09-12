@@ -10,14 +10,17 @@ import fs from "fs"
 import path from "path"
 import { Global } from "@opencode-ai/core/global"
 
+// learning.ts calls generateText from "ai" directly (provider.getLanguage only
+// resolves the model handle), so fenced responses are simulated here.
+let fencedResponse = false
 void mock.module("ai", () => ({
   generateText: async (_args: {
     model: unknown
     system: string
     prompt: string
     temperature: number
-  }) => ({
-    text: JSON.stringify({
+  }) => {
+    const payload = JSON.stringify({
       skillUpdates: [
         {
           name: "test-skill",
@@ -27,14 +30,17 @@ void mock.module("ai", () => ({
         },
       ],
       observations: [{ key: "test-key", value: "test-value" }],
-    }),
-    finishReason: "stop",
-    usage: { promptTokens: 10, completionTokens: 10 },
-  }),
+    })
+    return {
+      text: fencedResponse ? "```json\n" + payload + "\n```" : payload,
+      finishReason: "stop",
+      usage: { promptTokens: 10, completionTokens: 10 },
+    }
+  },
 }))
 
 // Import Learning AFTER the mock so the learning module picks up the stubbed generateText.
-const { Learning } = await import("../../src/session/learning/learning")
+const { Learning, extractJsonPayload } = await import("../../src/session/learning/learning")
 
 const it = testEffect(Learning.defaultLayer)
 
@@ -113,6 +119,49 @@ describe("LearningReview", () => {
 
     const itPipeline = testEffect(
       Layer.provideMerge(Learning.defaultLayer, Layer.mergeAll(mockConfig, mockProvider)),
+    )
+
+    itPipeline.effect("parses markdown-fenced JSON responses", () =>
+      Effect.gen(function* () {
+        expect(extractJsonPayload('{"a":1}')).toBe('{"a":1}')
+        expect(extractJsonPayload('```json\n{"a":1}\n```')).toBe('{"a":1}')
+        expect(extractJsonPayload('```\n{"a":1}\n```')).toBe('{"a":1}')
+        expect(extractJsonPayload('  ```json\n{"a":1}\n```  ')).toBe('{"a":1}')
+      }),
+    )
+
+    const itFenced = testEffect(
+      Layer.provideMerge(Learning.defaultLayer, Layer.mergeAll(mockConfig, mockProvider)),
+    )
+
+    itFenced.effect("persists reviews from fenced LLM responses", () =>
+      Effect.gen(function* () {
+        const jsonlPath = path.join(Global.Path.data, "learning", "reviews.jsonl")
+        if (fs.existsSync(jsonlPath)) fs.unlinkSync(jsonlPath)
+
+        fencedResponse = true
+        try {
+          const svc = yield* Learning.Service
+          const result = yield* svc.review({
+            sessionID: SessionID.descending("ses_fenced"),
+            trigger: "turn_complete",
+            userMessage: "I need to learn Y",
+            assistantMessage: "Here is how to do Y",
+            agent: "build",
+            providerID: "test",
+            modelID: "test-model",
+          })
+          expect(result).toBeUndefined()
+
+          const entries = yield* svc.read()
+          expect(entries).toHaveLength(1)
+          expect(entries[0].sessionID).toBe("ses_fenced")
+          expect(entries[0].skills[0].name).toBe("test-skill")
+        } finally {
+          fencedResponse = false
+          if (fs.existsSync(jsonlPath)) fs.unlinkSync(jsonlPath)
+        }
+      }),
     )
 
     itPipeline.effect("calls LLM and persists skill updates and observations", () =>
