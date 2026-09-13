@@ -1153,7 +1153,7 @@ describe("run stream transport", () => {
     const src = eventFeed()
     const ui = footer()
     let cleared = false
-    const idle = ui.api.idle
+    const idle = ui.api.idle.bind(ui.api)
     ui.api.idle = () => (cleared ? Promise.reject(new Error("render failed")) : idle())
     const transport = await createSessionTransport({
       sdk: sdk({ stream: src.stream }),
@@ -2254,7 +2254,7 @@ describe("run stream transport", () => {
     })
 
     try {
-       expect(
+      expect(
         transport.runPromptTurn({
           agent: undefined,
           model: undefined,
@@ -2302,7 +2302,7 @@ describe("run stream transport", () => {
     })
 
     try {
-       expect(
+      expect(
         transport.runPromptTurn({
           agent: undefined,
           model: undefined,
@@ -2343,7 +2343,7 @@ describe("run stream transport", () => {
         signal: ctrl.signal,
       })
 
-       expect(
+      expect(
         transport.runPromptTurn({
           agent: undefined,
           model: undefined,

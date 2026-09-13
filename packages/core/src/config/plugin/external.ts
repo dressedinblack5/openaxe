@@ -37,7 +37,7 @@ export const Plugin = define({
     const location = yield* Location.Service
     const npm = yield* Npm.Service
     yield* Effect.gen(function* () {
-      const configured: { package: string; options?: Record<string, any> }[] = []
+      const configured: { package: string; options?: Record<string, unknown> }[] = []
 
       for (const entry of yield* config.entries()) {
         if (entry.type === "document") {
@@ -77,7 +77,7 @@ export const Plugin = define({
             : (yield* npm.add(ref.package)).entrypoint
           if (!entrypoint) return
 
-          const mod = yield* Effect.promise( async () => import(entrypoint))
+          const mod = yield* Effect.promise(async () => import(entrypoint))
           const value = (yield* Schema.decodeUnknownEffect(PluginModule)(mod)).default
           const plugin = "effect" in value ? value : PluginPromise.fromPromise(value)
           yield* ctx.plugin.add({

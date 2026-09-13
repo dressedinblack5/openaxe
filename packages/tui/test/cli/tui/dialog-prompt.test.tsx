@@ -68,13 +68,13 @@ async function mountPrompt(input: {
         <OpencodeKeymapProvider keymap={keymap}>
           <TuiConfigProvider config={resolvedConfig}>
             <KVProvider>
-              <ThemeProvider mode="dark">
-                <ToastProvider>
+              <ToastProvider>
+                <ThemeProvider mode="dark">
                   <DialogProvider>
                     <DialogPrompt title="Rename Session" value="draft" onConfirm={input.onConfirm} />
                   </DialogProvider>
-                </ToastProvider>
-              </ThemeProvider>
+                </ThemeProvider>
+              </ToastProvider>
             </KVProvider>
           </TuiConfigProvider>
         </OpencodeKeymapProvider>

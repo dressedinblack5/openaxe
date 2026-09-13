@@ -66,7 +66,7 @@ function withTmp<A, E, R>(
       await options.init?.(tmp.path)
       return { tmp, vcs: { type: "git" as const, store: AbsolutePath.make(path.join(tmp.path, ".git")) } }
     }),
-    ({ tmp }) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+    ({ tmp }) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
   ).pipe(Effect.flatMap(({ tmp, vcs }) => f(tmp.path, vcs).pipe(provide(tmp.path, vcs))))
 }
 
@@ -188,8 +188,8 @@ describeWatcher("Watcher", () => {
       const events = yield* EventV2.Service
       const fs = yield* FSUtil.Service
       const tmp = yield* Effect.acquireRelease(
-        Effect.promise( async () => tmpdir()),
-        (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+        Effect.promise(async () => tmpdir()),
+        (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
       )
       yield* ready(tmp.path).pipe(provide(tmp.path), Effect.scoped)
       const file = path.join(tmp.path, "after-dispose.txt")
@@ -210,7 +210,7 @@ describeWatcher("Watcher", () => {
             (event) => event.file === index,
             fs
               .writeFileString(path.join(directory, "tracked.txt"), "a")
-              .pipe(Effect.andThen(Effect.promise( async () => $`git add .`.cwd(directory).quiet())), Effect.asVoid),
+              .pipe(Effect.andThen(Effect.promise(async () => $`git add .`.cwd(directory).quiet())), Effect.asVoid),
           )
         }),
       { git: true },
@@ -225,7 +225,7 @@ describeWatcher("Watcher", () => {
           const head = path.join(directory, ".git", "HEAD")
           const branch = `watch-${Math.random().toString(36).slice(2)}`
           yield* ready(directory)
-          yield* Effect.promise( async () => $`git branch ${branch}`.cwd(directory).quiet())
+          yield* Effect.promise(async () => $`git branch ${branch}`.cwd(directory).quiet())
           expect(
             yield* nextUpdate((event) => event.file === head, fs.writeFileString(head, `ref: refs/heads/${branch}\n`)),
           ).toEqual({
@@ -245,11 +245,13 @@ describeWatcher("Watcher", () => {
           Effect.gen(function* () {
             const afs = yield* FSUtil.Service
             const actual = path.join(directory, "..", `actual_${path.basename(directory)}`)
-            yield* Effect.addFinalizer(() => Effect.promise( async () => fs.rm(actual, { recursive: true, force: true })))
+            yield* Effect.addFinalizer(() =>
+              Effect.promise(async () => fs.rm(actual, { recursive: true, force: true })),
+            )
             yield* ready(directory)
             const head = path.join(directory, ".git", "HEAD")
             const branch = `watch-${Math.random().toString(36).slice(2)}`
-            yield* Effect.promise( async () => $`git branch ${branch}`.cwd(directory).quiet())
+            yield* Effect.promise(async () => $`git branch ${branch}`.cwd(directory).quiet())
             expect(
               yield* nextUpdate(
                 (event) => event.file === path.join(actual, "HEAD"),

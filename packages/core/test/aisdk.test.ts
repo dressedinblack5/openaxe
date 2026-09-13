@@ -72,7 +72,11 @@ describe("AISDK", () => {
       let count = 0
 
       const scope = yield* Scope.make()
-      yield* svc.hook.sdk(() => { count++ }).pipe(Scope.provide(scope))
+      yield* svc.hook
+        .sdk(() => {
+          count++
+        })
+        .pipe(Scope.provide(scope))
 
       yield* svc.runSDK(event)
       expect(count).toBe(1)
@@ -88,8 +92,12 @@ describe("AISDK", () => {
       const svc = yield* AISDK.Service
       const event = makeSDKEvent()
       const order: number[] = []
-      yield* svc.hook.sdk(() => { order.push(1) })
-      yield* svc.hook.sdk(() => { order.push(2) })
+      yield* svc.hook.sdk(() => {
+        order.push(1)
+      })
+      yield* svc.hook.sdk(() => {
+        order.push(2)
+      })
       yield* svc.runSDK(event)
       expect(order).toEqual([1, 2])
     }),

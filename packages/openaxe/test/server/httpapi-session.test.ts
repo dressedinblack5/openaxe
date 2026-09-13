@@ -32,7 +32,13 @@ import { ProviderV2 } from "@opencode-ai/core/provider"
 import * as DateTime from "effect/DateTime"
 import { eq } from "drizzle-orm"
 import { resetDatabase } from "../fixture/db"
-import { disposeAllInstances, provideInstanceEffect, TestInstance, tmpdirScoped, withTmpdirInstance } from "../fixture/fixture"
+import {
+  disposeAllInstances,
+  provideInstanceEffect,
+  TestInstance,
+  tmpdirScoped,
+  withTmpdirInstance,
+} from "../fixture/fixture"
 import { TestLLMServer } from "../lib/llm-server"
 import { testProviderConfig } from "../lib/test-provider"
 import { type TestOptions, test } from "bun:test"
@@ -79,7 +85,7 @@ const httpApiLayer = servedRoutes.pipe(
 )
 
 function isInstanceOptions(options: unknown): options is InstanceOptions<never, never> {
-  return !!options && typeof options === "object" && ("git" in (options) || "config" in (options) || "init" in (options))
+  return !!options && typeof options === "object" && ("git" in options || "config" in options || "init" in options)
 }
 
 function instanceArgs<E, R>(
@@ -392,7 +398,9 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const sessionID = SessionID.descending()
-        const exit = yield* HttpSessionError.mapBusy(Effect.fail(new Session.BusyError({ sessionID }))).pipe(Effect.exit)
+        const exit = yield* HttpSessionError.mapBusy(Effect.fail(new Session.BusyError({ sessionID }))).pipe(
+          Effect.exit,
+        )
 
         expect(Exit.isFailure(exit)).toBe(true)
         if (Exit.isFailure(exit)) {
@@ -455,6 +463,13 @@ describe("session HttpApi", () => {
         })
         expect(abort.status).toBe(200)
         expect(yield* responseJson(abort)).toBe(true)
+
+        const resume = yield* request(pathFor(SessionPaths.resume, { sessionID: missingSession }), {
+          headers,
+          method: "POST",
+        })
+        expect(resume.status).toBe(404)
+        expect(yield* responseJson(resume)).toEqual(missingSessionBody)
 
         const session = yield* createSession({ title: "missing message" })
         const missingMessage = MessageID.ascending()
@@ -543,44 +558,138 @@ describe("session HttpApi", () => {
     { git: true, config: { formatter: false, lsp: false } },
   )
 
-  it.live("uses the persisted session directory for prompt requests", () =>
-    Effect.gen(function* () {
-      const llm = yield* TestLLMServer
-      yield* llm.text("ok", { usage: { input: 1, output: 1 } })
+  it.live(
+    "uses the persisted session directory for prompt requests",
+    () =>
+      Effect.gen(function* () {
+        const llm = yield* TestLLMServer
+        yield* llm.text("ok", { usage: { input: 1, output: 1 } })
 
-      const config = testProviderConfig(llm.url)
-      const sessionDirectory = yield* tmpdirScoped({ git: true, config })
-      const requestDirectory = yield* tmpdirScoped({ git: true, config })
-      const session = yield* createSession({ title: "directory regression" }).pipe(
-        provideInstanceEffect(sessionDirectory),
-      )
+        const config = testProviderConfig(llm.url)
+        const sessionDirectory = yield* tmpdirScoped({ git: true, config })
+        const requestDirectory = yield* tmpdirScoped({ git: true, config })
+        const session = yield* createSession({ title: "directory regression" }).pipe(
+          provideInstanceEffect(sessionDirectory),
+        )
 
-      const response = yield* request(
-        `${pathFor(SessionPaths.prompt, { sessionID: session.id })}?directory=${encodeURIComponent(requestDirectory)}`,
-        {
+        const response = yield* request(
+          `${pathFor(SessionPaths.prompt, { sessionID: session.id })}?directory=${encodeURIComponent(requestDirectory)}`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              agent: "build",
+              model: { providerID: "test", modelID: "test-model" },
+              parts: [{ type: "text", text: "which directory?" }],
+            }),
+          },
+        )
+
+        expect(response.status).toBe(200)
+        yield* responseJson(response)
+
+        const messages = yield* Session.use
+          .messages({ sessionID: session.id })
+          .pipe(provideInstanceEffect(sessionDirectory), Effect.orDie)
+        const assistant = messages.find((message) => message.info.role === "assistant")
+        expect(assistant?.info.role === "assistant" ? assistant.info.path : undefined).toEqual({
+          cwd: sessionDirectory,
+          root: sessionDirectory,
+        })
+      }).pipe(Effect.provide(TestLLMServer.layer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
+    180_000,
+  )
+
+  it.instance(
+    "resume reports no pending work when the session has none",
+    () =>
+      Effect.gen(function* () {
+        const test = yield* TestInstance
+        const headers = { "x-opencode-directory": test.directory }
+
+        const empty = yield* createSession({ title: "empty" })
+        const fresh = yield* request(pathFor(SessionPaths.resume, { sessionID: empty.id }), { headers, method: "POST" })
+        expect(fresh.status).toBe(200)
+        expect(yield* responseJson(fresh)).toBe(false)
+
+        const answered = yield* createSession({ title: "answered" })
+        yield* createTextMessage(answered.id, "hello")
+        const settled = yield* request(pathFor(SessionPaths.resume, { sessionID: answered.id }), {
+          headers,
           method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
+        })
+        expect(settled.status).toBe(200)
+        expect(yield* responseJson(settled)).toBe(false)
+      }),
+    { git: true, config: { formatter: false, lsp: false } },
+  )
+
+  it.live(
+    "resume continues an interrupted turn",
+    () =>
+      Effect.gen(function* () {
+        const llm = yield* TestLLMServer
+        yield* llm.text("ok", { usage: { input: 1, output: 1 } })
+        const config = testProviderConfig(llm.url)
+        const directory = yield* tmpdirScoped({ git: true, config })
+        const headers = { "x-opencode-directory": directory }
+
+        const session = yield* createSession({ title: "interrupted" }).pipe(provideInstanceEffect(directory))
+        const svc = yield* Session.Service
+        const user = yield* svc
+          .updateMessage({
+            id: MessageID.ascending(),
+            role: "user",
+            sessionID: session.id,
             agent: "build",
-            model: { providerID: "test", modelID: "test-model" },
-            parts: [{ type: "text", text: "which directory?" }],
-          }),
-        },
-      )
+            model: { providerID: ProviderV2.ID.make("test"), modelID: ModelV2.ID.make("test-model") },
+            time: { created: Date.now() },
+          })
+          .pipe(provideInstanceEffect(directory))
+        yield* svc
+          .updatePart({
+            id: PartID.ascending(),
+            sessionID: session.id,
+            messageID: user.id,
+            type: "text",
+            text: "finish the task",
+          })
+          .pipe(provideInstanceEffect(directory))
+        const aborted = yield* svc
+          .updateMessage({
+            id: MessageID.ascending(),
+            role: "assistant",
+            sessionID: session.id,
+            parentID: user.id,
+            mode: "build",
+            agent: "build",
+            modelID: ModelV2.ID.make("test-model"),
+            providerID: ProviderV2.ID.make("test"),
+            path: { cwd: directory, root: directory },
+            cost: 0,
+            tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+            time: { created: Date.now() },
+          })
+          .pipe(provideInstanceEffect(directory))
 
-      expect(response.status).toBe(200)
-      yield* responseJson(response)
+        const resumed = yield* request(pathFor(SessionPaths.resume, { sessionID: session.id }), {
+          headers,
+          method: "POST",
+        })
+        expect(resumed.status).toBe(200)
+        expect(yield* responseJson(resumed)).toBe(true)
 
-      const messages = yield* Session.use
-        .messages({ sessionID: session.id })
-        .pipe(provideInstanceEffect(sessionDirectory), Effect.orDie)
-      const assistant = messages.find((message) => message.info.role === "assistant")
-      expect(assistant?.info.role === "assistant" ? assistant.info.path : undefined).toEqual({
-        cwd: sessionDirectory,
-        root: sessionDirectory,
-      })
-    }).pipe(Effect.provide(TestLLMServer.layer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
-  180_000,
+        const messages = yield* Session.use
+          .messages({ sessionID: session.id })
+          .pipe(provideInstanceEffect(directory), Effect.orDie)
+        const last = messages.at(-1)
+        expect(last?.info.role).toBe("assistant")
+        expect(last?.info.id === aborted.id).toBe(false)
+        if (last?.info.role === "assistant") {
+          expect(last.info.finish).toBe("stop")
+        }
+      }).pipe(Effect.provide(TestLLMServer.layer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
+    180_000,
   )
 
   it.instance(

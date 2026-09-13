@@ -1,4 +1,4 @@
-import { fn } from "effect/Effect";
+import { fn } from "effect/Effect"
 import { Commands } from "../../commands"
 import { Runtime } from "../../../framework/runtime"
 import { Daemon } from "../../../services/daemon"

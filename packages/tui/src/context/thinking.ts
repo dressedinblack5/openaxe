@@ -1,6 +1,5 @@
-import { createMemo, type Setter } from "solid-js"
+import { createMemo } from "solid-js"
 import { useKV } from "./kv"
-
 export type ThinkingMode = "show" | "hide"
 
 const MODES: readonly ThinkingMode[] = ["show", "hide"] as const
@@ -35,14 +34,8 @@ export function useThinkingMode() {
   const legacy = kv.get("thinking_visibility")
   const [stored, setStored] = kv.signal<ThinkingMode>("thinking_mode", "hide")
 
-  // The kv signal exposes its setter typed as `Setter<T>` which carries Solid's
-  // overload set; passing an updater fn through a property access loses the
-  // bivariance trick the existing `setX((prev) => ...)` callsites rely on.
-  // Wrap it in a sane shape so consumers can just call `set(next)` or pass
-  // an updater.
   const set = (next: ThinkingMode | ((prev: ThinkingMode) => ThinkingMode)) => {
-    if (typeof next === "function") setStored(next as Setter<ThinkingMode>)
-    else setStored(() => next)
+    setStored(next)
   }
 
   // Preserve previous experience for users who had explicitly toggled the
@@ -53,7 +46,8 @@ export function useThinkingMode() {
     else if (legacy === false) set("hide")
   }
 
-  if ((stored() as string) === "minimal") set("hide")
+  const storedValue = stored()
+  if (storedValue !== "show" && storedValue !== "hide") set("hide")
 
   const mode = createMemo<ThinkingMode>(() => {
     const value = stored()

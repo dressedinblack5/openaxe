@@ -62,14 +62,7 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/v2
 interface ResolvedPath {
   readonly canonical: string
   readonly type?:
-    | "File"
-    | "Directory"
-    | "SymbolicLink"
-    | "BlockDevice"
-    | "CharacterDevice"
-    | "FIFO"
-    | "Socket"
-    | "Unknown"
+    "File" | "Directory" | "SymbolicLink" | "BlockDevice" | "CharacterDevice" | "FIFO" | "Socket" | "Unknown"
   readonly directory: string
 }
 

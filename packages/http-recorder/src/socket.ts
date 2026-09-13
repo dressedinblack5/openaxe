@@ -329,8 +329,4 @@ export const socketLayer = (
 const provideCassette = (
   layer: Layer.Layer<Socket.Socket, never, Socket.Socket | Service>,
   options: WebSocketRecorderOptions,
-) =>
-  layer.pipe(
-    Layer.provide(fileSystem({ directory: options.directory })),
-    Layer.provide(NodeFileSystem.layer),
-  )
+) => layer.pipe(Layer.provide(fileSystem({ directory: options.directory })), Layer.provide(NodeFileSystem.layer))

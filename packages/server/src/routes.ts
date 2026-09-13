@@ -19,6 +19,7 @@ type RouteRequirements =
   | HttpRouter.Request<"Requires", unknown>
 
 export function createRoutes(password?: string): Layer.Layer<never, Config.ConfigError, RouteRequirements> {
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- HttpApiBuilder.layer infers a wider Layer; the cast to RouteRequirements is the declared API contract.
   return HttpApiBuilder.layer(Api, { openapiPath: "/openapi.json" }).pipe(
     Layer.provide(handlers),
     Layer.provide(PtyEnvironment.defaultLayer),
@@ -38,5 +39,4 @@ export function createRoutes(password?: string): Layer.Layer<never, Config.Confi
 
 export const routes = createRoutes()
 
-export const webHandler = () =>
-  HttpRouter.toWebHandler(routes, { disableLogger: true })
+export const webHandler = () => HttpRouter.toWebHandler(routes, { disableLogger: true })

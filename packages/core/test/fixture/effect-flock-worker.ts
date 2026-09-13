@@ -14,7 +14,7 @@ type Msg = {
   done?: string
 }
 
- async function sleep(ms: number) {
+async function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
@@ -48,7 +48,7 @@ await Effect.runPromise(
   Effect.gen(function* () {
     const flock = yield* EffectFlock.Service
     yield* flock.withLock(
-      Effect.promise( async () => job()),
+      Effect.promise(async () => job()),
       msg.key,
       msg.dir,
     )

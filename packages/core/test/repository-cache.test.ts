@@ -67,24 +67,26 @@ describe("RepositoryCache", () => {
     ),
   )
 
-  it.live("returns typed validation and clone failures", () =>
-    withRemote((fixture) =>
-      Effect.gen(function* () {
-        const cache = yield* RepositoryCache.Service
-        const invalidRepository = yield* Effect.flip(RepositoryCache.parseRemote("not-a-repo"))
-        expect(invalidRepository).toBeInstanceOf(RepositoryCache.InvalidRepositoryError)
+  it.live(
+    "returns typed validation and clone failures",
+    () =>
+      withRemote((fixture) =>
+        Effect.gen(function* () {
+          const cache = yield* RepositoryCache.Service
+          const invalidRepository = yield* Effect.flip(RepositoryCache.parseRemote("not-a-repo"))
+          expect(invalidRepository).toBeInstanceOf(RepositoryCache.InvalidRepositoryError)
 
-        const invalidBranch = yield* Effect.flip(cache.ensure({ reference: fixture.reference, branch: "../unsafe" }))
-        expect(invalidBranch).toBeInstanceOf(RepositoryCache.InvalidBranchError)
+          const invalidBranch = yield* Effect.flip(cache.ensure({ reference: fixture.reference, branch: "../unsafe" }))
+          expect(invalidBranch).toBeInstanceOf(RepositoryCache.InvalidBranchError)
 
-        const cloneFailure = yield* Effect.flip(
-          cache.ensure({
-            reference: { ...fixture.reference, remote: pathToFileURL(path.join(fixture.root, "missing.git")).href },
-          }),
-        )
-        expect(cloneFailure).toBeInstanceOf(RepositoryCache.CloneFailedError)
-      }).pipe(Effect.provide(cacheLayer(fixture.root))),
-    ),
+          const cloneFailure = yield* Effect.flip(
+            cache.ensure({
+              reference: { ...fixture.reference, remote: pathToFileURL(path.join(fixture.root, "missing.git")).href },
+            }),
+          )
+          expect(cloneFailure).toBeInstanceOf(RepositoryCache.CloneFailedError)
+        }).pipe(Effect.provide(cacheLayer(fixture.root))),
+      ),
     30_000,
   )
 })
@@ -108,16 +110,18 @@ function withRemote<A, E, R>(body: (fixture: Awaited<ReturnType<typeof gitRemote
       return { root, fixture: await gitRemote(root.path) }
     }),
     (input) => body(input.fixture),
-    (input) => Effect.promise( async () => input.root[Symbol.asyncDispose]()),
+    (input) => Effect.promise(async () => input.root[Symbol.asyncDispose]()),
   )
 }
 
 function read(file: string) {
-  return Effect.promise( async () => fs.readFile(file, "utf8")).pipe(Effect.map((content) => content.replace(/\r\n/g, "\n")))
+  return Effect.promise(async () => fs.readFile(file, "utf8")).pipe(
+    Effect.map((content) => content.replace(/\r\n/g, "\n")),
+  )
 }
 
 function exists(file: string) {
-  return Effect.promise( async () =>
+  return Effect.promise(async () =>
     fs.stat(file).then(
       () => true,
       () => false,

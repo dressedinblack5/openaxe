@@ -6,6 +6,7 @@ import { setTimeout as sleep } from "node:timers/promises" // renamed to avoid c
 import { createServer } from "http"
 import { OpenAIWebSocketPool } from "./ws-pool"
 import { escapeHtml } from "@/util/html"
+import { createPendingOAuth } from "../oauth-callback"
 
 const CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
 const ISSUER = "https://auth.openai.com"
@@ -228,15 +229,9 @@ export const renderOAuthError = (error: string) => `<!doctype html>
   </body>
 </html>`
 
-interface PendingOAuth {
-  pkce: PkceCodes
-  state: string
-  resolve: (tokens: TokenResponse) => void
-  reject: (error: Error) => void
-}
+const oauthFlow = createPendingOAuth<TokenResponse, PkceCodes>()
 
 let oauthServer: ReturnType<typeof createServer> | undefined
-let pendingOAuth: PendingOAuth | undefined
 
 async function startOAuthServer(): Promise<{ port: number; redirectUri: string }> {
   if (oauthServer) {
@@ -244,63 +239,18 @@ async function startOAuthServer(): Promise<{ port: number; redirectUri: string }
   }
 
   oauthServer = createServer((req, res) => {
-    const url = new URL(req.url || "/", `http://localhost:${OAUTH_PORT}`)
-
-    if (url.pathname === "/auth/callback") {
-      const code = url.searchParams.get("code")
-      const state = url.searchParams.get("state")
-      const error = url.searchParams.get("error")
-      const errorDescription = url.searchParams.get("error_description")
-
-      if (error) {
-        const errorMsg = errorDescription || error
-        pendingOAuth?.reject(new Error(errorMsg))
-        pendingOAuth = undefined
-        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" })
-        res.end(renderOAuthError(errorMsg))
-        return
-      }
-
-      if (!code) {
-        const errorMsg = "Missing authorization code"
-        pendingOAuth?.reject(new Error(errorMsg))
-        pendingOAuth = undefined
-        res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" })
-        res.end(renderOAuthError(errorMsg))
-        return
-      }
-
-      if (!pendingOAuth || state !== pendingOAuth.state) {
-        const errorMsg = "Invalid state - potential CSRF attack"
-        pendingOAuth?.reject(new Error(errorMsg))
-        pendingOAuth = undefined
-        res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" })
-        res.end(renderOAuthError(errorMsg))
-        return
-      }
-
-      const current = pendingOAuth
-      pendingOAuth = undefined
-
-      exchangeCodeForTokens(code, `http://localhost:${OAUTH_PORT}/auth/callback`, current.pkce)
-        .then((tokens) => current.resolve(tokens))
-        .catch((err) => current.reject(err))
-
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" })
-      res.end(HTML_SUCCESS)
-      return
+    const handled = oauthFlow.handle(req, res, {
+      redirectPath: "/auth/callback",
+      baseUrl: `http://localhost:${OAUTH_PORT}`,
+      htmlContentType: "text/html; charset=utf-8",
+      htmlError: renderOAuthError,
+      htmlSuccess: HTML_SUCCESS,
+      exchange: (code, pkce) => exchangeCodeForTokens(code, `http://localhost:${OAUTH_PORT}/auth/callback`, pkce),
+    })
+    if (!handled) {
+      res.writeHead(404)
+      res.end("Not found")
     }
-
-    if (url.pathname === "/cancel") {
-      pendingOAuth?.reject(new Error("Login cancelled"))
-      pendingOAuth = undefined
-      res.writeHead(200)
-      res.end("Login cancelled")
-      return
-    }
-
-    res.writeHead(404)
-    res.end("Not found")
   })
 
   await new Promise<void>((resolve, reject) => {
@@ -318,33 +268,6 @@ function stopOAuthServer() {
     oauthServer.close(() => {})
     oauthServer = undefined
   }
-}
-
-function waitForOAuthCallback(pkce: PkceCodes, state: string): Promise<TokenResponse> {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => {
-        if (pendingOAuth) {
-          pendingOAuth = undefined
-          reject(new Error("OAuth callback timeout - authorization took too long"))
-        }
-      },
-      5 * 60 * 1000,
-    ) // 5 minute timeout
-
-    pendingOAuth = {
-      pkce,
-      state,
-      resolve: (tokens) => {
-        clearTimeout(timeout)
-        resolve(tokens)
-      },
-      reject: (error) => {
-        clearTimeout(timeout)
-        reject(error)
-      },
-    }
-  })
 }
 
 export async function CodexAuthPlugin(input: PluginInput, options: CodexAuthPluginOptions = {}): Promise<Hooks> {
@@ -514,7 +437,7 @@ export async function CodexAuthPlugin(input: PluginInput, options: CodexAuthPlug
             const state = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)).buffer)
             const authUrl = buildAuthorizeUrl(redirectUri, pkce, state)
 
-            const callbackPromise = waitForOAuthCallback(pkce, state)
+            const callbackPromise = oauthFlow.waitFor(pkce, state)
 
             return {
               url: authUrl,

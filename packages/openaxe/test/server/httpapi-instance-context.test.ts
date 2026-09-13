@@ -345,5 +345,3 @@ describe("HttpApi instance context middleware", () => {
     }),
   )
 })
-
-

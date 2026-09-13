@@ -442,21 +442,67 @@ test("loads project config from Cygwin paths on Windows", async () => {
   })
 }, 120_000)
 
-it.instance("ignores legacy tui keys in openaxe config", () =>
-  Effect.gen(function* () {
-    const test = yield* TestInstance
-    yield* writeConfigEffect(test.directory, {
-      $schema: "https://opencode.ai/config.json",
-      model: "test/model",
-      theme: "legacy",
-      tui: { scroll_speed: 4 },
-    })
+it.instance(
+  "ignores legacy tui keys in openaxe config",
+  () =>
+    Effect.gen(function* () {
+      const test = yield* TestInstance
+      yield* writeConfigEffect(test.directory, {
+        $schema: "https://opencode.ai/config.json",
+        model: "test/model",
+        theme: "legacy",
+        tui: { scroll_speed: 4 },
+      })
 
-    const config = yield* Config.use.get()
-    expect(config.model).toBe("test/model")
-    expect((config as Record<string, unknown>).theme).toBeUndefined()
-    expect((config as Record<string, unknown>).tui).toBeUndefined()
-  }),
+      const config = yield* Config.use.get()
+      expect(config.model).toBe("test/model")
+      expect((config as Record<string, unknown>).theme).toBeUndefined()
+      expect((config as Record<string, unknown>).tui).toBeUndefined()
+    }),
+  120_000,
+)
+
+it.effect(
+  "configBoundary stops upward config traversal",
+  () =>
+    Effect.gen(function* () {
+      const root = yield* tmpdirScoped()
+      const global = yield* tmpdirScoped()
+      const mid = path.join(root, "mid")
+      const directory = path.join(mid, "proj")
+      yield* Effect.all([
+        writeConfigEffect(root, {
+          $schema: "https://opencode.ai/config.json",
+          logLevel: "INFO",
+          agent: { top: { model: "top/model" } },
+        }),
+        writeConfigEffect(mid, {
+          $schema: "https://opencode.ai/config.json",
+          configBoundary: true,
+          snapshot: false,
+          shell: "/bin/zsh",
+        }),
+        writeConfigEffect(directory, {
+          $schema: "https://opencode.ai/config.json",
+          shell: "/bin/bash",
+        }),
+      ])
+      return yield* withGlobalConfigDir(
+        global,
+        withInstanceDir(
+          directory,
+          Effect.gen(function* () {
+            const config = yield* Config.use.get()
+            // Configs above the boundary file are dropped; the boundary file itself and deeper ones load.
+            expect((config as Record<string, unknown>).logLevel).toBeUndefined()
+            expect((config as Record<string, unknown>).configBoundary).toBeUndefined()
+            expect(config.snapshot).toBe(false)
+            expect(config.shell).toBe("/bin/bash")
+            expect(config.agent).not.toHaveProperty("top")
+          }),
+        ),
+      )
+    }),
   120_000,
 )
 
@@ -608,15 +654,15 @@ accountTokenIt.instance("resolves env templates in account config with account t
   }),
 )
 
-it.instance("validates config schema and throws on invalid fields", () =>
+it.instance("drops unknown top-level config keys instead of failing", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* writeConfigEffect(test.directory, {
       $schema: "https://opencode.ai/config.json",
       invalid_field: "should cause error",
     })
-    const exit = yield* Config.use.get().pipe(Effect.exit)
-    expect(Exit.isFailure(exit)).toBe(true)
+    const config = yield* Config.use.get()
+    expect((config as Record<string, unknown>).invalid_field).toBeUndefined()
   }),
 )
 
@@ -1317,7 +1363,7 @@ it.instance("permission config preserves user key order", () =>
   }),
 )
 
-test("config parser preserves permission order while rejecting unknown top-level keys", () => {
+test("config parser preserves permission order and drops unknown top-level keys", () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     {
@@ -1331,13 +1377,8 @@ test("config parser preserves permission order while rejecting unknown top-level
   )
 
   expect(Object.keys(config.permission!)).toEqual(["bash", "*", "edit"])
-  try {
-    ConfigParse.schema(ConfigV1.Info, { invalid_field: true }, "test")
-    throw new Error("expected config parse to fail")
-  } catch (err) {
-    const error = err as { issues?: Array<{ code?: string; keys?: string[]; path?: string[] }> }
-    expect(error.issues?.[0]).toMatchObject({ code: "unrecognized_keys", keys: ["invalid_field"], path: [] })
-  }
+  expect(ConfigParse.schema(ConfigV1.Info, { invalid_field: true }, "test")).toEqual({})
+  expect(ConfigParse.topLevelExtraKeys(ConfigV1.Info, { invalid_field: true })).toEqual(["invalid_field"])
 })
 
 // MCP config merging tests
@@ -1677,17 +1718,18 @@ describe("resolvePluginSpec", () => {
   test("resolves windows-style relative plugin directory specs", async () => {
     if (process.platform !== "win32") return
 
-    await using tmp = await tmpdir({
-      init: async (dir) => {
-        const plugin = path.join(dir, "plugin")
-        await fs.mkdir(plugin, { recursive: true })
-        await Filesystem.write(path.join(plugin, "index.ts"), "export default {}")
-      },
-    })
+    const dir = path.join(process.cwd(), "test-plugins", "win-plugin-" + Math.random().toString(36).slice(2))
+    const plugin = path.join(dir, "plugin")
+    await fs.mkdir(plugin, { recursive: true })
+    await Filesystem.write(path.join(plugin, "index.ts"), "export default {}")
 
-    const file = path.join(tmp.path, "openaxe.json")
-    const hit = await ConfigPlugin.resolvePluginSpec(".\\plugin", file)
-    expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(tmp.path, "plugin", "index.ts")).href)
+    try {
+      const file = path.join(dir, "openaxe.json")
+      const hit = await ConfigPlugin.resolvePluginSpec(".\\plugin", file)
+      expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(dir, "plugin", "index.ts")).href)
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true }).catch(() => {})
+    }
   })
 
   test("resolves relative file plugin paths to file urls", async () => {
@@ -1722,17 +1764,23 @@ describe("resolvePluginSpec", () => {
   })
 
   test("resolves plugin directories without package.json to index.ts", async () => {
-    await using tmp = await tmpdir({
-      init: async (dir) => {
-        const plugin = path.join(dir, "plugin")
-        await fs.mkdir(plugin, { recursive: true })
-        await Filesystem.write(path.join(plugin, "index.ts"), "export default {}")
-      },
-    })
+    const pluginName = "plugin-" + Math.random().toString(36).slice(2)
+    const testPluginDir = path.join(process.cwd(), "test-plugins", pluginName)
+    await fs.mkdir(testPluginDir, { recursive: true })
+    await Filesystem.write(path.join(testPluginDir, "index.ts"), "export default {}")
 
-    const file = path.join(tmp.path, "openaxe.json")
-    const hit = await ConfigPlugin.resolvePluginSpec("./plugin", file)
-    expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(tmp.path, "plugin", "index.ts")).href)
+    const configDir = path.join(process.cwd(), "test-plugins")
+    await fs.mkdir(configDir, { recursive: true })
+    const configFile = path.join(configDir, "openaxe.json")
+    await Filesystem.writeJson(configFile, { plugins: [] })
+
+    try {
+      const hit = await ConfigPlugin.resolvePluginSpec("./" + pluginName, configFile)
+      expect(ConfigPlugin.pluginSpecifier(hit)).toBe(pathToFileURL(path.join(testPluginDir, "index.ts")).href)
+    } finally {
+      await fs.rm(testPluginDir, { recursive: true, force: true }).catch(() => {})
+      await fs.rm(configFile, { force: true }).catch(() => {})
+    }
   })
 })
 
@@ -1938,7 +1986,7 @@ test("parseManagedPlist strips MDM metadata keys", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(
+      ConfigManaged.parseManagedPlist(
         JSON.stringify({
           PayloadDisplayName: "OpenCode Managed",
           PayloadIdentifier: "ai.opencode.managed.test",
@@ -1966,7 +2014,7 @@ test("parseManagedPlist parses server settings", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(
+      ConfigManaged.parseManagedPlist(
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           server: { hostname: "127.0.0.1", mdns: false },
@@ -1986,7 +2034,7 @@ test("parseManagedPlist parses permission rules", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(
+      ConfigManaged.parseManagedPlist(
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           permission: {
@@ -2016,7 +2064,7 @@ test("parseManagedPlist parses enabled_providers", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(
+      ConfigManaged.parseManagedPlist(
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           enabled_providers: ["anthropic", "google"],
@@ -2033,7 +2081,7 @@ test("parseManagedPlist handles empty config", async () => {
   const config = ConfigParse.schema(
     ConfigV1.Info,
     ConfigParse.jsonc(
-       ConfigManaged.parseManagedPlist(JSON.stringify({ $schema: "https://opencode.ai/config.json" })),
+      ConfigManaged.parseManagedPlist(JSON.stringify({ $schema: "https://opencode.ai/config.json" })),
       "test:mobileconfig",
     ),
     "test:mobileconfig",

@@ -32,6 +32,7 @@ export function parsePromptHistory(text: string) {
     .filter(Boolean)
     .map((line) => {
       try {
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- durable history lines written by this app
         return JSON.parse(line) as PromptInfo
       } catch {
         return undefined
@@ -70,7 +71,7 @@ export const { use: usePromptHistory, provider: PromptHistoryProvider } = create
         if (!store.history.length) return undefined
         const current = store.history.at(store.index)
         if (!current) return undefined
-        if (current.input !== input && input.length) return
+        if (current.input !== input && input.length) return undefined
         setStore(
           produce((draft) => {
             const next = store.index + direction

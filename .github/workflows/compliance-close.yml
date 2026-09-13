@@ -15,7 +15,7 @@ jobs:
   close-non-compliant:
     runs-on: ubuntu-latest
     steps:
-      - name: Close non-compliant issues and PRs after 2 hours
+      - name: Close non-compliant issues and PRs after 48 hours
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
@@ -33,7 +33,7 @@ jobs:
             }
 
             const now = Date.now();
-            const twoHours = 2 * 60 * 60 * 1000;
+            const complianceWindow = 48 * 60 * 60 * 1000;
 
             for (const item of items) {
               const isPR = !!item.pull_request;
@@ -49,14 +49,14 @@ jobs:
               if (!complianceComment) continue;
 
               const commentAge = now - new Date(complianceComment.created_at).getTime();
-              if (commentAge < twoHours) {
-                core.info(`${kind} #${item.number} still within 2-hour window (${Math.round(commentAge / 60000)}m elapsed)`);
+              if (commentAge < complianceWindow) {
+                core.info(`${kind} #${item.number} still within 48-hour window (${Math.round(commentAge / 60000)}m elapsed)`);
                 continue;
               }
 
               const closeMessage = isPR
-                ? 'This pull request has been automatically closed because it was not updated to meet our [contributing guidelines](../blob/dev/CONTRIBUTING.md) within the 2-hour window.\n\nFeel free to open a new pull request that follows our guidelines.'
-                : 'This issue has been automatically closed because it was not updated to meet our [contributing guidelines](../blob/dev/CONTRIBUTING.md) within the 2-hour window.\n\nFeel free to open a new issue that follows our issue templates.';
+                ? 'This pull request has been automatically closed because it was not updated to meet our [contributing guidelines](../blob/dev/CONTRIBUTING.md) within the 48-hour window.\n\nFeel free to open a new pull request that follows our guidelines.'
+                : 'This issue has been automatically closed because it was not updated to meet our [contributing guidelines](../blob/dev/CONTRIBUTING.md) within the 48-hour window.\n\nFeel free to open a new issue that follows our issue templates.';
 
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -91,5 +91,5 @@ jobs:
                 });
               }
 
-              core.info(`Closed non-compliant ${kind} #${item.number} after 2-hour window`);
+              core.info(`Closed non-compliant ${kind} #${item.number} after 48-hour window`);
             }

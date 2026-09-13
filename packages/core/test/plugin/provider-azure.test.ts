@@ -15,7 +15,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  
+
   const host = yield* PluginHost.make(plugin)
   yield* AzurePlugin.effect(host)
 })
@@ -143,7 +143,6 @@ describe("AzurePlugin", () => {
   it.effect("allows configured baseURL without resourceName", () =>
     withEnv({ AZURE_RESOURCE_NAME: undefined }, () =>
       Effect.gen(function* () {
-        
         const aisdk = yield* AISDK.Service
         yield* addPlugin()
         const result = yield* aisdk.runSDK({
@@ -181,7 +180,6 @@ describe("AzurePlugin", () => {
 
   it.effect("selects chat only for completion URLs", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()
@@ -199,7 +197,6 @@ describe("AzurePlugin", () => {
 
   it.effect("selects chat from per-call useCompletionUrls", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()
@@ -217,7 +214,6 @@ describe("AzurePlugin", () => {
 
   it.effect("ignores model useCompletionUrls when per-call option is unset", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()
@@ -236,7 +232,6 @@ describe("AzurePlugin", () => {
 
   it.effect("uses the legacy Azure selector order and provider guard", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()
@@ -263,7 +258,6 @@ describe("AzurePlugin", () => {
 
   it.effect("falls back through the legacy Azure selector order", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       const make = (method: string) => (id: string) => {

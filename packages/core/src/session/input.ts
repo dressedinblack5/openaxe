@@ -113,6 +113,7 @@ export const projectAdmitted = Effect.fn("SessionInput.projectAdmitted")(functio
     .get()
     .pipe(Effect.orDie)
   if (!stored) return yield* Effect.die(new LifecycleConflict({ id: input.id }))
+  return undefined
 })
 
 export const projectPrompted = Effect.fn("SessionInput.projectPrompted")(function* (
@@ -142,14 +143,14 @@ export const projectPrompted = Effect.fn("SessionInput.projectPrompted")(functio
   if (updated) {
     const stored = fromRow(updated)
     if (!matchesProjection(stored, input)) return yield* Effect.die(new LifecycleConflict({ id: input.id }))
-    return
+    return undefined
   }
 
   const stored = yield* find(db, input.id)
   if (stored) {
     if (!matchesProjection(stored, input) || stored.promotedSeq !== input.promotedSeq)
       return yield* Effect.die(new LifecycleConflict({ id: input.id }))
-    return
+    return undefined
   }
 
   yield* db
@@ -165,6 +166,7 @@ export const projectPrompted = Effect.fn("SessionInput.projectPrompted")(functio
     })
     .run()
     .pipe(Effect.orDie)
+  return undefined
 })
 
 export const hasPending = Effect.fn("SessionInput.hasPending")(function* (

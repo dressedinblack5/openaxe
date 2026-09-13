@@ -42,7 +42,7 @@ export const { use: useRoute, provider: RouteProvider } = createSimpleContext({
 })
 
 function initialRoute(value: unknown): Route | undefined {
-  if (!value || typeof value !== "object" || !("type" in value)) return
+  if (!value || typeof value !== "object" || !("type" in value)) return undefined
   if (value.type === "home") return { type: "home" }
   if (value.type === "session" && "sessionID" in value && typeof value.sessionID === "string") {
     return { type: "session", sessionID: value.sessionID }
@@ -50,11 +50,17 @@ function initialRoute(value: unknown): Route | undefined {
   if (value.type === "plugin" && "id" in value && typeof value.id === "string") {
     return { type: "plugin", id: value.id }
   }
+  return undefined
 }
 
 export type RouteContext = ReturnType<typeof useRoute>
 
-export function useRouteData<T extends Route["type"]>(type: T) {
+function isRouteType<T extends Route["type"]>(route: Route, type: T): route is Extract<Route, { type: T }> {
+  return route.type === type
+}
+
+export function useRouteData<T extends Route["type"]>(type: T): Extract<Route, { type: T }> {
   const route = useRoute()
-  return route.data as Extract<Route, { type: typeof type }>
+  if (!isRouteType(route.data, type)) throw new Error(`Route type mismatch: expected ${type}, got ${route.data.type}`)
+  return route.data
 }

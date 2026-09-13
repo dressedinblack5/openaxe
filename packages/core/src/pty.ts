@@ -15,7 +15,7 @@ const BUFFER_LIMIT = 1024 * 1024 * 2
 // Exited sessions stay observable (status, exit code, retained output) until removed explicitly.
 // Cap retention so abandoned terminals do not accumulate unbounded buffers.
 const EXITED_LIMIT = 25
-const pty = lazy( async () => import("#pty"))
+const pty = lazy(async () => import("#pty"))
 
 type Subscriber = {
   readonly onData: (chunk: string) => void
@@ -123,7 +123,9 @@ export const layer = Layer.effect(
         }
         try {
           subscriber.onEnd(event)
-        } catch { /* ponytail: one subscriber's callback must not crash the whole pty session */ }
+        } catch {
+          /* ponytail: one subscriber's callback must not crash the whole pty session */
+        }
       }
       session.subscribers.clear()
     }
@@ -134,7 +136,9 @@ export const layer = Layer.effect(
       if (session.info.status === "running") {
         try {
           session.process.kill()
-        } catch { /* ponytail: process already dead on teardown is expected */ }
+        } catch {
+          /* ponytail: process already dead on teardown is expected */
+        }
       }
       notifyEnd(session, {})
     }
@@ -194,7 +198,7 @@ export const layer = Layer.effect(
         env.LANG = "C.UTF-8"
       }
       yield* Effect.logInfo("creating session", { id, cmd: command, args, cwd })
-      const { spawn } = yield* Effect.promise( async () => pty())
+      const { spawn } = yield* Effect.promise(async () => pty())
       const proc = yield* Effect.sync(() => spawn(command, args, { name: "xterm-256color", cwd, env }))
       const info: Info = {
         id,

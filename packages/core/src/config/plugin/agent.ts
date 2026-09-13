@@ -115,7 +115,7 @@ function discover(fs: FSUtil.Interface, directory: string) {
 
 function decode(file: { directory: string; filepath: string; primary: boolean }, content: string) {
   const markdown = ConfigMarkdown.parseOption(content)
-  if (!markdown) return
+  if (!markdown) return undefined
   const name = path
     .relative(file.directory, file.filepath)
     .replaceAll("\\", "/")
@@ -131,12 +131,12 @@ function decode(file: { directory: string; filepath: string; primary: boolean },
         )
       : decodeAgent({ ...markdown.data, system: body }, { errors: "all", propertyOrder: "original" }),
   )
-  if (!agent) return
+  if (!agent) return undefined
   const info = Option.getOrUndefined(
     decodeConfig({
-      agents: { [name]: file.primary ? { ...agent, mode: "primary" } : agent },
+      agents: { [name]: file.primary ? Object.assign({}, agent, { mode: "primary" }) : agent },
     }),
   )
-  if (!info) return
+  if (!info) return undefined
   return new Config.Document({ type: "document", path: file.filepath, info })
 }

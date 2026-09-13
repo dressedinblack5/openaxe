@@ -12,8 +12,14 @@ import { HttpRouter, HttpServer } from "effect/unstable/http"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, testInstanceStoreLayer, tmpdirScoped } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
-import { instanceContextLayer, InstanceContextMiddleware } from "../../src/server/routes/instance/httpapi/middleware/instance-context"
-import { workspaceRoutingLayer, WorkspaceRoutingMiddleware } from "../../src/server/routes/instance/httpapi/middleware/workspace-routing"
+import {
+  instanceContextLayer,
+  InstanceContextMiddleware,
+} from "../../src/server/routes/instance/httpapi/middleware/instance-context"
+import {
+  workspaceRoutingLayer,
+  WorkspaceRoutingMiddleware,
+} from "../../src/server/routes/instance/httpapi/middleware/workspace-routing"
 import { workspaceLayerWithRuntimeFlags } from "../fixture/workspace"
 import { EventV2Bridge } from "@/event-v2-bridge"
 
@@ -41,16 +47,22 @@ const syncTestLayer = Layer.mergeAll(
 
 const SyncTestApi = HttpApi.make("sync-test").add(
   HttpApiGroup.make("sync-test")
-    .add(HttpApiEndpoint.post("start", SyncPaths.start, {
-      success: Schema.Boolean,
-    }))
-    .add(HttpApiEndpoint.post("history", SyncPaths.history, {
-      payload: Schema.Struct({ aggregate: Schema.Number }),
-      success: Schema.Array(Schema.Unknown),
-    }))
-    .add(HttpApiEndpoint.post("replay", SyncPaths.replay, {
-      success: Schema.Struct({ sessionID: Schema.String }),
-    }))
+    .add(
+      HttpApiEndpoint.post("start", SyncPaths.start, {
+        success: Schema.Boolean,
+      }),
+    )
+    .add(
+      HttpApiEndpoint.post("history", SyncPaths.history, {
+        payload: Schema.Struct({ aggregate: Schema.Number }),
+        success: Schema.Array(Schema.Unknown),
+      }),
+    )
+    .add(
+      HttpApiEndpoint.post("replay", SyncPaths.replay, {
+        success: Schema.Struct({ sessionID: Schema.String }),
+      }),
+    )
     .middleware(InstanceContextMiddleware)
     .middleware(WorkspaceRoutingMiddleware),
 )
@@ -91,13 +103,23 @@ afterEach(async () => {
 })
 
 // Helper function to make HTTP requests
-function makeTestUrl(server: { readonly address: { readonly _tag: string; readonly hostname?: string; readonly port?: number; readonly path?: string }; readonly serve: (...args: any[]) => any }, path: string): string {
+function makeTestUrl(
+  server: {
+    readonly address: {
+      readonly _tag: string
+      readonly hostname?: string
+      readonly port?: number
+      readonly path?: string
+    }
+    readonly serve: (...args: any[]) => any
+  },
+  path: string,
+): string {
   const address = server.address
   if (address._tag === "UnixAddress") throw new Error("UnixAddress not supported")
   const host = address.hostname === "0.0.0.0" ? "127.0.0.1" : address.hostname
-  const reqUrl = path.startsWith("http://") || path.startsWith("https://")
-    ? new URL(path)
-    : new URL(path, "http://localhost")
+  const reqUrl =
+    path.startsWith("http://") || path.startsWith("https://") ? new URL(path) : new URL(path, "http://localhost")
   return `http://${host}:${address.port}${reqUrl.pathname}${reqUrl.search}`
 }
 

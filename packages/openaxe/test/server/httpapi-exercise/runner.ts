@@ -40,7 +40,9 @@ export function runScenario(options: Options) {
       }),
       Effect.as({ status: "pass", scenario } as Result),
       Effect.catchCause((cause) =>
-        Effect.sync(() => ({ status: "fail" as const, scenario, message: Cause.pretty(cause), logs: lines.join("\n") }) as Result),
+        Effect.sync(
+          () => ({ status: "fail" as const, scenario, message: Cause.pretty(cause), logs: lines.join("\n") }) as Result,
+        ),
       ),
       Effect.provide(logLayer),
       Effect.scoped,
@@ -109,7 +111,7 @@ function withContext<A, E>(
         yield* trace(options, scenario, `${label} runtime start`)
         const modules = yield* Effect.promise(() => runtime())
         yield* trace(options, scenario, `${label} runtime done`)
-// Build the full service context once into an unsafe scope so the
+        // Build the full service context once into an unsafe scope so the
         // service graph (InstanceStore, Session, Database, etc.) stays alive
         // across all scenarios. The same memoMap is shared with backend.ts's
         // toWebHandler, so both the web handler and the effect context share
@@ -121,9 +123,7 @@ function withContext<A, E>(
             InstanceBootstrap.Service,
             InstanceBootstrap.Service.of({ run: Effect.void }),
           )
-          const testInstanceLayer = modules.InstanceStore.defaultLayer.pipe(
-            Layer.provide(noopBootstrap),
-          )
+          const testInstanceLayer = modules.InstanceStore.defaultLayer.pipe(Layer.provide(noopBootstrap))
           cachedApp = yield* Layer.buildWithMemoMap(
             Layer.mergeAll(modules.AppLayer, testInstanceLayer),
             modules.memoMap,

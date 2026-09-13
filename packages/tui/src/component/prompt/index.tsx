@@ -117,7 +117,7 @@ function hasEditorRangeSelection(selection: EditorSelection["ranges"][number]) {
 }
 
 function getEditorRangeLabel(selection: EditorSelection["ranges"][number]) {
-  if (!hasEditorRangeSelection(selection)) return
+  if (!hasEditorRangeSelection(selection)) return undefined
   if (selection.selection.start.line === selection.selection.end.line) return `#${selection.selection.start.line}`
   return `#${selection.selection.start.line}-${selection.selection.end.line}`
 }
@@ -174,22 +174,22 @@ export function Prompt(props: PromptProps) {
   const [dismissedEditorSelectionKey, setDismissedEditorSelectionKey] = createSignal<string>()
   const editorContext = createMemo(() => {
     const selection = fileContextEnabled() ? editor.selection() : undefined
-    if (!selection) return
+    if (!selection) return undefined
     return editorSelectionKey(selection) === dismissedEditorSelectionKey() ? undefined : selection
   })
   const editorPath = createMemo(() => editorContext()?.filePath)
   const editorSelectionLabel = createMemo(() => {
     const ranges = editorContext()?.ranges
-    if (!ranges) return
+    if (!ranges) return undefined
     const first = ranges.find(hasEditorRangeSelection) ?? ranges[0]
-    if (!first) return
+    if (!first) return undefined
     return [getEditorRangeLabel(first), ranges.length > 1 ? `+${ranges.length - 1}` : undefined]
       .filter(Boolean)
       .join(" ")
   })
   const editorFileLabel = createMemo(() => {
     const value = editorPath()
-    if (!value) return
+    if (!value) return undefined
     const filename = path.basename(value)
     const file = /^index\.[^./]+$/.test(filename)
       ? [path.basename(path.dirname(value)), filename].filter(Boolean).join("/")
@@ -198,13 +198,13 @@ export function Prompt(props: PromptProps) {
   })
   const editorFileLabelDisplay = createMemo(() => {
     const file = editorFileLabel()
-    if (!file) return
+    if (!file) return undefined
     return Locale.truncateMiddle(file, Math.max(12, Math.min(48, Math.floor(dimensions().width / 3))))
   })
   const editorContextLabelState = createMemo(() => editor.labelState())
   const [auto, setAuto] = createSignal<AutocompleteRef>()
   const workspace = usePromptWorkspace(props.sessionID)
-  const move = usePromptMove({ projectID: project.project, sessionID: () => props.sessionID })
+  const move = usePromptMove({ projectID: () => project.project(), sessionID: () => props.sessionID })
   const [cursorVersion, setCursorVersion] = createSignal(0)
   const currentProviderLabel = createMemo(() => local.model.parsed().provider)
   const hasRightContent = createMemo(() => Boolean(props.right))
@@ -224,9 +224,9 @@ export function Prompt(props: PromptProps) {
     setDismissedEditorSelectionKey(editorSelectionKey(editorContext()))
     editor.clearSelection()
   }
-  const fileStyleId = syntax().getStyleId("extmark.file")!
-  const agentStyleId = syntax().getStyleId("extmark.agent")!
-  const pasteStyleId = syntax().getStyleId("extmark.paste")!
+  const fileStyleId = syntax().getStyleId("extmark.file") ?? undefined
+  const agentStyleId = syntax().getStyleId("extmark.agent") ?? undefined
+  const pasteStyleId = syntax().getStyleId("extmark.paste") ?? undefined
   let promptPartTypeId = 0
   const event = useEvent()
 
@@ -257,15 +257,15 @@ export function Prompt(props: PromptProps) {
   })
 
   const usage = createMemo(() => {
-    if (!props.sessionID) return
+    if (!props.sessionID) return undefined
     const session = sync.session.get(props.sessionID)
     const msg = sync.data.message[props.sessionID] ?? []
     const last = msg.findLast((item): item is AssistantMessage => item.role === "assistant" && item.tokens.output > 0)
-    if (!last) return
+    if (!last) return undefined
 
     const tokens =
       last.tokens.input + last.tokens.output + last.tokens.reasoning + last.tokens.cache.read + last.tokens.cache.write
-    if (tokens <= 0) return
+    if (tokens <= 0) return undefined
 
     const model = sync.data.provider.find((item) => item.id === last.providerID)?.models[last.modelID]
     const pct = model?.limit.context ? `${Math.round((tokens / model.limit.context) * 100)}%` : undefined
@@ -466,7 +466,8 @@ export function Prompt(props: PromptProps) {
               // if the virtual text is deleted, remove the part
               if (newStart === -1) return null
 
-              const newEnd = newStart + virtualText.length
+              const newOffset = promptOffsetWidth(normalized.slice(0, newStart))
+              const newEnd = newOffset + promptOffsetWidth(virtualText)
 
               if (part.type === "file" && part.source?.text) {
                 return {
@@ -475,7 +476,7 @@ export function Prompt(props: PromptProps) {
                     ...part.source,
                     text: {
                       ...part.source.text,
-                      start: newStart,
+                      start: newOffset,
                       end: newEnd,
                     },
                   },
@@ -487,7 +488,7 @@ export function Prompt(props: PromptProps) {
                   ...part,
                   source: {
                     ...part.source,
-                    start: newStart,
+                    start: newOffset,
                     end: newEnd,
                   },
                 }
@@ -609,14 +610,39 @@ export function Prompt(props: PromptProps) {
   onMount(() => {
     const saved = stashed
     stashed = undefined
-    if (store.prompt.input) return
-    if (saved && saved.prompt.input) {
+    if (!store.prompt.input && saved && saved.prompt.input) {
       input.setText(saved.prompt.input)
       setStore("prompt", saved.prompt)
       restoreExtmarksFromParts(saved.prompt.parts)
       input.cursorOffset = saved.cursor
     }
+    setTimeout(() => {
+      if (dialog.stack.length !== 0) return
+      if (renderer.currentFocusedEditor !== null) return
+      if (props.disabled) return
+      if (!input || input.isDestroyed) return
+      input.focus()
+    }, 1)
   })
+
+  createEffect(
+    on(
+      () => [props.visible, props.disabled, dialog.stack.length] as const,
+      ([visible, disabled, len]) => {
+        if (visible === false) return
+        if (disabled) return
+        if (len !== 0) return
+        setTimeout(() => {
+          if (dialog.stack.length !== 0) return
+          if (props.visible === false) return
+          if (props.disabled) return
+          if (renderer.currentFocusedEditor !== null) return
+          if (!input || input.isDestroyed) return
+          input.focus()
+        }, 1)
+      },
+    ),
+  )
 
   onCleanup(() => {
     if (store.prompt.input) {
@@ -624,18 +650,6 @@ export function Prompt(props: PromptProps) {
     }
     setInputTarget(undefined)
     props.ref?.(undefined)
-  })
-
-  createEffect(() => {
-    if (!input || input.isDestroyed) return
-    if (props.visible === false || dialog.stack.length > 0) {
-      if (input.focused) input.blur()
-      return
-    }
-
-    // Slot/plugin updates can remount the background prompt while a dialog is open.
-    // Keep focus with the dialog and let the prompt reclaim it after the dialog closes.
-    if (!input.focused) input.focus()
   })
 
   createEffect(() => {
@@ -878,6 +892,7 @@ export function Prompt(props: PromptProps) {
             setStore("mode", item.mode ?? "normal")
             restoreExtmarksFromParts(item.parts)
             input.cursorOffset = 0
+            return false
           },
         },
       ],
@@ -914,6 +929,7 @@ export function Prompt(props: PromptProps) {
             setStore("mode", item.mode ?? "normal")
             restoreExtmarksFromParts(item.parts)
             input.cursorOffset = input.plainText.length
+            return false
           },
         },
       ],
@@ -956,12 +972,12 @@ export function Prompt(props: PromptProps) {
     if (!agent) return false
     const trimmed = store.prompt.input.trim()
     if (trimmed === "exit" || trimmed === "quit" || trimmed === ":q") {
-       exit()
+      exit()
       return true
     }
     const selectedModel = local.model.current()
     if (!selectedModel) {
-       promptModelWarning()
+      promptModelWarning()
       return false
     }
 
@@ -1052,15 +1068,23 @@ export function Prompt(props: PromptProps) {
 
     if (store.mode === "shell") {
       move.startSubmit()
-      void sdk.client.session.shell({
-        sessionID,
-        agent: agent.name,
-        model: {
-          providerID: selectedModel.providerID,
-          modelID: selectedModel.modelID,
-        },
-        command: inputText,
-      })
+      void sdk.client.session
+        .shell({
+          sessionID,
+          agent: agent.name,
+          model: {
+            providerID: selectedModel.providerID,
+            modelID: selectedModel.modelID,
+          },
+          command: inputText,
+        })
+        .catch((error) => {
+          toast.show({
+            title: "Failed to run shell command",
+            message: errorMessage(error),
+            variant: "error",
+          })
+        })
       setStore("mode", "normal")
     } else if (
       inputText.startsWith("/") &&
@@ -1074,19 +1098,27 @@ export function Prompt(props: PromptProps) {
       const restOfInput = firstLineEnd === -1 ? "" : inputText.slice(firstLineEnd + 1)
       const args = firstLineArgs.join(" ") + (restOfInput ? "\n" + restOfInput : "")
 
-      void sdk.client.session.command({
-        sessionID,
-        command: command.slice(1),
-        arguments: args,
-        agent: agent.name,
-        model: `${selectedModel.providerID}/${selectedModel.modelID}`,
-        variant,
-        parts: nonTextParts.filter((x) => x.type === "file"),
-      })
+      void sdk.client.session
+        .command({
+          sessionID,
+          command: command.slice(1),
+          arguments: args,
+          agent: agent.name,
+          model: `${selectedModel.providerID}/${selectedModel.modelID}`,
+          variant,
+          parts: nonTextParts.filter((x) => x.type === "file"),
+        })
+        .catch((error) => {
+          toast.show({
+            title: "Failed to run command",
+            message: errorMessage(error),
+            variant: "error",
+          })
+        })
     } else {
       move.startSubmit()
       sdk.client.session
-        .prompt(
+        .promptAsync(
           {
             sessionID,
             ...selectedModel,
@@ -1225,7 +1257,7 @@ export function Prompt(props: PromptProps) {
       return x.mime.startsWith("image/")
     }).length
     const virtualText = pdf ? `[PDF ${count + 1}]` : `[Image ${count + 1}]`
-    const extmarkEnd = extmarkStart + virtualText.length
+    const extmarkEnd = extmarkStart + promptOffsetWidth(virtualText)
     const textToInsert = virtualText + " "
 
     input.insertText(textToInsert)
@@ -1310,7 +1342,7 @@ export function Prompt(props: PromptProps) {
       return `Run a command... "${example}"`
     }
     if (!list().length) return undefined
-    return `Ask anything... "${list()[store.placeholder % list().length]}"`
+    return `Ask the axe... "${list()[store.placeholder % list().length]}"`
   })
 
   const spinnerDef = createMemo(() => {
@@ -1337,7 +1369,6 @@ export function Prompt(props: PromptProps) {
     }
   })
   const maxHeight = createMemo(() => tuiConfig.prompt?.max_height ?? Math.max(6, Math.floor(dimensions().height / 3)))
-  
 
   return (
     <>
@@ -1385,7 +1416,7 @@ export function Prompt(props: PromptProps) {
               onSubmit={() => {
                 // IME: double-defer so the last composed character (e.g. Korean
                 // hangul) is flushed to plainText before we read it for submission.
-                setTimeout(() => setTimeout( async () => submit(), 0), 0)
+                setTimeout(() => setTimeout(async () => submit(), 0), 0)
               }}
               onPaste={async (event: PasteEvent) => {
                 if (props.disabled) {
@@ -1518,12 +1549,12 @@ export function Prompt(props: PromptProps) {
                     {(() => {
                       const retry = createMemo(() => {
                         const s = status()
-                        if (s.type !== "retry") return
+                        if (s.type !== "retry") return undefined
                         return s
                       })
                       const message = createMemo(() => {
                         const r = retry()
-                        if (!r) return
+                        if (!r) return undefined
                         if (r.message.includes("exceeded your current quota") && r.message.includes("gemini"))
                           return "gemini is way too hot right now"
                         if (r.message.length > 80) return r.message.slice(0, 80) + "..."

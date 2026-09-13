@@ -34,9 +34,7 @@ type ZedEditorRow = Schema.Schema.Type<typeof ZedEditorRowSchema>
 type ZedActiveEditorRow = ZedEditorRow & { item_kind: "Editor"; editor_id: number }
 
 export type ZedSelectionResult =
-  | { type: "selection"; selection: EditorSelection }
-  | { type: "empty" }
-  | { type: "unavailable" }
+  { type: "selection"; selection: EditorSelection } | { type: "empty" } | { type: "unavailable" }
 
 export async function resolveZedSelection(dbPath: string, cwd = process.cwd()): Promise<ZedSelectionResult> {
   const active = queryZedActiveEditor(dbPath, cwd)
@@ -229,7 +227,7 @@ function utf8ByteOffsetToStringIndex(text: string, byteOffset: number) {
   if (byteOffset <= 0) return 0
 
   let bytes = 0
-  for (let index = 0; index < text.length; ) {
+  for (let index = 0; index < text.length;) {
     const codePoint = text.codePointAt(index)
     if (codePoint === undefined) return text.length
 
@@ -281,6 +279,6 @@ function parseJson(value: string) {
   try {
     return JSON.parse(value) as unknown
   } catch {
-    return
+    return undefined
   }
 }

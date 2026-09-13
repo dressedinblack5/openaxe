@@ -11,13 +11,15 @@ import type { LanguageModelV3 } from "@ai-sdk/provider"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- mock captures AI-SDK options, which are dynamic provider blobs.
 const vertexOptions: Record<string, any>[] = []
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- mock captures AI-SDK options, which are dynamic provider blobs.
 const googleAuthOptions: Record<string, any>[] = []
 const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  
+
   const host = yield* PluginHost.make(plugin)
   yield* GoogleVertexPlugin.effect(host)
 })
@@ -62,6 +64,7 @@ function fakeSelectorSdk(calls: string[]) {
 }
 
 void mock.module("@ai-sdk/google-vertex", () => ({
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- mock captures AI-SDK options, which are dynamic provider blobs.
   createVertex: (options: Record<string, any>) => {
     vertexOptions.push(options)
     return {
@@ -72,6 +75,7 @@ void mock.module("@ai-sdk/google-vertex", () => ({
 
 void mock.module("google-auth-library", () => ({
   GoogleAuth: class {
+    // oxlint-disable-next-line typescript-eslint/no-explicit-any -- mock captures AI-SDK options, which are dynamic provider blobs.
     constructor(options: Record<string, any>) {
       googleAuthOptions.push(options)
     }
@@ -155,7 +159,7 @@ describe("GoogleVertexPlugin", () => {
       () =>
         Effect.gen(function* () {
           vertexOptions.length = 0
-          
+
           const aisdk = yield* AISDK.Service
           const catalog = yield* Catalog.Service
           yield* catalog.transform((catalog) =>
@@ -291,7 +295,7 @@ describe("GoogleVertexPlugin", () => {
       () =>
         Effect.gen(function* () {
           vertexOptions.length = 0
-          
+
           const aisdk = yield* AISDK.Service
           yield* addPlugin()
           yield* aisdk.runSDK({
@@ -318,7 +322,7 @@ describe("GoogleVertexPlugin", () => {
     Effect.gen(function* () {
       googleAuthOptions.length = 0
       const fetchCalls: { input: Parameters<typeof fetch>[0]; init?: RequestInit }[] = []
-      
+
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       yield* aisdk.hook.sdk((evt) =>
@@ -369,7 +373,6 @@ describe("GoogleVertexPlugin", () => {
 
   it.effect("trims model IDs before selecting language models", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()

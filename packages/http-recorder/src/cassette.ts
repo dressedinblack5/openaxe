@@ -44,8 +44,7 @@ const cassettePath = (directory: string, name: string) => {
   const root = resolve(directory)
   const target = resolve(root, `${name}.json`)
   const rel = relative(root, target)
-  if (!rel || rel.startsWith("..") || isAbsolute(rel))
-    throw new Error(`Invalid cassette name "${name}"`)
+  if (!rel || rel.startsWith("..") || isAbsolute(rel)) throw new Error(`Invalid cassette name "${name}"`)
   return target
 }
 

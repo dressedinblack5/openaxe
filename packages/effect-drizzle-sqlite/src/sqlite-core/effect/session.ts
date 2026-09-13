@@ -1,5 +1,5 @@
 /* oxlint-disable */
-import { fail } from "effect/Cause";
+import { fail } from "effect/Cause"
 import { Effect } from "effect"
 import type { SqlError } from "effect/unstable/sql/SqlError"
 import type { EffectCacheShape } from "drizzle-orm/cache/core/cache-effect"
@@ -37,8 +37,7 @@ export class SQLiteEffectPreparedQuery<
   T extends PreparedQueryConfig,
   TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase,
   TIsRqbV2 extends boolean = false,
-> implements PreparedQuery
-{
+> implements PreparedQuery {
   static readonly [entityKind]: string = "SQLiteEffectPreparedQuery"
 
   /** @internal */

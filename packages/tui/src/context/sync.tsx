@@ -31,6 +31,7 @@ import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
 import path from "node:path"
 import { useKV } from "./kv"
+import { tuiMark } from "../startup-timing"
 
 const emptyConsoleState: ConsoleState = {
   consoleManagedProviders: [],
@@ -159,7 +160,7 @@ export const {
       }
     }
 
-     async function listSessions() {
+    async function listSessions() {
       return sdk.client.session
         .list({ start: Date.now() - 30 * 24 * 60 * 60 * 1000, ...sessionListQuery() })
         .then((x) => (x.data ?? []).toSorted((a, b) => a.id.localeCompare(b.id)))
@@ -389,9 +390,10 @@ export const {
             event.properties.messageID,
             produce((draft) => {
               const part = draft[result.index]
-              const field = event.properties.field as keyof typeof part
-              const existing = part[field] as string | undefined
-              ;(part[field] as unknown as string) = (existing ?? "") + event.properties.delta
+              const record = part as Record<string, unknown>
+              const field = event.properties.field
+              const existing = record[field]
+              record[field] = (typeof existing === "string" ? existing : "") + event.properties.delta
             }),
           )
           break
@@ -432,24 +434,40 @@ export const {
     const args = useArgs()
 
     async function bootstrap(input: { fatal?: boolean } = {}) {
+      tuiMark("sync-bootstrap-start")
       const fatal = input.fatal ?? true
       const workspace = project.workspace.current()
       const projectPromise = project.sync()
-      const sessionListPromise = projectPromise.then( async () => listSessions())
+      const sessionListPromise = projectPromise.then(async () => listSessions())
 
       // blocking - include session.list when continuing a session
-      const providersPromise = sdk.client.config.providers({ workspace }, { throwOnError: true })
-      const providerListPromise = sdk.client.provider.list({ workspace }, { throwOnError: true })
+      const providersPromise = sdk.client.config.providers({ workspace }, { throwOnError: true }).then((x) => {
+        tuiMark("sync-blocking:providers")
+        return x
+      })
+      const providerListPromise = sdk.client.provider.list({ workspace }, { throwOnError: true }).then((x) => {
+        tuiMark("sync-blocking:provider-list")
+        return x
+      })
       const capabilitiesPromise = sdk.client.experimental.capabilities
         .get({ workspace }, { throwOnError: true })
-        .then((x) => x.data)
+        .then((x) => {
+          tuiMark("sync-blocking:capabilities")
+          return x.data
+        })
         .catch(() => undefined)
       const consoleStatePromise = sdk.client.experimental.console
         .get({ workspace }, { throwOnError: true })
         .then((x) => x.data)
         .catch(() => emptyConsoleState)
-      const agentsPromise = sdk.client.app.agents({ workspace }, { throwOnError: true })
-      const configPromise = sdk.client.config.get({ workspace }, { throwOnError: true })
+      const agentsPromise = sdk.client.app.agents({ workspace }, { throwOnError: true }).then((x) => {
+        tuiMark("sync-blocking:agents")
+        return x
+      })
+      const configPromise = sdk.client.config.get({ workspace }, { throwOnError: true }).then((x) => {
+        tuiMark("sync-blocking:config")
+        return x
+      })
       await Promise.all([
         providersPromise,
         providerListPromise,
@@ -460,6 +478,7 @@ export const {
         ...(args.continue ? [sessionListPromise] : []),
       ])
         .then(async () => {
+          tuiMark("sync-blocking-done")
           const providersResponse = providersPromise.then((x) => x.data)
           const providerListResponse = providerListPromise.then((x) => x.data)
           const capabilitiesResponse = capabilitiesPromise
@@ -498,14 +517,33 @@ export const {
           })
         })
         .then(() => {
-          if (store.status !== "complete") setStore("status", "partial")
+          // The blocking batch carries everything the UI gates on (providers,
+          // config, agents, capabilities). The non-blocking batch below only
+          // populates stores progressively — don't hold "complete" for it.
+          if (store.status !== "complete") setStore("status", "complete")
           // non-blocking
           void Promise.all([
             ...(args.continue ? [] : [sessionListPromise.then((sessions) => setStore("session", reconcile(sessions)))]),
             consoleStatePromise.then((consoleState) => setStore("console_state", reconcile(consoleState))),
             sdk.client.command.list({ workspace }).then((x) => setStore("command", reconcile(x.data ?? []))),
             sdk.client.lsp.status({ workspace }).then((x) => setStore("lsp", reconcile(x.data ?? []))),
-            sdk.client.mcp.status({ workspace }).then((x) => setStore("mcp", reconcile(x.data ?? {}))),
+            sdk.client.mcp.status({ workspace }).then(async (x) => {
+              let data = x.data ?? {}
+              setStore("mcp", reconcile(data))
+              // MCP connects lazily; the first snapshot can race an in-flight
+              // connectAll and read back stale `pending`. Re-poll until settled.
+              for (let i = 0; i < 10; i++) {
+                const names = Object.keys(data)
+                if (names.every((n) => data[n]?.status !== "pending")) break
+                await new Promise((r) => setTimeout(r, 2000))
+                try {
+                  data = (await sdk.client.mcp.status({ workspace })).data ?? {}
+                  setStore("mcp", reconcile(data))
+                } catch {
+                  break
+                }
+              }
+            }),
             sdk.client.experimental.resource
               .list({ workspace })
               .then((x) => setStore("mcp_resource", reconcile(x.data ?? {}))),
@@ -517,10 +555,11 @@ export const {
             sdk.client.vcs.get({ workspace }).then((x) => setStore("vcs", reconcile(x.data))),
             project.workspace.sync(),
           ]).then(() => {
-            setStore("status", "complete")
+            tuiMark("sync-complete")
           })
         })
         .catch(async (e) => {
+          tuiMark(`sync-bootstrap-failed: ${e instanceof Error ? e.message : String(e)}`)
           console.error("tui bootstrap failed", {
             error: e instanceof Error ? e.message : String(e),
             name: e instanceof Error ? e.name : undefined,
@@ -590,8 +629,10 @@ export const {
             setStore(
               produce((draft) => {
                 const match = search(draft.session, sessionID, (s) => s.id)
-                if (match.found) draft.session[match.index] = session.data!
-                if (!match.found) draft.session.splice(match.index, 0, session.data)
+                const sessionData = session.data
+                if (!sessionData) throw new Error("Session not found")
+                if (match.found) draft.session[match.index] = sessionData
+                if (!match.found) draft.session.splice(match.index, 0, sessionData)
                 draft.todo[sessionID] = todo.data ?? []
                 const currentMessages = draft.message[sessionID] ?? []
                 const infos = (messages.data ?? []).flatMap((message) => {

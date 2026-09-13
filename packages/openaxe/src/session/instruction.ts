@@ -3,15 +3,16 @@ import { httpClient } from "@opencode-ai/core/effect/layer-node-platform"
 import path from "path"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Effect, Layer, Context } from "effect"
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http"
+import { FetchHttpClient, HttpClient } from "effect/unstable/http"
 import { Config } from "@/config/config"
 import { InstanceState } from "@/effect/instance-state"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { FSUtil } from "@opencode-ai/core/fs-util"
-import { withTransientReadRetry } from "@/util/effect-http-client"
 import { Global } from "@opencode-ai/core/global"
+import { safeFetch } from "@/util/safe-fetch"
 import type { MessageID } from "./schema"
+import { FileSystemError } from "@opencode-ai/core/fs-util"
 
 function extract(messages: SessionV1.WithParts[]) {
   const paths = new Set<string>()
@@ -55,7 +56,6 @@ export const layer: Layer.Layer<
     const fs = yield* FSUtil.Service
     const global = yield* Global.Service
     const flags = yield* RuntimeFlags.Service
-    const http = HttpClient.filterStatusOk(withTransientReadRetry(yield* HttpClient.HttpClient))
     const globalFiles = [
       path.join(global.config, "AGENTS.md"),
       ...(!flags.disableClaudeCodePrompt ? [path.join(global.home, ".claude", "CLAUDE.md")] : []),
@@ -89,16 +89,6 @@ export const layer: Layer.Layer<
 
     const read = Effect.fnUntraced(function* (filepath: string) {
       return yield* fs.readFileString(filepath).pipe(Effect.catch(() => Effect.succeed("")))
-    })
-
-    const fetch = Effect.fnUntraced(function* (url: string) {
-      const res = yield* http.execute(HttpClientRequest.get(url)).pipe(
-        Effect.timeout(5000),
-        Effect.catch(() => Effect.succeed(null)),
-      )
-      if (!res) return ""
-      const body = yield* res.arrayBuffer.pipe(Effect.catch(() => Effect.succeed(new ArrayBuffer(0))))
-      return new TextDecoder().decode(body)
     })
 
     const clear = Effect.fn("Instruction.clear")(function* (messageID: MessageID) {
@@ -159,7 +149,16 @@ export const layer: Layer.Layer<
       )
 
       const files = yield* Effect.forEach(Array.from(paths), read, { concurrency: 8 })
-      const remote = yield* Effect.forEach(urls, fetch, { concurrency: 4 })
+      const safeFetchUrls = Effect.fnUntraced(function* (url: string) {
+        return yield* Effect.tryPromise({
+          try: async () => {
+            const response = await safeFetch(url, { redirect: "error" })
+            return response.text()
+          },
+          catch: (cause) => new FileSystemError({ method: "fetch", cause: cause instanceof Error ? cause : new Error(String(cause)) }),
+        })
+      })
+      const remote = yield* Effect.forEach(urls, safeFetchUrls, { concurrency: 4 })
 
       return [
         ...Array.from(paths).flatMap((item, i) => (files[i] ? [`Instructions from: ${item}\n${files[i]}`] : [])),

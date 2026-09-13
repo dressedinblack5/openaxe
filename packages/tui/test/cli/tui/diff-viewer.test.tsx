@@ -5,11 +5,14 @@ import { DiffRenderable, type Renderable, ScrollBoxRenderable } from "@opentui/c
 import { testRender, useRenderer } from "@opentui/solid"
 import type { TuiPluginApi, TuiPluginMeta, TuiRouteCurrent, TuiRouteDefinition } from "@opencode-ai/plugin/tui"
 import type { Session } from "@opencode-ai/sdk/v2"
+import { mkdir } from "node:fs/promises"
+import path from "node:path"
 import { KVProvider } from "../../../src/context/kv"
 import { ThemeProvider } from "../../../src/context/theme"
 import { TuiConfigProvider } from "../../../src/config"
 import { TuiKeybind } from "../../../src/config/keybind"
 import { OpencodeKeymapProvider } from "../../../src/keymap"
+import { ToastProvider } from "../../../src/ui/toast"
 import diffViewerPlugin from "../../../src/feature-plugins/system/diff-viewer"
 import { createTuiPluginApi } from "../../fixture/tui-plugin"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
@@ -25,7 +28,7 @@ test("closing the diff viewer returns to the route it opened from", async () => 
     expect(viewer.vcsDiffInput()).toEqual({ directory: "/repo/session", mode: "git", context: 12 })
 
     expect(viewer.commands.has("diff.close")).toBe(true)
-    void viewer.commands.get("diff.close")!.run?.({} as never)
+    void viewer.commands.get("diff.close")?.run?.({} as never)
     expect(viewer.current()).toEqual(startRoute)
   } finally {
     viewer.app.renderer.destroy()
@@ -65,32 +68,33 @@ test("brackets navigate diff hunks", async () => {
     await viewer.app.waitForFrame((frame) => frame.includes("const first"))
     await viewer.app.waitFor(() => Boolean(findScrollBox(viewer.app.renderer.root)))
     await viewer.app.flush()
-    const scroll = findScrollBox(viewer.app.renderer.root)!
+    const scroll = findScrollBox(viewer.app.renderer.root)
+    if (!scroll) throw new Error("scrollbox not found")
     const initial = scroll.scrollTop
 
     expect(TuiKeybind.defaultValue("diff_next_hunk")).toBe("]")
     expect(TuiKeybind.defaultValue("diff_previous_hunk")).toBe("[")
 
-    void viewer.commands.get("diff.next_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.next_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     const first = scroll.scrollTop
     expect(first).toBeGreaterThan(initial)
 
-    void viewer.commands.get("diff.next_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.next_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     const second = scroll.scrollTop
     expect(second).toBeGreaterThan(first)
 
-    void viewer.commands.get("diff.previous_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.previous_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     expect(scroll.scrollTop).toBe(first)
 
-    void viewer.commands.get("diff.next_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.next_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     expect(scroll.scrollTop).toBe(second)
 
     scroll.scrollTo(initial)
-    void viewer.commands.get("diff.next_hunk")!.run?.({} as never)
+    void viewer.commands.get("diff.next_hunk")?.run?.({} as never)
     await viewer.app.renderOnce()
     expect(scroll.scrollTop).toBe(first)
   } finally {
@@ -108,6 +112,11 @@ async function renderDiffViewer(vcsDiff: unknown[], height = 20, initialRoute?: 
   let vcsDiffInput: unknown
   let sessionDiffInput: unknown
   const config = createTuiResolvedConfig()
+  
+  const state = "/tmp/openaxe/state"
+  await mkdir(state, { recursive: true })
+  await Bun.write(path.join(state, "kv.json"), "{}")
+
   function Harness() {
     const renderer = useRenderer()
     const keymap = createDefaultOpenTuiKeymap(renderer)
@@ -162,9 +171,11 @@ async function renderDiffViewer(vcsDiff: unknown[], height = 20, initialRoute?: 
         <OpencodeKeymapProvider keymap={keymap}>
           <TuiConfigProvider config={config}>
             <KVProvider>
-              <ThemeProvider mode="dark">
-                {renderDiff?.({ params: "params" in current ? current.params : undefined })}
-              </ThemeProvider>
+              <ToastProvider>
+                <ThemeProvider mode="dark">
+                  {renderDiff?.({ params: "params" in current ? current.params : undefined })}
+                </ThemeProvider>
+              </ToastProvider>
             </KVProvider>
           </TuiConfigProvider>
         </OpencodeKeymapProvider>

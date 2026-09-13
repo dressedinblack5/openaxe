@@ -3,6 +3,8 @@ import { OAUTH_DUMMY_KEY } from "../auth"
 import { createServer } from "http"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { escapeHtml } from "@/util/html"
+import { mergeRequestHeaders } from "@/util/headers"
+import { createPendingOAuth } from "./oauth-callback"
 
 // Public Grok-CLI OAuth client. xAI's auth server rejects loopback OAuth from
 // non-allowlisted clients, so we reuse the Grok-CLI client_id that xAI ships
@@ -381,23 +383,16 @@ const HTML_ERROR = (error: string) => `<!doctype html>
 // preflight.
 const CORS_ALLOWED_ORIGINS = new Set(["https://accounts.x.ai", "https://auth.x.ai"])
 
-interface PendingOAuth {
-  pkce: PkceCodes
-  state: string
-  resolve: (tokens: TokenResponse) => void
-  reject: (error: Error) => void
-}
+const oauthFlow = createPendingOAuth<TokenResponse, PkceCodes>({
+  supersedeMessage: "Superseded by a newer xAI authorize request",
+})
 
 let oauthServer: ReturnType<typeof createServer> | undefined
-let pendingOAuth: PendingOAuth | undefined
 
 async function startOAuthServer(): Promise<{ port: number; redirectUri: string }> {
   if (oauthServer) return { port: OAUTH_PORT, redirectUri: REDIRECT_URI }
 
   const server = createServer((req, res) => {
-    const reqUrl = req.url || "/"
-    const url = new URL(reqUrl, `http://${OAUTH_HOST}:${OAUTH_PORT}`)
-
     const origin = req.headers["origin"]
     const allowOrigin = typeof origin === "string" && CORS_ALLOWED_ORIGINS.has(origin) ? origin : ""
     if (allowOrigin) {
@@ -414,58 +409,17 @@ async function startOAuthServer(): Promise<{ port: number; redirectUri: string }
       return
     }
 
-    if (url.pathname === OAUTH_REDIRECT_PATH) {
-      const code = url.searchParams.get("code")
-      const state = url.searchParams.get("state")
-      const error = url.searchParams.get("error")
-      const errorDescription = url.searchParams.get("error_description")
-
-      if (error) {
-        const errorMsg = errorDescription || error
-        pendingOAuth?.reject(new Error(errorMsg))
-        pendingOAuth = undefined
-        res.writeHead(200, { "Content-Type": "text/html" })
-        res.end(HTML_ERROR(errorMsg))
-        return
-      }
-
-      if (!code) {
-        const errorMsg = "Missing authorization code"
-        pendingOAuth?.reject(new Error(errorMsg))
-        pendingOAuth = undefined
-        res.writeHead(400, { "Content-Type": "text/html" })
-        res.end(HTML_ERROR(errorMsg))
-        return
-      }
-
-      if (!pendingOAuth || state !== pendingOAuth.state) {
-        const errorMsg = "Invalid state - potential CSRF attack"
-        pendingOAuth?.reject(new Error(errorMsg))
-        pendingOAuth = undefined
-        res.writeHead(400, { "Content-Type": "text/html" })
-        res.end(HTML_ERROR(errorMsg))
-        return
-      }
-
-      const current = pendingOAuth
-      pendingOAuth = undefined
-
-      exchangeCodeForTokens(code, current.pkce)
-        .then((tokens) => current.resolve(tokens))
-        .catch((err) => current.reject(err))
-
-      res.writeHead(200, { "Content-Type": "text/html" })
-      res.end(HTML_SUCCESS)
+    if (
+      oauthFlow.handle(req, res, {
+        redirectPath: OAUTH_REDIRECT_PATH,
+        baseUrl: `http://${OAUTH_HOST}:${OAUTH_PORT}`,
+        htmlContentType: "text/html",
+        htmlError: HTML_ERROR,
+        htmlSuccess: HTML_SUCCESS,
+        exchange: (code, pkce) => exchangeCodeForTokens(code, pkce),
+      })
+    )
       return
-    }
-
-    if (url.pathname === "/cancel") {
-      pendingOAuth?.reject(new Error("Login cancelled"))
-      pendingOAuth = undefined
-      res.writeHead(200)
-      res.end("Login cancelled")
-      return
-    }
 
     res.writeHead(404)
     res.end("Not found")
@@ -502,41 +456,6 @@ function stopOAuthServer() {
     oauthServer.close()
     oauthServer = undefined
   }
-}
-
-function waitForOAuthCallback(pkce: PkceCodes, state: string): Promise<TokenResponse> {
-  // A previous in-flight authorize() that the user abandoned (or that is
-  // being superseded by a fresh attempt) still owns `pendingOAuth`. Reject
-  // it eagerly so its caller stops waiting on a state value that can never
-  // match the next callback.
-  if (pendingOAuth) {
-    pendingOAuth.reject(new Error("Superseded by a newer xAI authorize request"))
-    pendingOAuth = undefined
-  }
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => {
-        if (pendingOAuth) {
-          pendingOAuth = undefined
-          reject(new Error("OAuth callback timeout - authorization took too long"))
-        }
-      },
-      5 * 60 * 1000,
-    )
-
-    pendingOAuth = {
-      pkce,
-      state,
-      resolve: (tokens) => {
-        clearTimeout(timeout)
-        resolve(tokens)
-      },
-      reject: (error) => {
-        clearTimeout(timeout)
-        reject(error)
-      },
-    }
-  })
 }
 
 interface RefreshResult {
@@ -614,22 +533,11 @@ export async function XaiAuthPlugin(input: PluginInput, options: XaiAuthPluginOp
               currentAuth = { ...currentAuth, ...refreshed }
             }
 
-            // Copy the caller's headers into a fresh Headers (case-insensitive)
-            // so we never mutate the RequestInit the AI SDK may reuse on retry.
-            // Headers.set overwrites case-insensitively, which kills the dummy
-            // bearer the AI SDK injected from apiKey in a single line.
-            const headers = new Headers(requestInput instanceof Request ? requestInput.headers : undefined)
-            if (init?.headers) {
-              const entries =
-                init.headers instanceof Headers
-                  ? init.headers.entries()
-                  : Array.isArray(init.headers)
-                    ? init.headers
-                    : Object.entries(init.headers as Record<string, string | undefined>)
-              for (const [key, value] of entries) {
-                if (value !== undefined) headers.set(key, value)
-              }
-            }
+            // Fresh case-insensitive Headers so we never mutate the RequestInit
+            // the AI SDK may reuse on retry. Headers.set overwrites
+            // case-insensitively, which kills the dummy bearer the AI SDK
+            // injected from apiKey in a single line.
+            const headers = mergeRequestHeaders(requestInput, init)
             headers.set("authorization", `Bearer ${currentAuth.access}`)
             headers.set("User-Agent", `opencode/${InstallationVersion}`)
 
@@ -648,7 +556,7 @@ export async function XaiAuthPlugin(input: PluginInput, options: XaiAuthPluginOp
             const nonce = generateState()
             const authUrl = buildAuthorizeUrl(pkce, state, nonce, options)
 
-            const callbackPromise = waitForOAuthCallback(pkce, state)
+            const callbackPromise = oauthFlow.waitFor(pkce, state)
 
             return {
               url: authUrl,

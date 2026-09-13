@@ -19,7 +19,7 @@ import { useTerminalDimensions } from "@opentui/solid"
 import { Locale } from "../../util/locale"
 import type { PromptInfo } from "../../prompt/history"
 import { useFrecency } from "../../prompt/frecency"
-import { useBindings, useCommandSlashes, useOpencodeModeStack } from "../../keymap"
+import { useBindings, useCommandSlashes } from "../../keymap"
 import { displayCharAt, mentionTriggerIndex } from "../../prompt/display"
 import type { FileSystemEntry } from "@opencode-ai/sdk/v2"
 
@@ -79,8 +79,8 @@ export function Autocomplete(props: {
   anchor: () => BoxRenderable
   input: () => TextareaRenderable
   ref: (ref: AutocompleteRef) => void
-  fileStyleId: number
-  agentStyleId: number
+  fileStyleId: number | undefined
+  agentStyleId: number | undefined
   promptPartTypeId: () => number
 }) {
   const editor = useEditorContext()
@@ -89,7 +89,6 @@ export function Autocomplete(props: {
   const data = useData()
   const project = useProject()
   const slashes = useCommandSlashes()
-  const modeStack = useOpencodeModeStack()
   const { theme } = useTheme()
   const dimensions = useTerminalDimensions()
   const frecency = useFrecency()
@@ -104,12 +103,6 @@ export function Autocomplete(props: {
   })
 
   const [positionTick, setPositionTick] = createSignal(0)
-
-  createEffect(() => {
-    if (!store.visible) return
-    const popMode = modeStack.push("autocomplete")
-    onCleanup(popMode)
-  })
 
   createEffect(() => {
     if (store.visible) {
@@ -143,7 +136,7 @@ export function Autocomplete(props: {
   })
 
   const filter = createMemo(() => {
-    if (!store.visible) return
+    if (!store.visible) return undefined
     // Track props.value to make memo reactive to text changes
     props.value // <- there surely is a better way to do this, like making .input() reactive
 
@@ -279,7 +272,7 @@ export function Autocomplete(props: {
   const references = createMemo(() => data.location.reference.list() ?? [])
 
   const referenceMatch = createMemo(() => {
-    if (!store.visible || store.visible === "/") return
+    if (!store.visible || store.visible === "/") return undefined
     const { baseQuery } = extractLineRange(search())
     const slash = baseQuery.indexOf("/")
     const alias = slash === -1 ? baseQuery : baseQuery.slice(0, slash)
@@ -399,46 +392,42 @@ export function Autocomplete(props: {
   const agents = createMemo(() => {
     return sync.data.agent
       .filter((agent) => !agent.hidden && agent.mode !== "primary")
-      .map(
-        (agent): AutocompleteOption => ({
-          display: "@" + agent.name,
-          onSelect: () => {
-            insertPart(agent.name, {
-              type: "agent",
-              name: agent.name,
-              source: {
-                start: 0,
-                end: 0,
-                value: "",
-              },
-            })
-          },
-        }),
-      )
+      .map((agent): AutocompleteOption => ({
+        display: "@" + agent.name,
+        onSelect: () => {
+          insertPart(agent.name, {
+            type: "agent",
+            name: agent.name,
+            source: {
+              start: 0,
+              end: 0,
+              value: "",
+            },
+          })
+        },
+      }))
   })
 
   const referenceAliases = createMemo(() =>
     references()
       .filter((reference) => !reference.hidden)
-      .map(
-        (reference): AutocompleteOption => ({
-          display: "@" + reference.name,
-          description: ` ${reference.source.type === "git" ? reference.source.repository : reference.source.path}`,
-          onSelect: () => {
-            insertPart(reference.name, {
+      .map((reference): AutocompleteOption => ({
+        display: "@" + reference.name,
+        description: ` ${reference.source.type === "git" ? reference.source.repository : reference.source.path}`,
+        onSelect: () => {
+          insertPart(reference.name, {
+            type: "file",
+            mime: "application/x-directory",
+            filename: reference.name,
+            url: pathToFileURL(reference.path).href,
+            source: {
               type: "file",
-              mime: "application/x-directory",
-              filename: reference.name,
-              url: pathToFileURL(reference.path).href,
-              source: {
-                type: "file",
-                text: { start: 0, end: 0, value: "" },
-                path: reference.name,
-              },
-            })
-          },
-        }),
-      ),
+              text: { start: 0, end: 0, value: "" },
+              path: reference.name,
+            },
+          })
+        },
+      })),
   )
 
   const commands = createMemo((): AutocompleteOption[] => {
@@ -462,11 +451,11 @@ export function Autocomplete(props: {
 
     results.sort((a, b) => a.display.localeCompare(b.display))
 
-    const max = results.slice().sort((a, b) => b.display.length - a.display.length)[0]?.display.length
-    if (!max) return results
+    const maxWidth = Math.max(0, ...results.map((item) => Bun.stringWidth(item.display)))
+    if (!maxWidth) return results
     return results.map((item) => ({
       ...item,
-      display: item.display.padEnd(max + 2),
+      display: item.display + " ".repeat(maxWidth - Bun.stringWidth(item.display) + 2),
     }))
   })
 

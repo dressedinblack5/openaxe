@@ -86,6 +86,10 @@ export const absoluteArrayColumn = customType<{
     return JSON.stringify(input.map(absolute))
   },
   fromDriver(input) {
-    return (JSON.parse(input) as string[]).map((item) => AbsolutePath.make(toPlatform(absolute(item))))
+    const parsed: unknown = JSON.parse(input)
+    const items = Array.isArray(parsed) ? parsed : []
+    return items
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => AbsolutePath.make(toPlatform(absolute(item))))
   },
 })

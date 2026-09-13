@@ -1,6 +1,6 @@
 import type { AssistantMessage, Part, Provider, UserMessage } from "@opencode-ai/sdk/v2"
 import { Locale } from "./locale"
-import { index, name } from "./model";
+import { index, name } from "./model"
 export type TranscriptOptions = {
   thinking: boolean
   toolDetails: boolean

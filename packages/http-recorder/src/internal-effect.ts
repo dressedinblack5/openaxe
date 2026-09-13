@@ -10,7 +10,7 @@ import {
   HttpClientResponse,
   UrlParams,
 } from "effect/unstable/http"
-import { Service, fileSystem } from "./cassette.js";
+import { Service, fileSystem } from "./cassette.js"
 import { defaultMatcher, selectSequential } from "./matching.js"
 import { makeReplayState, resolveAutoMode } from "./recorder.js"
 import { make, type Redactor } from "./redactor.js"
@@ -111,7 +111,7 @@ export const recordingLayer = (
             method: web.method,
             url: web.url,
             headers: Object.fromEntries(web.headers.entries()),
-            body: yield* Effect.promise( async () => web.text()),
+            body: yield* Effect.promise(async () => web.text()),
           })
         })
 

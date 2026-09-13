@@ -31,6 +31,17 @@ import { prepareResponsesTools } from "./openai-responses-prepare-tools"
 import type { OpenAIResponsesModelId } from "./openai-responses-settings"
 import { localShellInputSchema } from "./tool/local-shell"
 
+const isJSONValue = (value: unknown): value is JSONValue => {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean")
+    return true
+  if (Array.isArray(value)) return value.every(isJSONValue)
+  if (typeof value === "object") return Object.values(value).every(isJSONValue)
+  return false
+}
+
+const isJSONAttributes = (value: Record<string, unknown>): value is Record<string, JSONValue> =>
+  Object.values(value).every(isJSONValue)
+
 const webSearchCallItem = z.object({
   type: z.literal("web_search_call"),
   id: z.string(),
@@ -234,11 +245,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     }
 
     // when a web search tool is present, automatically include the sources:
-    const webSearchToolName = (
-      tools?.find(
-        (tool) =>
-          tool.type === "provider" && (tool.id === "openai.web_search" || tool.id === "openai.web_search_preview"),
-      ) as LanguageModelV3ProviderTool | undefined
+    const webSearchToolName = tools?.find(
+      (tool): tool is LanguageModelV3ProviderTool =>
+        tool.type === "provider" && (tool.id === "openai.web_search" || tool.id === "openai.web_search_preview"),
     )?.name
 
     if (webSearchToolName) {
@@ -500,7 +509,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         requestBodyValues: body,
         statusCode: 400,
         responseHeaders,
-        responseBody: rawResponse as string,
+        responseBody: typeof rawResponse === "string" ? rawResponse : (JSON.stringify(rawResponse) ?? ""),
         isRetryable: false,
       })
     }
@@ -687,7 +696,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               queries: part.queries,
               results:
                 part.results?.map((result) => ({
-                  attributes: result.attributes as Record<string, JSONValue>,
+                  attributes: isJSONAttributes(result.attributes) ? result.attributes : {},
                   fileId: result.file_id,
                   filename: result.filename,
                   score: result.score,
@@ -1057,7 +1066,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     queries: value.item.queries,
                     results:
                       value.item.results?.map((result) => ({
-                        attributes: result.attributes as Record<string, JSONValue>,
+                        attributes: isJSONAttributes(result.attributes) ? result.attributes : {},
                         fileId: result.file_id,
                         filename: result.filename,
                         score: result.score,
@@ -1182,16 +1191,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 })
 
                 // immediately send the tool call after the input end:
-                controller.enqueue({
-                  type: "tool-call",
-                  toolCallId: toolCall.toolCallId,
-                  toolName: "code_interpreter",
-                  input: JSON.stringify({
-                    code: value.code,
-                    containerId: toolCall.codeInterpreter!.containerId,
-                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
-                  providerExecuted: true,
-                })
+                const codeInterpreter = toolCall.codeInterpreter
+                if (codeInterpreter != null) {
+                  controller.enqueue({
+                    type: "tool-call",
+                    toolCallId: toolCall.toolCallId,
+                    toolName: "code_interpreter",
+                    input: JSON.stringify({
+                      code: value.code,
+                      containerId: codeInterpreter.containerId,
+                    } satisfies z.infer<typeof codeInterpreterInputSchema>),
+                    providerExecuted: true,
+                  })
+                }
               }
             } else if (isResponseCreatedChunk(value)) {
               responseId = value.response.id
@@ -1569,7 +1581,7 @@ const openaiResponsesChunkSchema = z.union([
   z.object({ type: z.string() }).loose(), // fallback for unknown chunks
 ])
 
-type ExtractByType<T, K extends T extends { type: infer U } ? U : never> = T extends { type: K } ? T : never
+type ExtractByType<T, K extends (T extends { type: infer U } ? U : never)> = T extends { type: K } ? T : never
 
 function isTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,

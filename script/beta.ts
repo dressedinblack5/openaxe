@@ -29,7 +29,7 @@ Please resolve this issue to include this PR in the next beta release.`
     await $`gh pr comment ${prNumber} --body ${body}`
     console.log(`  Posted comment on PR #${prNumber}`)
   } catch (err) {
-    console.log(`  Failed to post comment on PR #${prNumber}: ${err}`)
+    console.log(`  Failed to post comment on PR #${prNumber}: ${String(err)}`)
   }
 }
 
@@ -77,7 +77,7 @@ async function typecheck() {
     await $`bun typecheck`
     return true
   } catch (err) {
-    console.log(`Typecheck failed: ${err}`)
+    console.log(`Typecheck failed: ${String(err)}`)
     return false
   }
 }
@@ -89,7 +89,7 @@ async function build() {
     await $`./script/build.ts --single`.cwd("packages/openaxe")
     return true
   } catch (err) {
-    console.log(`Build failed: ${err}`)
+    console.log(`Build failed: ${String(err)}`)
     return false
   }
 }
@@ -111,7 +111,7 @@ async function commitSmokeChanges() {
     await $`git add -A`
     await $`git commit -m "Fix beta integration"`
   } catch (err) {
-    console.log(`Failed to commit smoke fixes: ${err}`)
+    console.log(`Failed to commit smoke fixes: ${String(err)}`)
     return false
   }
 
@@ -136,7 +136,7 @@ async function install() {
     await $`git add bun.lock`
     return true
   } catch (err) {
-    console.log(`Install failed: ${err}`)
+    console.log(`Install failed: ${String(err)}`)
     return false
   }
 }
@@ -170,7 +170,7 @@ async function fix(pr: PR, files: string[], prs: PR[], applied: number[], idx: n
   try {
     await $`openaxe run -m ${model} ${prompt}`
   } catch (err) {
-    console.log(`  openaxe failed: ${err}`)
+    console.log(`  openaxe failed: ${String(err)}`)
     return false
   }
 
@@ -208,7 +208,7 @@ async function smoke(prs: PR[], applied: number[]) {
   try {
     await $`openaxe run -m ${model} ${prompt}`
   } catch (err) {
-    console.log(`Smoke fix failed: ${err}`)
+    console.log(`Smoke fix failed: ${String(err)}`)
     return false
   }
 
@@ -246,7 +246,7 @@ async function main() {
     try {
       await $`git fetch origin pull/${pr.number}/head:pr/${pr.number}`
     } catch (err) {
-      console.log(`  Failed to fetch: ${err}`)
+      console.log(`  Failed to fetch: ${String(err)}`)
       failed.push({ number: pr.number, title: pr.title, reason: "Fetch failed" })
       await commentOnPR(pr.number, "Fetch failed")
       continue
@@ -294,7 +294,7 @@ async function main() {
     try {
       await $`git commit -m ${commitMsg}`
     } catch (err) {
-      console.log(`  Failed to commit: ${err}`)
+      console.log(`  Failed to commit: ${String(err)}`)
       failed.push({ number: pr.number, title: pr.title, reason: "Commit failed" })
       await commentOnPR(pr.number, "Failed to commit changes")
       continue

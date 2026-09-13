@@ -28,7 +28,6 @@ src/cli/
 │   ├── acp.ts          — ACP server control
 │   ├── serve.ts        — headless HTTP server
 │   ├── web.ts          — web UI launcher
-│   ├── memory.ts       — AXE.md management
 │   ├── db.ts           — database tools
 │   ├── stats.ts        — session statistics
 │   ├── export.ts       — session export

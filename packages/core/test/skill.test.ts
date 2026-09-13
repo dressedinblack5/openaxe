@@ -29,7 +29,7 @@ const it = testEffect(
   ),
 )
 
- async function write(directory: string, name: string, description: string) {
+async function write(directory: string, name: string, description: string) {
   return fs.writeFile(
     path.join(directory, name, "SKILL.md"),
     `---
@@ -43,8 +43,8 @@ description: ${description}
 describe("SkillV2", () => {
   it.live("registers sources and resolves later source precedence", () =>
     Effect.acquireRelease(
-      Effect.promise( async () => tmpdir()),
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      Effect.promise(async () => tmpdir()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
@@ -94,8 +94,8 @@ describe("SkillV2", () => {
 
   it.live("loads URL sources and filters skills for agents", () =>
     Effect.acquireRelease(
-      Effect.promise( async () => tmpdir()),
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      Effect.promise(async () => tmpdir()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
@@ -119,7 +119,9 @@ describe("SkillV2", () => {
           expect((yield* skill.list()).map((item) => item.name)).toEqual(["deploy"])
           expect((yield* skill.list()).map((item) => item.name)).toEqual(["deploy"])
           expect(pulls).toBe(1)
-          expect(SkillV2.available(yield* skill.list(), (yield* agents.get(AgentV2.ID.make("reviewer")))!)).toEqual([])
+          const reviewer = yield* agents.get(AgentV2.ID.make("reviewer"))
+          if (!reviewer) throw new Error("reviewer agent not found")
+          expect(SkillV2.available(yield* skill.list(), reviewer)).toEqual([])
         }),
       ),
     ),

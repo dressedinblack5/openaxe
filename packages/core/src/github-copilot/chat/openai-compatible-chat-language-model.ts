@@ -26,57 +26,13 @@ import { convertToOpenAICompatibleChatMessages } from "./convert-to-openai-compa
 import { getResponseMetadata } from "./get-response-metadata"
 import { mapOpenAICompatibleFinishReason } from "./map-openai-compatible-finish-reason"
 import { type OpenAICompatibleChatModelId, openaiCompatibleProviderOptions } from "./openai-compatible-chat-options"
-import { defaultOpenAICompatibleErrorStructure, type ProviderErrorStructure } from "../openai-compatible-error"
+import {
+  defaultOpenAICompatibleErrorStructure,
+  type OpenAICompatibleErrorData,
+  type ProviderErrorStructure,
+} from "../openai-compatible-error"
 import type { MetadataExtractor } from "./openai-compatible-metadata-extractor"
 import { prepareTools } from "./openai-compatible-prepare-tools"
-
-type OpenAICompatibleChunk = {
-  id: string | null | undefined
-  created: number | null | undefined
-  model: string | null | undefined
-  choices:
-    | Array<{
-        delta:
-          | {
-              role: "assistant" | null | undefined
-              content: string | null | undefined
-              reasoning_text: string | null | undefined
-              reasoning_opaque: string | null | undefined
-              tool_calls:
-                | Array<{
-                    index: number
-                    id: string | null | undefined
-                    function: {
-                      name: string | null | undefined
-                      arguments: string | null | undefined
-                    }
-                  }>
-                | null
-                | undefined
-            }
-          | null
-          | undefined
-        finish_reason: string | null | undefined
-      }>
-    | null
-    | undefined
-  usage:
-    | {
-        prompt_tokens: number | null | undefined
-        completion_tokens: number | null | undefined
-        total_tokens: number | null | undefined
-        prompt_tokens_details?: { cached_tokens: number | null | undefined }
-        completion_tokens_details?: {
-          reasoning_tokens: number | null | undefined
-          accepted_prediction_tokens: number | null | undefined
-          rejected_prediction_tokens: number | null | undefined
-        }
-      }
-    | null
-    | undefined
-}
-
-type OpenAICompatibleChunkError = { error: { message: string } }
 
 export type OpenAICompatibleChatConfig = {
   provider: string
@@ -84,7 +40,7 @@ export type OpenAICompatibleChatConfig = {
   url: (options: { modelId: string; path: string }) => string
   fetch?: FetchFunction
   includeUsage?: boolean
-  errorStructure?: ProviderErrorStructure<any>
+  errorStructure?: ProviderErrorStructure<OpenAICompatibleErrorData>
   metadataExtractor?: MetadataExtractor
 
   /**
@@ -205,7 +161,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         presence_penalty: presencePenalty,
         response_format:
           responseFormat?.type === "json"
-            ?  this.supportsStructuredOutputs && responseFormat.schema != null
+            ? this.supportsStructuredOutputs && responseFormat.schema != null
               ? {
                   type: "json_schema",
                   json_schema: {
@@ -455,8 +411,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               return
             }
 
-            // Type-safe access: successful parse gives us the chunk branch (not error branch)
-            const value = chunk.value as OpenAICompatibleChunk | OpenAICompatibleChunkError
+            // Successful parse: the chunk/error branches are discriminated by shape below.
+            const value = chunk.value
 
             metadataExtractor?.processChunk(chunk.rawValue)
 

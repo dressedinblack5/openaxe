@@ -17,6 +17,7 @@ describe("opencode acp skills subprocess", () => {
         const acp = yield* createAcpClient(
           { opencode },
           { OPENCODE_CONFIG_CONTENT: JSON.stringify(verifierConfig(llm.url, skills)) },
+          60_000,
         )
         yield* initialize(acp)
         const session = yield* newSession(acp, home)

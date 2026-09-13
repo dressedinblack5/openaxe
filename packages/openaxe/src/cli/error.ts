@@ -127,6 +127,51 @@ export function FormatError(input: unknown): string | undefined {
   if (isTaggedError(input, "UICancelledError") || hasName(input, "UICancelledError")) {
     return ""
   }
+
+  // Provider auth errors: TaggedErrorClass
+  if (isTaggedError(input, "ProviderAuthOauthMissing")) {
+    return `OAuth authentication required for provider "${stringField(input, "providerID")}". Run \`openaxe auth login\` to authenticate.`
+  }
+  if (isTaggedError(input, "ProviderAuthOauthCodeMissing")) {
+    return `OAuth authorization code missing for provider "${stringField(input, "providerID")}".`
+  }
+  if (isTaggedError(input, "ProviderAuthOauthCallbackFailed")) {
+    return `OAuth callback failed for provider "${stringField(input, "providerID")}".`
+  }
+  if (isTaggedError(input, "ProviderAuthValidationFailed")) {
+    const field = stringField(input, "field")
+    const message = stringField(input, "message")
+    return `Provider authentication validation failed${field ? ` (${field})` : ""}${message ? `: ${message}` : ""}.`
+  }
+
+  // Skill errors: TaggedErrorClass
+  if (isTaggedError(input, "SkillInvalidError")) {
+    const path = stringField(input, "path")
+    const message = stringField(input, "message")
+    return `Skill configuration invalid${path ? ` at ${path}` : ""}${message ? `: ${message}` : ""}.`
+  }
+  if (isTaggedError(input, "SkillNameMismatchError")) {
+    const path = stringField(input, "path")
+    const expected = stringField(input, "expected")
+    const actual = stringField(input, "actual")
+    return `Skill name mismatch${path ? ` at ${path}` : ""}: expected "${expected}", got "${actual}".`
+  }
+
+  // LSP errors: TaggedErrorClass
+  if (isTaggedError(input, "LSPInitializeError")) {
+    const serverID = stringField(input, "serverID")
+    const stderr = stringField(input, "stderr")
+    return `Failed to initialize LSP server "${serverID}"${stderr ? `: ${stderr}` : ""}.`
+  }
+
+  // IDE install errors: TaggedErrorClass
+  if (isTaggedError(input, "InstallFailedError")) {
+    return `IDE extension installation failed${isRecord(input) && isRecord(input.data) ? `: ${stringField(input.data, "stderr")}` : ""}.`
+  }
+  if (isTaggedError(input, "AlreadyInstalledError")) {
+    return "IDE extension is already installed."
+  }
+
   return undefined
 }
 

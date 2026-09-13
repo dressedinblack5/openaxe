@@ -14,6 +14,7 @@ import { Auth } from "../auth"
 import { Env } from "../env"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { iife } from "@/util/iife"
+import { rewriteMaxTokensBody, transformCortexResponse } from "@/util/cortex-response"
 import { Global } from "@opencode-ai/core/global"
 import path from "path"
 import { pathToFileURL } from "url"
@@ -27,6 +28,7 @@ import { optionalOmitUndefined } from "@opencode-ai/core/schema"
 import { ProviderTransform } from "./transform"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
+import { safeFetch } from "@/util/safe-fetch"
 import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
@@ -64,38 +66,35 @@ function wrapSSE(res: Response, ms: number, ctl: AbortController) {
   if (!res.headers.get("content-type")?.includes("text/event-stream")) return res
 
   const reader = res.body.getReader()
+  let id: ReturnType<typeof setTimeout> | undefined
+
+  const arm = () => {
+    clearTimeout(id)
+    id = setTimeout(() => {
+      ctl.abort(new ProviderError.ResponseStreamError("SSE read timed out"))
+    }, ms)
+  }
+  arm()
+
   const body = new ReadableStream<Uint8Array>({
     async pull(ctrl) {
-      const part = await new Promise<Awaited<ReturnType<typeof reader.read>>>((resolve, reject) => {
-        const id = setTimeout(() => {
-          const err = new ProviderError.ResponseStreamError("SSE read timed out")
-          ctl.abort(err)
-          void reader.cancel(err)
-          reject(err)
-        }, ms)
-
-        reader.read().then(
-          (part) => {
-            clearTimeout(id)
-            resolve(part)
-          },
-          (err) => {
-            clearTimeout(id)
-            reject(err)
-          },
-        )
-      })
-
-      if (part.done) {
-        ctrl.close()
-        return
+      try {
+        const part = await reader.read()
+        if (part.done) {
+          clearTimeout(id)
+          ctrl.close()
+          return
+        }
+        ctrl.enqueue(part.value)
+        arm()
+      } catch (err) {
+        clearTimeout(id)
+        ctrl.error(err)
       }
-
-      ctrl.enqueue(part.value)
     },
-    async cancel(reason) {
-      ctl.abort(reason)
-      await reader.cancel(reason)
+    cancel() {
+      clearTimeout(id)
+      void reader.cancel()
     },
   })
 
@@ -549,7 +548,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
             const headers = new Headers(init?.headers)
             headers.set("Authorization", `Bearer ${token.token}`)
 
-            return fetch(input, { ...init, headers })
+            return safeFetch(input, { ...init, headers, redirect: "error" })
           },
         },
         async getModel(sdk: any, modelID: string) {
@@ -911,59 +910,10 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       if (!useOAuthHandler) {
         options.fetch = async (url: RequestInfo | URL, init?: RequestInit) => {
           if (init?.body && typeof init.body === "string") {
-            try {
-              const body = JSON.parse(init.body)
-              if ("max_tokens" in body) {
-                body.max_completion_tokens = body.max_tokens
-                delete body.max_tokens
-                init = { ...init, body: JSON.stringify(body) }
-              }
-            } catch {
-              // expected when body is not parseable JSON
-            }
+            init = { ...init, body: rewriteMaxTokensBody(init.body) }
           }
 
-          const response = await fetch(url, init)
-
-          if (!response.ok && response.status === 400) {
-            try {
-              const errorData = await response.clone().json()
-              const errorMessage = String(errorData.message || errorData.error || "")
-              if (errorMessage.toLowerCase().includes("conversation complete")) {
-                return new Response(
-                  JSON.stringify({
-                    choices: [{ finish_reason: "stop", message: { content: "", role: "assistant" } }],
-                  }),
-                  { status: 200, headers: new Headers({ "content-type": "application/json" }) },
-                )
-              }
-            } catch {
-              // expected when error response is not JSON
-            }
-          }
-
-          if (response.body && response.headers.get("content-type")?.includes("text/event-stream")) {
-            const reader = response.body.getReader()
-            const encoder = new TextEncoder()
-            const decoder = new TextDecoder()
-            const stream = new ReadableStream({
-              async pull(ctrl) {
-                const { done, value } = await reader.read()
-                if (done) {
-                  ctrl.close()
-                  return
-                }
-                const text = decoder.decode(value, { stream: true })
-                ctrl.enqueue(encoder.encode(text.replace(/"role"\s*:\s*""/g, '"role":"assistant"')))
-              },
-              cancel() {
-                void reader.cancel()
-              },
-            })
-            return new Response(stream, { headers: response.headers, status: response.status })
-          }
-
-          return response
+          return transformCortexResponse(await fetch(url, init))
         }
       }
 
@@ -1155,6 +1105,25 @@ export class NoModelsError extends Schema.TaggedErrorClass<NoModelsError>()("Pro
 export type DefaultModelError = ModelNotFoundError | NoProvidersError | NoModelsError
 export type Error = ModelNotFoundError | InitError | NoProvidersError | NoModelsError
 
+export type CustomModelInput = {
+  providerID: ProviderV2.ID
+  modelID: ModelV2.ID
+  name?: string
+  api: {
+    id: string
+    npm: string
+    url: string
+  }
+  capabilities?: Partial<Model["capabilities"]>
+  cost?: Partial<Model["cost"]>
+  limit?: Partial<Model["limit"]>
+  status?: ModelStatus
+  options?: Record<string, unknown>
+  headers?: Record<string, string>
+  family?: string
+  release_date?: string
+}
+
 export interface Interface {
   readonly list: () => Effect.Effect<Record<ProviderV2.ID, Info>>
   readonly getProvider: (providerID: ProviderV2.ID) => Effect.Effect<Info>
@@ -1168,6 +1137,8 @@ export interface Interface {
   readonly defaultModel: () => Effect.Effect<{ providerID: ProviderV2.ID; modelID: ModelV2.ID }, DefaultModelError>
   readonly checkHealth: (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
   readonly getHealth: (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
+  readonly registerCustomModel: (input: CustomModelInput) => Effect.Effect<Model, ModelNotFoundError>
+  readonly validateApiKeys: () => Effect.Effect<Record<string, { valid: boolean; error?: string }>>
 }
 
 interface State {
@@ -1177,6 +1148,7 @@ interface State {
   sdk: Map<string, BundledSDK>
   modelLoaders: Record<string, CustomModelLoader>
   varsLoaders: Record<string, CustomVarsLoader>
+  customModels: Record<ProviderV2.ID, Record<ModelV2.ID, Model>>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Provider") {}
@@ -1386,6 +1358,7 @@ export const layer = Layer.effect(
         const discoveryLoaders: {
           [providerID: string]: CustomDiscoverModels
         } = {}
+        const customModels: Record<ProviderV2.ID, Record<ModelV2.ID, Model>> = {}
         const dep = {
           auth: (id: string) => auth.get(id).pipe(Effect.orDie),
           config: () => config.get(),
@@ -1626,7 +1599,7 @@ export const layer = Layer.effect(
 
           const options = yield* Effect.promise(() =>
             plugin.auth!.loader!(
-              () => bridge.promise(auth.get(providerID).pipe(Effect.orDie)) as any,
+              () => bridge.promise(auth.get(providerID).pipe(Effect.orDie)) as Promise<Auth.Info>,
               toPublicInfo(database[plugin.auth!.provider]),
             ),
           )
@@ -1775,6 +1748,7 @@ export const layer = Layer.effect(
           sdk,
           modelLoaders,
           varsLoaders,
+          customModels,
         }
       }),
     )
@@ -1930,6 +1904,10 @@ export const layer = Layer.effect(
               .map((m) => m.target)
         return yield* new ModelNotFoundError({ providerID, modelID, suggestions })
       }
+
+      // Check custom models first
+      const customModel = s.customModels[providerID]?.[modelID]
+      if (customModel) return customModel
 
       const info = provider.models[modelID]
       if (!info) {
@@ -2134,6 +2112,93 @@ export const layer = Layer.effect(
       return yield* cached
     }) as (providerID: ProviderV2.ID) => Effect.Effect<ProviderHealth>
 
+    const registerCustomModel = Effect.fn("Provider.registerCustomModel")(function* (input: CustomModelInput) {
+      const s = yield* InstanceState.get(state)
+      if (!s.customModels[input.providerID]) {
+        s.customModels[input.providerID] = {}
+      }
+
+      const provider = s.providers[input.providerID]
+      if (!provider) {
+        return yield* new ModelNotFoundError({ providerID: input.providerID, modelID: input.modelID, suggestions: [] })
+      }
+
+      const model: Model = {
+        id: input.modelID,
+        providerID: input.providerID,
+        api: input.api,
+        name: input.name ?? input.modelID,
+        family: input.family ?? "",
+        capabilities: {
+          temperature: input.capabilities?.temperature ?? false,
+          reasoning: input.capabilities?.reasoning ?? false,
+          attachment: input.capabilities?.attachment ?? false,
+          toolcall: input.capabilities?.toolcall ?? true,
+          input: {
+            text: input.capabilities?.input?.text ?? true,
+            audio: input.capabilities?.input?.audio ?? false,
+            image: input.capabilities?.input?.image ?? false,
+            video: input.capabilities?.input?.video ?? false,
+            pdf: input.capabilities?.input?.pdf ?? false,
+          },
+          output: {
+            text: input.capabilities?.output?.text ?? true,
+            audio: input.capabilities?.output?.audio ?? false,
+            image: input.capabilities?.output?.image ?? false,
+            video: input.capabilities?.output?.video ?? false,
+            pdf: input.capabilities?.output?.pdf ?? false,
+          },
+          interleaved: input.capabilities?.interleaved ?? false,
+        },
+        cost: {
+          input: input.cost?.input ?? 0,
+          output: input.cost?.output ?? 0,
+          cache: {
+            read: input.cost?.cache?.read ?? 0,
+            write: input.cost?.cache?.write ?? 0,
+          },
+          tiers: input.cost?.tiers ?? [],
+          experimentalOver200K: input.cost?.experimentalOver200K,
+        },
+        limit: {
+          context: input.limit?.context ?? 0,
+          input: input.limit?.input ?? 0,
+          output: input.limit?.output ?? 0,
+        },
+        status: input.status ?? "active",
+        options: input.options ?? {},
+        headers: input.headers ?? {},
+        release_date: input.release_date ?? "",
+        variants: {},
+      }
+
+      s.customModels[input.providerID][input.modelID] = model
+      provider.models[input.modelID] = model
+      return model
+    })
+
+    const validateApiKeys = Effect.fn("Provider.validateApiKeys")(function* () {
+      const s = yield* InstanceState.get(state)
+      const results: Record<string, { valid: boolean; error?: string }> = {}
+
+      for (const providerID of Object.keys(s.providers) as ProviderV2.ID[]) {
+        const provider = s.providers[providerID]
+        if (!provider.key) {
+          results[providerID] = { valid: false, error: "No API key configured" }
+          continue
+        }
+
+        if (typeof provider.key !== "string" || provider.key.trim() === "") {
+          results[providerID] = { valid: false, error: "API key is empty" }
+          continue
+        }
+
+        results[providerID] = { valid: true }
+      }
+
+      return results
+    })
+
     return Service.of({
       list,
       getProvider,
@@ -2144,6 +2209,8 @@ export const layer = Layer.effect(
       defaultModel,
       checkHealth,
       getHealth,
+      registerCustomModel,
+      validateApiKeys,
     })
   }),
 )

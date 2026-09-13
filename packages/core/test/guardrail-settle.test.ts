@@ -26,8 +26,7 @@ const asserts: PermissionV2.AssertInput[] = []
 const permission = Layer.succeed(
   PermissionV2.Service,
   PermissionV2.Service.of({
-    assert: (input) =>
-      Effect.sync(() => asserts.push(input)).pipe(Effect.andThen(Effect.void)),
+    assert: (input) => Effect.sync(() => asserts.push(input)).pipe(Effect.andThen(Effect.void)),
     ask: () => Effect.die("unused"),
     reply: () => Effect.die("unused"),
     get: () => Effect.die("unused"),
@@ -56,7 +55,11 @@ function baseLayers(directory: string) {
   return Layer.mergeAll(registry, resolution, mutation, edit)
 }
 
-function withTool<A, E>(directory: string, guardrailLayer: Layer.Layer<never>, body: (registry: ToolRegistry.Interface) => Effect.Effect<A, E>) {
+function withTool<A, E>(
+  directory: string,
+  guardrailLayer: Layer.Layer<never>,
+  body: (registry: ToolRegistry.Interface) => Effect.Effect<A, E>,
+) {
   return Effect.gen(function* () {
     return yield* body(yield* ToolRegistry.Service)
   }).pipe(Effect.provide(Layer.mergeAll(baseLayers(directory), guardrailLayer)))
@@ -68,75 +71,81 @@ const call = (input: typeof EditTool.Input.Type, id = "call-gr") => ({
   call: { type: "tool-call" as const, id, name: "edit", input },
 })
 
-const gw = testEffect(
-  Guardrail.layer.pipe(Layer.provideMerge(NodeFileSystem.layer)),
-)
+const gw = testEffect(Guardrail.layer.pipe(Layer.provideMerge(NodeFileSystem.layer)))
 
 const guardrailLayer = Guardrail.layer.pipe(Layer.provideMerge(NodeFileSystem.layer))
 
 describe("guardrail settlement verification", () => {
   gw.live("appends auto-verification warnings on edit that introduces unbalanced brackets", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) =>
-        Effect.promise( async () => fs.writeFile(path.join(tmp.path, "broken.ts"), "const x = { ok: 1 };")).pipe(
+        Effect.promise(async () => fs.writeFile(path.join(tmp.path, "broken.ts"), "const x = { ok: 1 };")).pipe(
           Effect.andThen(
             withTool(tmp.path, guardrailLayer, (registry) =>
               settleTool(registry, call({ path: "broken.ts", oldString: "ok: 1", newString: "ok: 1, bad: {" })),
             ).pipe(
               Effect.map((settled: Settlement) => {
-                expect(settled.output?.content.some((c: any) =>
-                  c.type === "text" && c.text.includes("Auto-verification warnings") && c.text.includes("unclosed brace"),
-                )).toBe(true)
+                expect(
+                  settled.output?.content.some(
+                    (c: { type?: string; text?: string }) =>
+                      c.type === "text" &&
+                      typeof c.text === "string" &&
+                      c.text.includes("Auto-verification warnings") &&
+                      c.text.includes("unclosed brace"),
+                  ),
+                ).toBe(true)
               }),
             ),
           ),
         ),
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   it.live("does not add warnings when guardrail is not in context", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) =>
-        Effect.promise( async () => fs.writeFile(path.join(tmp.path, "bad.ts"), "const x = 1;")).pipe(
+        Effect.promise(async () => fs.writeFile(path.join(tmp.path, "bad.ts"), "const x = 1;")).pipe(
           Effect.andThen(
             withTool(tmp.path, Layer.empty, (registry) =>
               settleTool(registry, call({ path: "bad.ts", oldString: "1", newString: "{ bad" })),
             ).pipe(
               Effect.map((settled: Settlement) => {
-                const hasGuardrailText = settled.output?.content.some((c: any) =>
-                  c.type === "text" && c.text.includes("Auto-verification warnings"),
+                const hasGuardrailText = settled.output?.content.some(
+                  (c: { type?: string; text?: string }) =>
+                    c.type === "text" && typeof c.text === "string" && c.text.includes("Auto-verification warnings"),
                 )
                 expect(hasGuardrailText).toBe(false)
               }),
             ),
           ),
         ),
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 
   gw.live("does not add warnings for a structurally clean file", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) =>
-        Effect.promise( async () => fs.writeFile(path.join(tmp.path, "clean.ts"), "const x = 1;")).pipe(
+        Effect.promise(async () => fs.writeFile(path.join(tmp.path, "clean.ts"), "const x = 1;")).pipe(
           Effect.andThen(
             withTool(tmp.path, guardrailLayer, (registry) =>
               settleTool(registry, call({ path: "clean.ts", oldString: "1", newString: "2" })),
             ).pipe(
               Effect.map((settled: Settlement) => {
-                const hasGuardrailText = settled.output?.content.some((c: any) =>
-                  c.type === "text" && c.text.includes("Auto-verification warnings"),
+                const hasGuardrailText = settled.output?.content.some(
+                  (c: { type?: string; text?: string }) =>
+                    c.type === "text" && typeof c.text === "string" && c.text.includes("Auto-verification warnings"),
                 )
                 expect(hasGuardrailText).toBe(false)
               }),
             ),
           ),
         ),
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 })

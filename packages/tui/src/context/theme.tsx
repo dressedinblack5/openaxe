@@ -1,8 +1,6 @@
 import { CliRenderEvents, SyntaxStyle, type TerminalColors } from "@opentui/core"
 import { useRenderer } from "@opentui/solid"
 import {
-  DEFAULT_THEMES,
-  addTheme,
   allThemes,
   generateSubtleSyntax,
   generateSyntax,
@@ -10,13 +8,10 @@ import {
   hasTheme,
   isTheme,
   resolveTheme,
-  selectedForeground,
   setCustomThemes,
   setSystemTheme,
   subscribeThemes,
   terminalMode,
-  tint,
-  upsertTheme,
   type ThemeJson,
 } from "../theme"
 import { createEffect, createMemo, onCleanup, onMount } from "solid-js"
@@ -24,6 +19,7 @@ import { createStore, produce } from "solid-js/store"
 import { createSimpleContext } from "./helper"
 import { useKV } from "./kv"
 import { useTuiConfig } from "../config"
+import { useToast } from "../ui/toast"
 import { Global } from "@opencode-ai/core/global"
 import { Glob } from "@opencode-ai/core/util/glob"
 import { readFile } from "node:fs/promises"
@@ -54,7 +50,12 @@ export async function discoverThemes(directories: string[]) {
   for (const directory of directories) {
     const files = await Glob.scan("themes/*.json", { cwd: directory, absolute: true, dot: true, symlink: true })
     for (const file of files) {
-      result[path.basename(file, ".json")] = JSON.parse(await readFile(file, "utf8")) as unknown
+      const content = await readFile(file, "utf8")
+        .then((data) => JSON.parse(data) as unknown)
+        .catch(() => undefined)
+      // One malformed custom theme must not drop every other custom theme.
+      if (content === undefined) continue
+      result[path.basename(file, ".json")] = content
     }
   }
   return result
@@ -105,10 +106,11 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     const renderer = useRenderer()
     const config = useTuiConfig()
     const kv = useKV()
+    const toast = useToast()
     const themes = props.source ?? themeSource
     const pick = (value: unknown) => {
       if (value === "dark" || value === "light") return value
-      return
+      return undefined
     }
 
     setStore(
@@ -129,7 +131,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       if (theme) setStore("active", theme)
     })
 
-     async function syncCustomThemes() {
+    async function syncCustomThemes() {
       return themes
         .discover()
         .then((themes) => {
@@ -140,7 +142,13 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
             }, {}),
           )
         })
-        .catch(() => setStore("active", "openaxe"))
+        .catch(() => {
+          setStore("active", "openaxe")
+          toast.show({
+            message: "Custom theme discovery failed, falling back to default theme",
+            variant: "warning",
+          })
+        })
     }
 
     onMount(() => {
@@ -152,7 +160,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     let systemThemeSignature: string | undefined
     let systemThemeMode: "dark" | "light" | undefined
     let hasResolvedSystemTheme = false
-     async function resolveSystemTheme(mode: "dark" | "light" = store.mode) {
+    async function resolveSystemTheme(mode: "dark" | "light" = store.mode) {
       return renderer
         .getPalette({ size: 16 })
         .then((colors: TerminalColors) => {

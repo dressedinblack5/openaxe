@@ -101,7 +101,7 @@ export const Plugin = define({
                   }))
                 }
                 if (config.disabled !== undefined) model.enabled = !config.disabled
-                if (config.limit !== undefined) model.limit = { ...model.limit, ...config.limit }
+                if (config.limit !== undefined) model.limit = Object.assign({}, model.limit, config.limit)
               })
             }
           }

@@ -49,9 +49,7 @@ export class InvalidRepositoryBranchError extends Schema.TaggedErrorClass<Invali
 ) {}
 
 export type RepositoryError =
-  | InvalidRepositoryReferenceError
-  | UnsupportedLocalRepositoryError
-  | InvalidRepositoryBranchError
+  InvalidRepositoryReferenceError | UnsupportedLocalRepositoryError | InvalidRepositoryBranchError
 
 export function isRepositoryError(error: unknown): error is RepositoryError {
   return (

@@ -19,8 +19,7 @@ export type RequiredApiKeyAuth = {
 }
 
 export type ProviderAuthOption<Mode extends ApiKeyMode> =
-  | AuthOverride
-  | (Mode extends "optional" ? OptionalApiKeyAuth : RequiredApiKeyAuth)
+  AuthOverride | (Mode extends "optional" ? OptionalApiKeyAuth : RequiredApiKeyAuth)
 
 export type ModelOptions<Base, Mode extends ApiKeyMode> = Omit<Base, "apiKey" | "auth"> & ProviderAuthOption<Mode>
 

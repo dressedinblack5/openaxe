@@ -47,12 +47,12 @@ function providerIconsPlugin() {
 async function fetchProviderIcons() {
   const url = process.env.OPENCODE_MODELS_URL || "https://models.dev"
   const providers = await fetch(`${url}/api.json`)
-    .then( async (res) => res.json())
+    .then(async (res) => res.json())
     .then((json) => Object.keys(json))
   await Promise.all(
-    providers.map( async (provider) =>
+    providers.map(async (provider) =>
       fetch(`${url}/logos/${provider}.svg`)
-        .then( async (res) => res.text())
+        .then(async (res) => res.text())
         .then((svg) => fs.writeFileSync(`./src/assets/icons/provider/${provider}.svg`, svg)),
     ),
   )

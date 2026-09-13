@@ -13,7 +13,7 @@ export const AcpCommand = effectCmd({
     return withNetworkOptions(yargs).option("cwd", {
       describe: "working directory",
       type: "string",
-      default: process.cwd(),
+      default: process.env.OPENAXE_DIRECTORY ?? process.cwd(),
     })
   },
   handler: Effect.fn("Cli.acp")(function* (args) {

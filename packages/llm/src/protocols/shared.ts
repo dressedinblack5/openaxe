@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer"
 import { Effect, JsonSchema, Schema, Stream } from "effect"
-import { decode } from "effect/unstable/encoding/Sse";
+import { decode } from "effect/unstable/encoding/Sse"
 import { Headers, HttpClientRequest } from "effect/unstable/http"
 import {
   InvalidProviderOutputReason,
@@ -222,6 +222,7 @@ export const validateMedia = Effect.fn("ProviderShared.validateMedia")(function*
     if (!match) return yield* invalidRequest(`${route} media data URL must contain valid base64`)
     if (match[1].toLowerCase() !== mime)
       return yield* invalidRequest(`${route} media type ${part.mediaType} does not match data URL type ${match[1]}`)
+    // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- the /^data:/ regex guarantees a 3rd capture group on match.
     base64 = match[2]!
   } else {
     base64 = part.data

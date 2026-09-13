@@ -3,6 +3,7 @@ import { createWriteStream, statSync } from "fs"
 import { realpathSync } from "fs"
 import { dirname, isAbsolute, join, resolve as pathResolve, win32 } from "path"
 import { Readable } from "stream"
+import { ReadableStream as WebReadableStream } from "stream/web"
 import { pipeline } from "stream/promises"
 import { Glob } from "@opencode-ai/core/util/glob"
 import { FSUtil } from "@opencode-ai/core/fs-util"
@@ -105,7 +106,8 @@ export async function writeStream(
     await mkdir(dir, { recursive: true })
   }
 
-  const nodeStream = stream instanceof ReadableStream ? Readable.fromWeb(stream as any) : stream
+  const nodeStream =
+    stream instanceof ReadableStream ? Readable.fromWeb(stream as unknown as WebReadableStream) : stream
   const writeStream = createWriteStream(p)
   await pipeline(nodeStream, writeStream)
 

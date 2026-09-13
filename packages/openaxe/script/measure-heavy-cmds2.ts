@@ -8,7 +8,7 @@ async function time(label: string, fn: () => Promise<unknown>) {
 
 async function measure() {
   console.log("\n=== More heavy sub-imports ===\n")
-  
+
   await time(`@/util/filesystem`, () => import("@/util/filesystem"))
   await time(`@/cli/effect-cmd`, () => import("@/cli/effect-cmd"))
   await time(`@/auth`, () => import("@/auth"))

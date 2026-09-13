@@ -96,7 +96,8 @@ const resolveEntryPoint = (name: string, dir: string): EntryPoint => {
   let entrypoint: string | undefined
   try {
     entrypoint = typeof Bun !== "undefined" ? import.meta.resolve(name, dir) : import.meta.resolve(dir)
-  } catch { /* ponytail: package not installed yet, defer to first install */
+  } catch {
+    /* ponytail: package not installed yet, defer to first install */
     entrypoint = undefined
   }
   return {
@@ -125,7 +126,7 @@ export const layer = Layer.effect(
     const reify = (input: { dir: string; add?: string[] }) =>
       Effect.gen(function* () {
         yield* flock.acquire(`npm-install:${input.dir}`)
-        const { Arborist } = yield* Effect.promise( async () => import("@npmcli/arborist"))
+        const { Arborist } = yield* Effect.promise(async () => import("@npmcli/arborist"))
         const add = input.add ?? []
         const npmOptions = yield* NpmConfig.load(input.dir)
         const arborist = new Arborist({
@@ -135,9 +136,11 @@ export const layer = Layer.effect(
           progress: false,
           savePrefix: "",
           ignoreScripts: true,
+          force: true,
         })
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- arborist.reify resolves the full dependency tree; pin its shape for the caller.
         return yield* Effect.tryPromise({
-          try:  async () =>
+          try: async () =>
             arborist.reify({
               ...npmOptions,
               add,
@@ -163,34 +166,91 @@ export const layer = Layer.effect(
       const name = (() => {
         try {
           return parsePackageName(pkg)
-        } catch { /* ponytail: npa can fail on edge case package specs, fall back to raw name */
+        } catch {
+          /* ponytail: npa can fail on edge case package specs, fall back to raw name */
           return pkg
         }
       })()
 
-      if (yield* afs.existsSafe(path.join(dir, "node_modules", name))) {
-        return resolveEntryPoint(name, path.join(dir, "node_modules", name))
-      }
+      const pkgDir = path.join(dir, "node_modules", name)
+      const isCached = yield* afs.existsSafe(pkgDir)
 
-      const tree = yield* reify({ dir, add: [pkg] })
+      if (!isCached) {
+        yield* reify({ dir, add: [pkg] })
+      }
 
       // Plugin packages often list @opencode-ai/* packages as devDependencies
       // but import them at runtime. npm skips devDeps of transitive deps, so
-      // install those explicitly if the package needs them.
+      // install those explicitly if the package needs them — but only when
+      // they're actually missing, to avoid re-resolving the tree (registry
+      // round-trips) on every cached load.
       yield* Effect.gen(function* () {
-        const pkgPath = path.join(dir, "node_modules", name, "package.json")
+        const pkgPath = path.join(pkgDir, "package.json")
         const json = yield* afs.readJson(pkgPath).pipe(Effect.option)
         if (Option.isNone(json)) return
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- package.json read from disk: arbitrary JSON, narrow to the dependency map.
         const devDeps = (json.value as Record<string, unknown>)?.devDependencies as Record<string, string> | undefined
         if (!devDeps) return
-        const devAdd = Object.keys(devDeps).filter((d) => d.startsWith("@opencode-ai/"))
-        if (!devAdd.length) return
-        yield* reify({ dir, add: devAdd })
+        const missing = yield* Effect.filter(
+          Object.keys(devDeps).filter((d) => d.startsWith("@opencode-ai/")),
+          (d) => afs.existsSafe(path.join(dir, "node_modules", d)).pipe(Effect.map((e) => !e)),
+        )
+        if (!missing.length) return
+        yield* reify({ dir, add: missing })
       }).pipe(Effect.withSpan("Npm.installDevRuntimeDeps"), Effect.ignore)
+
+      // Also install @opencode-ai/* peerDependencies that plugins need at runtime
+      yield* Effect.gen(function* () {
+        const pkgPath = path.join(pkgDir, "package.json")
+        const json = yield* afs.readJson(pkgPath).pipe(Effect.option)
+        if (Option.isNone(json)) return
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- package.json read from disk: arbitrary JSON, narrow to the dependency map.
+        const peerDeps = (json.value as Record<string, unknown>)?.peerDependencies as Record<string, string> | undefined
+        if (!peerDeps) return
+        const missing = yield* Effect.filter(
+          Object.keys(peerDeps).filter((d) => d.startsWith("@opencode-ai/")),
+          (d) => afs.existsSafe(path.join(dir, "node_modules", d)).pipe(Effect.map((e) => !e)),
+        )
+        if (!missing.length) return
+        yield* reify({ dir, add: missing })
+      }).pipe(Effect.withSpan("Npm.installPeerRuntimeDeps"), Effect.ignore)
+
+      if (isCached) {
+        return resolveEntryPoint(name, pkgDir)
+      }
+
+      const tree = yield* Effect.gen(function* () {
+        const { Arborist } = yield* Effect.promise(async () => import("@npmcli/arborist"))
+        const npmOptions = yield* NpmConfig.load(dir)
+        const arborist = new Arborist({
+          ...npmOptions,
+          path: dir,
+          binLinks: true,
+          progress: false,
+          savePrefix: "",
+          ignoreScripts: true,
+          force: true,
+        })
+        return yield* Effect.tryPromise({
+          try: async () =>
+            arborist.reify({
+              ...npmOptions,
+              add: [],
+              save: true,
+              saveType: "prod",
+            }),
+          catch: (cause) =>
+            new InstallFailedError({
+              cause,
+              add: [],
+              dir,
+            }),
+        })
+      }).pipe(Effect.withSpan("Npm.reifyTree"))
 
       const first = tree.edgesOut.values().next().value?.to
       if (!first) {
-        const result = resolveEntryPoint(name, path.join(dir, "node_modules", name))
+        const result = resolveEntryPoint(name, pkgDir)
         if (result.entrypoint) return result
         return yield* new InstallFailedError({ add: [pkg], dir })
       }
@@ -228,10 +288,20 @@ export const layer = Layer.effect(
           optionalDependencies?: Record<string, string>
         }
         type LockFile = {
-          packages?: Record<string, { dependencies?: Record<string, string>; devDependencies?: Record<string, string>; peerDependencies?: Record<string, string>; optionalDependencies?: Record<string, string> }>
+          packages?: Record<
+            string,
+            {
+              dependencies?: Record<string, string>
+              devDependencies?: Record<string, string>
+              peerDependencies?: Record<string, string>
+              optionalDependencies?: Record<string, string>
+            }
+          >
         }
 
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- package.json/lockfile read from disk: arbitrary JSON, narrowed to the known schemas.
         const pkgTyped = pkg as PackageJson
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- lockfile read from disk: arbitrary JSON, narrowed to the known schema.
         const lockTyped = lock as LockFile
         const declared = new Set([
           ...Object.keys(pkgTyped.dependencies || {}),
@@ -277,6 +347,7 @@ export const layer = Layer.effect(
         const pkgJson = yield* afs.readJson(path.join(dir, "node_modules", pkg, "package.json")).pipe(Effect.option)
 
         if (Option.isSome(pkgJson)) {
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- package.json read from disk: arbitrary JSON, narrow to the bin field.
           const parsed = pkgJson.value as { bin?: string | Record<string, string> }
           if (parsed?.bin) {
             const unscoped = pkg.startsWith("@") ? pkg.split("/")[1] : pkg

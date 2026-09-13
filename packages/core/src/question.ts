@@ -120,6 +120,7 @@ export const layer = Layer.effect(
           })
           yield* Deferred.succeed(existing.deferred, input.answers)
           pending.delete(input.requestID)
+          return undefined
         }),
       ),
     )
@@ -135,6 +136,7 @@ export const layer = Layer.effect(
           })
           yield* Deferred.fail(existing.deferred, new RejectedError())
           pending.delete(requestID)
+          return undefined
         }),
       ),
     )

@@ -6,21 +6,17 @@ import { Artifact } from "@opencode-ai/core/artifact"
 import { testEffect } from "../lib/effect"
 import { tmpdir } from "../fixture/tmpdir"
 
-const withStore = <A, E>(
-  body: (store: Artifact.Interface) => Effect.Effect<A, E>,
-) =>
+const withStore = <A, E>(body: (store: Artifact.Interface) => Effect.Effect<A, E>) =>
   Effect.acquireUseRelease(
-    Effect.promise( async () => tmpdir()),
+    Effect.promise(async () => tmpdir()),
     (tmp) => {
       const baseDir = path.join(tmp.path, "artifacts")
-      const artifactLayer = Artifact.layer(baseDir).pipe(
-        Layer.provide(NodeFileSystem.layer),
-      )
+      const artifactLayer = Artifact.layer(baseDir).pipe(Layer.provide(NodeFileSystem.layer))
       return Effect.gen(function* () {
         return yield* body(yield* Artifact.Service)
       }).pipe(Effect.provide(artifactLayer))
     },
-    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+    (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
   )
 
 const it = testEffect(Layer.empty)
@@ -38,8 +34,9 @@ describe("Artifact", () => {
 
         const retrieved = yield* store.get("test-key")
         expect(retrieved).not.toBeNull()
-        expect(retrieved!.content).toBe("hello world")
-        expect(retrieved!.version).toBe(1)
+        if (!retrieved) throw new Error("retrieved not found")
+        expect(retrieved.content).toBe("hello world")
+        expect(retrieved.version).toBe(1)
       }),
     ),
   )
@@ -70,9 +67,10 @@ describe("Artifact", () => {
         expect(entry.overflowPath).toBeDefined()
 
         const retrieved = yield* store.get("big")
-        expect(retrieved!.content).toBe(big)
-        expect(retrieved!.truncated).toBe(true)
-        expect(retrieved!.size).toBe(big.length)
+        if (!retrieved) throw new Error("retrieved not found")
+        expect(retrieved.content).toBe(big)
+        expect(retrieved.truncated).toBe(true)
+        expect(retrieved.size).toBe(big.length)
       }),
     ),
   )
@@ -86,7 +84,8 @@ describe("Artifact", () => {
         expect(entry.content).toBe(small)
 
         const retrieved = yield* store.get("small")
-        expect(retrieved!.content).toBe(small)
+        if (!retrieved) throw new Error("retrieved not found")
+        expect(retrieved.content).toBe(small)
       }),
     ),
   )
@@ -98,9 +97,9 @@ describe("Artifact", () => {
         yield* store.store("beta", "b")
         yield* store.store("alpha-extra", "a2")
 
-        expect((yield* store.list())).toHaveLength(3)
-        expect((yield* store.list("alpha"))).toHaveLength(2)
-        expect((yield* store.list("gamma"))).toHaveLength(0)
+        expect(yield* store.list()).toHaveLength(3)
+        expect(yield* store.list("alpha")).toHaveLength(2)
+        expect(yield* store.list("gamma")).toHaveLength(0)
       }),
     ),
   )
@@ -144,20 +143,19 @@ describe("Artifact", () => {
 
         const retrieved = yield* store.get("overflow-test")
         expect(retrieved).not.toBeNull()
-        expect(retrieved!.content).toBe(big)
+        if (!retrieved) throw new Error("retrieved not found")
+        expect(retrieved.content).toBe(big)
       }),
     ),
   )
 
   it.live("respects custom truncation threshold", () =>
     Effect.acquireUseRelease(
-      Effect.promise( async () => tmpdir()),
+      Effect.promise(async () => tmpdir()),
       (tmp) => {
         const tinyThreshold = 5
         const baseDir = path.join(tmp.path, "custom-threshold")
-        const artifactLayer = Artifact.layer(baseDir, tinyThreshold).pipe(
-          Layer.provide(NodeFileSystem.layer),
-        )
+        const artifactLayer = Artifact.layer(baseDir, tinyThreshold).pipe(Layer.provide(NodeFileSystem.layer))
         return Effect.gen(function* () {
           const store = yield* Artifact.Service
           const entry = yield* store.store("tiny", "hello world")
@@ -165,10 +163,11 @@ describe("Artifact", () => {
           expect(entry.content).toBe("hello")
 
           const retrieved = yield* store.get("tiny")
-          expect(retrieved!.content).toBe("hello world")
+          if (!retrieved) throw new Error("retrieved not found")
+          expect(retrieved.content).toBe("hello world")
         }).pipe(Effect.provide(artifactLayer))
       },
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ),
   )
 })

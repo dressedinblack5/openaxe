@@ -11,13 +11,27 @@ import {
 import { LANGUAGE_EXTENSIONS } from "../../util/filetype"
 import { useBindings, useCommandShortcut } from "../../keymap"
 import { useTheme } from "../../context/theme"
-import { useTerminalDimensions } from "@opentui/solid"
+import { useRenderer, useTerminalDimensions } from "@opentui/solid"
 import path from "node:path"
-import { createEffect, createMemo, createResource, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js"
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  Match,
+  on,
+  onCleanup,
+  Show,
+  Switch,
+  useContext,
+} from "solid-js"
+import { PromptRefContext } from "../../context/prompt"
 import { DiffViewerFileTree } from "./diff-viewer-file-tree"
 import { Panel, PanelGroup, Separator } from "./diff-viewer-ui"
 import { DialogSelect } from "../../ui/dialog-select"
 import { getScrollAcceleration } from "../../util/scroll"
+import { setDiffViewerFocus } from "./diff-viewer-focus"
 import {
   allExpandedFileTreeDirectories,
   buildFileTree,
@@ -80,6 +94,7 @@ function filetype(input?: string) {
 
 function storedView(value: unknown): DiffView | undefined {
   if (value === "split" || value === "unified") return value
+  return undefined
 }
 
 function diffSourceLabel(mode: DiffMode) {
@@ -130,10 +145,14 @@ function DiffViewer(props: { api: TuiPluginApi }) {
   })
   const files = createMemo(() => diff() ?? [])
   const [focus, setFocus] = createSignal<DiffViewerFocus>("patches")
-  const [fileTreeEnabled, setFileTreeEnabled] = createSignal(
-    
-    props.api.kv.get(KV_SHOW_FILE_TREE, true),
-  )
+
+  createEffect(() => {
+    setDiffViewerFocus(focus())
+  })
+
+  onCleanup(() => setDiffViewerFocus("patches"))
+
+  const [fileTreeEnabled, setFileTreeEnabled] = createSignal(props.api.kv.get(KV_SHOW_FILE_TREE, true))
   const showFileTree = createMemo(() => showDiffViewerFileTree(fileTreeEnabled(), files().length))
   const [singlePatch, setSinglePatch] = createSignal(props.api.kv.get(KV_SINGLE_PATCH, false))
   const patchPaneWidth = createMemo(() => dimensions().width - (showFileTree() ? 33 : 0) - 4)
@@ -156,15 +175,31 @@ function DiffViewer(props: { api: TuiPluginApi }) {
   const fileRows = createMemo(() => flattenFileTree(fileTree(), expandedFileNodes()))
   const patchFileIndexes = createMemo(() => orderedPatchFileIndexes(flattenFileTree(fileTree())))
   const focusRunner = (input: Record<DiffViewerFocus, () => void>) => () => input[focus()]()
+  const promptRef = useContext(PromptRefContext)
+  const renderer = useRenderer()
+  createEffect(
+    on(
+      () => focus(),
+      (current, prev) => {
+        if (current !== "patches") return
+        if (prev !== "files") return
+        if (props.api.ui.dialog.open) return
+        if (renderer.currentFocusedEditor !== null) return
+        setTimeout(() => {
+          if (props.api.ui.dialog.open) return
+          promptRef?.current?.focus()
+        }, 1)
+      },
+    ),
+  )
   const switchFocusShortcut = useCommandShortcut("diff.switch_focus")
   const nextHunkShortcut = useCommandShortcut("diff.next_hunk")
   const previousHunkShortcut = useCommandShortcut("diff.previous_hunk")
   const nextFileShortcut = useCommandShortcut("diff.next_file")
   const previousFileShortcut = useCommandShortcut("diff.previous_file")
-  
-  
+
   const switchSourceShortcut = useCommandShortcut("diff.switch_source")
-  
+
   const markReviewedShortcut = useCommandShortcut("diff.mark_reviewed")
   const helpShortcut = useCommandShortcut("diff.help")
   let scroll: ScrollBoxRenderable | undefined
@@ -262,6 +297,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
       .filter((entry): entry is { fileIndex: number; node: BoxRenderable } => Boolean(entry.node))
       .map((entry) => ({
         ...entry,
+        // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- scroll ref set before pointer state computation
         contentY: scroll!.scrollTop + entry.node.y - scroll!.viewport.y,
       }))
       .sort((left, right) => left.contentY - right.contentY)
@@ -315,7 +351,6 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     setSelectedHunk({ fileIndex: next.fileIndex, hunkIndex: next.hunkIndex, scrollTop: patchScroll.scrollTop })
   }
 
-  
   const firstPatchFileIndex = () => fileRows().find((row) => row.fileIndex !== undefined)?.fileIndex
   const visiblePatchFiles = createMemo(() => {
     if (!singlePatch()) {
@@ -371,6 +406,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
         return
       }
       const contentHeight = Math.max(
+        // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- scroll ref set before filler height is computed
         ...entries.map((node) => scroll!.scrollTop + node.y - scroll!.viewport.y + node.height),
       )
       setPatchFillerHeight(Math.max(0, scroll.viewport.height - contentHeight))

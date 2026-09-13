@@ -3,7 +3,7 @@
 import { parseArgs } from "node:util"
 
 const defaultRepo = "dressedinblack5/openaxe"
-const defaultAgeMonths = 1
+const defaultAgeMonths = 3
 const defaultThreshold = 2
 const defaultSleepMs = 20_000
 const defaultPrintLimit = 50
@@ -32,8 +32,8 @@ Usage: bun script/github/close-prs.ts [options]
 Dry-run is the default. The script only comments and closes PRs when --execute is passed.
 
 Criteria:
-  - PRs created within the last month are untouched
-  - PRs older than one month are closed when they have fewer than 2 positive reactions
+  - PRs created within the last 3 months are untouched
+  - PRs older than 3 months are closed when they have fewer than 2 positive reactions
   - Positive reactions are THUMBS_UP, HEART, HOORAY, and ROCKET reactions on the PR
 
 Options:
@@ -248,7 +248,7 @@ async function graphql(input: { query: string; variables: Record<string, string 
     method: "POST",
     body: JSON.stringify(input),
   })
-  const body = (await response.json()) as GraphqlResponse
+  const body: GraphqlResponse = await response.json()
   if (body.errors?.length)
     throw new Error(`GitHub GraphQL error: ${body.errors.map((error) => error.message).join(", ")}`)
   if (!body.data) throw new Error("GitHub GraphQL response did not include data")
@@ -293,12 +293,13 @@ async function ensureCleanupLabel() {
 }
 
 async function githubRequest(path: string, init: RequestInit, attempt = 0): Promise<Response> {
+  const merged = new Headers(headers)
+  for (const [key, value] of new Headers(init.headers)) {
+    merged.set(key, value)
+  }
   const response = await fetch(path.startsWith("https://") ? path : `https://api.github.com${path}`, {
     ...init,
-    headers: {
-      ...headers,
-      ...init.headers,
-    },
+    headers: merged,
   })
 
   if (response.ok) return response
@@ -383,7 +384,7 @@ function subtractMonths(date: Date, months: number) {
   return result
 }
 
- async function sleep(ms: number) {
+async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 

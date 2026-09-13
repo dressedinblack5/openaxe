@@ -19,12 +19,10 @@ function render(changes: ReadonlyArray<Change>): string {
   return changes.map((c) => `  ${c.path} (${statusLabel(c.status)})`).join("\n")
 }
 
+const STATUS_LABELS: Record<"A" | "M" | "D", string> = { A: "added", M: "modified", D: "deleted" }
+
 function statusLabel(s: "A" | "M" | "D"): string {
-  switch (s) {
-    case "A": return "added"
-    case "M": return "modified"
-    case "D": return "deleted"
-  }
+  return STATUS_LABELS[s]
 }
 
 function parseLine(line: string): Change | null {
@@ -33,9 +31,7 @@ function parseLine(line: string): Change | null {
     const parts = line.slice(1).trim().split("\t")
     return new Change({ path: parts[parts.length - 1], status: "M" })
   }
-  return c === "A" || c === "M" || c === "D"
-    ? new Change({ path: line.slice(1).trim(), status: c })
-    : null
+  return c === "A" || c === "M" || c === "D" ? new Change({ path: line.slice(1).trim(), status: c }) : null
 }
 
 export const layer = Layer.effectDiscard(
@@ -73,7 +69,10 @@ export const layer = Layer.effectDiscard(
         )
       if (result.exitCode !== 0) return []
       if (!result.text) return []
-      return result.text.split("\n").map(parseLine).filter((c): c is Change => c !== null)
+      return result.text
+        .split("\n")
+        .map(parseLine)
+        .filter((c): c is Change => c !== null)
     })
 
     yield* registry.register({

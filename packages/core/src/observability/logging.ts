@@ -61,7 +61,8 @@ export function minimumLogLevel() {
     WARN: "Warn",
     ERROR: "Error",
   } as const satisfies Record<string, LogLevel.LogLevel>
-  return value && value in levels ? levels[value as keyof typeof levels] : levels.INFO
+  const isLogLevel = (value: string | undefined): value is keyof typeof levels => value !== undefined && value in levels
+  return isLogLevel(value) ? levels[value] : levels.INFO
 }
 
 export function loggers() {

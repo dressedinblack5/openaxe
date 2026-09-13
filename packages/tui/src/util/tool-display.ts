@@ -9,5 +9,6 @@ export function toolDisplayMetadata(state: unknown): Record<string, unknown> {
   if (!("status" in state) || state.status === "pending") return {}
   if (!("structured" in state) || !state.structured || typeof state.structured !== "object") return {}
   if (Array.isArray(state.structured)) return {}
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- structured field validated as a plain object above
   return state.structured as Record<string, unknown>
 }

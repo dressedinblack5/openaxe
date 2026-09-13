@@ -32,8 +32,16 @@ function cap(ms: number) {
 
 function getErrorMessage(err: Err): string | undefined {
   if (!err) return undefined
-  if ("data" in err && isRecord(err.data)) return String(err.data.message ?? "")
-  return (err as Record<string, unknown>).message as string | undefined
+  if ("data" in err && isRecord(err.data)) {
+    const msg = err.data.message
+    if (typeof msg === "string") return msg
+    if (msg === undefined || msg === null) return ""
+    return JSON.stringify(msg)
+  }
+  const msg = (err as Record<string, unknown>).message
+  if (typeof msg === "string") return msg
+  if (msg === undefined || msg === null) return undefined
+  return JSON.stringify(msg)
 }
 
 type ErrorWithHeaders = { responseHeaders?: Record<string, string> }
@@ -92,8 +100,9 @@ function asAPIErrorData(error: Err): APIErrorData | undefined {
   if (!error) return undefined
   if ("data" in error && isRecord(error.data)) {
     const d = error.data as Record<string, unknown>
+    const msg = d.message
     return {
-      message: String(d.message ?? ""),
+      message: typeof msg === "string" ? msg : msg === undefined || msg === null ? "" : JSON.stringify(msg),
       statusCode: d.statusCode as number | undefined,
       isRetryable: d.isRetryable === true,
       responseBody: d.responseBody as string | undefined,
@@ -177,8 +186,28 @@ export function retryable(error: Err, provider: string) {
           },
         }
       }
+
+      // Quota/insufficient-balance errors must not be retried by the policy —
+      // retrying the same model will never resolve. Return undefined so the
+      // schedule stops and the error falls through to the model-fallback path.
+      if (
+        apiErr.responseBody?.toLowerCase().includes("insufficient balance") ||
+        apiErr.responseBody?.toLowerCase().includes("insufficient_credits") ||
+        apiErr.responseBody?.toLowerCase().includes("quota exceeded") ||
+        apiErr.responseBody?.toLowerCase().includes("quota_exceeded") ||
+        (apiErr.responseBody?.toLowerCase().includes("billing") &&
+          apiErr.responseBody?.toLowerCase().includes("exceeded")) ||
+        apiErr.message?.toLowerCase().includes("insufficient balance") ||
+        apiErr.message?.toLowerCase().includes("quota exceeded") ||
+        apiErr.message?.toLowerCase().includes("out of credits")
+      ) {
+        return undefined
+      }
       const apiMsg = apiErr.message
-      return { message: apiMsg?.includes("Overloaded") ? "Provider is overloaded" : (apiMsg ?? "") }
+      const lowerApiMsg = apiMsg?.toLowerCase() ?? ""
+      return {
+        message: lowerApiMsg.includes("overloaded") ? "Provider is overloaded" : (apiMsg ?? ""),
+      }
     }
   }
 
@@ -189,7 +218,9 @@ export function retryable(error: Err, provider: string) {
     if (
       lower.includes("rate increased too quickly") ||
       lower.includes("rate limit") ||
-      lower.includes("too many requests")
+      lower.includes("too many requests") ||
+      lower.includes("worker local total request limit reached") ||
+      lower.includes("service temporarily overloaded")
     ) {
       return { message: msg }
     }
@@ -213,7 +244,8 @@ export function retryable(error: Err, provider: string) {
 
 function str(value: unknown) {
   if (value === undefined || value === null) return ""
-  return String(value)
+  if (typeof value === "string") return value
+  return JSON.stringify(value)
 }
 
 function num(value: unknown) {

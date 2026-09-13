@@ -13,9 +13,22 @@ export class Policy extends Schema.Class<Policy>("ConfigV2.Experimental.Policy")
   action: PolicyAction,
 }) {}
 
+export const LearningFallback = Schema.Struct({
+  provider: Schema.String,
+  model: Schema.String,
+})
+
+export const LearningConfig = Schema.Struct({
+  review: Schema.Boolean.pipe(Schema.optional),
+  model: Schema.String.pipe(Schema.optional),
+  provider: Schema.String.pipe(Schema.optional),
+  fallback: LearningFallback.pipe(Schema.Array, Schema.optional),
+})
+
 export class Experimental extends Schema.Class<Experimental>("ConfigV2.Experimental")({
   policies: Policy.pipe(Schema.Array, Schema.optional),
   validate_patch_ts: Schema.Boolean.pipe(Schema.optional).annotate({
     description: "Validate patched .ts/.tsx files for syntax errors before writing (default: true)",
   }),
+  learning: LearningConfig.pipe(Schema.optional),
 }) {}

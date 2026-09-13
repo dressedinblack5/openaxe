@@ -51,7 +51,9 @@ mkdir -p "$BIN_DIR"
 
 cat > "$WRAPPER" <<SCRIPT
 #!/usr/bin/env bash
-exec bun "$INSTALL_DIR/packages/openaxe/bin/openaxe" "\$@"
+# OPENAXE_DIRECTORY carries the real launch directory: \`bun dev\` redirects cwd to the openaxe package, so openaxe would otherwise operate on itself instead of the project it was launched from.
+export OPENAXE_DIRECTORY="\$(pwd)"
+exec bun --cwd "$INSTALL_DIR/packages/openaxe" dev "\$@"
 SCRIPT
 chmod +x "$WRAPPER"
 

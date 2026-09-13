@@ -1,8 +1,8 @@
 import { AuthOptions, type ProviderAuthOption } from "../route/auth-options"
 import type { Route, RouteDefaultsInput } from "../route/client"
 import { ProviderID, type ModelID } from "../schema"
-import { route as chatRouteImport } from "../protocols/openai-chat";
-import { route, webSocketRoute } from "../protocols/openai-responses";
+import { route as chatRouteImport } from "../protocols/openai-chat"
+import { route, webSocketRoute } from "../protocols/openai-responses"
 import { withOpenAIOptions, type OpenAIProviderOptionsInput } from "./openai-options"
 
 export type { OpenAIOptionsInput, OpenAIResponseIncludable } from "./openai-options"

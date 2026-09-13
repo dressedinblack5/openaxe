@@ -1,7 +1,7 @@
 import { Route, type RouteRoutedModelInput } from "../route/client"
 import { Endpoint } from "../route/endpoint"
 import { Framing } from "../route/framing"
-import { protocol } from "./openai-chat";
+import { protocol } from "./openai-chat"
 const ADAPTER = "openai-compatible-chat"
 
 export type OpenAICompatibleChatModelInput = RouteRoutedModelInput

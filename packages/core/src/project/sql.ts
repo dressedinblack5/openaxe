@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core"
-import { absoluteArrayColumn, absoluteColumn } from "../database/path";
+import { absoluteArrayColumn, absoluteColumn } from "../database/path"
 import { Timestamps } from "../database/schema.sql"
 import { ProjectSchema } from "./schema"
 

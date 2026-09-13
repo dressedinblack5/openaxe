@@ -151,6 +151,7 @@ const mcpTest = testEffect(
 
 const config = (name: string) => ({
   mcp: {
+    github: { enabled: false },
     [name]: {
       type: "remote" as const,
       url: "https://example.com/mcp",

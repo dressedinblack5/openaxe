@@ -97,9 +97,7 @@ const scenarios: Scenario[] = [
         Effect.gen(function* () {
           object(body)
           check(body.username === "httpapi-global", "global config update should return patched config")
-          const text = yield* Effect.promise(() =>
-            Bun.file(path.join(exerciseConfigDirectory, "openaxe.jsonc")).text(),
-          )
+          const text = yield* Effect.promise(() => Bun.file(path.join(exerciseConfigDirectory, "openaxe.jsonc")).text())
           check(text.includes('"username": "httpapi-global"'), "global config update should write isolated config file")
         }),
       "status",
@@ -457,7 +455,7 @@ const scenarios: Scenario[] = [
       path: route("/pty/{ptyID}/connect-token", { ptyID: "pty_httpapi_missing" }),
       headers: ctx.headers(),
     }))
-    .status(403, undefined, "status"),
+    .status(404, undefined, "status"),
   http.protected
     .get("/pty/{ptyID}", "pty.get")
     .at((ctx) => ({ path: route("/pty/{ptyID}", { ptyID: "pty_httpapi_missing" }), headers: ctx.headers() }))
@@ -1042,6 +1040,33 @@ const scenarios: Scenario[] = [
       headers: ctx.headers(),
     }))
     .status(404, undefined, "status"),
+
+  http.protected
+    .get("/api/search", "v2.search.global")
+    .skipEffect()
+    .at((ctx) => ({
+      path: "/api/search?q=test&limit=5",
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      object(body)
+      object(body.results)
+      array(body.results)
+    }),
+
+  http.protected
+    .get("/api/session/{sessionID}/search", "v2.session.search")
+    .skipEffect()
+    .seeded((ctx) => ctx.session({ title: "Search session" }))
+    .at((ctx) => ({
+      path: route("/api/session/{sessionID}/search", { sessionID: ctx.state.id }) + "?q=hello&limit=5",
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      object(body)
+      object(body.results)
+      array(body.results)
+    }),
   http.protected
     .get("/session", "session.list")
     .seeded((ctx) => ctx.session({ title: "List me" }))
@@ -1306,6 +1331,22 @@ const scenarios: Scenario[] = [
     .json(200, (body) => {
       check(body === true, "missing session abort should remain a no-op success")
     }),
+  http.protected
+    .post("/session/{sessionID}/resume", "session.resume")
+    .mutating()
+    .seeded((ctx) =>
+      Effect.gen(function* () {
+        const session = yield* ctx.session({ title: "Resume session" })
+        const message = yield* ctx.message(session.id, { text: "work to resume" })
+        return { session, message }
+      }),
+    )
+    .at((ctx) => ({
+      path: route("/session/{sessionID}/resume", { sessionID: ctx.state.session.id }),
+      headers: ctx.headers(),
+      body: { messageID: ctx.state.message.info.id },
+    }))
+    .json(200, (body) => check(typeof body === "boolean", "resume should return boolean")),
   http.protected
     .post("/session/{sessionID}/init", "session.init")
     .skipEffect()
@@ -1665,7 +1706,11 @@ const scenarios: Scenario[] = [
   http.protected
     .post("/memory", "memory.set")
     .mutating()
-    .at((ctx) => ({ path: "/memory", headers: ctx.headers(), body: { key: "test-key", value: "test-value", scope: "session", source: "agent" } }))
+    .at((ctx) => ({
+      path: "/memory",
+      headers: ctx.headers(),
+      body: { key: "test-key", value: "test-value", scope: "session", source: "agent" },
+    }))
     .json(200, (body) => {
       object(body)
       check(body.key === "test-key", "should return set memory entry")
@@ -1704,7 +1749,11 @@ const scenarios: Scenario[] = [
   http.protected
     .post("/api/artifact", "artifact.store")
     .mutating()
-    .at((ctx) => ({ path: "/api/artifact", headers: ctx.headers(), body: { key: "test-artifact-new", content: "test content" } }))
+    .at((ctx) => ({
+      path: "/api/artifact",
+      headers: ctx.headers(),
+      body: { key: "test-artifact-new", content: "test content" },
+    }))
     .json(200, (body) => {
       object(body)
       check(body.key === "test-artifact-new", "should return stored artifact")
@@ -1748,13 +1797,9 @@ const main = Effect.gen(function* () {
 
   if (options.fromScenario) {
     const name = options.fromScenario
-    const exact = selected.find(
-      (s) => s.name === name || `${s.method} ${s.path}` === name,
-    )
+    const exact = selected.find((s) => s.name === name || `${s.method} ${s.path}` === name)
     if (exact) {
-      console.log(
-        `${color.cyan}--from-scenario: running "${exact.name}" (${exact.method} ${exact.path})${color.reset}`,
-      )
+      console.log(`${color.cyan}--from-scenario: running "${exact.name}" (${exact.method} ${exact.path})${color.reset}`)
     } else {
       console.log(
         `${color.yellow}--from-scenario: no exact match for "${name}", running ${selected.length} matched scenario(s)${color.reset}`,

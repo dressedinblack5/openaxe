@@ -24,6 +24,31 @@ const sourcemapsFlag = process.argv.includes("--sourcemaps")
 const plugin = createSolidTransformPlugin()
 const skipEmbedWebUi = process.argv.includes("--skip-embed-web-ui")
 
+// Patch tiktoken's CJS wasm loader: inside compiled binaries __dirname is a
+// forward-slash bunfs path (B:/~BUN/root/... on win32) while path.sep is "\\",
+// so its separator-based candidate walk collapses → "Missing tiktoken_bg.wasm".
+// The wasm is copied next to every binary below; check there via process.execPath.
+const patchTiktokenLoader: Bun.BunPlugin = {
+  name: "patch-tiktoken-loader",
+  setup(build) {
+    build.onLoad({ filter: /tiktoken[\\/]lite[\\/]tiktoken\.cjs$/ }, async (args) => {
+      const source = await Bun.file(args.path).text()
+      const needle = 'candidates.unshift(path.join(__dirname, "./tiktoken_bg.wasm"));'
+      if (!source.includes(needle)) {
+        console.warn(`  warning: tiktoken loader changed shape, patch skipped: ${args.path}`)
+        return { contents: source, loader: "js" }
+      }
+      const patch = [
+        'if (typeof process !== "undefined" && process.execPath) {',
+        '  candidates.unshift(path.join(path.dirname(process.execPath), "tiktoken_bg.wasm"));',
+        "}",
+        needle,
+      ].join("\n")
+      return { contents: source.replace(needle, patch), loader: "js" }
+    })
+  },
+}
+
 const createEmbeddedWebUIBundle = async () => {
   const appDir = path.join(import.meta.dirname, "../../app")
   if (!fs.existsSync(appDir)) {
@@ -50,6 +75,16 @@ const createEmbeddedWebUIBundle = async () => {
     ...entries,
     `}`,
   ].join("\n")
+}
+
+// Copy tiktoken_bg.wasm for @anthropic-ai/tokenizer (used by token.ts)
+const tiktokenWasmPath = path.resolve(
+  dir,
+  "../../node_modules/.bun/tiktoken@1.0.22/node_modules/tiktoken/lite/tiktoken_bg.wasm",
+)
+const tiktokenWasmDest = path.resolve(dir, "src/tiktoken_bg.wasm")
+if (fs.existsSync(tiktokenWasmPath)) {
+  fs.copyFileSync(tiktokenWasmPath, tiktokenWasmDest)
 }
 
 const embeddedFileMap = skipEmbedWebUi ? null : await createEmbeddedWebUIBundle()
@@ -98,22 +133,17 @@ const allTargets: {
     arch: "x64",
   },
   {
-    os: "darwin",
+    os: "win32",
+    arch: "x64",
+  },
+  {
+    os: "win32",
     arch: "x64",
     avx2: false,
   },
   {
     os: "win32",
     arch: "arm64",
-  },
-  {
-    os: "win32",
-    arch: "x64",
-  },
-  {
-    os: "win32",
-    arch: "x64",
-    avx2: false,
   },
 ]
 
@@ -138,13 +168,32 @@ const targets = singleFlag
     })
   : allTargets
 
+// Filter by TARGETS env var (comma-separated target names like "windows-x64,windows-arm64")
+const targetsEnv = process.env.TARGETS
+if (targetsEnv) {
+  const targetNames = targetsEnv.split(",").map((s) => s.trim())
+  const filtered = targets.filter((t) => {
+    const name = `${t.os}-${t.arch}${t.abi === "musl" ? "-musl" : ""}${t.avx2 === false ? "-baseline" : ""}`.replace(
+      "win32",
+      "windows",
+    )
+    return targetNames.includes(name)
+  })
+  if (filtered.length === 0) {
+    console.error(`No targets matched TARGETS="${targetsEnv}"`)
+    process.exit(1)
+  }
+  targets.splice(0, targets.length, ...filtered)
+}
+
 await $`rm -rf dist`
+await $`mkdir -p ${dir}/bin`
 
 const binaries: Record<string, string> = {}
 if (!skipInstall) {
-  await $`bun install --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
-  await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
-  await $`bun install --os="*" --cpu="*" @ff-labs/fff-bun@${pkg.dependencies["@ff-labs/fff-bun"]}`
+  await $`bun install --linker hoisted --ignore-scripts --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
+  await $`bun install --linker hoisted --ignore-scripts --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
+  await $`bun install --linker hoisted --ignore-scripts --os="*" --cpu="*" @ff-labs/fff-bun@${pkg.dependencies["@ff-labs/fff-bun"]}`
 }
 
 function platformSuffix(item: (typeof allTargets)[number]) {
@@ -169,8 +218,6 @@ function nativeCopyDir(item: (typeof allTargets)[number]) {
   return `dist/${name}/bin`
 }
 
-  const coreEntry =  import.meta.resolve("@opentui/core")
-  const coreDir = new URL(".", coreEntry).href
 for (const item of targets) {
   const name = [
     pkg.name,
@@ -197,7 +244,7 @@ for (const item of targets) {
   await Bun.build({
     conditions: ["bun", "node"],
     tsconfig: "./tsconfig.json",
-    plugins: [plugin],
+    plugins: [plugin, patchTiktokenLoader],
     external: ["node-gyp"],
     format: "esm",
     minify: true,
@@ -210,14 +257,14 @@ for (const item of targets) {
       autoloadPackageJson: true,
       target: name.replace(pkg.name, "bun") as any,
       outfile: `dist/${name}/bin/openaxe`,
-      execArgv: [`--user-agent=openaxe/${Script.version}`, "--use-system-ca", "--"],
+      execArgv: [`--user-agent=openaxe/${pkg.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     files: embeddedFileMap ? { "opencode-web-ui.gen.ts": embeddedFileMap } : {},
     entrypoints: ["./src/index.ts", parserWorker, workerPath, ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : [])],
     define: {
       FFF_LIBC: JSON.stringify(item.abi === "musl" ? "musl" : "gnu"),
-      OPENAXE_VERSION: `'${Script.version}'`,
+      OPENAXE_VERSION: `'${pkg.version}'`,
       OPENCODE_MODELS_DEV: generated.modelsData,
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
       OPENCODE_WORKER_PATH: workerPath,
@@ -241,19 +288,53 @@ for (const item of targets) {
   }
 
   try {
+    const libName = nativeLibName(item.os)
+    // Resolve from hoisted node_modules (same pattern as parser.worker.js);
+    // the bun install cache path is unreliable on Windows (invalid /C:/ prefix,
+    // version-mismatched cache keys).
     const platformPkg = `@opentui/core-${platformSuffix(item)}`
-    const pkgEntry =  import.meta.resolve(platformPkg, coreDir)
-    const pkgRoot = new URL(".", pkgEntry).href
-    const src = new URL(nativeLibName(item.os), pkgRoot)
-    const dst = `${nativeCopyDir(item)}/${nativeLibName(item.os)}`
-    await $`cp ${src.pathname} ${dst}`
+    const localLib = path.resolve(dir, `node_modules/${platformPkg}/${libName}`)
+    const rootLib = path.resolve(dir, `../../node_modules/${platformPkg}/${libName}`)
+    const src = fs.realpathSync(fs.existsSync(localLib) ? localLib : rootLib)
+    const dst = `${nativeCopyDir(item)}/${libName}`
+    await $`cp ${src} ${dst}`
     // Copy alongside the repo's bin/openaxe so bun link global install
     // and dist installations both find libopentui.so via process.execPath.
     if (item.os === process.platform && item.arch === process.arch && !item.abi) {
-      await $`cp ${src.pathname} ${dir}/bin/${nativeLibName(item.os)}`
+      await $`cp ${src} ${dir}/bin/${libName}`
     }
   } catch {
     console.warn(`  warning: could not copy native lib for ${name}`)
+  }
+
+  // Copy tiktoken_bg.wasm next to binary for @anthropic-ai/tokenizer
+  try {
+    const wasmSrc = path.resolve(dir, "src/tiktoken_bg.wasm")
+    const wasmDst = `${nativeCopyDir(item)}/tiktoken_bg.wasm`
+    if (fs.existsSync(wasmSrc)) {
+      await $`cp ${wasmSrc} ${wasmDst}`
+      if (item.os === process.platform && item.arch === process.arch && !item.abi) {
+        await $`cp ${wasmSrc} ${dir}/bin/tiktoken_bg.wasm`
+      }
+    }
+  } catch {
+    console.warn(`  warning: could not copy tiktoken_bg.wasm for ${name}`)
+  }
+
+  // Copy vec0 native extension next to binary for sqlite-vec embeddings; the
+  // compiled binary resolves it via process.execPath (see core vec.ts).
+  try {
+    const vec0Name = item.os === "win32" ? "vec0.dll" : item.os === "darwin" ? "vec0.dylib" : "vec0.so"
+    const platformPkg = `sqlite-vec-${item.os === "win32" ? "windows" : item.os}-${item.arch}`
+    const localVec = path.resolve(dir, `node_modules/${platformPkg}/${vec0Name}`)
+    const rootVec = path.resolve(dir, `../../node_modules/${platformPkg}/${vec0Name}`)
+    const src = fs.realpathSync(fs.existsSync(localVec) ? localVec : rootVec)
+    await $`cp ${src} ${nativeCopyDir(item)}/${vec0Name}`
+    if (item.os === process.platform && item.arch === process.arch && !item.abi) {
+      await $`cp ${src} ${dir}/bin/${vec0Name}`
+    }
+  } catch {
+    console.warn(`  warning: could not copy vec0 for ${name}`)
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`
@@ -261,7 +342,7 @@ for (const item of targets) {
     JSON.stringify(
       {
         name,
-        version: Script.version,
+        version: pkg.version,
         preferUnplugged: true,
         os: [item.os],
         cpu: [item.arch],
@@ -271,19 +352,23 @@ for (const item of targets) {
       2,
     ),
   )
-  binaries[name] = Script.version
+  binaries[name] = pkg.version
 }
 
 if (Script.release) {
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
       await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}/bin`)
+    } else if (key.includes("windows")) {
+      // `zip` is not available on windows-latest runners; PowerShell is always present.
+      await $`powershell.exe -NoProfile -Command "Compress-Archive -Path * -DestinationPath ../../${key}.zip -Force"`.cwd(
+        `dist/${key}/bin`,
+      )
     } else {
       await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
     }
   }
-  await $`gh release create v${Script.version} --repo ${process.env.GH_REPO} --notes "" --title "v${Script.version}"`.nothrow()
-  await $`gh release upload v${Script.version} ./dist/*.zip ./dist/*.tar.gz --clobber --repo ${process.env.GH_REPO}`
+  // Workflow handles release upload via softprops/action-gh-release and upload-assets job
 }
 
 export { binaries }

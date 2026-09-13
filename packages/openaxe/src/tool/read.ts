@@ -62,11 +62,7 @@ type Metadata = {
   display?: Display
 }
 
-export const ReadTool = define<
-  typeof Parameters,
-  Metadata,
-  FSUtil.Service | Instruction.Service | LSP.Service | Scope.Scope
->(
+export const ReadTool = define(
   "read",
   Effect.gen(function* () {
     const fs = yield* FSUtil.Service
@@ -314,6 +310,7 @@ export const ReadTool = define<
             preview: msg,
             truncated: false,
             loaded: loaded.map((item) => item.filepath),
+            display: undefined as Display | undefined,
           },
           attachments: [
             {

@@ -4,6 +4,7 @@ import {
   isDeprecatedPlugin,
   pluginSource,
   resolvePluginTarget,
+  type PluginAllowlist,
   type PluginKind,
   type PluginPackage,
   type PluginSource,
@@ -85,6 +86,7 @@ function plan(item: ConfigPluginV1.Spec): Plan {
 export async function resolve(
   plan: Plan,
   kind: PluginKind,
+  allowlist?: PluginAllowlist,
 ): Promise<
   | { ok: true; value: Resolved }
   | { ok: false; stage: "missing"; value: Missing }
@@ -93,7 +95,7 @@ export async function resolve(
   // First make sure the plugin exists locally, installing npm plugins on demand.
   let target = ""
   try {
-    target = await resolvePluginTarget(plan.spec)
+    target = await resolvePluginTarget(plan.spec, allowlist)
   } catch (error) {
     return { ok: false as const, stage: "install" as const, error }
   }
@@ -158,6 +160,7 @@ async function attempt<R>(
   finish: ((load: Loaded, origin: ConfigPlugin.Origin, retry: boolean) => Promise<R | undefined>) | undefined,
   missing: ((value: Missing, origin: ConfigPlugin.Origin, retry: boolean) => Promise<R | undefined>) | undefined,
   report: Report | undefined,
+  allowlist?: PluginAllowlist,
 ): Promise<AttemptResult<R>> {
   const plan = candidate.plan
   const filePlugin = pluginSource(plan.spec) === "file"
@@ -167,7 +170,7 @@ async function attempt<R>(
 
   report?.start?.(candidate, retry)
 
-  const resolved = await resolve(plan, kind)
+  const resolved = await resolve(plan, kind, allowlist)
   if (!resolved.ok) {
     if (resolved.stage === "missing") {
       // Missing entrypoints are handled separately so callers can still inspect package metadata,
@@ -210,12 +213,12 @@ type Input<R> = {
 // If `wait` is provided, file-based plugins with retryable pre-import setup failures are retried
 // once after the caller finishes preparing dependencies. Once dynamic import runs, failures are
 // treated as permanent for this process because Bun caches failed module resolution.
-export async function loadExternal<R = Loaded>(input: Input<R>): Promise<R[]> {
+export async function loadExternal<R = Loaded>(input: Input<R> & { allowlist?: PluginAllowlist }): Promise<R[]> {
   const candidates = input.items.map((origin) => ({ origin, plan: plan(origin.spec) }))
 
   // Phase 1: Initial attempt for all candidates in parallel
   const out = await Promise.all(
-    candidates.map((candidate) => attempt(candidate, input.kind, false, input.finish, input.missing, input.report)),
+    candidates.map((candidate) => attempt(candidate, input.kind, false, input.finish, input.missing, input.report, input.allowlist)),
   )
 
   if (input.wait) {
@@ -230,7 +233,7 @@ export async function loadExternal<R = Loaded>(input: Input<R>): Promise<R[]> {
       if (!candidate || pluginSource(candidate.plan.spec) !== "file") continue
       deps ??= input.wait()
       await deps
-      out[i] = await attempt(candidate, input.kind, true, input.finish, input.missing, input.report)
+      out[i] = await attempt(candidate, input.kind, true, input.finish, input.missing, input.report, input.allowlist)
     }
   }
 

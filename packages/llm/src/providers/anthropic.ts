@@ -2,7 +2,7 @@ import type { RouteDefaultsInput } from "../route/client"
 import { Auth } from "../route/auth"
 import type { ProviderAuthOption } from "../route/auth-options"
 import { ProviderID, type ModelID } from "../schema"
-import { route } from "../protocols/anthropic-messages";
+import { route } from "../protocols/anthropic-messages"
 export const id = ProviderID.make("anthropic")
 
 export const routes = [route]

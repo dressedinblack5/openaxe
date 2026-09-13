@@ -21,6 +21,7 @@ import { State } from "./state"
 import { Identifier } from "./util/identifier"
 import { EventV2 } from "./event"
 import { IntegrationConnection } from "./integration/connection"
+import { makeTaggedError } from "./error"
 
 export const ID = Integration.ID
 export type ID = Integration.ID
@@ -126,15 +127,30 @@ export const AttemptStatus = Schema.Union([
 ]).pipe(Schema.toTaggedUnion("status"))
 export type AttemptStatus = typeof AttemptStatus.Type
 
-export class CodeRequiredError extends Schema.TaggedErrorClass<CodeRequiredError>()("Integration.CodeRequired", {
+export const CodeRequiredError = makeTaggedError("Integration.CodeRequired", {
   attemptID: AttemptID,
-}) {}
+})
 
-export class AuthorizationError extends Schema.TaggedErrorClass<AuthorizationError>()("Integration.Authorization", {
-  cause: Schema.Defect(),
-}) {}
+export const AuthorizationError = makeTaggedError("Integration.Authorization", {
+  cause: undefined as unknown,
+})
 
-export type Error = CodeRequiredError | AuthorizationError
+export type CodeRequiredError = ReturnType<typeof CodeRequiredError.make>
+export type AuthorizationError = ReturnType<typeof AuthorizationError.make>
+
+/**
+ * Integration error types - use a single discriminated union type to avoid TypeScript `any` inference
+ */
+export type IntegrationError =
+  | { readonly _tag: "Integration.CodeRequired"; readonly attemptID: AttemptID }
+  | { readonly _tag: "Integration.Authorization"; readonly cause: unknown }
+
+export const IntegrationError = {
+  CodeRequired: (attemptID: AttemptID): IntegrationError => ({ _tag: "Integration.CodeRequired", attemptID }),
+  Authorization: (cause: unknown): IntegrationError => ({ _tag: "Integration.Authorization", cause }),
+}
+
+export type Error = IntegrationError
 
 export const Event = Integration.Event
 
@@ -213,7 +229,7 @@ export interface Interface extends State.Transformable<Draft> {
       readonly attemptID: AttemptID
       /** Authorization code required by attempts in code mode. */
       readonly code?: string
-    }) => Effect.Effect<void, CodeRequiredError | AuthorizationError>
+    }) => Effect.Effect<void, IntegrationError>
     /** Cancels an attempt and releases its resources. */
     readonly cancel: (attemptID: AttemptID) => Effect.Effect<void>
   }
@@ -292,6 +308,7 @@ export const locationLayer = Layer.effect(
             if (implementation.method.type === "oauth") {
               current.implementations.set(
                 implementation.method.id,
+                // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- DeepMutable is a compile-time transform of the frozen implementation type.
                 implementation as Types.DeepMutable<OAuthImplementation>,
               )
             }
@@ -336,14 +353,19 @@ export const locationLayer = Layer.effect(
       })
 
     const authorize = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-      effect.pipe(Effect.mapError((cause) => new AuthorizationError({ cause })))
+      effect.pipe(Effect.mapError((cause) => AuthorizationError.make({ cause })))
+
+    const authorizeIntegration = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+      effect.pipe(Effect.mapError((cause) => IntegrationError.Authorization(cause)))
 
     const close = (attemptScope: Scope.Closeable) =>
       Scope.close(attemptScope, Exit.void).pipe(Effect.forkIn(scope, { startImmediately: true }), Effect.asVoid)
 
     const message = (cause: Cause.Cause<unknown>) => {
       const error = Cause.squash(cause)
-      return error instanceof Error ? error.message : String(error)
+      return error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : String(error)
     }
 
     const settle = Effect.fnUntraced(function* (attemptID: AttemptID, exit: Exit.Exit<Credential.OAuth, unknown>) {
@@ -441,6 +463,7 @@ export const locationLayer = Layer.effect(
           })
           yield* events.publish(Event.ConnectionUpdated, { integrationID: input.integrationID })
           yield* events.publish(Event.Updated, {})
+          return undefined
         }),
         oauth: Effect.fn("Integration.connection.oauth")(function* (input) {
           const method = state.get().integrations.get(input.integrationID)?.implementations.get(input.methodID)
@@ -516,18 +539,21 @@ export const locationLayer = Layer.effect(
             return [match, new Map(current).set(input.attemptID, { ...match, completing: true })]
           })
           if (!attempt) return yield* Effect.die(`OAuth attempt not found: ${input.attemptID}`)
-          if (attempt.status !== "pending") return
+          if (attempt.status !== "pending") return void 0
           if (attempt.authorization.mode === "code" && input.code === undefined) {
-            return yield* new CodeRequiredError({ attemptID: input.attemptID })
+            return yield* Effect.fail(IntegrationError.CodeRequired(input.attemptID))
           }
           if (attempt.completing) return yield* Effect.die(`OAuth attempt already completing: ${input.attemptID}`)
           const callback =
             attempt.authorization.mode === "auto"
               ? attempt.authorization.callback
-              : attempt.authorization.callback(input.code!)
-          const exit = yield* authorize(callback).pipe(Effect.exit)
+              : // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- manual (non-auto) mode completion guarantees the code is present by protocol.
+                attempt.authorization.callback(input.code!)
+          const exit = yield* authorizeIntegration(callback).pipe(Effect.exit)
           yield* settle(input.attemptID, exit)
-          if (Exit.isFailure(exit)) return yield* exit
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- authorizeIntegration only fails with IntegrationError
+          if (Exit.isFailure(exit)) return yield* Effect.fail(Cause.squash(exit.cause) as IntegrationError)
+          return void 0
         }),
         cancel: Effect.fn("Integration.attempt.cancel")(function* (attemptID) {
           const attempt = yield* SynchronizedRef.modify(attempts, (current) => {

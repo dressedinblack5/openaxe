@@ -37,17 +37,17 @@ already-loaded config until then.
 
 ## Where files live
 
-| Scope                         | Path                                                                                                                      |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Scope                         | Path                                                                                                                 |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Project config                | `./openaxe.json`, `./openaxe.jsonc`, or `.openaxe/openaxe.json` (openaxe walks up from the cwd to the worktree root) |
-| Global config                 | `~/.config/openaxe/openaxe.json` (NOT `~/.openaxe/`)                                                                   |
-| Project agents                | `.openaxe/agent/<name>.md` or `.openaxe/agents/<name>.md`                                                               |
-| Global agents                 | `~/.config/openaxe/agent(s)/<name>.md`                                                                                   |
-| Project commands              | `.openaxe/command/<name>.md` or `.openaxe/commands/<name>.md`                                                           |
-| Global commands               | `~/.config/openaxe/command(s)/<name>.md`                                                                                 |
-| Project skills                | `.openaxe/skill(s)/<name>/SKILL.md`                                                                                      |
-| Global skills                 | `~/.config/openaxe/skill(s)/<name>/SKILL.md`                                                                             |
-| External skills (auto-loaded) | `~/.claude/skills/<name>/SKILL.md`, `~/.agents/skills/<name>/SKILL.md`                                                    |
+| Global config                 | `~/.config/openaxe/openaxe.json` (NOT `~/.openaxe/`)                                                                 |
+| Project agents                | `.openaxe/agent/<name>.md` or `.openaxe/agents/<name>.md`                                                            |
+| Global agents                 | `~/.config/openaxe/agent(s)/<name>.md`                                                                               |
+| Project commands              | `.openaxe/command/<name>.md` or `.openaxe/commands/<name>.md`                                                        |
+| Global commands               | `~/.config/openaxe/command(s)/<name>.md`                                                                             |
+| Project skills                | `.openaxe/skill(s)/<name>/SKILL.md`                                                                                  |
+| Global skills                 | `~/.config/openaxe/skill(s)/<name>/SKILL.md`                                                                         |
+| External skills (auto-loaded) | `~/.claude/skills/<name>/SKILL.md`, `~/.agents/skills/<name>/SKILL.md`                                               |
 
 Configs from each scope are deep-merged. Project overrides global. Unknown
 top-level keys in `openaxe.json` are rejected with `ConfigInvalidError`.

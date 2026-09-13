@@ -19,8 +19,8 @@ const decode = Schema.decodeUnknownSync(Config.Info)
 describe("ConfigCommandPlugin.Plugin", () => {
   it.live("loads inline and file-based commands in config order", () =>
     Effect.acquireRelease(
-      Effect.promise( async () => tmpdir()),
-      (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+      Effect.promise(async () => tmpdir()),
+      (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {

@@ -3,10 +3,13 @@ import { describe, expect, test } from "bun:test"
 import { RGBA } from "@opentui/core"
 import { testRender } from "@opentui/solid"
 import type { JSX } from "solid-js"
+import { mkdir } from "node:fs/promises"
+import path from "node:path"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
 import { KVProvider } from "../../../src/context/kv"
 import { ThemeProvider } from "../../../src/context/theme"
 import { TuiConfigProvider } from "../../../src/config"
+import { ToastProvider } from "../../../src/ui/toast"
 import { DiffViewerFileTree } from "../../../src/feature-plugins/system/diff-viewer-file-tree"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import {
@@ -25,6 +28,10 @@ const theme = {
   textMuted: RGBA.fromHex("#888888"),
   error: RGBA.fromHex("#ff0000"),
 }
+
+const state = "/tmp/openaxe/state"
+await mkdir(state, { recursive: true })
+await Bun.write(path.join(state, "kv.json"), "{}")
 
 describe("DiffViewerFileTree", () => {
   test.skip("renders sorted hierarchical file rows", async () => {
@@ -86,7 +93,8 @@ describe("DiffViewerFileTree", () => {
 
   test("does not render text markers for highlighted rows", async () => {
     const files = [{ file: "src/config/tui.ts" }, { file: "README.md" }]
-    const src = buildFileTree(files).nodes.find((node) => node.kind === "directory" && node.name === "src")!
+    const src = buildFileTree(files).nodes.find((node) => node.kind === "directory" && node.name === "src")
+    if (!src) throw new Error("src directory not found")
 
     const focused = visibleLines(
       await renderFrame(() => (
@@ -116,7 +124,8 @@ describe("DiffViewerFileTree", () => {
   test("renders collapsed and expanded directory rows", async () => {
     const files = [{ file: "src/config/tui.ts" }, { file: "README.md" }]
     const tree = buildFileTree(files)
-    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")!
+    const src = tree.nodes.find((node) => node.kind === "directory" && node.name === "src")
+    if (!src) throw new Error("src directory not found")
     const collapsed = allExpandedFileTreeDirectories(tree)
     collapsed.delete(src.id)
 
@@ -183,7 +192,9 @@ function withTheme(component: () => JSX.Element) {
     <TestTuiContexts>
       <TuiConfigProvider config={createTuiResolvedConfig()}>
         <KVProvider>
-          <ThemeProvider mode="dark">{component()}</ThemeProvider>
+          <ToastProvider>
+            <ThemeProvider mode="dark">{component()}</ThemeProvider>
+          </ToastProvider>
         </KVProvider>
       </TuiConfigProvider>
     </TestTuiContexts>

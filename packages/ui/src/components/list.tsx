@@ -12,6 +12,7 @@ function findByKey(container: HTMLElement, key: string): HTMLElement | undefined
   for (const node of nodes) {
     if (node.getAttribute("data-key") === key) return node
   }
+  return undefined
 }
 
 export interface ListSearchProps {

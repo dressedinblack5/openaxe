@@ -1,11 +1,28 @@
-import { PermissionV1 } from "@opencode-ai/core/v1/permission"
+import type { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Effect, Schema } from "effect"
-import { SessionV1 } from "@opencode-ai/core/v1/session"
+import type { SessionV1 } from "@opencode-ai/core/v1/session"
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import type { SessionID, MessageID } from "../session/schema"
 import type { Interface } from "./truncate"
 import { Service } from "./truncate"
 import { Agent } from "@/agent/agent"
+import type { RuntimeFlags } from "@/effect/runtime-flags"
+import type { ProviderV2 } from "@opencode-ai/core/provider"
+import type { ModelV2 } from "@opencode-ai/core/model"
+
+/**
+ * Judged at registry build time with only `flags`, then again per-model in
+ * `tools()`. Predicates must tolerate the narrower form.
+ */
+export interface Availability {
+  flags: RuntimeFlags.Info
+  providerID?: ProviderV2.ID
+  modelID?: ModelV2.ID
+}
+
+export interface Descriptor {
+  available: (input: Availability) => boolean
+}
 
 interface Metadata {
   [key: string]: any
@@ -58,6 +75,12 @@ export interface Def<
   jsonSchema?: JSONSchema7
   execute(args: Schema.Schema.Type<Parameters>, ctx: Context): Effect.Effect<ExecuteResult<M>>
   formatValidationError?(error: unknown): string
+  /**
+   * Appends caller-specific text to the tool's description when the registry
+   * builds the per-model tool map. Runs after the `tool.definition` plugin
+   * hook, so plugins see only the base description.
+   */
+  describe?(agent: Agent.Info): Effect.Effect<string>
 }
 export type DefWithoutID<
   Parameters extends Schema.Decoder<unknown> = Schema.Decoder<unknown>,
@@ -73,8 +96,7 @@ export interface Info<
 }
 
 type Init<Parameters extends Schema.Decoder<unknown>, M extends Metadata> =
-  | DefWithoutID<Parameters, M>
-  | (() => Effect.Effect<DefWithoutID<Parameters, M>>)
+  DefWithoutID<Parameters, M> | (() => Effect.Effect<DefWithoutID<Parameters, M>>)
 
 export type InferParameters<T> =
   T extends Info<infer P, any>
@@ -152,7 +174,8 @@ export function define<
 >(
   id: ID,
   init: Effect.Effect<Init<Parameters, Result>, never, R>,
-): Effect.Effect<Info<Parameters, Result>, never, R | Service | Agent.Service> & { id: ID } {
+  descriptor?: Partial<Descriptor>,
+): (Effect.Effect<Info<Parameters, Result>, never, R | Service | Agent.Service> & { id: ID }) & Partial<Descriptor> {
   return Object.assign(
     Effect.gen(function* () {
       const resolved = yield* init
@@ -161,6 +184,7 @@ export function define<
       return { id, init: wrap(id, resolved, truncate, agents) }
     }),
     { id },
+    descriptor,
   )
 }
 

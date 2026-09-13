@@ -38,7 +38,8 @@ const expectToolResult = (body: AnthropicMessages.AnthropicMessagesBody): Anthro
     .flatMap((message) => (message.role === "user" ? message.content : []))
     .find((block): block is AnthropicToolResult => block.type === "tool_result")
   expect(result).toBeDefined()
-  return result!
+  if (!result) throw new Error("expected a tool_result block in user content")
+  return result
 }
 
 describe("Anthropic Messages route", () => {
@@ -729,7 +730,7 @@ describe("Anthropic Messages route", () => {
           dynamicResponse((input) =>
             Effect.gen(function* () {
               const web = yield* HttpClientRequest.toWeb(input.request).pipe(Effect.orDie)
-              expect(yield* Effect.promise( async () => web.json())).toMatchObject({
+              expect(yield* Effect.promise(async () => web.json())).toMatchObject({
                 messages: [
                   {
                     role: "user",

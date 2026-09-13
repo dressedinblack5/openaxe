@@ -65,15 +65,14 @@ const inputDelta = (tool: PendingTool, text: string) =>
 
 const toolCall = (route: string, tool: PendingTool, inputOverride?: string) =>
   parseToolInput(route, tool.name, inputOverride ?? tool.input).pipe(
-    Effect.map(
-      (input): ToolCall =>
-        LLMEvent.toolCall({
-          id: tool.id,
-          name: tool.name,
-          input,
-          providerExecuted: tool.providerExecuted ? true : undefined,
-          providerMetadata: tool.providerMetadata,
-        }),
+    Effect.map((input): ToolCall =>
+      LLMEvent.toolCall({
+        id: tool.id,
+        name: tool.name,
+        input,
+        providerExecuted: tool.providerExecuted ? true : undefined,
+        providerMetadata: tool.providerMetadata,
+      }),
     ),
   )
 

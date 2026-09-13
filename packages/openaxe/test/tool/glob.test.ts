@@ -68,8 +68,6 @@ const _githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>
       }),
   )
 
-
-
 describe("tool.glob", () => {
   it.instance("matches files from a directory path", () =>
     Effect.gen(function* () {

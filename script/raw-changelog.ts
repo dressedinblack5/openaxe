@@ -15,7 +15,6 @@ type Commit = {
   areas: Set<string>
 }
 
-type User = Map<string, Set<string>>
 type Diff = {
   sha: string
   login: string | null
@@ -31,16 +30,6 @@ const team = [
     .then((x) => x.filter((x) => x && !x.startsWith("#")))),
   ...bot,
 ]
-const order = ["Core", "TUI", "CLI", "SDK", "Extensions"] as const
-const sections = {
-  core: "Core",
-  tui: "TUI",
-  cli: "CLI",
-  sdk: "SDK",
-  plugin: "SDK",
-  "extensions/vscode": "Extensions",
-  github: "Extensions",
-} as const
 
 function ref(input: string) {
   if (input === "HEAD") return input
@@ -50,8 +39,8 @@ function ref(input: string) {
 }
 
 async function latest() {
-  const data = await $`gh api "/repos/${repo}/releases?per_page=100"`.json()
-  const release = (data as Release[]).find((item) => !item.draft)
+  const data: Release[] = await $`gh api "/repos/${repo}/releases?per_page=100"`.json()
+  const release = data.find((item) => !item.draft)
   if (!release) throw new Error("No releases found")
   return release.tag_name.replace(/^v/, "")
 }
@@ -64,25 +53,15 @@ async function diff(base: string, head: string) {
     const batch = text
       .split("\n")
       .filter(Boolean)
-      .map((line) => JSON.parse(line) as Diff)
+      .map((line) => {
+        const parsed: Diff = JSON.parse(line)
+        return parsed
+      })
     if (batch.length === 0) break
     list.push(...batch)
     if (batch.length < 100) break
   }
   return list
-}
-
-function section(areas: Set<string>) {
-  const priority = ["core", "tui", "cli", "sdk", "plugin", "extensions/vscode", "github"]
-  for (const area of priority) {
-    if (areas.has(area)) return sections[area as keyof typeof sections]
-  }
-  return "Core"
-}
-
-function type(message: string) {
-  if (message.match(/fix/i)) return "Bugfixes"
-  return "Improvements"
 }
 
 function reverted(commits: Commit[]) {
@@ -91,7 +70,8 @@ function reverted(commits: Commit[]) {
   for (const commit of commits) {
     const match = commit.message.match(/^Revert "(.+)"$/)
     if (match) {
-      const msg = match[1]!
+      const msg = match[1]
+      if (msg === undefined) continue
       if (seen.has(msg)) seen.delete(msg)
       else seen.set(commit.message, commit)
       continue
@@ -127,13 +107,22 @@ async function commits(from: string, to: string) {
     if (!item) continue
     if (item.message.match(/^(ignore:|test:|chore:|ci:|release:)/i)) continue
 
-    const diff = await $`git diff-tree --no-commit-id --name-only -r ${hash}`.text()
+    const diffOutput = await $`git diff-tree --no-commit-id --name-only -r ${hash}`.text()
     const areas = new Set<string>()
 
-    for (const file of diff.split("\n").filter(Boolean)) {
+    for (const file of diffOutput.split("\n").filter(Boolean)) {
       if (file.startsWith("packages/tui/") || file.startsWith("packages/ui/")) areas.add("tui")
       else if (file.startsWith("packages/openaxe/") || file.startsWith("packages/cli/")) areas.add("cli")
-      else if (file.startsWith("packages/core/") || file.startsWith("packages/llm/") || file.startsWith("packages/schema/") || file.startsWith("packages/effect-drizzle-sqlite/") || file.startsWith("packages/server/") || file.startsWith("packages/http-recorder/") || file.startsWith("packages/script/")) areas.add("core")
+      else if (
+        file.startsWith("packages/core/") ||
+        file.startsWith("packages/llm/") ||
+        file.startsWith("packages/schema/") ||
+        file.startsWith("packages/effect-drizzle-sqlite/") ||
+        file.startsWith("packages/server/") ||
+        file.startsWith("packages/http-recorder/") ||
+        file.startsWith("packages/script/")
+      )
+        areas.add("core")
       else if (file.startsWith("packages/sdk/") || file.startsWith("packages/plugin/")) areas.add("sdk")
       else if (file.startsWith(".github/")) areas.add("github")
     }
@@ -155,26 +144,30 @@ async function contributors(from: string, to: string) {
   const base = ref(from)
   const head = ref(to)
 
-  const users: User = new Map()
+  const users: Map<string, Set<string>> = new Map()
   for (const item of await diff(base, head)) {
     const title = item.message.split("\n")[0] ?? ""
     if (!item.login || team.includes(item.login)) continue
     if (title.match(/^(ignore:|test:|chore:|ci:|release:)/i)) continue
-    if (!users.has(item.login)) users.set(item.login, new Set())
-    users.get(item.login)!.add(title)
+    let titles = users.get(item.login)
+    if (titles === undefined) {
+      titles = new Set()
+      users.set(item.login, titles)
+    }
+    titles.add(title)
   }
 
   return users
 }
 
 async function published(to: string) {
-  if (to === "HEAD") return
+  if (to === "HEAD") return undefined
   const body = await $`gh release view ${ref(to)} --repo ${repo} --json body --jq .body`.text().catch(() => "")
-  if (!body) return
+  if (!body) return undefined
 
   const lines = body.split(/\r?\n/)
   const start = lines.findIndex((line) => line.startsWith("**Thank you to "))
-  if (start < 0) return
+  if (start < 0) return undefined
   return lines.slice(start).join("\n").trim()
 }
 
@@ -194,46 +187,63 @@ async function thanks(from: string, to: string, reuse: boolean) {
 }
 
 function format(from: string, to: string, list: Commit[], thanks: string[]) {
-  const grouped = new Map<string, Map<string, string[]>>()
-  for (const title of order) {
-    grouped.set(
-      title,
-      new Map([
-        ["Improvements", []],
-        ["Bugfixes", []],
-      ]),
-    )
-  }
+  const typeOrder = ["feat", "fix", "perf", "refactor", "chore"] as const
+  const grouped = new Map<string, string[]>()
+  for (const t of typeOrder) grouped.set(t, [])
 
   for (const commit of list) {
+    const match = commit.message.match(/^(feat|fix|perf|refactor|chore|docs)(\([^)]+\))?: (.+)/)
+    if (!match) continue
+    const [, type, , message] = match
+    if (!typeOrder.includes(type)) continue
     const attr = commit.author && !team.includes(commit.author) ? ` (@${commit.author})` : ""
-    grouped.get(section(commit.areas))!.get(type(commit.message))!.push(`- \`${commit.hash}\` ${commit.message}${attr}`)
+    const entries = grouped.get(type)
+    if (entries)
+      entries.push(
+        `- \`${commit.hash}\` ${type}(${commit.message.split("(")[1]?.split(")")[0] ?? "openaxe"}): ${message}${attr}`,
+      )
   }
 
-  const lines = [`Last release: ${ref(from)}`, `Target ref: ${to}`, ""]
+  const lines = ["## What's Changed", ""]
 
-  if (list.length === 0) {
+  let hasContent = false
+  const emojiMap = {
+    feat: "🚀 Features",
+    fix: "🐛 Fixes",
+    perf: "⚡ Performance",
+    refactor: "🧹 Chore & Refactor",
+    chore: "🧹 Chore & Refactor",
+  } as const
+  const seenEmoji = new Set<string>()
+  for (const type of ["feat", "fix", "perf", "refactor", "chore"] as const) {
+    const entries = grouped.get(type) ?? []
+    if (entries.length === 0) continue
+    const emoji = emojiMap[type]
+    if (seenEmoji.has(emoji)) continue
+    seenEmoji.add(emoji)
+    hasContent = true
+    lines.push(`### ${emoji}`)
+    // Collect all entries for this emoji
+    const allEntries = ["feat", "fix", "perf", "refactor", "chore"]
+      .filter(
+        (t) =>
+          (
+            ({
+              feat: "🚀 Features",
+              fix: "🐛 Fixes",
+              perf: "⚡ Performance",
+              refactor: "🧹 Chore & Refactor",
+              chore: "🧹 Chore & Refactor",
+            }) as const
+          )[t] === emoji,
+      )
+      .flatMap((t) => grouped.get(t) ?? [])
+    lines.push(...allEntries)
+    lines.push("")
+  }
+
+  if (!hasContent) {
     lines.push("No notable changes.")
-  }
-
-  for (const title of order) {
-    const groups = grouped.get(title)
-    if (!groups || [...groups.values()].every((entries) => entries.length === 0)) continue
-    lines.push(`## ${title}`)
-    const improvements = groups.get("Improvements")!
-    const bugfixes = groups.get("Bugfixes")!
-    if (bugfixes.length === 0) {
-      lines.push(...improvements)
-      lines.push("")
-      continue
-    }
-
-    for (const [subtitle, entries] of groups) {
-      if (entries.length === 0) continue
-      lines.push(`### ${subtitle}`)
-      lines.push(...entries)
-      lines.push("")
-    }
   }
 
   if (thanks.length > 0) {

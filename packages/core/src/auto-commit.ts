@@ -10,11 +10,7 @@ type BufferEntry = {
 
 const buffer = new Map<string, BufferEntry>()
 
-export function recordMutation(
-  sessionID: string,
-  filePaths: readonly string[],
-  projectRoot: string,
-): void {
+export function recordMutation(sessionID: string, filePaths: readonly string[], projectRoot: string): void {
   if (filePaths.length === 0) return
   let entry = buffer.get(sessionID)
   if (!entry) {
@@ -39,10 +35,7 @@ export const commitTurn = Effect.fn("AutoCommit.commitTurn")(function* (sessionI
 
   const cwd = entry.cwd
   const files = Array.from(entry.paths)
-  const summary =
-    files.length <= 5
-      ? files.join(", ")
-      : `${files.slice(0, 5).join(", ")} +${files.length - 5} more`
+  const summary = files.length <= 5 ? files.join(", ") : `${files.slice(0, 5).join(", ")} +${files.length - 5} more`
 
   // If git fails (not a repo, nothing to commit, etc.) — silently skip
   yield* runGit(cwd, ["add", "-A"])

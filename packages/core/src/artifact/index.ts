@@ -104,9 +104,9 @@ export const layer = (baseDir: string, threshold: number = DEFAULT_TRUNCATION_TH
           Effect.mapError((cause) => new StorageError({ operation: "read", cause })),
         )
         const dir = path.join(baseDir, key)
-        yield* fs.makeDirectory(dir, { recursive: true }).pipe(
-          Effect.mapError((cause) => new StorageError({ operation: "store", cause })),
-        )
+        yield* fs
+          .makeDirectory(dir, { recursive: true })
+          .pipe(Effect.mapError((cause) => new StorageError({ operation: "store", cause })))
 
         const size = Buffer.byteLength(content, "utf-8")
         const truncated = size > threshold
@@ -119,18 +119,18 @@ export const layer = (baseDir: string, threshold: number = DEFAULT_TRUNCATION_TH
           storedContent = takePrefix(content, threshold)
           ovPath = `${version}.overflow`
 
-          yield* fs.writeFileString(contentFile(baseDir, key, version), storedContent).pipe(
-            Effect.mapError((cause) => new StorageError({ operation: "store", cause })),
-          )
+          yield* fs
+            .writeFileString(contentFile(baseDir, key, version), storedContent)
+            .pipe(Effect.mapError((cause) => new StorageError({ operation: "store", cause })))
           const remaining = content.slice(storedContent.length)
-          yield* fs.writeFileString(overflowFile(baseDir, key, version), remaining).pipe(
-            Effect.mapError((cause) => new StorageError({ operation: "store", cause })),
-          )
+          yield* fs
+            .writeFileString(overflowFile(baseDir, key, version), remaining)
+            .pipe(Effect.mapError((cause) => new StorageError({ operation: "store", cause })))
         } else {
           storedContent = content
-          yield* fs.writeFileString(contentFile(baseDir, key, version), content).pipe(
-            Effect.mapError((cause) => new StorageError({ operation: "store", cause })),
-          )
+          yield* fs
+            .writeFileString(contentFile(baseDir, key, version), content)
+            .pipe(Effect.mapError((cause) => new StorageError({ operation: "store", cause })))
         }
 
         const meta: Meta = {
@@ -141,9 +141,9 @@ export const layer = (baseDir: string, threshold: number = DEFAULT_TRUNCATION_TH
           time_created: timeCreated,
           ...(ovPath ? { overflow_path: ovPath } : {}),
         }
-        yield* fs.writeFileString(metaFile(baseDir, key, version), JSON.stringify(meta)).pipe(
-          Effect.mapError((cause) => new StorageError({ operation: "store", cause })),
-        )
+        yield* fs
+          .writeFileString(metaFile(baseDir, key, version), JSON.stringify(meta))
+          .pipe(Effect.mapError((cause) => new StorageError({ operation: "store", cause })))
 
         return {
           key,
@@ -200,9 +200,7 @@ export const layer = (baseDir: string, threshold: number = DEFAULT_TRUNCATION_TH
         if (!baseExists) return []
 
         const keys = yield* catchFs(fs.readDirectory(baseDir), [])
-        const filtered = keyPrefix
-          ? keys.filter((k) => k.startsWith(keyPrefix))
-          : keys
+        const filtered = keyPrefix ? keys.filter((k) => k.startsWith(keyPrefix)) : keys
 
         const summaries: ArtifactSummary[] = []
         for (const entry of filtered) {

@@ -320,7 +320,7 @@ describe("PublicApi OpenAPI v2 errors", () => {
       spec.paths["/pty/{ptyID}/connect"]?.get?.parameters
         ?.filter((parameter) => parameter.in === "query")
         .map((parameter) => parameter.name),
-    ).toEqual(["directory", "workspace", "cursor", "ticket"])
+    ).toEqual(["directory", "workspace", "cursor"])
   })
 
   test("documents project not-found errors", () => {

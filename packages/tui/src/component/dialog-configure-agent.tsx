@@ -47,11 +47,5 @@ export function DialogConfigureAgent() {
     ))
   }
 
-  return (
-    <DialogSelect
-      title="Select agent to configure"
-      options={options()}
-      onSelect={onAgentSelect}
-    />
-  )
+  return <DialogSelect title="Select agent to configure" options={options()} onSelect={onAgentSelect} />
 }

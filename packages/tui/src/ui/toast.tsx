@@ -66,6 +66,7 @@ function init() {
         setStore("currentToast", null)
       }, toastOptions.duration).unref()
     },
+    // oxlint-disable-next-line typescript-eslint/no-explicit-any -- toast error callback receives arbitrary thrown values
     error: (err: any) => {
       if (err instanceof Error)
         return toast.show({

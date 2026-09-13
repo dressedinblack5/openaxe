@@ -36,7 +36,8 @@ const expectToolOutput = (body: OpenAIResponses.OpenAIResponsesBody): OpenAITool
     (item): item is OpenAIToolOutput => "type" in item && item.type === "function_call_output",
   )
   expect(output).toBeDefined()
-  return output!
+  if (!output) throw new Error("expected a function_call_output block in input")
+  return output
 }
 
 describe("OpenAI Responses route", () => {
@@ -924,7 +925,7 @@ describe("OpenAI Responses route", () => {
           dynamicResponse((input) =>
             Effect.gen(function* () {
               const web = yield* HttpClientRequest.toWeb(input.request).pipe(Effect.orDie)
-              expect(yield* Effect.promise( async () => web.json())).toMatchObject({
+              expect(yield* Effect.promise(async () => web.json())).toMatchObject({
                 input: [
                   { role: "user", content: [{ type: "input_text", text: "What changed?" }] },
                   {

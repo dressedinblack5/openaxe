@@ -80,6 +80,7 @@ export const layer = Layer.effect(
           Effect.ensuring(Effect.sync(() => loading.delete(id))),
         ),
       )
+      return undefined
     })
 
     const remove = Effect.fn("Plugin.remove")(function* (id: ID) {
@@ -95,6 +96,7 @@ export const layer = Layer.effect(
           }),
         ),
       )
+      return undefined
     })
 
     const wait = Effect.fn("Plugin.wait")(function* (id: ID) {
@@ -110,7 +112,7 @@ export const layer = Layer.effect(
           return true
         }),
       )
-      if (!pending) return
+      if (!pending) return undefined
       if (typeof pending !== "boolean") return yield* pending
       yield* Deferred.await(waiter).pipe(
         Effect.ensuring(
@@ -123,6 +125,7 @@ export const layer = Layer.effect(
           ),
         ),
       )
+      return undefined
     })
 
     yield* Effect.addFinalizer((exit) =>

@@ -15,7 +15,8 @@ export class FileSystemError extends Schema.TaggedErrorClass<FileSystemError>()(
   cause: Schema.optional(Schema.Defect()),
 }) {
   override get message() {
-    const detail = this.cause instanceof Error ? this.cause.message : this.cause ? `${this.cause}` : undefined
+    const detail =
+      this.cause instanceof Error ? this.cause.message : this.cause ? JSON.stringify(this.cause) : undefined
     return `Filesystem operation failed: ${this.method}${detail !== undefined ? `: ${detail}` : ""}`
   }
 }
@@ -77,12 +78,10 @@ export const layer = Layer.effect(
       return yield* Effect.tryPromise({
         try: async () => {
           const entries = await readdir(dirPath, { withFileTypes: true })
-          return entries.map(
-            (e): DirEntry => ({
-              name: e.name,
-              type: e.isDirectory() ? "directory" : e.isSymbolicLink() ? "symlink" : e.isFile() ? "file" : "other",
-            }),
-          )
+          return entries.map((e): DirEntry => ({
+            name: e.name,
+            type: e.isDirectory() ? "directory" : e.isSymbolicLink() ? "symlink" : e.isFile() ? "file" : "other",
+          }))
         },
         catch: (cause) => new FileSystemError({ method: "readDirectoryEntries", cause }),
       })
@@ -128,7 +127,7 @@ export const layer = Layer.effect(
 
     const glob = Effect.fn("FileSystem.glob")(function* (pattern: string, options?: Glob.Options) {
       return yield* Effect.tryPromise({
-        try:  async () => Glob.scan(pattern, options),
+        try: async () => Glob.scan(pattern, options),
         catch: (cause) => new FileSystemError({ method: "glob", cause }),
       })
     })
@@ -230,8 +229,8 @@ export function resolve(p: string): string {
   const resolved = pathResolve(windowsPath(p))
   try {
     return normalizePath(realpathSync(resolved))
-  } catch (e: any) {
-    if (e?.code === "ENOENT") return normalizePath(resolved)
+  } catch (e) {
+    if (e instanceof Error && "code" in e && e.code === "ENOENT") return normalizePath(resolved)
     throw e
   }
 }

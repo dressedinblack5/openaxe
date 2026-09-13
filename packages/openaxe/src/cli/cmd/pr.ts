@@ -105,7 +105,7 @@ export const PrCommand = effectCmd({
           stdin: "inherit",
           stdout: "inherit",
           stderr: "inherit",
-          cwd: process.cwd(),
+          cwd: process.env.OPENAXE_DIRECTORY ?? process.cwd(),
         }).exited,
     )
     // Match legacy throw semantics — propagate as a defect so the top-level

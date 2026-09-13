@@ -476,6 +476,6 @@ describe("run runtime queue", () => {
     })
 
     ui.submit("one")
-     expect(task).rejects.toThrow("boom")
+    expect(task).rejects.toThrow("boom")
   })
 })

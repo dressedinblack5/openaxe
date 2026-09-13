@@ -86,12 +86,17 @@ describe("plugin.snowflake-cortex", () => {
     // Must mock fetch before calling loader because startup refresh triggers for expires: 0
     const originalFetch = globalThis.fetch
     globalThis.fetch = (async (request, init) => {
-      const url =
-        typeof request === "string" ? request : request instanceof URL ? request.toString() : request.url
+      const url = typeof request === "string" ? request : request instanceof URL ? request.toString() : request.url
 
       if (url.includes("/oauth/token-request")) {
         refreshCalls += 1
-        const body = new URLSearchParams(String(init?.body ?? ""))
+        const body = new URLSearchParams(
+          typeof init?.body === "string"
+            ? init.body
+            : init?.body instanceof URLSearchParams
+              ? init.body.toString()
+              : "",
+        )
         expect(body.get("grant_type")).toBe("refresh_token")
         expect(body.get("refresh_token")).toBe("refresh-old")
         expect(new Headers(init?.headers).get("authorization")).toMatch(/^Basic /)
@@ -155,8 +160,7 @@ describe("plugin.snowflake-cortex", () => {
     const seenAuth: string[] = []
     const originalFetch = globalThis.fetch
     globalThis.fetch = (async (request, init) => {
-      const url =
-        typeof request === "string" ? request : request instanceof URL ? request.toString() : request.url
+      const url = typeof request === "string" ? request : request instanceof URL ? request.toString() : request.url
 
       if (url.includes("/oauth/token-request")) {
         return Response.json({ access_token: "access-fresh", refresh_token: "refresh-fresh", expires_in: 3600 })
@@ -193,7 +197,7 @@ describe("plugin.snowflake-cortex", () => {
 
     let sentBody: string | undefined
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async (request, init) => {
+    globalThis.fetch = (async (_request, init) => {
       sentBody = typeof init?.body === "string" ? init.body : undefined
       return new Response("{}", { status: 200, headers: { "content-type": "application/json" } })
     }) as typeof fetch

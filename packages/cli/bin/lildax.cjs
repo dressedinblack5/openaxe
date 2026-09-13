@@ -25,7 +25,7 @@ function run(target) {
   child.on("exit", (code, signal) => {
     for (const forwardedSignal of forwardedSignals) process.removeListener(forwardedSignal, forwarders[forwardedSignal])
     if (signal) return process.kill(process.pid, signal)
-    process.exit(typeof code === "number" ? code : 0)
+    return process.exit(typeof code === "number" ? code : 0)
   })
 }
 
@@ -113,7 +113,7 @@ function findBinary(startDir) {
         if (fs.existsSync(candidate)) return candidate
       }
     const parent = path.dirname(current)
-    if (parent === current) return
+    if (parent === current) return undefined
     current = parent
   }
 }

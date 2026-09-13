@@ -203,11 +203,7 @@ export class Message extends Schema.Class<Message>("LLM.Message")({
   }
 
   static content(input: MessageContentInput) {
-    return typeof input === "string"
-      ? [Message.text(input)]
-      : Array.isArray(input)
-        ? [...input]
-        : [input]
+    return typeof input === "string" ? [Message.text(input)] : Array.isArray(input) ? [...input] : [input]
   }
 
   static override make(input: Message | MessageInput) {
@@ -262,8 +258,7 @@ export type ToolChoiceMode = Exclude<ToolChoice["type"], "tool">
 
 export type ToolChoiceInput = ToolChoice | ConstructorParameters<typeof ToolChoice>[0] | ToolDefinition | string
 
-const isMode = (value: string): value is ToolChoiceMode =>
-  value === "auto" || value === "none" || value === "required"
+const isMode = (value: string): value is ToolChoiceMode => value === "auto" || value === "none" || value === "required"
 
 export class ToolChoice extends Schema.Class<ToolChoice>("LLM.ToolChoice")({
   type: Schema.Literals(["auto", "none", "required", "tool"]),

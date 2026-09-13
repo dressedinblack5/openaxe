@@ -59,7 +59,7 @@ async function readSnapshot() {
   }
 }
 
-function startDevServer(data: any) {
+function startDevServer(data) {
   const env = Object.fromEntries(Object.entries(data.env ?? {}).filter(([, value]) => value !== undefined))
 
   return Bun.spawn(["bun", "run", "dev", "serve", "--port", String(data.port), "--print-logs"], {
@@ -74,7 +74,7 @@ function startDevServer(data: any) {
   })
 }
 
-async function waitForRestartSignal(mtime: number, signal: AbortSignal) {
+async function waitForRestartSignal(mtime, signal) {
   while (!signal.aborted) {
     await sleep(RESTART_POLL_INTERVAL)
     if (signal.aborted) return false
@@ -90,8 +90,8 @@ while (true) {
   const restartAbort = new AbortController()
 
   const result = await Promise.race([
-    proc.exited.then((code) => ({ type: "exit" as const, code })),
-    waitForRestartSignal(mtime, restartAbort.signal).then((restart) => ({ type: "restart" as const, restart })),
+    proc.exited.then((code) => ({ type: "exit", code })),
+    waitForRestartSignal(mtime, restartAbort.signal).then((restart) => ({ type: "restart", restart })),
   ])
 
   restartAbort.abort()

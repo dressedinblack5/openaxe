@@ -56,7 +56,7 @@ export function isError(error: unknown): error is Error {
 
 export function parse(input: string): Reference | undefined {
   const cleaned = normalizeInput(input)
-  if (!cleaned) return
+  if (!cleaned) return undefined
 
   const githubPrefixed = cleaned.match(/^github:([^/\s]+)\/([^/\s]+)$/)
   if (githubPrefixed) return buildRemote({ host: "github.com", segments: [githubPrefixed[1], githubPrefixed[2]] })
@@ -81,7 +81,7 @@ export function parse(input: string): Reference | undefined {
       protocol: url.protocol,
     })
   } catch {
-    return
+    return undefined
   }
 }
 
@@ -173,7 +173,7 @@ function githubRemote(pathname: string) {
 
 function buildRemote(input: { host: string; segments: string[]; remote?: string; protocol?: string }) {
   const segments = input.segments.map(trimGitSuffix).filter(Boolean)
-  if (!safeHost(input.host) || !segments.length || segments.some((segment) => !safeSegment(segment))) return
+  if (!safeHost(input.host) || !segments.length || segments.some((segment) => !safeSegment(segment))) return undefined
   const repositoryPath = segments.join("/")
   const host = input.host.toLowerCase()
   return {
@@ -192,7 +192,7 @@ function buildRemote(input: { host: string; segments: string[]; remote?: string;
 function buildFile(input: { url: URL; remote: string }) {
   const filePath = path.normalize(fileURLToPath(input.url))
   const segments = filePath.split(/[\\/]+/).filter(Boolean)
-  if (!segments.length) return
+  if (!segments.length) return undefined
   return {
     host: "file",
     path: filePath,

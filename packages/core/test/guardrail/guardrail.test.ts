@@ -5,14 +5,12 @@ import { Guardrail } from "@opencode-ai/core/guardrail"
 import { tmpdir } from "../fixture/tmpdir"
 import { testEffect } from "../lib/effect"
 
-const gw = testEffect(
-  Guardrail.layer.pipe(Layer.provideMerge(NodeFileSystem.layer)),
-)
+const gw = testEffect(Guardrail.layer.pipe(Layer.provideMerge(NodeFileSystem.layer)))
 
 function withTmpDir<A, E, R>(body: (dir: string) => Effect.Effect<A, E, R>) {
   return Effect.acquireRelease(
-    Effect.promise( async () => tmpdir()),
-    (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+    Effect.promise(async () => tmpdir()),
+    (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
   ).pipe(Effect.flatMap((tmp) => body(tmp.path)))
 }
 
@@ -47,9 +45,7 @@ describe("Guardrail", () => {
         const results = yield* guardrail.verify([filePath])
         expect(results).toHaveLength(1)
         expect(results[0].passed).toBe(false)
-        expect(results[0].errors).toEqual([
-          { message: "unclosed brace at end of file" },
-        ])
+        expect(results[0].errors).toEqual([{ message: "unclosed brace at end of file" }])
       }),
     ),
   )
@@ -66,9 +62,7 @@ describe("Guardrail", () => {
         const results = yield* guardrail.verify([filePath])
         expect(results).toHaveLength(1)
         expect(results[0].passed).toBe(false)
-        expect(results[0].errors).toEqual([
-          { message: "unexpected closing bracket", line: 1 },
-        ])
+        expect(results[0].errors).toEqual([{ message: "unexpected closing bracket", line: 1 }])
       }),
     ),
   )
@@ -139,11 +133,7 @@ describe("Guardrail", () => {
           const filePath = `${dir}/comment.ts`
           yield* fs.writeFileString(
             filePath,
-            [
-              "const x = { a: 1 }",
-              "// { unclosed bracket in line comment",
-              "const y = 2",
-            ].join("\n"),
+            ["const x = { a: 1 }", "// { unclosed bracket in line comment", "const y = 2"].join("\n"),
           )
 
           const results = yield* guardrail.verifyStructural([filePath])
@@ -163,11 +153,7 @@ describe("Guardrail", () => {
           const filePath = `${dir}/block.ts`
           yield* fs.writeFileString(
             filePath,
-            [
-              "const x = { a: 1 }",
-              "/* { unclosed bracket in block comment */",
-              "const y = 2",
-            ].join("\n"),
+            ["const x = { a: 1 }", "/* { unclosed bracket in block comment */", "const y = 2"].join("\n"),
           )
 
           const results = yield* guardrail.verifyStructural([filePath])
@@ -320,18 +306,15 @@ describe("Guardrail", () => {
           const filePath = `${dir}/lined.ts`
           yield* fs.writeFileString(
             filePath,
-            [
-              "const a = 1",
-              'import { b } from "./missing"',
-              "const c = 2",
-            ].join("\n"),
+            ["const a = 1", 'import { b } from "./missing"', "const c = 2"].join("\n"),
           )
 
           const results = yield* guardrail.verifyStructural([filePath])
           expect(results).toHaveLength(1)
           const importErr = results[0].errors.find((e) => e.message.includes("./missing"))
           expect(importErr).toBeDefined()
-          expect(importErr!.line).toBe(2)
+          if (!importErr) throw new Error("importErr not found")
+          expect(importErr.line).toBe(2)
         }),
       ),
     )

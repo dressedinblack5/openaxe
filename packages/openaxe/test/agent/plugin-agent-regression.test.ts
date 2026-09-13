@@ -52,15 +52,16 @@ const it = testEffect(Layer.mergeAll(agentLayer, pluginLayer))
 
 // ponytail: Plugin layer init hangs on Windows during scope teardown.
 // Skip until the dynamic import chain is lazy or teardown is signal-safe.
-if (process.platform !== "win32") it.instance(
-  "plugin-registered agents appear in Agent.list",
-  () =>
-    Effect.gen(function* () {
-      yield* Plugin.Service.use((p) => p.init())
-      const agents = yield* Agent.use.list()
-      const added = agents.find((agent) => agent.name === PLUGIN_AGENT.name)
-      expect(added?.description).toBe(PLUGIN_AGENT.description)
-      expect(added?.mode).toBe(PLUGIN_AGENT.mode)
-    }),
-  { config: { plugin: [pluginUrl] } },
-)
+if (process.platform !== "win32")
+  it.instance(
+    "plugin-registered agents appear in Agent.list",
+    () =>
+      Effect.gen(function* () {
+        yield* Plugin.Service.use((p) => p.init())
+        const agents = yield* Agent.use.list()
+        const added = agents.find((agent) => agent.name === PLUGIN_AGENT.name)
+        expect(added?.description).toBe(PLUGIN_AGENT.description)
+        expect(added?.mode).toBe(PLUGIN_AGENT.mode)
+      }),
+    { config: { plugin: [pluginUrl] } },
+  )

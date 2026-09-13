@@ -11,7 +11,6 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { applyEdits, modify } from "jsonc-parser"
-import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Account } from "@/account/account"
 import { isRecord } from "@/util/record"
 import type { ConsoleState } from "@opencode-ai/core/v1/config/console-state"
@@ -38,13 +37,26 @@ import { parsePluginSpecifier } from "@/plugin/shared"
 
 // Default plugins that ship with every openaxe install. They are injected into the
 // loaded config so existing users' stale global configs still pick up new defaults.
-export const BUNDLED_PLUGINS = [
-  "oh-my-openagent",
-  "opencode-plugin-selector",
-  "opencode-vibeguard",
-  "@tarquinen/opencode-dcp",
-  "ecc-universal",
+// Each entry specifies which plugin kind(s) it supports: "server", "tui", or both.
+type PluginKind = "server" | "tui"
+
+interface BundledPlugin {
+  spec: string
+  kinds: readonly PluginKind[]
+}
+
+const BUNDLED_PLUGINS_RAW = [
+  { spec: "oh-my-openagent", kinds: ["server", "tui"] as const },
+  { spec: "opencode-plugin-selector", kinds: ["server"] as const },
+  { spec: "@tarquinen/opencode-dcp", kinds: ["server", "tui"] as const },
+  { spec: "ecc-universal", kinds: ["server"] as const },
+  { spec: "@dietrichgebert/ponytail", kinds: ["tui"] as const },
 ] as const
+
+export const BUNDLED_PLUGINS = BUNDLED_PLUGINS_RAW.map((p) => ({
+  spec: p.spec,
+  kinds: p.kinds as readonly PluginKind[],
+})) as readonly BundledPlugin[]
 
 import { mergeDeep } from "@/util/merge-deep"
 
@@ -64,6 +76,8 @@ function mergeConfigConcatArrays(target: Info, source: Info): Info {
 function normalizeLoadedConfig(data: unknown) {
   if (!isRecord(data)) return data
   const copy = { ...data }
+  // configBoundary is a traversal stop marker consumed by the loader, not a persisted field.
+  delete copy.configBoundary
   const hadLegacy = "theme" in copy || "keybinds" in copy || "tui" in copy
   if (!hadLegacy) return copy
   delete copy.theme
@@ -123,6 +137,9 @@ type Info = ConfigV1.Info & {
   // plugin_origins is derived state, not a persisted config field. It keeps each winning plugin spec together
   // with the file and scope it came from so later runtime code can make location-sensitive decisions.
   plugin_origins?: ConfigPlugin.Origin[]
+  // Transient stop marker set by the loader when a config file declares `configBoundary: true`;
+  // stripped before merging so it never reaches the exposed config.
+  configBoundary?: boolean
 }
 
 type State = {
@@ -170,7 +187,7 @@ function patchJsonc(input: string, patch: unknown, path: string[] = []): string 
 }
 
 function writable(info: Info) {
-  const { plugin_origins: _plugin_origins, ...next } = info
+  const { plugin_origins: _plugin_origins, configBoundary: _configBoundary, ...next } = info
   return next
 }
 
@@ -233,7 +250,14 @@ export const layer = Layer.effect(
         ),
       )
       const parsed = ConfigParse.jsonc(expanded, source)
-      const data = ConfigParse.schema(ConfigV1.Info, normalizeLoadedConfig(parsed), source)
+      const configBoundary = isRecord(parsed) && parsed.configBoundary === true
+      const normalized = normalizeLoadedConfig(parsed)
+      const extraKeys = ConfigParse.topLevelExtraKeys(ConfigV1.Info, normalized)
+      const data = ConfigParse.schema(ConfigV1.Info, normalized, source)
+      if (extraKeys.length) {
+        yield* Effect.logWarning("unrecognized top-level config keys", { source, keys: extraKeys })
+      }
+      if (configBoundary) (data as Info).configBoundary = true
       if (!("path" in options)) return data
 
       yield* Effect.promise(() => resolveLoadedPlugins(data, options.path))
@@ -265,7 +289,29 @@ export const layer = Layer.effect(
             $schema: "https://opencode.ai/config.json",
           }
           if (!disableDefaultPlugins) {
-            defaultConfig.plugin = [...BUNDLED_PLUGINS]
+            defaultConfig.plugin = BUNDLED_PLUGINS.map((p) => p.spec)
+          }
+          defaultConfig.agent = {
+            multimodal: {
+              model: "google/gemini-3.5-flash",
+              mode: "subagent",
+              description: "Analyzes media files (PDFs, images, diagrams) that require interpretation beyond raw text.",
+            },
+            oracle: {
+              model: "google/gemini-3.1-pro",
+              mode: "subagent",
+            },
+          }
+          defaultConfig.mcp = {
+            github: {
+              type: "remote",
+              url: "https://api.githubcopilot.com/mcp/",
+              enabled: true,
+              timeout: 60000,
+              headers: {
+                Authorization: "Bearer {env:GITHUB_TOKEN}",
+              },
+            },
           }
           yield* fs.writeWithDirs(file, JSON.stringify(defaultConfig, null, 2)).pipe(Effect.catch(() => Effect.void))
         }
@@ -291,7 +337,7 @@ export const layer = Layer.effect(
               await fsNode.writeFile(path.join(Global.Path.config, "config.json"), JSON.stringify(result, null, 2))
               await fsNode.unlink(legacy)
             })
-            .catch(() => {}),
+            .catch((err) => Effect.runSync(Effect.logError("legacy config migration failed", { error: String(err) }))),
         )
       }
 
@@ -301,7 +347,8 @@ export const layer = Layer.effect(
         const seen = new Set(
           (result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg),
         )
-        const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
+        const allBundledSpecs = BUNDLED_PLUGINS.map((p) => p.spec)
+        const add = allBundledSpecs.filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
         if (add.length) {
           result.plugin = [...(result.plugin ?? []), ...add]
         }
@@ -378,6 +425,7 @@ export const layer = Layer.effect(
         })
 
         const merge = (source: string, next: Info, kind?: ConfigPlugin.Scope) => {
+          if (next.configBoundary) delete next.configBoundary
           result = mergeConfigConcatArrays(result, next)
           return mergePluginOrigins(source, next.plugin, kind)
         }
@@ -432,9 +480,30 @@ export const layer = Layer.effect(
           yield* Effect.logDebug("loaded custom config", { path: Flag.OPENCODE_CONFIG })
         }
 
+        let boundaryDir: string | undefined
+
         if (!Flag.OPENCODE_DISABLE_PROJECT_CONFIG) {
-          for (const file of yield* ConfigPaths.files("openaxe", ctx.directory, ctx.worktree).pipe(Effect.orDie)) {
-            yield* merge(file, yield* loadFile(file, authEnv), "local")
+          // configBoundary: project config files are merged highest-first, so a file declaring
+          // `configBoundary: true` must drop every file at-or-above its directory; the deepest
+          // boundary wins.
+          const files = yield* ConfigPaths.files("openaxe", ctx.directory, ctx.worktree).pipe(Effect.orDie)
+          // File reads are independent; merges below stay sequential to keep
+          // configBoundary resolution and merge order deterministic.
+          const loaded = yield* Effect.forEach(
+            files,
+            (file) => loadFile(file, authEnv).pipe(Effect.map((config): { file: string; config: Info } => ({ file, config }))),
+            { concurrency: "unbounded" },
+          )
+          let start = 0
+          for (let i = loaded.length - 1; i >= 0; i--) {
+            if (loaded[i].config.configBoundary) {
+              boundaryDir = path.dirname(loaded[i].file)
+              start = i
+              break
+            }
+          }
+          for (let i = start; i < loaded.length; i++) {
+            yield* merge(loaded[i].file, loaded[i].config, "local")
           }
         }
 
@@ -451,11 +520,27 @@ export const layer = Layer.effect(
         const deps: Fiber.Fiber<void>[] = []
 
         for (const dir of directories) {
+          // configBoundary stops upward traversal: skip directories at-or-above the boundary file's directory.
+          if (boundaryDir && FSUtil.contains(path.dirname(dir), boundaryDir) && path.dirname(dir) !== boundaryDir) {
+            break
+          }
           if (dir.endsWith(".openaxe") || dir === Flag.OPENCODE_CONFIG_DIR) {
-            for (const file of ["openaxe.json", "openaxe.jsonc"]) {
-              const source = path.join(dir, file)
-              yield* Effect.logDebug(`loading config from ${source}`)
-              yield* merge(source, yield* loadFile(source, authEnv))
+            // The two file reads are independent; merges below stay sequential
+            // to keep configBoundary handling and merge order deterministic.
+            const pair = yield* Effect.all(
+              ["openaxe.json", "openaxe.jsonc"].map((file) =>
+                Effect.gen(function* () {
+                  const source = path.join(dir, file)
+                  yield* Effect.logDebug(`loading config from ${source}`)
+                  const next: Info = yield* loadFile(source, authEnv)
+                  return { source, next }
+                }),
+              ),
+              { concurrency: "unbounded" },
+            )
+            for (const { source, next } of pair) {
+              if (next.configBoundary) boundaryDir = dir
+              yield* merge(source, next)
               result.agent ??= {}
               result.mode ??= {}
               result.plugin ??= []
@@ -471,7 +556,7 @@ export const layer = Layer.effect(
                 add: [
                   {
                     name: "@opencode-ai/plugin",
-                    version: InstallationLocal ? undefined : InstallationVersion,
+                    // ponytail: no version pin — the CLI build version is not a published @opencode-ai/plugin version; resolve `latest`.
                   },
                 ],
               })
@@ -490,12 +575,22 @@ export const layer = Layer.effect(
             deps.push(dep)
           }
 
-          result.command = mergeDeep(result.command ?? {}, yield* Effect.promise(() => ConfigCommand.load(dir)))
-          result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.load(dir)))
-          result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.loadMode(dir)))
-          // Auto-discovered plugins under `.openaxe/plugin(s)` are already local files, so ConfigPlugin.load
-          // returns normalized Specs and we only need to attach origin metadata here.
-          const list = yield* Effect.promise(() => ConfigPlugin.load(dir))
+          // The four directory scans are independent; merges below stay
+          // sequential to keep merge order deterministic.
+          const [command, agent, mode, list] = yield* Effect.all(
+            [
+              Effect.promise(() => ConfigCommand.load(dir)),
+              Effect.promise(() => ConfigAgent.load(dir)),
+              Effect.promise(() => ConfigAgent.loadMode(dir)),
+              // Auto-discovered plugins under `.openaxe/plugin(s)` are already local files, so ConfigPlugin.load
+              // returns normalized Specs and we only need to attach origin metadata here.
+              Effect.promise(() => ConfigPlugin.load(dir)),
+            ],
+            { concurrency: "unbounded" },
+          )
+          result.command = mergeDeep(result.command ?? {}, command)
+          result.agent = mergeDeep(result.agent ?? {}, agent)
+          result.agent = mergeDeep(result.agent ?? {}, mode)
           yield* mergePluginOrigins(dir, list)
         }
 

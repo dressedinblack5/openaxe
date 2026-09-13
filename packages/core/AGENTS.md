@@ -35,6 +35,7 @@ Other —         account, command, credential, flag, github-copilot, id, image,
 ## Critical Patterns
 
 **Conditional #import system.** `package.json#imports` maps three platform conditionals:
+
 - `#sqlite` → `sqlite.bun.ts` / `sqlite.node.ts` — SQLite driver per runtime
 - `#pty` → `pty.bun.ts` / `pty.node.ts` — PTY/spawn per runtime
 - `#fff` → `fff.bun.ts` / `fff.node.ts` — fast file finder per runtime

@@ -29,10 +29,14 @@ type TokenResponse = {
   expires_in?: number
 }
 
-type Claims = {
-  chatgpt_account_id?: string
-  organizations?: Array<{ id: string }>
-  "https://api.openai.com/auth"?: { chatgpt_account_id?: string }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function stringField(value: unknown, key: string): string | undefined {
+  if (!isRecord(value)) return undefined
+  const field = value[key]
+  return typeof field === "string" ? field : undefined
 }
 
 const browser = {
@@ -113,7 +117,7 @@ const headless = {
         callback: Effect.gen(function* () {
           while (true) {
             const response = yield* Effect.tryPromise({
-              try:  async (signal) =>
+              try: async (signal) =>
                 fetch(`${issuer}/api/accounts/deviceauth/token`, {
                   method: "POST",
                   headers: headers("application/json"),
@@ -123,14 +127,16 @@ const headless = {
               catch: (cause) => cause,
             })
             if (response.ok) {
-              const data = (yield* Effect.promise( async () => response.json())) as {
-                authorization_code: string
-                code_verifier: string
+              const body: unknown = yield* Effect.promise(async () => response.json())
+              const authorizationCode = stringField(body, "authorization_code")
+              const codeVerifier = stringField(body, "code_verifier")
+              if (authorizationCode === undefined || codeVerifier === undefined) {
+                return yield* Effect.fail(new Error("Device authorization failed: invalid response"))
               }
               return credential(
                 headlessMethodID,
-                yield* exchange(data.authorization_code, `${issuer}/deviceauth/callback`, {
-                  verifier: data.code_verifier,
+                yield* exchange(authorizationCode, `${issuer}/deviceauth/callback`, {
+                  verifier: codeVerifier,
                   challenge: "",
                 }),
               )
@@ -170,7 +176,7 @@ export const OpenAIPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "@ai-sdk/openai") return
-        const mod = yield* Effect.promise( async () => import("@ai-sdk/openai"))
+        const mod = yield* Effect.promise(async () => import("@ai-sdk/openai"))
         evt.sdk = mod.createOpenAI(evt.options)
       }),
     )
@@ -220,10 +226,11 @@ function refresh(methodID: Integration.MethodID, value: Pick<Credential.OAuth, "
 
 function request<A>(url: string, init: RequestInit) {
   return Effect.tryPromise({
-    try: async (signal) => {
+    try: async (signal): Promise<A> => {
       const response = await fetch(url, { ...init, signal })
       if (!response.ok) throw new Error(`Request failed: ${response.status}`)
-      return response.json() as Promise<A>
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- HTTP JSON bodies are untyped; A declares the expected response shape.
+      return (await response.json()) as A
     },
     catch: (cause) => cause,
   })
@@ -253,18 +260,20 @@ function base64UrlEncode(buffer: ArrayBuffer) {
 }
 
 function authorizeURL(redirect: string, pkce: Pkce, state: string) {
-  return `${issuer}/oauth/authorize?${new URLSearchParams({
-    response_type: "code",
-    client_id: clientID,
-    redirect_uri: redirect,
-    scope: "openid profile email offline_access",
-    code_challenge: pkce.challenge,
-    code_challenge_method: "S256",
-    id_token_add_organizations: "true",
-    codex_cli_simplified_flow: "true",
-    state,
-    originator: "opencode",
-  })}`
+  return `${issuer}/oauth/authorize?${String(
+    new URLSearchParams({
+      response_type: "code",
+      client_id: clientID,
+      redirect_uri: redirect,
+      scope: "openid profile email offline_access",
+      code_challenge: pkce.challenge,
+      code_challenge_method: "S256",
+      id_token_add_organizations: "true",
+      codex_cli_simplified_flow: "true",
+      state,
+      originator: "opencode",
+    }),
+  )}`
 }
 
 function extractAccountID(tokens: TokenResponse) {
@@ -273,17 +282,36 @@ function extractAccountID(tokens: TokenResponse) {
 
 function claim(token: string) {
   const part = token.split(".")[1]
-  if (!part) return
+  if (!part) return undefined
   try {
-    const claims = JSON.parse(Buffer.from(part, "base64url").toString()) as Claims
-    return (
-      claims.chatgpt_account_id ??
-      claims["https://api.openai.com/auth"]?.chatgpt_account_id ??
-      claims.organizations?.[0]?.id
-    )
+    const parsed: unknown = JSON.parse(Buffer.from(part, "base64url").toString())
+    return firstClaim(parsed)
   } catch {
-    return
+    return undefined
   }
+}
+
+function firstClaim(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined
+  if ("chatgpt_account_id" in value && typeof value.chatgpt_account_id === "string") return value.chatgpt_account_id
+  if ("https://api.openai.com/auth" in value) {
+    const auth = value["https://api.openai.com/auth"]
+    if (
+      typeof auth === "object" &&
+      auth !== null &&
+      "chatgpt_account_id" in auth &&
+      typeof auth.chatgpt_account_id === "string"
+    )
+      return auth.chatgpt_account_id
+  }
+  if ("organizations" in value) {
+    const organizations = value.organizations
+    if (Array.isArray(organizations)) {
+      const first = organizations[0]
+      if (typeof first === "object" && first !== null && "id" in first && typeof first.id === "string") return first.id
+    }
+  }
+  return undefined
 }
 
 const successPage =

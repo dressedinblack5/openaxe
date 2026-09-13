@@ -30,16 +30,16 @@ const ProbeApi = HttpApi.make("pty-connect-auth-probe").add(
 const probeLayer = HttpRouter.serve(
   HttpApiBuilder.layer(ProbeApi).pipe(
     Layer.provide(
-      HttpApiBuilder.group(ProbeApi, "probe", (handlers) =>
-        handlers.handle("connect", () => Effect.succeed(true)),
-      ),
+      HttpApiBuilder.group(ProbeApi, "probe", (handlers) => handlers.handle("connect", () => Effect.succeed(true))),
     ),
     Layer.provide(ptyConnectAuthorizationLayer),
   ),
   { disableListenLog: true, disableLogger: true },
 ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
 
-const itSecret = testEffect(probeLayer.pipe(Layer.provide(ServerAuth.Config.layer({ password: Option.some("secret"), username: "opencode" }))))
+const itSecret = testEffect(
+  probeLayer.pipe(Layer.provide(ServerAuth.Config.layer({ password: Option.some("secret"), username: "opencode", noAuth: false }))),
+)
 
 describe("HttpApi instance route authorization", () => {
   itSecret.live("requires configured auth before resolving the PTY websocket route", () =>
@@ -53,11 +53,10 @@ describe("HttpApi instance route authorization", () => {
       expect(missing.status).toBe(401)
 
       const authed = yield* HttpClient.execute(
-        HttpClientRequest.get(route)
-          .pipe(
-            HttpClientRequest.setHeaders(headers),
-            HttpClientRequest.setHeader("authorization", basic("opencode", "secret")),
-          ),
+        HttpClientRequest.get(route).pipe(
+          HttpClientRequest.setHeaders(headers),
+          HttpClientRequest.setHeader("authorization", basic("opencode", "secret")),
+        ),
       )
       expect(authed.status).toBe(200)
     }),

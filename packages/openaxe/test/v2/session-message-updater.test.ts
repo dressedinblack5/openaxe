@@ -9,8 +9,17 @@ import { SessionEvent } from "@opencode-ai/core/session/event"
 import { SessionMessageUpdater } from "@opencode-ai/core/session/message-updater"
 import { SessionMessage } from "@opencode-ai/core/session/message"
 
+function createTestState(): SessionMessageUpdater.MemoryState {
+  return {
+    messages: [],
+    assistantIndex: new Map(),
+    shellIndex: new Map(),
+    latestAssistantIndex: -1,
+  }
+}
+
 test.skip("step snapshots carry over to assistant messages", () => {
-  const state: SessionMessageUpdater.MemoryState = { messages: [] }
+  const state = createTestState()
   const sessionID = SessionID.make("session")
   const assistantMessageID = SessionMessage.ID.create()
 
@@ -63,7 +72,7 @@ test.skip("step snapshots carry over to assistant messages", () => {
 })
 
 test.skip("text ended populates assistant text content", () => {
-  const state: SessionMessageUpdater.MemoryState = { messages: [] }
+  const state = createTestState()
   const sessionID = SessionID.make("session")
   const assistantMessageID = SessionMessage.ID.create()
 
@@ -118,7 +127,7 @@ test.skip("text ended populates assistant text content", () => {
 })
 
 test.skip("tool completion stores completed timestamp", () => {
-  const state: SessionMessageUpdater.MemoryState = { messages: [] }
+  const state = createTestState()
   const sessionID = SessionID.make("session")
   const callID = "call"
   const assistantMessageID = SessionMessage.ID.create()
@@ -196,7 +205,7 @@ test.skip("tool completion stores completed timestamp", () => {
 })
 
 test("compaction events reduce to compaction message only when completed", () => {
-  const state: SessionMessageUpdater.MemoryState = { messages: [] }
+  const state = createTestState()
   const sessionID = SessionID.make("session")
   const id = EventV2.ID.create()
   const compactionID = SessionMessage.ID.create()

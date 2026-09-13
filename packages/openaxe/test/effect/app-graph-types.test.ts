@@ -60,8 +60,6 @@ const c = LayerNode.make(cImplementation, [a, b])
 const failingA = LayerNode.make(failingAImplementation, [])
 const bWithFailingA = LayerNode.make(bImplementation, [failingA])
 
-
-
 const notFoundOrDiskA = LayerNode.make(notFoundOrDiskAImplementation, [])
 
 // @ts-expect-error B requires A

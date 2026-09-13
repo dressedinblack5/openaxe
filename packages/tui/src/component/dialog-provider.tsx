@@ -46,9 +46,11 @@ type ProviderOption =
 
 export function providerOptions(list: { id: string; name: string }[]): ProviderOption[] {
   const sorted = list.slice().sort((a, b) => {
-    const pa = PROVIDER_PRIORITY[a.id] ?? 99, pb = PROVIDER_PRIORITY[b.id] ?? 99
+    const pa = PROVIDER_PRIORITY[a.id] ?? 99,
+      pb = PROVIDER_PRIORITY[b.id] ?? 99
     if (pa !== pb) return pa - pb
-    const na = a.name.toLowerCase(), nb = b.name.toLowerCase()
+    const na = a.name.toLowerCase(),
+      nb = b.name.toLowerCase()
     if (na < nb) return -1
     if (na > nb) return 1
     if (a.id < b.id) return -1
@@ -81,7 +83,7 @@ export function providerOptions(list: { id: string; name: string }[]): ProviderO
 
 export function normalizeCustomProviderID(value: string) {
   const providerID = value.trim().replace(/^@ai-sdk\//, "")
-  if (!CUSTOM_PROVIDER_ID.test(providerID)) return
+  if (!CUSTOM_PROVIDER_ID.test(providerID)) return undefined
   return providerID
 }
 
@@ -102,7 +104,7 @@ export function createDialogProviderOptions() {
         </text>
       ),
     })
-    if (value === null) return
+    if (value === null) return undefined
 
     const providerID = normalizeCustomProviderID(value)
     if (providerID) return providerID
@@ -118,108 +120,106 @@ export function createDialogProviderOptions() {
   const options = createMemo(() => {
     return providerOptions(sync.data.provider_next.all).map((provider) => {
       if (provider.type === "custom") {
-          return {
-            title: provider.title,
-            value: provider.value,
-            description: provider.description,
-            category: provider.category,
-            async onSelect() {
-              const providerID = await promptCustomProviderID()
-              if (!providerID) return
-              return dialog.replace(() => <ApiMethod providerID={providerID} title="API key" custom />)
-            },
-          }
-        }
-
-        const providerID = provider.providerID
-        const consoleManaged = isConsoleManagedProvider(sync.data.console_state.consoleManagedProviders, providerID)
-        const connected = sync.data.provider_next.connected.includes(providerID)
-
         return {
           title: provider.title,
           value: provider.value,
           description: provider.description,
-          footer: consoleManaged ? sync.data.console_state.activeOrgName : undefined,
           category: provider.category,
-          gutter: connected && onboarded() ? () => <text fg={theme.success}>✓</text> : undefined,
           async onSelect() {
-            if (consoleManaged) return
-
-            const methods = sync.data.provider_auth[providerID] ?? [
-              {
-                type: "api",
-                label: "API key",
-              },
-            ]
-            let index: number | null = 0
-            if (methods.length > 1) {
-              index = await new Promise<number | null>((resolve) => {
-                dialog.replace(
-                  () => (
-                    <DialogSelect
-                      title="Select auth method"
-                      options={methods.map((x, index) => ({
-                        title: x.label,
-                        value: index,
-                      }))}
-                      onSelect={(option) => resolve(option.value)}
-                    />
-                  ),
-                  () => resolve(null),
-                )
-              })
-            }
-            if (index == null) return
-            const method = methods[index]
-            if (method.type === "oauth") {
-              let inputs: Record<string, string> | undefined
-              if (method.prompts?.length) {
-                const value = await PromptsMethod({
-                  dialog,
-                  prompts: method.prompts,
-                })
-                if (!value) return
-                inputs = value
-              }
-
-              const result = await sdk.client.provider.oauth.authorize({
-                providerID,
-                method: index,
-                inputs,
-              })
-              if (result.error) {
-                toast.show({
-                  variant: "error",
-                  message: JSON.stringify(result.error),
-                })
-                dialog.clear()
-                return
-              }
-              if (result.data?.method === "code") {
-                dialog.replace(() => (
-                  <CodeMethod providerID={providerID} title={method.label} index={index} authorization={result.data} />
-                ))
-              }
-              if (result.data?.method === "auto") {
-                dialog.replace(() => (
-                  <AutoMethod providerID={providerID} title={method.label} index={index} authorization={result.data} />
-                ))
-              }
-            }
-            if (method.type === "api") {
-              let metadata: Record<string, string> | undefined
-              if (method.prompts?.length) {
-                const value = await PromptsMethod({ dialog, prompts: method.prompts })
-                if (!value) return
-                metadata = value
-              }
-              return dialog.replace(() => (
-                <ApiMethod providerID={providerID} title={method.label} metadata={metadata} />
-              ))
-            }
+            const providerID = await promptCustomProviderID()
+            if (!providerID) return
+            return dialog.replace(() => <ApiMethod providerID={providerID} title="API key" custom />)
           },
         }
-      })
+      }
+
+      const providerID = provider.providerID
+      const consoleManaged = isConsoleManagedProvider(sync.data.console_state.consoleManagedProviders, providerID)
+      const connected = sync.data.provider_next.connected.includes(providerID)
+
+      return {
+        title: provider.title,
+        value: provider.value,
+        description: provider.description,
+        footer: consoleManaged ? sync.data.console_state.activeOrgName : undefined,
+        category: provider.category,
+        gutter: connected && onboarded() ? () => <text fg={theme.success}>✓</text> : undefined,
+        async onSelect() {
+          if (consoleManaged) return
+
+          const methods = sync.data.provider_auth[providerID] ?? [
+            {
+              type: "api",
+              label: "API key",
+            },
+          ]
+          let index: number | null = 0
+          if (methods.length > 1) {
+            index = await new Promise<number | null>((resolve) => {
+              dialog.replace(
+                () => (
+                  <DialogSelect
+                    title="Select auth method"
+                    options={methods.map((x, index) => ({
+                      title: x.label,
+                      value: index,
+                    }))}
+                    onSelect={(option) => resolve(option.value)}
+                  />
+                ),
+                () => resolve(null),
+              )
+            })
+          }
+          if (index == null) return
+          const method = methods[index]
+          if (method.type === "oauth") {
+            let inputs: Record<string, string> | undefined
+            if (method.prompts?.length) {
+              const value = await PromptsMethod({
+                dialog,
+                prompts: method.prompts,
+              })
+              if (!value) return
+              inputs = value
+            }
+
+            const result = await sdk.client.provider.oauth.authorize({
+              providerID,
+              method: index,
+              inputs,
+            })
+            if (result.error) {
+              toast.show({
+                variant: "error",
+                message: JSON.stringify(result.error),
+              })
+              dialog.clear()
+              return
+            }
+            if (result.data?.method === "code") {
+              dialog.replace(() => (
+                <CodeMethod providerID={providerID} title={method.label} index={index} authorization={result.data} />
+              ))
+            }
+            if (result.data?.method === "auto") {
+              dialog.replace(() => (
+                <AutoMethod providerID={providerID} title={method.label} index={index} authorization={result.data} />
+              ))
+            }
+          }
+          if (method.type === "api") {
+            let metadata: Record<string, string> | undefined
+            if (method.prompts?.length) {
+              const value = await PromptsMethod({ dialog, prompts: method.prompts })
+              if (!value) return
+              metadata = value
+            }
+            return dialog.replace(() => <ApiMethod providerID={providerID} title={method.label} metadata={metadata} />)
+          }
+        },
+      }
+    })
   })
   return options
 }
@@ -370,8 +370,7 @@ function ApiMethod(props: ApiMethodProps) {
           opencode: (
             <box gap={1}>
               <text fg={theme.textMuted}>
-                OpenAxe gives you access to all the best coding models at the cheapest prices with a single API
-                key.
+                OpenAxe gives you access to all the best coding models at the cheapest prices with a single API key.
               </text>
               <text fg={theme.text}>
                 Go to <span style={{ fg: theme.primary }}>https://opencode.ai/zen</span> to get a key

@@ -2,35 +2,206 @@ import { Effect, Schema } from "effect"
 import type { Context } from "./tool"
 import { define } from "./tool"
 import path from "path"
-import { LSP } from "@/lsp/lsp"
+import { LSP, type Range as LspRange } from "@/lsp/lsp"
 import DESCRIPTION from "./lsp.txt"
 import { InstanceState } from "@/effect/instance-state"
 import { pathToFileURL } from "url"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 
-const operations = [
-  "goToDefinition",
-  "findReferences",
-  "hover",
-  "documentSymbol",
-  "workspaceSymbol",
-  "goToImplementation",
-  "prepareCallHierarchy",
-  "incomingCalls",
-  "outgoingCalls",
-  "codeAction",
-  "rename",
-  "prepareRename",
-  "typeDefinition",
-  "signatureHelp",
-  "completion",
-  "formatting",
-  "applyCodeAction",
-] as const
+type LspOperation =
+  | "goToDefinition"
+  | "findReferences"
+  | "hover"
+  | "documentSymbol"
+  | "workspaceSymbol"
+  | "goToImplementation"
+  | "prepareCallHierarchy"
+  | "incomingCalls"
+  | "outgoingCalls"
+  | "codeAction"
+  | "rename"
+  | "prepareRename"
+  | "typeDefinition"
+  | "signatureHelp"
+  | "completion"
+  | "formatting"
+  | "applyCodeAction"
+
+interface OperationDef {
+  readonly buildInput: (args: Args, file: string, uri: string, pos: Pos) => unknown
+  readonly permissionMeta: (args: Args, file: string, relPath: string) => Record<string, unknown>
+  readonly validate?: (args: Args) => Effect.Effect<void, Error>
+}
+
+interface Args {
+  operation: LspOperation
+  filePath: string
+  line: number
+  character: number
+  query?: string
+  newName?: string
+  tabSize?: number
+  insertSpaces?: boolean
+  title?: string
+  range?: LspRange
+}
+
+interface Pos {
+  file: string
+  line: number
+  character: number
+}
+
+const operationTable: Record<LspOperation, OperationDef> = {
+  goToDefinition: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "goToDefinition",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  findReferences: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "findReferences",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  hover: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "hover",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  documentSymbol: {
+    buildInput: (_, __, uri) => ({ uri }),
+    permissionMeta: (_, file) => ({ operation: "documentSymbol", filePath: file }),
+  },
+  workspaceSymbol: {
+    buildInput: (args) => ({ query: args.query ?? "" }),
+    permissionMeta: () => ({ operation: "workspaceSymbol" }),
+  },
+  goToImplementation: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "goToImplementation",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  prepareCallHierarchy: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "prepareCallHierarchy",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  incomingCalls: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "incomingCalls",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  outgoingCalls: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "outgoingCalls",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  codeAction: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "codeAction",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  prepareRename: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "prepareRename",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  rename: {
+    buildInput: (args, __, ___, pos) => ({ ...pos, newName: args.newName! }),
+    permissionMeta: (args, __, relPath) => ({
+      operation: "rename",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+    validate: (args) =>
+      args.newName ? Effect.void : Effect.fail(new Error("newName is required for rename operation")),
+  },
+  typeDefinition: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "typeDefinition",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  signatureHelp: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "signatureHelp",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  completion: {
+    buildInput: (_, __, ___, pos) => pos,
+    permissionMeta: (args, __, relPath) => ({
+      operation: "completion",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+  },
+  formatting: {
+    buildInput: (args, file) => ({ file, tabSize: args.tabSize, insertSpaces: args.insertSpaces }),
+    permissionMeta: () => ({ operation: "formatting" }),
+  },
+  applyCodeAction: {
+    buildInput: (args, __, ___, pos) => ({ ...pos, title: args.title!, range: args.range }),
+    permissionMeta: (args, __, relPath) => ({
+      operation: "applyCodeAction",
+      filePath: relPath,
+      line: args.line,
+      character: args.character,
+    }),
+    validate: (args) =>
+      args.title ? Effect.void : Effect.fail(new Error("title is required for applyCodeAction operation")),
+  },
+} as const
+
+const operationKeys = Object.keys(operationTable) as LspOperation[]
 
 export const Parameters = Schema.Struct({
-  operation: Schema.Literals(operations).annotate({ description: "The LSP operation to perform" }),
+  operation: Schema.Literals(operationKeys).annotate({ description: "The LSP operation to perform" }),
   filePath: Schema.String.annotate({ description: "The absolute or relative path to the file" }),
   line: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
     description: "The line number (1-based, as shown in editors)",
@@ -63,26 +234,19 @@ export const LspTool = define(
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (args: Schema.Schema.Type<typeof Parameters>, ctx: Context) =>
+      execute: (args: Args, ctx: Context) =>
         Effect.gen(function* () {
           const instance = yield* InstanceState.context
           const file = path.isAbsolute(args.filePath) ? args.filePath : path.join(instance.directory, args.filePath)
           yield* assertExternalDirectoryEffect(ctx, file)
-          const meta =
-            args.operation === "workspaceSymbol" || args.operation === "formatting"
-              ? { operation: args.operation }
-              : args.operation === "documentSymbol"
-                ? { operation: args.operation, filePath: file }
-                : { operation: args.operation, filePath: file, line: args.line, character: args.character }
-          yield* ctx.ask({
-            permission: "lsp",
-            patterns: ["*"],
-            always: ["*"],
-            metadata: meta,
-          })
+
+          const opName = args.operation
+          const op = operationTable[opName]
+          if (!op) throw new Error(`Unknown LSP operation: ${args.operation}`)
+          if (op.validate) yield* op.validate(args)
 
           const uri = pathToFileURL(file).href
-          const position = { file, line: args.line - 1, character: args.character - 1 }
+          const pos = { file, line: args.line - 1, character: args.character - 1 }
           const relPath = path.relative(instance.worktree, file)
           const detail =
             args.operation === "workspaceSymbol" || args.operation === "formatting"
@@ -90,7 +254,15 @@ export const LspTool = define(
               : args.operation === "documentSymbol"
                 ? relPath
                 : `${relPath}:${args.line}:${args.character}`
-          const title = detail ? `${args.operation} ${detail}` : args.operation
+          const title = detail ? `${String(args.operation)} ${detail}` : String(args.operation)
+
+          const meta = op.permissionMeta(args, file, file)
+          yield* ctx.ask({
+            permission: "lsp",
+            patterns: ["*"],
+            always: ["*"],
+            metadata: meta,
+          })
 
           const exists = yield* fs.existsSafe(file)
           if (!exists) throw new Error(`File not found: ${file}`)
@@ -100,53 +272,112 @@ export const LspTool = define(
 
           yield* lsp.touchFile(file, "document")
 
-          const result: unknown[] = yield* (() => {
-            switch (args.operation) {
+          const input = op.buildInput(args, file, uri, pos)
+          const callLsp: (opName: LspOperation, input: unknown) => Effect.Effect<unknown[], never, never> = (
+            opName,
+            input,
+          ) => {
+            switch (opName) {
               case "goToDefinition":
-                return lsp.definition(position)
+                return lsp.definition(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
               case "findReferences":
-                return lsp.references(position)
+                return lsp.references(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
               case "hover":
-                return lsp.hover(position)
+                return lsp.hover(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
               case "documentSymbol":
-                return lsp.documentSymbol(uri)
+                return lsp.documentSymbol((input as { uri: string }).uri) as Effect.Effect<unknown[], never, never>
               case "workspaceSymbol":
-                return lsp.workspaceSymbol(args.query ?? "")
+                return lsp.workspaceSymbol((input as { query: string }).query) as Effect.Effect<unknown[], never, never>
               case "goToImplementation":
-                return lsp.implementation(position)
+                return lsp.implementation(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
               case "prepareCallHierarchy":
-                return lsp.prepareCallHierarchy(position)
+                return lsp.prepareCallHierarchy(
+                  input as { file: string; line: number; character: number },
+                ) as Effect.Effect<unknown[], never, never>
               case "incomingCalls":
-                return lsp.incomingCalls(position)
+                return lsp.incomingCalls(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
               case "outgoingCalls":
-                return lsp.outgoingCalls(position)
+                return lsp.outgoingCalls(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
               case "codeAction":
-                return lsp.codeAction(position)
-              case "rename":
-                if (!args.newName) throw new Error("newName is required for rename operation")
-                return lsp.rename({ ...position, newName: args.newName })
+                return lsp.codeAction(
+                  input as { file: string; line: number; character: number; range?: LspRange },
+                ) as Effect.Effect<unknown[], never, never>
               case "prepareRename":
-                return lsp.prepareRename(position)
+                return lsp.prepareRename(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
+              case "rename":
+                return lsp.rename(
+                  input as { file: string; line: number; character: number; newName: string },
+                ) as Effect.Effect<unknown[], never, never>
               case "typeDefinition":
-                return lsp.typeDefinition(position)
+                return lsp.typeDefinition(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
               case "signatureHelp":
-                return lsp.signatureHelp(position)
+                return lsp.signatureHelp(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
               case "completion":
-                return lsp.completion(position)
+                return lsp.completion(input as { file: string; line: number; character: number }) as Effect.Effect<
+                  unknown[],
+                  never,
+                  never
+                >
               case "formatting":
-                return lsp.formatting({ file, tabSize: args.tabSize, insertSpaces: args.insertSpaces })
+                return lsp.formatting(
+                  input as { file: string; tabSize?: number; insertSpaces?: boolean },
+                ) as Effect.Effect<unknown[], never, never>
               case "applyCodeAction":
-                if (!args.title) throw new Error("title is required for applyCodeAction operation")
-                return lsp.applyCodeAction({ ...position, title: args.title })
+                return lsp.applyCodeAction(
+                  input as { file: string; line: number; character: number; title: string; range?: LspRange },
+                ) as Effect.Effect<unknown[], never, never>
+              default:
+                throw new Error(`Unhandled LSP operation: ${String(opName)}`)
             }
-          })()
+          }
+          const result: unknown[] = yield* callLsp(opName, input)
 
           return {
             title,
             metadata: { result },
             output: result.length === 0 ? `No results found for ${args.operation}` : JSON.stringify(result, null, 2),
           }
-        }).pipe(Effect.orDie),
+        }).pipe(Effect.orDie) as Effect.Effect<
+          { title: string; metadata: { result: unknown[] }; output: string },
+          never,
+          never
+        >,
     }
   }),
 )

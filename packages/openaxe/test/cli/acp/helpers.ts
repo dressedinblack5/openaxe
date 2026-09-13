@@ -11,9 +11,13 @@ import {
   type AcpClient,
 } from "./acp-test-client"
 
-export function createAcpClient(input: Pick<CliFixture, "opencode">, env?: Record<string, string>) {
+export function createAcpClient(
+  input: Pick<CliFixture, "opencode">,
+  env?: Record<string, string>,
+  readyTimeoutMs?: number,
+) {
   return Effect.gen(function* () {
-    return createJsonRpcAcpClient(yield* input.opencode.acp(env ? { env } : undefined))
+    return createJsonRpcAcpClient(yield* input.opencode.acp(env ? { env, readyTimeoutMs } : { readyTimeoutMs }))
   })
 }
 

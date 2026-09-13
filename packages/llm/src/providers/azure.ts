@@ -2,8 +2,8 @@ import { Auth } from "../route/auth"
 import type { AtLeastOne, ProviderAuthOption } from "../route/auth-options"
 import type { Route, RouteDefaultsInput } from "../route/client"
 import { ProviderID, type ModelID } from "../schema"
-import { route as chatRouteImport } from "../protocols/openai-chat";
-import { route } from "../protocols/openai-responses";
+import { route as chatRouteImport } from "../protocols/openai-chat"
+import { route } from "../protocols/openai-responses"
 import { withOpenAIOptions, type OpenAIProviderOptionsInput } from "./openai-options"
 
 export const id = ProviderID.make("azure")
@@ -76,6 +76,7 @@ const configuredRoute = <Body, Prepared>(route: Route<Body, Prepared>, input: Co
     auth: auth(input),
     endpoint: {
       // AtLeastOne guarantees at least one is set; baseURL wins if both are.
+      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- AtLeastOne guarantees resourceName when baseURL is absent.
       baseURL: input.baseURL ?? resourceBaseURL(input.resourceName!),
       query: {
         ...(input.apiVersion ? { "api-version": input.apiVersion } : {}),

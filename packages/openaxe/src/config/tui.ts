@@ -15,7 +15,6 @@ import { BUNDLED_PLUGINS } from "@/config/config"
 import { ConfigPlugin } from "@/config/plugin"
 import { parsePluginSpecifier } from "@/plugin/shared"
 import { TuiKeybind } from "@opencode-ai/tui/config/keybind"
-import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { makeRuntime } from "@opencode-ai/core/effect/runtime"
 import { Filesystem } from "@/util/filesystem"
 import { ConfigVariable } from "@/config/variable"
@@ -39,6 +38,7 @@ export type HostMetadata = {
 
 export interface Interface {
   readonly get: () => Effect.Effect<Resolved>
+  readonly getWithPluginOrigins: () => Effect.Effect<{ config: Resolved; pluginOrigins: ConfigPlugin.Origin[] }>
   readonly pluginOrigins: () => Effect.Effect<ConfigPlugin.Origin[]>
   readonly waitForDependencies: () => Effect.Effect<void>
 }
@@ -148,55 +148,46 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
       return yield* load(text, filepath)
     })
 
-  const mergeFile = (acc: Acc, file: string) =>
-    Effect.gen(function* () {
-      const data = yield* loadFile(file)
-      if (Object.keys(data).length) {
-        appliedOrder += 1
-        yield* Effect.logInfo("applying tui config", { path: file, order: appliedOrder })
-      }
-      acc.result = mergeDeep(acc.result, data)
-      if (!data.plugin?.length) return
-
-      const scope = pluginScope(file, ctx)
-      const plugins = ConfigPlugin.deduplicatePluginOrigins([
-        ...acc.plugin_origins,
-        ...data.plugin.map((spec) => ({ spec: spec, scope, source: file })),
-      ])
-      acc.result = {
-        ...acc.result,
-        plugin: plugins.map((item) => item.spec),
-      }
-      acc.plugin_origins = plugins
-    })
-
   // Every config dir we may read from: global config dir, any `.openaxe`
   // folders between cwd and home, and OPENCODE_CONFIG_DIR.
   const directories = yield* configDirectories(ctx.directory)
   yield* Effect.promise(() => migrateTuiConfig({ directories, cwd: ctx.directory }))
 
   const projectFiles = Flag.OPENCODE_DISABLE_PROJECT_CONFIG ? [] : yield* files("tui", ctx.directory)
+  const globalFiles = fileInDirectory(Global.Path.config, "tui")
+  const customConfigFile = Flag.OPENCODE_TUI_CONFIG
 
   const acc: Acc = {
     result: {},
     plugin_origins: [],
   }
 
-  // 1. Global tui config (lowest precedence).
-  for (const file of fileInDirectory(Global.Path.config, "tui")) {
-    yield* mergeFile(acc, file)
-  }
+  // 1. Global tui config + custom override + project files — read in parallel,
+  // then merge sequentially to preserve precedence order.
+  const allConfigFiles = [...globalFiles, ...(customConfigFile ? [customConfigFile] : []), ...projectFiles]
 
-  // 2. Explicit OPENCODE_TUI_CONFIG override, if set.
-  if (Flag.OPENCODE_TUI_CONFIG) {
-    const configFile = Flag.OPENCODE_TUI_CONFIG
-    yield* mergeFile(acc, configFile)
-    yield* Effect.logDebug("loaded custom tui config", { path: configFile })
-  }
+  const fileResults = yield* Effect.all(
+    allConfigFiles.map((file) => loadFile(file).pipe(Effect.map((data) => ({ file, data })))),
+    { concurrency: "unbounded" },
+  )
 
-  // 3. Project tui files, applied root-first so the closest file wins.
-  for (const file of projectFiles) {
-    yield* mergeFile(acc, file)
+  for (const { file, data } of fileResults) {
+    if (Object.keys(data).length) {
+      appliedOrder += 1
+      yield* Effect.logInfo("applying tui config", { path: file, order: appliedOrder })
+    }
+    if (file === customConfigFile) {
+      yield* Effect.logDebug("loaded custom tui config", { path: file })
+    }
+    acc.result = mergeDeep(acc.result, data)
+    if (!data.plugin?.length) continue
+    const scope = pluginScope(file, ctx)
+    const plugins = ConfigPlugin.deduplicatePluginOrigins([
+      ...acc.plugin_origins,
+      ...data.plugin.map((spec) => ({ spec: spec, scope, source: file })),
+    ])
+    acc.result = { ...acc.result, plugin: plugins.map((item) => item.spec) }
+    acc.plugin_origins = plugins
   }
 
   // 4. `.openaxe` directories (and OPENCODE_CONFIG_DIR) discovered while
@@ -223,9 +214,12 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
               add: [
                 {
                   name: "@opencode-ai/plugin",
-                  version: InstallationLocal ? undefined : InstallationVersion,
+                  // ponytail: no version pin — see config.ts; resolve `latest`.
                 },
-                ...BUNDLED_PLUGINS.map((name) => ({ name })),
+                ...BUNDLED_PLUGINS.filter(
+                  (p): p is (typeof BUNDLED_PLUGINS)[number] & { kinds: readonly ("server" | "tui")[] } =>
+                    p.kinds.includes("tui"),
+                ).map((p) => ({ name: p.spec })),
               ],
             })
             .pipe(Effect.forkScoped),
@@ -253,10 +247,13 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
 
   // Ensure bundled plugins are always present, even if the config file was
   // written before a newer openaxe release added them as defaults.
+  const tuiBundledSpecs = BUNDLED_PLUGINS.filter(
+    (p): p is (typeof BUNDLED_PLUGINS)[number] & { kinds: readonly ("server" | "tui")[] } => p.kinds.includes("tui"),
+  ).map((p) => p.spec)
   const seen = new Set(
     (acc.result.plugin ?? []).map(ConfigPlugin.pluginSpecifier).map((s) => parsePluginSpecifier(s).pkg),
   )
-  const add = [...BUNDLED_PLUGINS].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
+  const add = [...tuiBundledSpecs].filter((p) => !seen.has(parsePluginSpecifier(p).pkg))
   if (add.length) {
     acc.result = {
       ...acc.result,
@@ -294,11 +291,14 @@ export const layer = (directory?: string) =>
 
       const get = Effect.fn("TuiConfig.get")(() => Effect.succeed(data.config))
       const pluginOrigins = Effect.fn("TuiConfig.pluginOrigins")(() => Effect.succeed(data.pluginOrigins))
+      const getWithPluginOrigins = Effect.fn("TuiConfig.getWithPluginOrigins")(() =>
+        Effect.succeed({ config: data.config, pluginOrigins: data.pluginOrigins }),
+      )
 
       const waitForDependencies = Effect.fn("TuiConfig.waitForDependencies")(() =>
         Effect.forEach(data.pluginDeps, Fiber.join, { concurrency: "unbounded" }).pipe(Effect.ignore(), Effect.asVoid),
       )
-      return Service.of({ get, pluginOrigins, waitForDependencies })
+      return Service.of({ get, getWithPluginOrigins, pluginOrigins, waitForDependencies })
     }).pipe(Effect.withSpan("TuiConfig.layer")),
   )
 
@@ -315,6 +315,16 @@ export async function get(directory?: string) {
   const dirLayer = layer(directory).pipe(Layer.provide(Npm.defaultLayer), Layer.provide(FSUtil.defaultLayer))
   const { runPromise: runWithDir } = makeRuntime(Service, dirLayer)
   return runWithDir((svc) => svc.get())
+}
+
+export async function getWithPluginOrigins(directory?: string): Promise<{
+  config: Resolved
+  pluginOrigins: ConfigPlugin.Origin[]
+}> {
+  if (!directory) return runPromise((svc) => svc.getWithPluginOrigins())
+  const dirLayer = layer(directory).pipe(Layer.provide(Npm.defaultLayer), Layer.provide(FSUtil.defaultLayer))
+  const { runPromise: runWithDir } = makeRuntime(Service, dirLayer)
+  return runWithDir((svc) => svc.getWithPluginOrigins())
 }
 
 export async function pluginOrigins() {

@@ -14,6 +14,8 @@ import { writeHeapSnapshot } from "v8"
 import { validateSession } from "../tui/validate-session"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
 import { mark, report } from "@/cli/startup-timing"
+import { SERVER_AUTH_REQUIRED_MESSAGE, SERVER_NO_AUTH_WARNING, resolveServerAuth } from "./auth-gate"
+import type { TuiConfig } from "@/config/tui"
 
 declare global {
   const OPENCODE_WORKER_PATH: string
@@ -49,6 +51,72 @@ function createEventSource(client: RpcClient): EventSource {
   }
 }
 
+function createInternalFetch(): typeof fetch {
+  let first = true
+  const fn = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    // #4: lazy import inside fetch fn (first-call only) — never hoisted to boot
+    const { Server } = await import("@/server/server")
+    const { ServerAuth } = await import("@/server/auth")
+    const request = new Request(input, init)
+    const headers = new Headers(request.headers)
+    const auth = ServerAuth.header()
+    if (auth) headers.set("Authorization", auth)
+    if (first) mark("tui-fetch-start")
+    const response = await Server.Default().app.fetch(new Request(request, { headers }))
+    if (first) {
+      first = false
+      mark("tui-fetch-done")
+    }
+    return response
+  }
+  return fn as typeof fetch
+}
+
+/**
+ * Best-effort background warm-up of the AppLayer runtime. The first SDK call
+ * into the server pays a one-time ~8s cost (dynamic import of the ~45-module
+ * app layer + ManagedRuntime.make + first-use service init). Firing a few real
+ * requests during the TUI's own boot moves that cost off the sync's critical
+ * path — the sync re-fetches the same endpoints and finds services warm.
+ * Failures only cost boot-time CPU; never blocks or fails boot.
+ */
+function prewarmAppLayer(fetchFn: typeof fetch, url: string, directory: string, isExternal: boolean) {
+  void (async () => {
+    const warm = (path: string) => fetchFn(`${url}${path}?directory=${encodeURIComponent(directory)}`).catch(() => {})
+    const warms = isExternal
+      ? [
+          warm("/config/providers"),
+          warm("/provider"),
+          warm("/experimental/capabilities"),
+          warm("/agent"),
+          warm("/config"),
+          warm("/path"),
+          warm("/project/current"),
+        ]
+      : [warm("/config"), warm("/project/current")]
+    try {
+      // Fire the warms BEFORE importing the app layer: the 45-module dynamic
+      // import blocks the main thread for ~1.6s, and every request waits on the
+      // shared instance boot anyway — getting a head start on the boot beats
+      // warms that arrive 400ms before the sync.
+      await Promise.allSettled(warms)
+      const { Effect } = await import("effect")
+      if (isExternal) {
+        const { AppRuntime } = await import("@/effect/app-runtime")
+        await Promise.allSettled([AppRuntime.runPromise(Effect.void)])
+      } else {
+        // Internal mode: skip AppRuntime void warm (~8s, 45 services); CoreRuntime
+        // backs CoreLayer (12 services, ~200MB lighter) and is sufficient for
+        // the trimmed /config + /project/current warms. Best-effort only.
+        const { CoreRuntime } = await import("@/effect/app-runtime")
+        await Promise.allSettled([CoreRuntime.runPromise(Effect.void)])
+      }
+    } catch {
+      // pre-warm is best-effort
+    }
+  })()
+}
+
 async function target() {
   if (typeof OPENCODE_WORKER_PATH !== "undefined") return OPENCODE_WORKER_PATH
   const dist = new URL("./cli/tui/worker.js", import.meta.url)
@@ -63,7 +131,13 @@ async function input(value?: string) {
   return piped + "\n" + value
 }
 
-export function resolveThreadDirectory(project?: string, envPWD = process.env.PWD, cwd = process.cwd()) {
+// OPENAXE_DIRECTORY carries the real launch directory from the launcher wrappers,
+// which exec under `bun --cwd` (bun rewrites PWD and process.cwd() to the package dir).
+export function resolveThreadDirectory(
+  project?: string,
+  envPWD = process.env.OPENAXE_DIRECTORY ?? process.env.PWD,
+  cwd = process.env.OPENAXE_DIRECTORY ?? process.cwd(),
+) {
   if (project) {
     const root = Filesystem.resolve(envPWD ?? cwd)
     return Filesystem.resolve(path.isAbsolute(project) ? project : path.join(root, project))
@@ -136,8 +210,22 @@ export const TuiCommand = cmd({
       .option("demo", {
         type: "boolean",
         hidden: true,
+      })
+      .option("auth", {
+        type: "boolean",
+        describe: "require authentication (use --no-auth to disable)",
+        default: true,
+        hidden: true,
+      })
+      .option("no-auth", {
+        type: "boolean",
+        describe: "Allow unauthenticated access (DANGEROUS - only for trusted networks)",
+        default: false,
       }),
   handler: async (args) => {
+    // OPENCODE_FAST_BOOT (read at packages/tui app.tsx) skips the StartupLoading screen.
+    // Set FIRST, before any async work, so TuiStartupProvider reads it during render.
+    process.env.OPENCODE_FAST_BOOT ??= "1"
     mark("handler-start")
     if (args.replay === true) {
       UI.error("--replay is not supported; replay is enabled by default")
@@ -192,20 +280,33 @@ export const TuiCommand = cmd({
 
     const unguard = win32InstallCtrlCGuard()
     try {
-      // Kick off all heavy module imports in parallel
+      // Load config early (needed for plugin_origins and config)
       const configMod = import("@/config/tui")
-      const effectMod = import("effect")
-      const layerMod = import("../tui/layer")
-      const pluginMod = import("@/plugin/tui/runtime")
-
       const { TuiConfig } = await configMod
       mark("config-mod")
-      const [{ Effect }, { run }, { createLegacyTuiPluginHost }] = await Promise.all([
-        effectMod.then((m) => ({ Effect: m.Effect })),
-        layerMod.then((m) => ({ run: m.run })),
-        pluginMod.then((m) => ({ createLegacyTuiPluginHost: m.createLegacyTuiPluginHost })),
-      ])
-      mark("parallel-imports")
+
+      // #4: detect external early (pure: argv + args) so server eval (~2.4s)
+      // overlaps worker boot; void import keeps it off handler-start→run-start
+      // critical path. Internal fetch keeps lazy import inside fn (first-call only).
+      const network = resolveNetworkOptionsNoConfig(args)
+      const { hasPassword, noAuth } = resolveServerAuth(args)
+      if (!hasPassword && !noAuth) {
+        UI.error(SERVER_AUTH_REQUIRED_MESSAGE)
+        process.exitCode = 1
+        return
+      }
+      if (!hasPassword && noAuth) {
+        console.error(SERVER_NO_AUTH_WARNING)
+      }
+      const external =
+        process.argv.includes("--port") ||
+        process.argv.includes("--hostname") ||
+        process.argv.includes("--mdns") ||
+        network.mdns ||
+        network.port !== 0 ||
+        network.hostname !== "127.0.0.1"
+      if (!external) void import("@/server/server").catch(() => {})
+
       if (args.fork && !args.continue && !args.session) {
         UI.error("--fork requires --continue or --session")
         process.exitCode = 1
@@ -219,9 +320,18 @@ export const TuiCommand = cmd({
       // Kick off config loading before chdir (pass directory explicitly to
       // avoid CurrentWorkingDirectory CWD race). ~1s of file I/O overlaps with
       // Worker compilation, saving wall-clock time.
-      const configPromise = TuiConfig.get(next)
+      // Also fetch plugin_origins in the same run to avoid duplicate layer init.
+      const configPromise = TuiConfig.getWithPluginOrigins(next)
 
-      const file = await target()
+      // Parallelize: worker creation + Effect imports + config loading
+      const filePromise = external ? target() : (Promise.resolve(undefined as unknown as URL) as Promise<URL>)
+      const effectImportsPromise = Promise.all([
+        import("effect").then((m) => ({ Effect: m.Effect, Cause: m.Cause })),
+        import("../tui/layer").then((m) => ({ run: m.run })),
+        import("@/plugin/tui/runtime").then((m) => ({ createLegacyTuiPluginHost: m.createLegacyTuiPluginHost })),
+      ])
+
+      const file = external ? await filePromise : undefined
       try {
         process.chdir(next)
       } catch {
@@ -230,49 +340,74 @@ export const TuiCommand = cmd({
       }
       const cwd = Filesystem.resolve(process.cwd())
 
-      const worker = new Worker(file)
-      const client = Rpc.client<typeof rpc>(worker)
-      mark("worker-created")
+      let worker: Worker | undefined
+      let client: RpcClient | undefined
+      if (external) {
+        worker = new Worker(file as URL)
+        client = Rpc.client<typeof rpc>(worker, { requestTimeout: 120_000 })
+        mark("worker-created")
+      }
+
+      const [effectImports, { config, pluginOrigins }] = await Promise.all([effectImportsPromise, configPromise])
+      const [{ Effect, Cause }, { run }, { createLegacyTuiPluginHost }] = effectImports
+      mark("deferred-imports")
+
       const reload = () => {
+        if (!client) return
         client.call("reload", undefined).catch(() => {})
       }
-      process.on("SIGUSR2", reload)
+      if (client) process.on("SIGUSR2", reload)
 
       let stopped = false
       const stop = async () => {
         if (stopped) return
         stopped = true
-        process.off("SIGUSR2", reload)
-        await withTimeout(client.call("shutdown", undefined), 5000).catch(() => {})
-        worker.terminate()
+        if (client) process.off("SIGUSR2", reload)
+        if (client) await withTimeout(client.call("shutdown", undefined), 5000).catch(() => {})
+        else {
+          // Internal mode has no worker; best-effort dispose via CoreRuntime
+          // (lighter than AppRuntime) without throwing if not yet warmed.
+          try {
+            const { CoreRuntime } = await import("@/effect/app-runtime")
+            const { InstanceStore } = await import("@/project/instance-store")
+            const { Effect: Eff } = await import("effect")
+            await CoreRuntime.runPromise(InstanceStore.Service.use((s) => s.disposeAll()).pipe(Eff.catch(() => Eff.void))).catch(
+              () => {},
+            )
+          } catch {}
+        }
+        worker?.terminate()
+        try {
+          const { Server } = await import("@/server/server")
+          Server.Default.reset?.()
+        } catch {}
       }
 
       const prompt = await input(args.prompt)
-      const config = await configPromise
 
-      const network = resolveNetworkOptionsNoConfig(args)
-      const external =
-        process.argv.includes("--port") ||
-        process.argv.includes("--hostname") ||
-        process.argv.includes("--mdns") ||
-        network.mdns ||
-        network.port !== 0 ||
-        network.hostname !== "127.0.0.1"
-
-      // Start server in both internal and external modes - worker fetch needs it
-      const serverResult = await client.call("server", network)
-      mark("server-url")
-      const transport = external
-        ? {
-            url: serverResult.url,
-            fetch: undefined,
-            events: undefined,
-          }
-        : {
-            url: "http://opencode.internal",
-            fetch: createWorkerFetch(client),
-            events: createEventSource(client),
-          }
+      let transport: { url: string; fetch: typeof fetch; events?: EventSource }
+      if (external) {
+        // External mode: start HTTP server and proxy through it
+        const serverResult = await client!.call("server", { ...network, noAuth })
+        mark("server-url")
+        transport = {
+          url: serverResult.url,
+          fetch: createWorkerFetch(client!),
+          events: createEventSource(client!),
+        }
+      } else {
+        // Internal mode: use webHandler directly (no HTTP server needed)
+        mark("server-url-skip")
+        const internalFetch = createInternalFetch()
+        transport = {
+          url: "http://opencode.internal",
+          fetch: internalFetch,
+          events: undefined,
+        }
+      }
+      // Warm the AppLayer runtime in the background so the sync's first SDK
+      // calls don't pay the one-time ~8s service-init cost on the critical path.
+      prewarmAppLayer(transport.fetch, transport.url, cwd, external)
       try {
         await validateSession({
           url: transport.url,
@@ -287,37 +422,111 @@ export const TuiCommand = cmd({
       }
       mark("validate-session")
 
-      setTimeout(() => {
-        client.call("checkUpgrade", { directory: cwd }).catch(() => {})
-      }, 1000).unref?.()
+      if (external) {
+        setTimeout(() => {
+          client!.call("checkUpgrade", { directory: cwd }).catch(() => {})
+        }, 1000).unref?.()
+      } else {
+        // #6: internal checkUpgrade via CoreRuntime (no LLM/LSP/MCP) off critical path
+        setTimeout(() => {
+          void (async () => {
+            try {
+              const { CoreRuntime } = await import("@/effect/app-runtime")
+              const { Config } = await import("@/config/config")
+              const config = await CoreRuntime.runPromise(Config.Service.use((c) => c.getGlobal()))
+              if (config.autoupdate === false) return
+              const { Flag } = await import("@opencode-ai/core/flag/flag")
+              if (Flag.OPENCODE_DISABLE_AUTOUPDATE) return
+              const { InstallationLocal, InstallationVersion } = await import("@opencode-ai/core/installation/version")
+              if (InstallationLocal) return
+              const { Installation } = await import("@/installation")
+              const method = await Installation.method()
+              const latest = await Installation.latest(method).catch(() => undefined)
+              if (!latest) return
+              const { GlobalBus } = await import("@/bus/global")
+              if (Flag.OPENCODE_ALWAYS_NOTIFY_UPDATE) {
+                GlobalBus.emit("event", {
+                  directory: "global",
+                  payload: { type: Installation.Event.UpdateAvailable.type, properties: { version: latest } },
+                })
+                return
+              }
+              if (InstallationVersion === latest) return
+              const kind = Installation.getReleaseType(InstallationVersion, latest)
+              if (config.autoupdate === "notify" || kind !== "patch") {
+                GlobalBus.emit("event", {
+                  directory: "global",
+                  payload: { type: Installation.Event.UpdateAvailable.type, properties: { version: latest } },
+                })
+                return
+              }
+              if (method === "unknown") return
+              await Installation.upgrade(method, latest)
+                .then(() =>
+                  GlobalBus.emit("event", {
+                    directory: "global",
+                    payload: { type: Installation.Event.Updated.type, properties: { version: latest } },
+                  }),
+                )
+                .catch(() => {})
+            } catch {}
+          })()
+        }, 1000).unref?.()
+      }
 
       try {
-        await nativeLibPromise
-        mark("native-lib")
         mark("run-start")
-        await Effect.runPromise(
-          run({
-            url: transport.url,
-            async onSnapshot() {
-              const tui = writeHeapSnapshot("tui.heapsnapshot")
-              const server = await client.call("snapshot", undefined)
-              return [tui, server]
-            },
-            config,
-            pluginHost: createLegacyTuiPluginHost(),
-            directory: cwd,
-            fetch: transport.fetch,
-            events: transport.events,
-            args: {
-              continue: args.continue,
-              sessionID: args.session,
-              agent: args.agent,
-              model: args.model,
-              prompt,
-              fork: args.fork,
-            },
-          }),
-        )
+        // #5: native lib was kicked off early (native-lib-start) but await after
+        // first paint so TUI boot isn't blocked; degraded mode continues on failure
+        void nativeLibPromise.then(() => mark("native-lib")).catch(() => mark("native-lib"))
+
+        try {
+          await Effect.runPromise(
+            run({
+              url: transport.url,
+              async onSnapshot() {
+                const tui = writeHeapSnapshot("tui.heapsnapshot")
+                if (!client) return [tui]
+                const server = await client.call("snapshot", undefined)
+                return [tui, server.path]
+              },
+              config: { ...config, plugin_origins: pluginOrigins } as TuiConfig.Resolved & TuiConfig.HostMetadata,
+              pluginHost: createLegacyTuiPluginHost(),
+              directory: cwd,
+              fetch: transport.fetch,
+              events: transport.events,
+              args: {
+                continue: args.continue,
+                sessionID: args.session,
+                agent: args.agent,
+                model: args.model,
+                prompt,
+                fork: args.fork,
+              },
+            }),
+          )
+        } catch (e) {
+          let cause = e
+          while (cause instanceof Error && cause.cause) cause = cause.cause
+          try {
+            UI.error(Cause.pretty(Cause.die(cause)))
+          } catch {
+            UI.error(errorMessage(cause) || String(cause))
+          }
+          if (process.platform === "win32") {
+            const msg = errorMessage(cause) || String(cause)
+            if (msg.includes("error code 126") || msg.includes("Failed to open library")) {
+              UI.error(
+                "On Windows, this usually means the Visual C++ Redistributable is missing or openaxe is running from a network share.",
+              )
+              UI.error(
+                "Install it from https://aka.ms/vs/17/release/vc_redist.x64.exe (or vc_redist.arm64.exe for ARM64) and run openaxe from a local drive.",
+              )
+            }
+          }
+          process.exitCode = 1
+          return
+        }
         mark("run-complete")
         report()
       } finally {

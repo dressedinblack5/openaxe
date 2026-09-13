@@ -13,9 +13,9 @@ import { PluginTestLayer } from "./fixture"
 
 const it = testEffect(PluginTestLayer)
 
-const addPlugin = Effect.fn(function* (definition: typeof GoogleVertexAnthropicPlugin  ) {
+const addPlugin = Effect.fn(function* (definition: typeof GoogleVertexAnthropicPlugin) {
   const plugin = yield* PluginV2.Service
-  
+
   const host = yield* PluginHost.make(plugin)
   yield* definition.effect(host)
 })
@@ -112,7 +112,6 @@ describe("GoogleVertexAnthropicPlugin", () => {
       },
       () =>
         Effect.gen(function* () {
-          
           const aisdk = yield* AISDK.Service
           yield* addPlugin(GoogleVertexAnthropicPlugin)
           const result = yield* aisdk.runSDK({
@@ -138,7 +137,6 @@ describe("GoogleVertexAnthropicPlugin", () => {
       { GOOGLE_CLOUD_PROJECT: "project", GOOGLE_CLOUD_LOCATION: "cloud-location", VERTEX_LOCATION: "vertex-location" },
       () =>
         Effect.gen(function* () {
-          
           const aisdk = yield* AISDK.Service
           yield* addPlugin(GoogleVertexAnthropicPlugin)
           const result = yield* aisdk.runSDK({
@@ -161,7 +159,6 @@ describe("GoogleVertexAnthropicPlugin", () => {
 
   it.effect("creates SDKs for google-vertex Anthropic models with multi-region endpoints", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin(GoogleVertexAnthropicPlugin)
       const result = yield* aisdk.runSDK({
@@ -180,7 +177,6 @@ describe("GoogleVertexAnthropicPlugin", () => {
 
   it.effect("keeps configured baseURL for google-vertex Anthropic models", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin(GoogleVertexAnthropicPlugin)
       const result = yield* aisdk.runSDK({
@@ -197,7 +193,6 @@ describe("GoogleVertexAnthropicPlugin", () => {
 
   it.effect("selects google-vertex Anthropic language models through V2 plugins", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin(GoogleVertexPlugin)
       yield* addPlugin(GoogleVertexAnthropicPlugin)
@@ -227,7 +222,6 @@ describe("GoogleVertexAnthropicPlugin", () => {
 
   it.effect("trims model IDs before selecting language models", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin(GoogleVertexAnthropicPlugin)
@@ -245,7 +239,6 @@ describe("GoogleVertexAnthropicPlugin", () => {
 
   it.effect("ignores non Vertex Anthropic providers for language selection", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin(GoogleVertexAnthropicPlugin)

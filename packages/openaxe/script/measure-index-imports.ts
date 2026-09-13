@@ -8,7 +8,7 @@ async function time(label: string, fn: () => Promise<unknown>) {
 
 async function measure() {
   console.log("\n=== index.ts top-level imports ===\n")
-  
+
   await time(`yargs`, () => import("yargs"))
   await time(`yargs/helpers`, () => import("yargs/helpers"))
   await time(`@/cli/cmd/run`, () => import("@/cli/cmd/run"))

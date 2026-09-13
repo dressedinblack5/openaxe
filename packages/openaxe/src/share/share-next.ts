@@ -167,13 +167,16 @@ export const layer = Layer.effect(
           def: D,
           fn: (data: EventV2.Data<D>) => Effect.Effect<void, unknown>,
         ) =>
-          events.listen((event) => {
-            if (event.type !== def.type || event.location?.directory !== _ctx.directory) return Effect.void
-            return fn(event.data as EventV2.Data<D>).pipe(
-              Effect.catchCause((cause) =>
-                Effect.logError("share subscriber failed", { type: def.type, cause: cause }),
-              ),
-            )
+          Effect.gen(function* () {
+            const unsubscribe = yield* events.listen((event) => {
+              if (event.type !== def.type || event.location?.directory !== _ctx.directory) return Effect.void
+              return fn(event.data as EventV2.Data<D>).pipe(
+                Effect.catchCause((cause) =>
+                  Effect.logError("share subscriber failed", { type: def.type, cause: cause }),
+                ),
+              )
+            })
+            yield* Effect.addFinalizer(() => unsubscribe)
           })
 
         yield* watch(Session.Event.Updated, (data) =>

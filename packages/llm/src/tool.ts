@@ -12,13 +12,17 @@ import { ToolDefinition, ToolFailure, ToolOutput } from "./schema"
  * encoding services are allowed. Tools should be self-contained — anything
  * beyond pure data conversion belongs in the handler closure.
  */
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- tool codecs convert between arbitrary encoded representations and their schema type; the encoded form is unconstrained (any) so typed tools stay assignable to AnyToolSchema.
 export type ToolSchema<T> = Schema.Codec<T, any>
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal "any schema" constraint marker: ToolSchema<any> matches every Codec (any is assignable both ways); no narrower bound exists.
+export type AnyToolSchema = ToolSchema<any>
+
 export interface ToolExecuteContext {
   readonly id: ToolCallPart["id"]
   readonly name: ToolCallPart["name"]
 }
 
-export type ToolExecute<Parameters extends ToolSchema<any>, Success extends ToolSchema<any>> = (
+export type ToolExecute<Parameters extends AnyToolSchema, Success extends AnyToolSchema> = (
   params: Schema.Schema.Type<Parameters>,
   context?: ToolExecuteContext,
 ) => Effect.Effect<Schema.Schema.Type<Success>, ToolFailure>
@@ -29,7 +33,7 @@ export interface ToolModelOutputInput<Parameters, Output> {
   readonly output: Output
 }
 
-export type ToolToModelOutput<Parameters extends ToolSchema<any>, Success extends ToolSchema<any>> = (
+export type ToolToModelOutput<Parameters extends AnyToolSchema, Success extends AnyToolSchema> = (
   input: ToolModelOutputInput<Schema.Schema.Type<Parameters>, Success["Encoded"]>,
 ) => ReadonlyArray<ToolContent>
 
@@ -45,7 +49,7 @@ export type ToolToModelOutput<Parameters extends ToolSchema<any>, Success extend
  * Internally each tool also carries memoized codecs and a precomputed
  * `ToolDefinition` so callers do not rebuild them per invocation.
  */
-export interface Tool<Parameters extends ToolSchema<any>, Success extends ToolSchema<any>> {
+export interface Tool<Parameters extends AnyToolSchema, Success extends AnyToolSchema> {
   readonly description: string
   readonly parameters: Parameters
   readonly success: Success
@@ -68,25 +72,27 @@ export interface Tool<Parameters extends ToolSchema<any>, Success extends ToolSc
   readonly _definition: ToolDefinitionClass
 }
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal tool set: any Parameters/Success pair is a member; `any` args keep every typed tool assignable to AnyTool (bivariant), unlike AnyToolSchema which is narrower.
 export type AnyTool = Tool<any, any>
 
-export type ExecutableTool<Parameters extends ToolSchema<any>, Success extends ToolSchema<any>> = Tool<
+export type ExecutableTool<Parameters extends AnyToolSchema, Success extends AnyToolSchema> = Tool<
   Parameters,
   Success
 > & {
   readonly execute: ToolExecute<Parameters, Success>
 }
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal executable tool set: see AnyTool.
 export type AnyExecutableTool = ExecutableTool<any, any>
 
 export type ExecutableTools = Record<string, AnyExecutableTool>
 
 type TypedToolConfig = {
   readonly description: string
-  readonly parameters: ToolSchema<any>
-  readonly success: ToolSchema<any>
-  readonly execute?: ToolExecute<ToolSchema<any>, ToolSchema<any>>
-  readonly toModelOutput?: ToolToModelOutput<ToolSchema<any>, ToolSchema<any>>
+  readonly parameters: AnyToolSchema
+  readonly success: AnyToolSchema
+  readonly execute?: ToolExecute<AnyToolSchema, AnyToolSchema>
+  readonly toModelOutput?: ToolToModelOutput<AnyToolSchema, AnyToolSchema>
   readonly toStructuredOutput?: (output: unknown) => unknown
 }
 
@@ -130,7 +136,7 @@ type DynamicToolConfig = {
  * In both modes the produced tool flows through `toDefinitions(...)`
  * identically.
  */
-export function make<Parameters extends ToolSchema<any>, Success extends ToolSchema<any>>(config: {
+export function make<Parameters extends AnyToolSchema, Success extends AnyToolSchema>(config: {
   readonly description: string
   readonly parameters: Parameters
   readonly success: Success
@@ -138,7 +144,7 @@ export function make<Parameters extends ToolSchema<any>, Success extends ToolSch
   readonly toModelOutput?: ToolToModelOutput<Parameters, Success>
   readonly toStructuredOutput?: (output: Success["Encoded"]) => unknown
 }): ExecutableTool<Parameters, Success>
-export function make<Parameters extends ToolSchema<any>, Success extends ToolSchema<any>>(config: {
+export function make<Parameters extends AnyToolSchema, Success extends AnyToolSchema>(config: {
   readonly description: string
   readonly parameters: Parameters
   readonly success: Success
@@ -191,8 +197,12 @@ export function make(config: TypedToolConfig | DynamicToolConfig): AnyTool {
     execute: config.execute,
     toModelOutput: config.toModelOutput,
     toStructuredOutput: config.toStructuredOutput,
-    _decode: Schema.decodeUnknownEffect(config.parameters),
-    _encode: Schema.encodeEffect(config.success),
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- @internal codec: erases the schema's DecodingServices (R) to never; codecs run where schema services are already satisfied.
+    _decode: Schema.decodeUnknownEffect(config.parameters) as (
+      input: unknown,
+    ) => Effect.Effect<unknown, Schema.SchemaError>,
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- @internal codec: erases the schema's EncodingServices (R) to never; codecs run where schema services are already satisfied.
+    _encode: Schema.encodeEffect(config.success) as (value: unknown) => Effect.Effect<unknown, Schema.SchemaError>,
     _project: (parameters, callID, output) =>
       project(config.toModelOutput, config.toStructuredOutput, parameters, callID, output),
     _legacyResult: false,
@@ -236,7 +246,7 @@ const toJsonSchema = (schema: Schema.Top): JsonSchema.JsonSchema => {
 }
 
 const project = (
-  toModelOutput: ((input: ToolModelOutputInput<any, any>) => ReadonlyArray<ToolContent>) | undefined,
+  toModelOutput: ((input: ToolModelOutputInput<unknown, unknown>) => ReadonlyArray<ToolContent>) | undefined,
   toStructuredOutput: ((output: unknown) => unknown) | undefined,
   parameters: unknown,
   callID: ToolCallPart["id"],

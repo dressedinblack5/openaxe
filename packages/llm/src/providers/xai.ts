@@ -1,9 +1,9 @@
 import { AuthOptions, type ProviderAuthOption } from "../route/auth-options"
 import type { RouteDefaultsInput } from "../route/client"
 import { ProviderID, type ModelID } from "../schema"
-import { profiles } from "./openai-compatible-profile";
-import { route as compatibleChatRoute } from "../protocols/openai-compatible-chat";
-import { route } from "../protocols/openai-responses";
+import { profiles } from "./openai-compatible-profile"
+import { route as compatibleChatRoute } from "../protocols/openai-compatible-chat"
+import { route } from "../protocols/openai-responses"
 export const id = ProviderID.make("xai")
 
 export type ModelOptions = RouteDefaultsInput &

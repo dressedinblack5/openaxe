@@ -1,6 +1,5 @@
 import { Effect } from "effect"
 import { define } from "../internal"
-import type { OpenAICompatibleProviderSettings } from "@ai-sdk/openai-compatible"
 
 export const OpenAICompatiblePlugin = define({
   id: "openai-compatible",
@@ -10,8 +9,12 @@ export const OpenAICompatiblePlugin = define({
         if (evt.sdk) return
         if (!evt.package.includes("@ai-sdk/openai-compatible")) return
         if (evt.options.includeUsage !== false) evt.options.includeUsage = true
-        const mod = yield* Effect.promise( async () => import("@ai-sdk/openai-compatible"))
-        evt.sdk = mod.createOpenAICompatible(evt.options as OpenAICompatibleProviderSettings)
+        const mod = yield* Effect.promise(async () => import("@ai-sdk/openai-compatible"))
+        evt.sdk = mod.createOpenAICompatible({
+          ...evt.options,
+          name: evt.model.providerID,
+          baseURL: typeof evt.options.baseURL === "string" ? evt.options.baseURL : "",
+        })
       }),
     )
   }),

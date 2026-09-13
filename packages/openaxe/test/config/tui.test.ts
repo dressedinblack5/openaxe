@@ -13,7 +13,12 @@ import { testEffect } from "../lib/effect"
 
 const it = testEffect(Layer.mergeAll(Config.defaultLayer, FSUtil.defaultLayer))
 const winIt = process.platform === "win32" ? it.instance : it.instance.skip
-const expectedBundledOrigins = BUNDLED_PLUGINS.map((spec) => ({ spec, scope: "global" as const, source: "bundle" as const }))
+const tuiBundledSpecs = BUNDLED_PLUGINS.filter((p) => p.kinds.includes("tui")).map((p) => p.spec)
+const expectedBundledOrigins = tuiBundledSpecs.map((spec) => ({
+  spec,
+  scope: "global" as const,
+  source: "bundle" as const,
+}))
 
 const globalConfigFiles = ["openaxe.json", "openaxe.jsonc", "tui.json", "tui.jsonc"].map((file) =>
   path.join(Global.Path.config, file),
@@ -105,10 +110,11 @@ it.instance("keeps server and tui plugin merge semantics aligned", () =>
       const serverPlugins = (server.plugin ?? []).map((item) => ConfigPlugin.pluginSpecifier(item))
       const tuiPlugins = (tui.plugin ?? []).map((item) => ConfigPlugin.pluginSpecifier(item))
 
-      // Server config injects bundled plugins via loadGlobal(); TUI config discovers
-      // plugins from .openaxe dirs across the filesystem tree. The merge semantics
-      // should agree on shared plugins even when source discovery differs.
-      for (const plugin of serverPlugins) {
+      // Server config injects all bundled plugins via loadGlobal(); TUI config only loads
+      // TUI-capable bundled plugins. Check that shared (non-bundled) plugins match.
+      const bundledPlugins = new Set(BUNDLED_PLUGINS.map((p) => p.spec))
+      const serverNonBundled = serverPlugins.filter((p) => !bundledPlugins.has(ConfigPlugin.pluginSpecifier(p)))
+      for (const plugin of serverNonBundled) {
         expect(tuiPlugins).toContain(plugin)
       }
       expect(serverPlugins).toContain("shared-plugin@2.0.0")
@@ -117,11 +123,11 @@ it.instance("keeps server and tui plugin merge semantics aligned", () =>
       const serverOrigins = server.plugin_origins ?? []
       expect(serverOrigins.map((item) => ConfigPlugin.pluginSpecifier(item.spec))).toEqual(serverPlugins)
       expect(tuiOrigins.map((item) => ConfigPlugin.pluginSpecifier(item.spec))).toEqual(tuiPlugins)
-      // Compare scopes only for shared plugins since TUI config may discover
-      // additional plugins from .openaxe dirs.
-      
+      const serverNonBundledOrigins = serverOrigins.filter(
+        (o) => !bundledPlugins.has(ConfigPlugin.pluginSpecifier(o.spec)),
+      )
       const tuiOriginsBySpec = new Map(tuiOrigins.map((o) => [ConfigPlugin.pluginSpecifier(o.spec), o.scope] as const))
-      for (const origin of serverOrigins) {
+      for (const origin of serverNonBundledOrigins) {
         const spec = ConfigPlugin.pluginSpecifier(origin.spec)
         expect(tuiOriginsBySpec.get(spec)).toBe(origin.scope)
       }
@@ -757,7 +763,7 @@ it.instance("supports tuple plugin specs with options in tui.json", () =>
 
       const config = yield* getTuiConfig(test.directory)
       const origins = yield* getTuiPluginOrigins(test.directory)
-      expect(config.plugin).toEqual([["acme-plugin@1.2.3", { enabled: true, label: "demo" }], ...BUNDLED_PLUGINS])
+      expect(config.plugin).toEqual([["acme-plugin@1.2.3", { enabled: true, label: "demo" }], ...tuiBundledSpecs])
       expect(origins).toEqual([
         {
           spec: ["acme-plugin@1.2.3", { enabled: true, label: "demo" }],
@@ -790,7 +796,7 @@ it.instance("deduplicates tuple plugin specs by name with higher precedence winn
       expect(config.plugin).toEqual([
         ["acme-plugin@2.0.0", { source: "project" }],
         ["second-plugin@3.0.0", { source: "project" }],
-        ...BUNDLED_PLUGINS,
+        ...tuiBundledSpecs,
       ])
       expect(origins).toEqual([
         {
@@ -819,7 +825,7 @@ it.instance("tracks global and local plugin metadata in merged tui config", () =
 
       const config = yield* getTuiConfig(test.directory)
       const origins = yield* getTuiPluginOrigins(test.directory)
-      expect(config.plugin).toEqual(["global-plugin@1.0.0", "local-plugin@2.0.0", ...BUNDLED_PLUGINS])
+      expect(config.plugin).toEqual(["global-plugin@1.0.0", "local-plugin@2.0.0", ...tuiBundledSpecs])
       expect(origins).toEqual([
         {
           spec: "global-plugin@1.0.0",

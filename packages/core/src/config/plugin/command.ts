@@ -68,9 +68,9 @@ function loadDirectory(fs: FSUtil.Interface, directory: string) {
 
 function decode(directory: string, filepath: string, content: string) {
   const markdown = ConfigMarkdown.parseOption(content)
-  if (!markdown) return
+  if (!markdown) return undefined
   const info = Option.getOrUndefined(decodeCommand({ ...markdown.data, template: markdown.content.trim() }))
-  if (!info) return
+  if (!info) return undefined
   return {
     name: path
       .relative(directory, filepath)

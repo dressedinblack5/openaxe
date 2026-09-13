@@ -1,35 +1,57 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { FSUtil } from "@opencode-ai/core/fs-util"
 import { EventV2Bridge } from "@/event-v2-bridge"
-import type { Info as ClientInfo, Diagnostic } from "./client"
-import { create } from "./client"
-import path from "path"
-import { pathToFileURL, fileURLToPath } from "url"
-import { LSPServer, type Info as ServerInfo } from "./server"
 import { Config } from "@/config/config"
-import { Process } from "@/util/process"
-import { spawn } from "./launch"
-import { Effect, Layer, Context, Schema } from "effect"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 import { InstanceState } from "@/effect/instance-state"
 import { containsPath } from "@/project/instance-context"
+import { Process } from "@/util/process"
+import { spawn } from "./launch"
+import { Effect, Layer, Context, Schedule, Duration, Schema } from "effect"
+import { LSPServer, type Info as ServerInfo } from "./server"
+import { create, type Info as ClientInfo, type Diagnostic } from "./client"
+import * as DiagnosticNS from "./diagnostic"
 import { NonNegativeInt } from "@opencode-ai/core/schema"
-import { RuntimeFlags } from "@/effect/runtime-flags"
 import { LspEvent } from "@opencode-ai/schema/lsp-event"
+import path from "path"
+import { pathToFileURL, fileURLToPath } from "url"
 
-export const Event = LspEvent
+const BROKEN_TTL = 300_000
+const IDLE_TTL = 15 * 60_000
+
+function clientKey(root: string, serverID: string): string {
+  return `${root}#${serverID}`
+}
+
+function checkBroken(s: State, root: string, serverID: string): boolean {
+  const key = clientKey(root, serverID)
+  const brokenAt = s.broken.get(key)
+  if (brokenAt && Date.now() - brokenAt < BROKEN_TTL) return true
+  if (brokenAt) s.broken.delete(key)
+  return false
+}
+
+function filterExperimentalServers(servers: Record<string, ServerInfo>, flags: RuntimeFlags.Info) {
+  if (flags.experimentalLspTy) {
+    if (servers["pyright"]) delete servers["pyright"]
+  } else {
+    if (servers["ty"]) delete servers["ty"]
+  }
+}
+
+type LocInput = { file: string; line: number; character: number }
 
 const Position = Schema.Struct({
   line: NonNegativeInt,
   character: NonNegativeInt,
 })
 
-export const Range = Schema.Struct({
+const Range = Schema.Struct({
   start: Position,
   end: Position,
 }).annotate({ identifier: "Range" })
 export type Range = typeof Range.Type
 
-export const Symbol = Schema.Struct({
+const SymbolKind = Schema.Struct({
   name: Schema.String,
   kind: NonNegativeInt,
   location: Schema.Struct({
@@ -37,87 +59,64 @@ export const Symbol = Schema.Struct({
     range: Range,
   }),
 }).annotate({ identifier: "Symbol" })
-export type Symbol = typeof Symbol.Type
+export type Symbol = typeof SymbolKind.Type
 
-export const DocumentSymbol = Schema.Struct({
+const DocumentSymbolKind = Schema.Struct({
   name: Schema.String,
   detail: Schema.optional(Schema.String),
   kind: NonNegativeInt,
   range: Range,
   selectionRange: Range,
 }).annotate({ identifier: "DocumentSymbol" })
-export type DocumentSymbol = typeof DocumentSymbol.Type
+export type DocumentSymbol = typeof DocumentSymbolKind.Type
 
-export const Status = Schema.Struct({
+const StatusKind = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
   root: Schema.String,
   status: Schema.Literals(["connected", "error"]),
 }).annotate({ identifier: "LSPStatus" })
-export type Status = typeof Status.Type
+export type Status = typeof StatusKind.Type
 
-enum SymbolKind {
-  File = 1,
-  Module = 2,
-  Namespace = 3,
-  Package = 4,
-  Class = 5,
-  Method = 6,
-  Property = 7,
-  Field = 8,
-  Constructor = 9,
-  Enum = 10,
-  Interface = 11,
-  Function = 12,
-  Variable = 13,
-  Constant = 14,
-  String = 15,
-  Number = 16,
-  Boolean = 17,
-  Array = 18,
-  Object = 19,
-  Key = 20,
-  Null = 21,
-  EnumMember = 22,
-  Struct = 23,
-  Event = 24,
-  Operator = 25,
-  TypeParameter = 26,
-}
+const LspSymbolKind = {
+  File: 1,
+  Module: 2,
+  Namespace: 3,
+  Package: 4,
+  Class: 5,
+  Method: 6,
+  Property: 7,
+  Field: 8,
+  Constructor: 9,
+  Enum: 10,
+  Interface: 11,
+  Function: 12,
+  Variable: 13,
+  Constant: 14,
+  String: 15,
+  Number: 16,
+  Boolean: 17,
+  Array: 18,
+  Object: 19,
+  Key: 20,
+  Null: 21,
+  EnumMember: 22,
+  Struct: 23,
+  Event: 24,
+  Operator: 25,
+  TypeParameter: 26,
+} as const
 
 const kinds = [
-  SymbolKind.Class,
-  SymbolKind.Function,
-  SymbolKind.Method,
-  SymbolKind.Interface,
-  SymbolKind.Variable,
-  SymbolKind.Constant,
-  SymbolKind.Struct,
-  SymbolKind.Enum,
+  LspSymbolKind.Class,
+  LspSymbolKind.Function,
+  LspSymbolKind.Method,
+  LspSymbolKind.Interface,
+  LspSymbolKind.Variable,
+  LspSymbolKind.Constant,
+  LspSymbolKind.Struct,
+  LspSymbolKind.Enum,
 ]
-
-const BROKEN_TTL = 300_000 // 5 minutes before retrying a failed LSP server
-
-const filterExperimentalServers = (servers: Record<string, ServerInfo>, flags: RuntimeFlags.Info) => {
-  if (flags.experimentalLspTy) {
-    if (servers["pyright"]) {
-      delete servers["pyright"]
-    }
-  } else {
-    if (servers["ty"]) {
-      delete servers["ty"]
-    }
-  }
-}
-
-type LocInput = { file: string; line: number; character: number }
-
-interface State {
-  clients: ClientInfo[]
-  servers: Record<string, ServerInfo>
-  broken: Map<string, number>
-  spawning: Map<string, Promise<ClientInfo | undefined>>
-}
 
 export interface Interface {
   readonly init: () => Effect.Effect<void>
@@ -146,6 +145,14 @@ export interface Interface {
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/LSP") {}
+
+interface State {
+  clients: ClientInfo[]
+  servers: Record<string, ServerInfo>
+  broken: Map<string, number>
+  spawning: Map<string, Promise<ClientInfo | undefined>>
+  used: Map<string, number>
+}
 
 export const layer = Layer.effect(
   Service,
@@ -179,9 +186,9 @@ export const layer = Layer.effect(
               servers[name] = {
                 ...existing,
                 id: name,
-                root: existing?.root ?? (async (_file, ctx) => ctx.directory),
+                root: existing?.root ?? (async (_file: string, ctx: any) => ctx.directory),
                 extensions: item.extensions ?? existing?.extensions ?? [],
-                spawn: async (root) => ({
+                spawn: async (root: string) => ({
                   process: spawn(item.command[0], item.command.slice(1), {
                     cwd: root,
                     env: { ...process.env, ...item.env },
@@ -204,6 +211,7 @@ export const layer = Layer.effect(
           servers,
           broken: new Map(),
           spawning: new Map(),
+          used: new Map(),
         }
 
         yield* Effect.addFinalizer(() =>
@@ -211,6 +219,28 @@ export const layer = Layer.effect(
             await Promise.all(s.clients.map((client) => client.shutdown()))
           }),
         )
+
+        const prune = Effect.gen(function* () {
+          const now = Date.now()
+          const keys = s.clients
+            .filter((c) => now - (s.used.get(clientKey(c.root, c.serverID)) ?? now) > IDLE_TTL)
+            .map((c) => clientKey(c.root, c.serverID))
+          if (keys.length === 0) return
+          const keySet = new Set(keys)
+          yield* Effect.promise(() =>
+            Promise.all(
+              s.clients
+                .filter((c) => keySet.has(clientKey(c.root, c.serverID)))
+                .map((c) => c.shutdown().catch(() => {})),
+            ),
+          )
+          s.clients = s.clients.filter((c) => !keySet.has(clientKey(c.root, c.serverID)))
+          for (const key of keySet) {
+            s.broken.delete(key)
+            s.used.delete(key)
+          }
+        })
+        yield* prune.pipe(Effect.repeat(Schedule.spaced(Duration.minutes(1))), Effect.forkScoped)
 
         return s
       }),
@@ -220,94 +250,87 @@ export const layer = Layer.effect(
       const ctx = yield* InstanceState.context
       if (!containsPath(file, ctx)) return [] as ClientInfo[]
       const s = yield* InstanceState.get(state)
-      const clients = yield* Effect.promise(async () => {
-        const extension = path.parse(file).ext || file
-        const result: ClientInfo[] = []
-        let updated = 0
 
-        async function schedule(server: ServerInfo, root: string, key: string) {
-          const handle = await server
-            .spawn(root, ctx, flags)
-            .then((value) => {
-              if (!value) s.broken.set(key, Date.now())
-              return value
-            })
-            .catch(() => {
-              s.broken.set(key, Date.now())
-              return undefined
-            })
-
-          if (!handle) return undefined
-          const client = await create({
-            serverID: server.id,
-            server: handle,
-            root,
-            directory: ctx.directory,
-            instance: ctx,
-          }).catch(async () => {
+      async function schedule(server: ServerInfo, root: string, key: string) {
+        const handle = await server
+          .spawn(root, ctx, flags)
+          .then((value) => {
+            if (!value) s.broken.set(key, Date.now())
+            return value
+          })
+          .catch(() => {
             s.broken.set(key, Date.now())
-            await Process.stop(handle.process)
             return undefined
           })
 
-          if (!client) return undefined
+        if (!handle) return undefined
+        const client = await create({
+          serverID: server.id,
+          server: handle,
+          root,
+          directory: ctx.directory,
+          instance: ctx,
+        }).catch(async () => {
+          s.broken.set(key, Date.now())
+          await Process.stop(handle.process)
+          return undefined
+        })
 
-          const existing = s.clients.find((x) => x.root === root && x.serverID === server.id)
-          if (existing) {
-            await Process.stop(handle.process)
-            return existing
-          }
+        if (!client) return undefined
 
-          s.clients.push(client)
-          return client
+        const existing = s.clients.find((x) => x.root === root && x.serverID === server.id)
+        if (existing) {
+          await Process.stop(handle.process)
+          return existing
         }
 
-        for (const server of Object.values(s.servers)) {
-          if (server.extensions.length && !server.extensions.includes(extension)) continue
+        s.clients.push(client)
+        return client
+      }
 
-          const root = await server.root(file, ctx)
-          if (!root) continue
-          const brokenKey = root + server.id
-          const brokenAt = s.broken.get(brokenKey)
-          if (brokenAt && Date.now() - brokenAt < BROKEN_TTL) continue
-          if (brokenAt) s.broken.delete(brokenKey)
+      const extension = path.parse(file).ext || file
+      const servers = Object.values(s.servers).filter(
+        (server) => !server.extensions.length || server.extensions.includes(extension),
+      )
+      // Servers spawn independently; the spawning map still dedupes concurrent
+      // spawns for the same server+root pair. forEach preserves input order so
+      // the returned client list stays deterministic.
+      const settled = yield* Effect.forEach(
+        servers,
+        (server) =>
+          Effect.promise(async () => {
+            const root = await server.root(file, ctx)
+            if (!root) return undefined
+            if (checkBroken(s, root, server.id)) return undefined
 
-          const match = s.clients.find((x) => x.root === root && x.serverID === server.id)
-          if (match) {
-            result.push(match)
-            continue
-          }
+            const match = s.clients.find((x) => x.root === root && x.serverID === server.id)
+            if (match) return { client: match, fresh: false }
 
-          const inflight = s.spawning.get(root + server.id)
-          if (inflight) {
-            const client = await inflight
-            if (!client) continue
-            result.push(client)
-            continue
-          }
-
-          const task = schedule(server, root, root + server.id)
-          s.spawning.set(root + server.id, task)
-
-          void task.finally(() => {
-            if (s.spawning.get(root + server.id) === task) {
-              s.spawning.delete(root + server.id)
+            const spawnKey = clientKey(root, server.id)
+            let task = s.spawning.get(spawnKey)
+            if (!task) {
+              task = schedule(server, root, spawnKey)
+              s.spawning.set(spawnKey, task)
+              void task.finally(() => {
+                if (s.spawning.get(spawnKey) === task) {
+                  s.spawning.delete(spawnKey)
+                }
+              })
             }
-          })
 
-          const client = await task
-          if (!client) continue
-
-          result.push(client)
-          updated++
-        }
-
-        return { result, updated }
-      })
-      yield* Effect.forEach(Array.from({ length: clients.updated }), () => events.publish(Event.Updated, {}), {
+            const client = await task
+            if (!client) return undefined
+            return { client, fresh: true }
+          }),
+        { concurrency: "unbounded" },
+      )
+      const clients = settled.filter((x) => x !== undefined)
+      const fresh = clients.filter((x) => x.fresh)
+      yield* Effect.forEach(Array.from({ length: fresh.length }), () => events.publish(LspEvent.Updated, {}), {
         discard: true,
       })
-      return clients.result
+      for (const { client } of clients) s.used.set(clientKey(client.root, client.serverID), Date.now())
+      return clients.map((x) => x.client)
     })
 
     const run = Effect.fnUntraced(function* <T>(file: string, fn: (client: ClientInfo) => Promise<T>) {
@@ -317,6 +340,7 @@ export const layer = Layer.effect(
 
     const runAll = Effect.fnUntraced(function* <T>(fn: (client: ClientInfo) => Promise<T>) {
       const s = yield* InstanceState.get(state)
+      for (const client of s.clients) s.used.set(clientKey(client.root, client.serverID), Date.now())
       return yield* Effect.promise(() => Promise.all(s.clients.map((x) => fn(x))))
     })
 
@@ -348,10 +372,7 @@ export const layer = Layer.effect(
           if (server.extensions.length && !server.extensions.includes(extension)) continue
           const root = await server.root(file, ctx)
           if (!root) continue
-          const brokenKey = root + server.id
-          const brokenAt = s.broken.get(brokenKey)
-          if (brokenAt && Date.now() - brokenAt < BROKEN_TTL) continue
-          if (brokenAt) s.broken.delete(brokenKey)
+          if (checkBroken(s, root, server.id)) continue
           return true
         }
         return false
@@ -451,7 +472,7 @@ export const layer = Layer.effect(
       const results = yield* runAll((client) =>
         client.connection
           .sendRequest<Symbol[]>("workspace/symbol", { query })
-          .then((result) => result.filter((x) => kinds.includes(x.kind)).slice(0, 10))
+          .then((result) => result.filter((x) => (kinds as number[]).includes(x.kind)).slice(0, 10))
           .catch(() => [] as Symbol[]),
       )
       return results.flat()
@@ -656,8 +677,34 @@ export const defaultLayer = layer.pipe(
   Layer.provide(EventV2Bridge.defaultLayer),
 )
 
-export * as Diagnostic from "./diagnostic"
+export const node = LayerNode.make(layer, [Config.node, RuntimeFlags.node, EventV2Bridge.node])
 
-export const node = LayerNode.make(layer, [Config.node, RuntimeFlags.node, FSUtil.node, EventV2Bridge.node])
+export { LspEvent as Event }
+export type { Diagnostic } from "./client"
 
-export * as LSP from "./lsp"
+export function selectIdleKeys(
+  clients: { root: string; serverID: string }[],
+  used: Map<string, number>,
+  now: number,
+  ttl: number,
+) {
+  return clients
+    .filter((c) => now - (used.get(clientKey(c.root, c.serverID)) ?? now) > ttl)
+    .map((c) => clientKey(c.root, c.serverID))
+}
+
+export const LSP = {
+  Service,
+  layer,
+  defaultLayer,
+  node,
+  selectIdleKeys,
+  Event: LspEvent,
+  Symbol: SymbolKind,
+  Status: StatusKind,
+  Range,
+  DocumentSymbol: DocumentSymbolKind,
+  Diagnostic: DiagnosticNS,
+}
+
+export type LSPService = typeof Service

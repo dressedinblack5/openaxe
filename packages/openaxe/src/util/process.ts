@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs"
 import { Readable, Writable } from "node:stream"
 import { buffer } from "node:stream/consumers"
+import { ReadableStream as WebReadableStream } from "stream/web"
 import { errorMessage } from "./error"
 
 export type Stdio = "inherit" | "pipe" | "ignore" | number
@@ -146,7 +147,7 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
       cwd: opts.cwd,
       env: opts.env === null ? {} : opts.env ? { ...process.env, ...opts.env } : undefined,
       stdio: [opts.stdin ?? "ignore", opts.stdout ?? "ignore", opts.stderr ?? "ignore"],
-    } as any)
+    })
   } catch (err) {
     spawnError = err as Error
   }
@@ -185,7 +186,7 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
   const stdin =
     bunProc && bunProc.stdin && typeof bunProc.stdin === "object"
       ? "getWriter" in bunProc.stdin
-        ? Writable.fromWeb(bunProc.stdin as any)
+        ? Writable.fromWeb(bunProc.stdin as unknown as WritableStream)
         : writableFromFileSink(bunProc.stdin)
       : null
   return {
@@ -193,8 +194,8 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
       return bunProc?.pid ?? 0
     },
     stdin,
-    stdout: bunProc?.stdout ? Readable.fromWeb(bunProc.stdout as any) : null,
-    stderr: bunProc?.stderr ? Readable.fromWeb(bunProc.stderr as any) : null,
+    stdout: bunProc?.stdout ? Readable.fromWeb(bunProc.stdout as unknown as WebReadableStream) : null,
+    stderr: bunProc?.stderr ? Readable.fromWeb(bunProc.stderr as unknown as WebReadableStream) : null,
     get exitCode() {
       return bunProc?.exitCode ?? null
     },
@@ -203,7 +204,7 @@ export function spawn(cmd: string[], opts: Options = {}): Child {
     },
     exited,
     kill(signal) {
-      bunProc?.kill(signal as any)
+      bunProc?.kill(signal)
     },
   }
 }
@@ -221,7 +222,16 @@ export async function run(cmd: string[], opts: RunOptions = {}): Promise<Result>
     stderr: "pipe",
   })
 
-  if (!proc.stdout || !proc.stderr) throw new Error("Process output not available")
+  if (!proc.stdout || !proc.stderr) {
+    // ponytail: spawn failure (e.g. missing binary on Windows) leaves
+    // stdout/stderr null — nothrow callers expect a code-1 result, not a
+    // synchronous throw that bypasses the Promise.all catch below.
+    const err = new Error("Process output not available")
+    if (opts.nothrow) {
+      return { code: 1, stdout: Buffer.alloc(0), stderr: Buffer.from(errorMessage(err)) }
+    }
+    throw err
+  }
 
   const out = await Promise.all([proc.exited, buffer(proc.stdout), buffer(proc.stderr)])
     .then(([code, stdout, stderr]) => ({

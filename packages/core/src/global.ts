@@ -11,15 +11,20 @@ const app = "openaxe"
 // ponytail: Windows uses %APPDATA%/%LOCALAPPDATA% instead of XDG dirs.
 const isWin = process.platform === "win32"
 const home = os.homedir()
-const appData = process.env.APPDATA ?? (isWin ? path.join(home, "AppData", "Roaming") : xdgData!)
-const localAppData = process.env.LOCALAPPDATA ?? (isWin ? path.join(home, "AppData", "Local") : xdgCache!)
-const xdgConfigHome = xdgConfig ?? (home ? path.join(home, ".config") : undefined)
-const xdgStateHome = xdgState ?? (home ? path.join(home, ".local", "state") : undefined)
+const requireXDG = (value: string | undefined, label: string) => {
+  if (value === undefined) throw new Error(`openaxe requires the XDG ${label} directory`)
+  return value
+}
+const appData = process.env.APPDATA ?? (isWin ? path.join(home, "AppData", "Roaming") : requireXDG(xdgData, "data"))
+const localAppData =
+  process.env.LOCALAPPDATA ?? (isWin ? path.join(home, "AppData", "Local") : requireXDG(xdgCache, "cache"))
+const xdgConfigHome = xdgConfig ?? (home ? path.join(home, ".config") : requireXDG(undefined, "config"))
+const xdgStateHome = xdgState ?? (home ? path.join(home, ".local", "state") : requireXDG(undefined, "state"))
 
-const data = path.join(isWin ? appData : xdgData!, app)
-const cache = path.join(isWin ? localAppData : xdgCache!, app)
-const config = path.join(isWin ? (xdgConfig ?? appData) : xdgConfigHome!, app)
-const state = path.join(isWin ? (xdgState ?? appData) : xdgStateHome!, app)
+const data = path.join(isWin ? appData : requireXDG(xdgData, "data"), app)
+const cache = path.join(isWin ? localAppData : requireXDG(xdgCache, "cache"), app)
+const config = path.join(isWin ? (xdgConfig ?? appData) : xdgConfigHome, app)
+const state = path.join(isWin ? (xdgState ?? appData) : xdgStateHome, app)
 const tmp = path.join(os.tmpdir(), app)
 
 const paths = {

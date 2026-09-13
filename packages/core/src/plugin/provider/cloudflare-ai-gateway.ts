@@ -2,7 +2,6 @@ import os from "node:os"
 import { InstallationVersion } from "../../installation/version"
 import { Effect, Option, Schema } from "effect"
 import { define } from "../internal"
-import type { AiGatewaySettings } from "ai-gateway-provider"
 
 export const CloudflareAIGatewayPlugin = define({
   id: "cloudflare-ai-gateway",
@@ -15,16 +14,16 @@ export const CloudflareAIGatewayPlugin = define({
         const config = gatewayConfig(evt.options)
         if (!config) return
         const metadata = gatewayMetadata(evt.options)
-        const { createAiGateway } = yield* Effect.promise( async () => import("ai-gateway-provider")).pipe(Effect.orDie)
-        const { createUnified } = yield* Effect.promise( async () => import("ai-gateway-provider/providers/unified")).pipe(
-          Effect.orDie,
-        )
+        const { createAiGateway } = yield* Effect.promise(async () => import("ai-gateway-provider")).pipe(Effect.orDie)
+        const { createUnified } = yield* Effect.promise(
+          async () => import("ai-gateway-provider/providers/unified"),
+        ).pipe(Effect.orDie)
         const gateway = createAiGateway({
           accountId: config.accountId,
           gateway: config.gatewayId,
           apiKey: config.apiKey,
           options: gatewayOptions(evt.options, metadata),
-        } as AiGatewaySettings)
+        })
         const unified = createUnified({ apiKey: config.apiKey })
         evt.sdk = {
           languageModel(modelID: string) {
@@ -60,17 +59,21 @@ function gatewayMetadata(options: Record<string, unknown>) {
   // Preserve the legacy cf-aig-metadata header escape hatch for gateway logging
   // metadata, but prefer the typed metadata option when present.
   if (options.metadata !== undefined) return options.metadata
-  const raw = (options.headers as Record<string, string> | undefined)?.["cf-aig-metadata"]
-  return raw ? Option.getOrUndefined(decodeJson(raw)) : undefined
+  const headers = options.headers
+  const raw =
+    typeof headers === "object" && headers !== null && !Array.isArray(headers) && "cf-aig-metadata" in headers
+      ? headers["cf-aig-metadata"]
+      : undefined
+  return typeof raw === "string" ? Option.getOrUndefined(decodeJson(raw)) : undefined
 }
 
 function gatewayOptions(options: Record<string, unknown>, metadata: unknown) {
   return {
-    metadata,
-    cacheTtl: options.cacheTtl,
-    cacheKey: options.cacheKey,
-    skipCache: options.skipCache,
-    collectLog: options.collectLog,
+    metadata: isMetadata(metadata) ? metadata : undefined,
+    cacheTtl: typeof options.cacheTtl === "number" ? options.cacheTtl : undefined,
+    cacheKey: typeof options.cacheKey === "string" ? options.cacheKey : undefined,
+    skipCache: typeof options.skipCache === "boolean" ? options.skipCache : undefined,
+    collectLog: typeof options.collectLog === "boolean" ? options.collectLog : undefined,
     headers: {
       "User-Agent": `opencode/${InstallationVersion} cloudflare-ai-gateway (${os.platform()} ${os.release()}; ${os.arch()})`,
     },
@@ -80,3 +83,13 @@ function gatewayOptions(options: Record<string, unknown>, metadata: unknown) {
 function stringOption(options: Record<string, unknown>, key: string) {
   return typeof options[key] === "string" ? options[key] : undefined
 }
+
+const isJsonPrimitive = (value: unknown): value is number | string | boolean | null | bigint =>
+  value === null ||
+  typeof value === "string" ||
+  typeof value === "number" ||
+  typeof value === "boolean" ||
+  typeof value === "bigint"
+
+const isMetadata = (value: unknown): value is Record<string, number | string | boolean | null | bigint> =>
+  typeof value === "object" && value !== null && !Array.isArray(value) && Object.values(value).every(isJsonPrimitive)

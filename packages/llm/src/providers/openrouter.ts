@@ -4,8 +4,8 @@ import { Endpoint } from "../route/endpoint"
 import { Framing } from "../route/framing"
 import { AuthOptions, type ProviderAuthOption } from "../route/auth-options"
 import { ProviderID, type LLMRequest, type ModelID, type ProviderOptions } from "../schema"
-import { profiles } from "./openai-compatible-profile";
-import { bodyFields, protocol as chatProtocol } from "../protocols/openai-chat";
+import { profiles } from "./openai-compatible-profile"
+import { bodyFields, protocol as chatProtocol } from "../protocols/openai-chat"
 import { isRecord } from "../protocols/shared"
 
 export const profile = profiles.openrouter
@@ -29,9 +29,7 @@ export type ModelOptions = Omit<RouteDefaultsInput, "providerOptions"> &
     readonly providerOptions?: OpenRouterProviderOptionsInput
   }
 
-const OpenRouterBody = Schema.StructWithRest(Schema.Struct(bodyFields), [
-  Schema.Record(Schema.String, Schema.Any),
-])
+const OpenRouterBody = Schema.StructWithRest(Schema.Struct(bodyFields), [Schema.Record(Schema.String, Schema.Any)])
 export type OpenRouterBody = Schema.Schema.Type<typeof OpenRouterBody>
 
 export const protocol = {

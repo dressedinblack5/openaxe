@@ -17,9 +17,9 @@ const LOGO_LEFT_WIDTH = go.left[0]?.length ?? 0
 const LOGO_LINES = go.left.map((line, index) => line + " ".repeat(LOGO_GAP) + go.right[index])
 const LOGO_WIDTH = LOGO_LINES[0]?.length ?? 0
 const LOGO_HEIGHT = LOGO_LINES.length
-const SPACE = " ".codePointAt(0)!
-const TOP_HALF = "▀".codePointAt(0)!
-const FULL_BLOCK = "█".codePointAt(0)!
+const SPACE = " ".charCodeAt(0)
+const TOP_HALF = "▀".charCodeAt(0)
+const FULL_BLOCK = "█".charCodeAt(0)
 const RING_SCALE = 1 / RINGS
 const TAIL_SCALE = 1 / TAIL
 const LOGO_REACH = Math.hypot(LOGO_WIDTH, LOGO_HEIGHT * 2) + 3
@@ -45,7 +45,7 @@ type LogoTemplateCell = {
 const LOGO_TEMPLATE: LogoTemplateCell[] = LOGO_LINES.flatMap((line, y) =>
   Array.from(line)
     .map((char, x) => {
-      if (char === " ") return
+      if (char === " ") return undefined
       const kind =
         char === "_"
           ? LogoCellKind.Background

@@ -6,6 +6,7 @@ import { DialogSelect, type DialogSelectRef, type DialogSelectOption } from "../
 import { useTheme } from "../context/theme"
 import { TextAttributes } from "@opentui/core"
 import { useSDK } from "../context/sdk"
+import { useToast } from "../ui/toast"
 
 function Status(props: { enabled: boolean; loading: boolean }) {
   const { theme } = useTheme()
@@ -22,6 +23,7 @@ export function DialogMcp() {
   const local = useLocal()
   const sync = useSync()
   const sdk = useSDK()
+  const toast = useToast()
   const [, setRef] = createSignal<DialogSelectRef<unknown>>()
   const [loading, setLoading] = createSignal<string | null>(null)
 
@@ -31,7 +33,7 @@ export function DialogMcp() {
     const loadingMcp = loading()
 
     const mcpEntries = Object.entries(mcpData ?? {})
-    mcpEntries.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+    mcpEntries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     return mcpEntries.map(([name, status]) => ({
       value: name,
       title: name,
@@ -57,10 +59,13 @@ export function DialogMcp() {
           if (status.data) {
             sync.set("mcp", status.data)
           } else {
-            console.error("Failed to refresh MCP status: no data returned")
+            toast.show({ message: "Failed to refresh MCP status: no data returned", variant: "error" })
           }
         } catch (error) {
-          console.error("Failed to toggle MCP:", error)
+          toast.show({
+            message: error instanceof Error ? error.message : "Failed to toggle MCP",
+            variant: "error",
+          })
         } finally {
           setLoading(null)
         }

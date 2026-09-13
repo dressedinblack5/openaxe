@@ -89,6 +89,12 @@ export function fake(override: Partial<Provider.Interface> & { model?: Provider.
             latencyMs: 10,
           }),
         ),
+        registerCustomModel: Effect.fn("TestProvider.registerCustomModel")(() =>
+          Effect.die(new Error("ProviderTest.registerCustomModel not configured")),
+        ),
+        validateApiKeys: Effect.fn("TestProvider.validateApiKeys")(() =>
+          Effect.succeed({}),
+        ),
         ...override,
       }),
     ),

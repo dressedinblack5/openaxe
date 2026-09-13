@@ -36,7 +36,7 @@ function lock(dir: string, key: string) {
   return path.join(dir, Hash.fast(key) + ".lock")
 }
 
- async function sleep(ms: number) {
+async function sleep(ms: number) {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, ms)
   })
@@ -59,7 +59,7 @@ async function wait(file: string, timeout = 3_000) {
   throw new Error(`Timed out waiting for file: ${file}`)
 }
 
- async function run(msg: Msg) {
+async function run(msg: Msg) {
   return new Promise<{ code: number; stdout: Buffer; stderr: Buffer }>((resolve) => {
     const proc = spawn(process.execPath, [worker, JSON.stringify(msg)], {
       cwd: root,
@@ -123,7 +123,7 @@ describe("util.flock", () => {
     const n = 16
 
     const out = await Promise.all(
-      Array.from({ length: n },  async () =>
+      Array.from({ length: n }, async () =>
         run({
           key,
           dir,

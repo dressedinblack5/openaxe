@@ -761,10 +761,12 @@ describe("EventV2", () => {
       const { db } = yield* Database.Service
       const aggregateID = Session.ID.create()
       const published = yield* events.publish(DurableMessage, durableData(aggregateID, "owned"))
+      const publishedDurable = published.durable
+      if (!publishedDurable) throw new Error("published has no durable")
       const replayed = {
         id: published.id,
         type: EventV2.versionedType(DurableMessage.type, 1),
-        seq: published.durable!.seq,
+        seq: publishedDurable.seq,
         aggregateID,
         data: published.data,
       }

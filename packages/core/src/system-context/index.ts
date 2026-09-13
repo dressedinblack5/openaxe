@@ -184,11 +184,10 @@ const observe = (value: SystemContext) =>
     value[ContextTypeId],
     (source) =>
       source.load.pipe(
-        Effect.map(
-          (result): Entry =>
-            result === unavailable
-              ? { _tag: "Unavailable", key: source.key }
-              : { _tag: "Available", key: source.key, ...result },
+        Effect.map((result): Entry =>
+          result === unavailable
+            ? { _tag: "Unavailable", key: source.key }
+            : { _tag: "Available", key: source.key, ...result },
         ),
       ),
     { concurrency: "unbounded" },

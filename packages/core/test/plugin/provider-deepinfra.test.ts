@@ -15,7 +15,7 @@ const deepinfraLanguageModels: string[] = []
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  
+
   const host = yield* PluginHost.make(plugin)
   yield* DeepInfraPlugin.effect(host)
 })
@@ -27,7 +27,8 @@ void mock.module("@ai-sdk/deepinfra", () => ({
     return {
       languageModel: (modelID: string) => {
         deepinfraLanguageModels.push(modelID)
-        return { modelID, provider: `${captured.name ?? "deepinfra"}.chat`, specificationVersion: "v3" }
+        const providerName = typeof captured.name === "string" ? captured.name : "deepinfra"
+        return { modelID, provider: `${providerName}.chat`, specificationVersion: "v3" }
       },
     }
   },
@@ -42,7 +43,7 @@ describe("DeepInfraPlugin", () => {
   it.effect("creates a DeepInfra SDK for @ai-sdk/deepinfra", () =>
     Effect.gen(function* () {
       resetDeepInfraMock()
-      
+
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -60,7 +61,7 @@ describe("DeepInfraPlugin", () => {
   it.effect("passes the model provider ID as the bundled DeepInfra SDK name", () =>
     Effect.gen(function* () {
       resetDeepInfraMock()
-      
+
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -79,7 +80,7 @@ describe("DeepInfraPlugin", () => {
   it.effect("uses the canonical provider ID as the bundled DeepInfra SDK name", () =>
     Effect.gen(function* () {
       resetDeepInfraMock()
-      
+
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -98,7 +99,7 @@ describe("DeepInfraPlugin", () => {
   it.effect("matches only the exact bundled DeepInfra package", () =>
     Effect.gen(function* () {
       resetDeepInfraMock()
-      
+
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const packages = [
@@ -135,7 +136,7 @@ describe("DeepInfraPlugin", () => {
   it.effect("uses the default languageModel selection for DeepInfra models", () =>
     Effect.gen(function* () {
       resetDeepInfraMock()
-      
+
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const sdkEvent = yield* aisdk.runSDK({

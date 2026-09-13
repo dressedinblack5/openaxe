@@ -16,7 +16,7 @@ import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
-import type { Def, InferDef } from "./tool"
+import type { Def, Descriptor, InferDef, Info } from "./tool"
 import { init } from "./tool"
 import { Config } from "@/config/config"
 import { type ToolContext, type ToolDefinition } from "@opencode-ai/plugin"
@@ -26,9 +26,11 @@ import z from "zod"
 import { Plugin } from "../plugin"
 import { Provider } from "@/provider/provider"
 
-import { WebSearchTool } from "./websearch"
+import { WebSearchTool, webSearchEnabled } from "./websearch"
+
 import { ShellTool } from "./shell/shell"
 import { LspTool } from "./lsp"
+import { DiscoveryCache } from "./discovery-cache"
 import { Truncate } from "./truncate"
 import { ApplyPatchTool } from "./apply_patch"
 import { Glob } from "@opencode-ai/core/util/glob"
@@ -49,25 +51,62 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { Agent } from "../agent/agent"
 import { Skill } from "../skill"
-import { Permission } from "@/permission"
 import { BackgroundJob } from "@/background/job"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
+import { Kanban } from "@opencode-ai/core/kanban/kanban"
+import { FTSIndex } from "@opencode-ai/core/database/fts"
+import { KanbanTool } from "./kanban"
+import { SessionSearchTool } from "./session-search"
+import { SkillWriteV1Tool } from "./skill-write"
+import { ToolSearchTool } from "./tool-search"
+import { KanbanSwarmTool } from "./kanban-swarm"
+import { validateToolSpec } from "@/plugin/shared"
 
-export function webSearchEnabled(providerID: ProviderV2.ID, flags = { exa: false, parallel: false }) {
-  return providerID === ProviderV2.ID.opencode || flags.exa || flags.parallel
+export { webSearchEnabled }
+
+function pick(entries: BuiltinEntry[], id: string): Def {
+  const found = entries.find((entry) => entry.def.id === id)
+  if (!found) throw new Error(`builtin tool "${id}" is missing from the registry manifest`)
+  return found.def
 }
 
 type TaskDef = InferDef<typeof TaskTool>
 type ReadDef = InferDef<typeof ReadTool>
 
+type BuiltinEntry = { def: Def; available?: Descriptor["available"] }
+
 type State = {
   custom: Def[]
-  builtin: Def[]
-  task: TaskDef
-  read: ReadDef
+  builtin: BuiltinEntry[]
 }
+
+// Manifest position IS provider-visible tool order (Record insertion order
+// reaches the model's tool list). Adding a tool = adding exactly one line here.
+const manifest = [
+  InvalidTool,
+  QuestionTool,
+  ReadTool,
+  GlobTool,
+  GrepTool,
+  EditTool,
+  WriteTool,
+  TaskTool,
+  WebFetchTool,
+  TodoWriteTool,
+  WebSearchTool,
+  SkillTool,
+  ApplyPatchTool,
+  LspTool,
+  ShellTool,
+  KanbanTool,
+  KanbanSwarmTool,
+  SessionSearchTool,
+  SkillWriteV1Tool,
+  ToolSearchTool,
+  PlanExitTool,
+]
 
 export interface Interface {
   readonly ids: () => Effect.Effect<string[]>
@@ -86,24 +125,16 @@ export const layer = Layer.effect(
     const agents = yield* Agent.Service
     const truncate = yield* Truncate.Service
     const flags = yield* RuntimeFlags.Service
+    
+    // Get tool allowlist from config
+    const cfg = yield* Config.Service.use((c) => c.getGlobal())
+    const toolAllowlist = cfg.toolAllowlist
 
-    const invalid = yield* InvalidTool
-    const task = yield* TaskTool
-    const read = yield* ReadTool
-    const question = yield* QuestionTool
-    const todo = yield* TodoWriteTool
-    const lsptool = yield* LspTool
-    const plan = yield* PlanExitTool
-    const webfetch = yield* WebFetchTool
-    const websearch = yield* WebSearchTool
-    const globtool = yield* GlobTool
-    const writetool = yield* WriteTool
-    const edit = yield* EditTool
-    const greptool = yield* GrepTool
-    const patchtool = yield* ApplyPatchTool
-    const shell = yield* ShellTool
-    const skilltool = yield* SkillTool
-    const agent = yield* Agent.Service
+    const infos: Info[] = yield* Effect.all(manifest)
+    const defs: Def[] = yield* Effect.forEach(infos, (info) => init(info))
+    // Zip descriptors back onto their resolved defs by index — Effect.all
+    // returns fresh objects, the attached `available` lives on the manifest.
+    const entries: BuiltinEntry[] = defs.map((def, i) => ({ def, available: manifest[i].available }))
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("ToolRegistry.state")(function* (ctx) {
@@ -138,11 +169,13 @@ export const layer = Layer.effect(
                   directory: ctx.directory,
                   worktree: ctx.worktree,
                 }
-                const result = yield* Effect.promise(() => def.execute(args as any, pluginCtx))
+                const result = yield* Effect.promise(() =>
+                  def.execute(args as z.infer<z.ZodObject<z.ZodRawShape>>, pluginCtx),
+                )
                 const output = typeof result === "string" ? result : result.output
                 const metadata = typeof result === "string" ? {} : (result.metadata ?? {})
                 const attachments = typeof result === "string" ? undefined : result.attachments
-                const info = yield* agent.get(toolCtx.agent)
+                const info = yield* agents.get(toolCtx.agent)
                 const out = yield* truncate.output(output, {}, info)
                 return {
                   title: typeof result === "string" ? "" : (result.title ?? ""),
@@ -167,25 +200,132 @@ export const layer = Layer.effect(
           }
         }
 
-        const dirs = yield* config.directories()
-        const matches = dirs.flatMap((dir) => {
-          try {
-            return Glob.scanSync("{tool,tools}/*.{js,ts}", { cwd: dir, absolute: true, dot: true, symlink: true })
-          } catch {
-            return []
-          }
-        })
-        if (matches.length) yield* config.waitForDependencies()
-        for (const match of matches) {
+        function registerToolExports(mod: Record<string, unknown>, match: string) {
           const namespace = path.basename(match, path.extname(match))
-          // `match` is an absolute filesystem path from `Glob.scanSync(..., { absolute: true })`.
-          // Import it as `file://` so Node on Windows accepts the dynamic import.
-          const mod = yield* Effect.promise(() => import(pathToFileURL(match).href))
           for (const [id, def] of Object.entries(mod)) {
             if (!isPluginTool(def)) continue
+            const toolId = id === "default" ? namespace : `${namespace}_${id}`
+            // Validate tool against allowlist if configured
+            if (toolAllowlist && toolAllowlist.length > 0) {
+              validateToolSpec(toolId, toolAllowlist)
+            }
             custom.push(fromPlugin(id === "default" ? namespace : `${namespace}_${id}`, def))
           }
         }
+
+        const dirs = yield* config.directories()
+        const cache = yield* DiscoveryCache.load()
+
+        const isCovered = (
+          prev: DiscoveryCache.DirCache | undefined,
+          subdirs: Record<string, DiscoveryCache.FileSignature | undefined>,
+        ) => Boolean(prev && DiscoveryCache.sameSubdirs(prev.subdirs, subdirs))
+
+        // Per-directory discovery backed by a disk-memoized manifest. On a
+        // warm run (the `tool`/`tools` subdirectories are unchanged since the
+        // last scan and the files are unchanged) the glob and the imports of
+        // files that do not register tools are skipped entirely.
+        const plans: Array<{
+          dir: string
+          subdirs: Record<string, DiscoveryCache.FileSignature | undefined>
+          files: string[]
+        }> = []
+        const updated: Record<string, DiscoveryCache.DirCache> = {}
+        let anyMatches = false
+
+        for (const dir of dirs) {
+          const prev = cache.dirs[dir]
+          const subdirs: Record<string, DiscoveryCache.FileSignature | undefined> = {}
+          for (const sub of DiscoveryCache.SCAN_SUBDIRS) {
+            subdirs[sub] = DiscoveryCache.statPath(path.join(dir, sub))
+          }
+          const covered = isCovered(prev, subdirs)
+          let files: string[]
+          if (covered && prev) {
+            files = Object.keys(prev.files)
+          } else {
+            try {
+              files = Glob.scanSync("{tool,tools}/*.{js,ts}", {
+                cwd: dir,
+                absolute: true,
+                dot: true,
+                symlink: true,
+              })
+            } catch {
+              files = []
+            }
+          }
+          if (files.length) anyMatches = true
+          plans.push({ dir, subdirs, files })
+        }
+
+        if (anyMatches) yield* config.waitForDependencies()
+
+        for (const plan of plans) {
+          const prev = cache.dirs[plan.dir]
+          const files: Record<string, DiscoveryCache.FileCacheEntry> = prev ? { ...prev.files } : {}
+          // Anything that touched the manifest (a glob, a refresh, a drop) is
+          // persisted so the next run can take the warm path.
+          let dirty = !isCovered(prev, plan.subdirs)
+
+          for (const match of plan.files) {
+            const sig = DiscoveryCache.statPath(match)
+            if (!sig) {
+              // The file disappeared since the last scan — drop it.
+              if (files[match]) {
+                delete files[match]
+                dirty = true
+              }
+              continue
+            }
+
+            const cached = files[match]
+            if (cached && DiscoveryCache.sameSignature(cached, sig)) {
+              // Unchanged file. Files that do not register tools are skipped
+              // without importing (the Hermes win: no need to import every
+              // candidate to learn whether it registers tools). Tool files
+              // still import — their `execute`/zod `args` are runtime values
+              // a JSON manifest cannot rehydrate — but a failed import never
+              // records a success verdict, so it retries after the grace
+              // window instead of permanently poisoning the cache.
+              if (!cached.exports.length && cached.failedAt === undefined) continue
+              if (cached.failedAt !== undefined && Date.now() - cached.failedAt < DiscoveryCache.FAILURE_GRACE_MS) {
+                continue
+              }
+              const mod = yield* importTool(match)
+              if (!mod) {
+                files[match] = { ...cached, failedAt: Date.now() }
+                dirty = true
+                continue
+              }
+              if (cached.failedAt !== undefined) {
+                files[match] = { ...sig, exports: collectToolExports(mod) }
+                dirty = true
+              }
+              registerToolExports(mod, match)
+              continue
+            }
+
+            // New or changed file — import and refresh the manifest entry.
+            const mod = yield* importTool(match)
+            if (!mod) {
+              // Keep the previous entry (if any) and mark the failure so the
+              // file retries after the grace window instead of being dropped.
+              files[match] = { ...sig, exports: cached?.exports ?? [], failedAt: Date.now() }
+              dirty = true
+              continue
+            }
+            files[match] = { ...sig, exports: collectToolExports(mod) }
+            dirty = true
+            registerToolExports(mod, match)
+          }
+
+          if (dirty && (prev || Object.keys(files).length > 0)) {
+            updated[plan.dir] = { subdirs: plan.subdirs, files }
+          }
+        }
+
+        if (Object.keys(updated).length) yield* DiscoveryCache.save(updated)
 
         const plugins = yield* plugin.list()
         for (const p of plugins) {
@@ -194,91 +334,30 @@ export const layer = Layer.effect(
           }
         }
 
-        yield* config.get()
-        const questionEnabled = ["app", "cli", "desktop"].includes(flags.client) || flags.enableQuestionTool
-
-        const tool = yield* Effect.all({
-          invalid: init(invalid),
-          read: init(read),
-          glob: init(globtool),
-          grep: init(greptool),
-          edit: init(edit),
-          write: init(writetool),
-          task: init(task),
-          fetch: init(webfetch),
-          todo: init(todo),
-          search: init(websearch),
-          skill: init(skilltool),
-          patch: init(patchtool),
-          question: init(question),
-          lsp: init(lsptool),
-          plan: init(plan),
-          shell: init(shell),
-        })
-
+        const select = { flags }
         return {
           custom,
-          builtin: [
-            tool.invalid,
-            ...(questionEnabled ? [tool.question] : []),
-            tool.read,
-            tool.glob,
-            tool.grep,
-            tool.edit,
-            tool.write,
-            tool.task,
-            tool.fetch,
-            tool.todo,
-            tool.search,
-            tool.skill,
-            tool.patch,
-            tool.lsp,
-            tool.shell,
-            ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
-          ],
-          task: tool.task,
-          read: tool.read,
+          builtin: entries.filter((entry) => entry.available?.(select) ?? true),
         }
       }),
     )
 
     const all: Interface["all"] = Effect.fn("ToolRegistry.all")(function* () {
       const s = yield* InstanceState.get(state)
-      return [...s.builtin, ...s.custom] as Def[]
+      return [...s.builtin.map((entry) => entry.def), ...s.custom] as Def[]
     })
 
     const ids: Interface["ids"] = Effect.fn("ToolRegistry.ids")(function* () {
       return (yield* all()).map((tool) => tool.id)
     })
 
-    const describeTask = Effect.fn("ToolRegistry.describeTask")(function* (agent: Agent.Info) {
-      const items = (yield* agents.list()).filter((item) => item.mode !== "primary")
-      const filtered = items.filter(
-        (item) => Permission.evaluate("task", item.name, agent.permission).action !== "deny",
-      )
-      const list = filtered.toSorted((a, b) => a.name.localeCompare(b.name))
-      const description = list
-        .map(
-          (item) =>
-            `- ${item.name}: ${item.description ?? "This subagent should only be called manually by the user."}`,
-        )
-        .join("\n")
-      return ["Available agent types and the tools they have access to:", description].join("\n")
-    })
-
     const tools: Interface["tools"] = Effect.fn("ToolRegistry.tools")(function* (input) {
-      const filtered = (yield* all()).filter((tool) => {
-        if (tool.id === WebSearchTool.id) {
-          return webSearchEnabled(input.providerID, { exa: flags.enableExa, parallel: flags.enableParallel })
-        }
-
-        const usePatch =
-          input.modelID.includes("gpt-") && !input.modelID.includes("oss") && !input.modelID.includes("gpt-4")
-        if (tool.id === ApplyPatchTool.id) return usePatch
-        if (tool.id === EditTool.id || tool.id === WriteTool.id) return !usePatch
-
-        return true
-      })
+      const s = yield* InstanceState.get(state)
+      const select = { flags, providerID: input.providerID, modelID: input.modelID }
+      const filtered: Def[] = [
+        ...s.builtin.filter((entry) => entry.available?.(select) ?? true).map((entry) => entry.def),
+        ...s.custom,
+      ]
 
       return yield* Effect.forEach(
         filtered,
@@ -293,15 +372,14 @@ export const layer = Layer.effect(
             output.parameters === tool.parameters || output.jsonSchema !== tool.jsonSchema
               ? output.jsonSchema
               : undefined
+          const extra = tool.describe ? yield* tool.describe(input.agent) : undefined
           return {
             id: tool.id,
-            description: [output.description, tool.id === TaskTool.id ? yield* describeTask(input.agent) : undefined]
-              .filter(Boolean)
-              .join("\n"),
+            description: [output.description, extra].filter(Boolean).join("\n"),
             parameters: output.parameters,
             jsonSchema,
-            execute: tool.execute,
-            formatValidationError: tool.formatValidationError,
+            execute: (args: unknown, toolCtx: unknown) => tool.execute(args as never, toolCtx as never),
+            formatValidationError: (params: unknown) => tool.formatValidationError?.(params) ?? String(params),
           }
         }),
         { concurrency: "unbounded" },
@@ -310,7 +388,10 @@ export const layer = Layer.effect(
 
     const named: Interface["named"] = Effect.fn("ToolRegistry.named")(function* () {
       const s = yield* InstanceState.get(state)
-      return { task: s.task, read: s.read }
+      return {
+        task: pick(s.builtin, TaskTool.id) as TaskDef,
+        read: pick(s.builtin, ReadTool.id) as ReadDef,
+      }
     })
 
     return Service.of({ ids, all, named, tools })
@@ -338,6 +419,8 @@ export const defaultLayer = Layer.suspend(() =>
       Layer.provide(CrossSpawnSpawner.defaultLayer),
       Layer.provide(AppProcess.defaultLayer),
       Layer.provide(Truncate.defaultLayer),
+      Layer.provide(Kanban.defaultLayer),
+      Layer.provide(FTSIndex.defaultLayer),
     )
     .pipe(Layer.provide(Database.defaultLayer), Layer.provide(RuntimeFlags.defaultLayer)),
 )
@@ -348,6 +431,27 @@ function isZodType(value: unknown): value is z.ZodType {
 
 function isPluginTool(value: unknown): value is ToolDefinition {
   return typeof value === "object" && value !== null && "args" in value && "description" in value && "execute" in value
+}
+
+function importTool(file: string): Effect.Effect<Record<string, unknown> | undefined> {
+  return Effect.match(
+    Effect.tryPromise(() => import(pathToFileURL(file).href)),
+    {
+      onFailure: (error) => {
+        // A broken tool file must never fail registry initialization or poison
+        // the discovery cache: log once and let the cached entry retry later.
+        console.error(`[tool.registry] failed to import custom tool ${file}:`, error)
+        return undefined
+      },
+      onSuccess: (mod) => mod as Record<string, unknown>,
+    },
+  )
+}
+
+function collectToolExports(mod: Record<string, unknown>) {
+  return Object.entries(mod)
+    .filter(([, def]) => isPluginTool(def))
+    .map(([id]) => id)
 }
 
 function isJsonSchemaDefinition(value: unknown): value is JSONSchema7Definition {
@@ -405,8 +509,9 @@ function normalizeZodJsonSchema(value: unknown): unknown {
   if (typeof value !== "object" || value === null) return value
   return Object.fromEntries(
     Object.entries(value)
-      .filter((entry) =>
-        !((entry[0] === "exclusiveMaximum" || entry[0] === "exclusiveMinimum") && typeof entry[1] === "boolean"),
+      .filter(
+        (entry) =>
+          !((entry[0] === "exclusiveMaximum" || entry[0] === "exclusiveMinimum") && typeof entry[1] === "boolean"),
       )
       .map(([key, item]) => [key, normalizeZodJsonSchema(item)]),
   )
@@ -437,6 +542,8 @@ export const node = LayerNode.make(layer.pipe(Layer.provide(Ripgrep.defaultLayer
   Truncate.node,
   RuntimeFlags.node,
   Database.node,
+  Kanban.node,
+  FTSIndex.node,
 ])
 
 export * as ToolRegistry from "./registry"

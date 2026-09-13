@@ -352,7 +352,12 @@ describe("SessionProjector", () => {
       })
 
       expect(
-        yield* SessionMessageUpdater.memory({ messages: [stale, completed] }).getCurrentAssistant(),
+        yield* SessionMessageUpdater.memory({
+          messages: [stale, completed],
+          assistantIndex: new Map(),
+          shellIndex: new Map(),
+          latestAssistantIndex: -1,
+        }).getCurrentAssistant(),
       ).toBeUndefined()
     }),
   )

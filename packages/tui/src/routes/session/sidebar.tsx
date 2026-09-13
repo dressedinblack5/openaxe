@@ -8,6 +8,10 @@ import { usePluginRuntime } from "../../plugin/runtime"
 
 import { getScrollAcceleration } from "../../util/scroll"
 import { WorkspaceLabel } from "../../component/workspace-label"
+import { Locale } from "../../util/locale"
+
+const SIDEBAR_INNER = 38 // width 42 - paddingLeft 2 - paddingRight 2
+const SIDEBAR_CONTENT = SIDEBAR_INNER - 2 // = 36 — inner minus scroll gutter (paddingRight 1 + inner box paddingRight 1)
 
 export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const pluginRuntime = usePluginRuntime()
@@ -18,86 +22,93 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const session = createMemo(() => sync.session.get(props.sessionID))
   const workspace = () => {
     const workspaceID = session()?.workspaceID
-    if (!workspaceID) return
+    if (!workspaceID) return undefined
     return project.workspace.get(workspaceID)
   }
   const scrollAcceleration = createMemo(() => getScrollAcceleration(tuiConfig))
 
   return (
     <Show when={session()}>
-      <box
-        backgroundColor={theme.backgroundPanel}
-        width={42}
-        height="100%"
-        paddingTop={1}
-        paddingBottom={1}
-        paddingLeft={2}
-        paddingRight={2}
-        position={props.overlay ? "absolute" : "relative"}
-      >
-        <scrollbox
-          flexGrow={1}
-          scrollAcceleration={scrollAcceleration()}
-          verticalScrollbarOptions={{
-            trackOptions: {
-              backgroundColor: theme.background,
-              foregroundColor: theme.borderActive,
-            },
-          }}
-        >
-          <box flexShrink={0} gap={1} paddingRight={1}>
-            <pluginRuntime.Slot
-              name="sidebar_title"
-              mode="single_winner"
-              session_id={props.sessionID}
-              title={session()!.title}
-              share_url={session()!.share?.url}
+      {(current) => {
+        const s = current()
+        const workspaceID = s.workspaceID
+        const shareURL = s.share?.url
+        return (
+          <box
+            backgroundColor={theme.backgroundPanel}
+            width={42}
+            height="100%"
+            paddingTop={1}
+            paddingBottom={1}
+            paddingLeft={2}
+            paddingRight={2}
+            position={props.overlay ? "absolute" : "relative"}
+          >
+            <scrollbox
+              flexGrow={1}
+              scrollAcceleration={scrollAcceleration()}
+              verticalScrollbarOptions={{
+                trackOptions: {
+                  backgroundColor: theme.background,
+                  foregroundColor: theme.borderActive,
+                },
+              }}
             >
-              <box paddingRight={1}>
-                <text fg={theme.text}>
-                  <b>{session()!.title}</b>
-                </text>
-                <Show when={InstallationChannel !== "latest"}>
-                  <text fg={theme.textMuted}>{props.sessionID}</text>
-                </Show>
-                <Show when={session()!.workspaceID}>
-                  <text fg={theme.textMuted}>
-                    <Show
-                      when={workspace()}
-                      fallback={<WorkspaceLabel type="unknown" name={session()!.workspaceID!} status="error" icon />}
-                    >
-                      {(item) => (
-                        <WorkspaceLabel
-                          type={item().type}
-                          name={item().name}
-                          status={project.workspace.status(item().id) ?? "error"}
-                          icon
-                        />
-                      )}
+              <box flexShrink={0} gap={1} paddingRight={1}>
+                <pluginRuntime.Slot
+                  name="sidebar_title"
+                  mode="single_winner"
+                  session_id={props.sessionID}
+                  title={s.title}
+                  share_url={shareURL}
+                >
+                  <box paddingRight={1}>
+                    <text fg={theme.text}>
+                      <b>{Locale.truncate(s.title, SIDEBAR_CONTENT)}</b>
+                    </text>
+                    <Show when={InstallationChannel !== "latest"}>
+                      <text fg={theme.textMuted}>{Locale.truncate(props.sessionID, SIDEBAR_CONTENT)}</text>
                     </Show>
-                  </text>
-                </Show>
-                <Show when={session()!.share?.url}>
-                  <text fg={theme.textMuted}>{session()!.share!.url}</text>
-                </Show>
+                    {workspaceID && (
+                      <text fg={theme.textMuted}>
+                        <Show
+                          when={workspace()}
+                          fallback={
+                            <WorkspaceLabel type="unknown" name={Locale.truncate(workspaceID, SIDEBAR_CONTENT)} status="error" icon />
+                          }
+                        >
+                          {(item) => (
+                            <WorkspaceLabel
+                              type={item().type}
+                              name={Locale.truncate(item().name, SIDEBAR_CONTENT)}
+                              status={project.workspace.status(item().id) ?? "error"}
+                              icon
+                            />
+                          )}
+                        </Show>
+                      </text>
+                    )}
+                    {shareURL && <text fg={theme.textMuted}>{Locale.truncateLeft(shareURL, SIDEBAR_CONTENT)}</text>}
+                  </box>
+                </pluginRuntime.Slot>
+                <pluginRuntime.Slot name="sidebar_content" session_id={props.sessionID} />
               </box>
-            </pluginRuntime.Slot>
-            <pluginRuntime.Slot name="sidebar_content" session_id={props.sessionID} />
-          </box>
-        </scrollbox>
+            </scrollbox>
 
-        <box flexShrink={0} gap={1} paddingTop={1}>
-          <pluginRuntime.Slot name="sidebar_footer" mode="single_winner" session_id={props.sessionID}>
-            <text fg={theme.textMuted}>
-              <span style={{ fg: theme.success }}>•</span> <b>Open</b>
-              <span style={{ fg: theme.text }}>
-                <b>Code</b>
-              </span>{" "}
-              <span>{InstallationVersion}</span>
-            </text>
-          </pluginRuntime.Slot>
-        </box>
-      </box>
+            <box flexShrink={0} gap={1} paddingTop={1}>
+              <pluginRuntime.Slot name="sidebar_footer" mode="single_winner" session_id={props.sessionID}>
+                <text fg={theme.textMuted}>
+                  <span style={{ fg: theme.success }}>•</span> <b>Open</b>
+                  <span style={{ fg: theme.text }}>
+                    <b>Axe</b>
+                  </span>{" "}
+                  <span>{InstallationVersion}</span>
+                </text>
+              </pluginRuntime.Slot>
+            </box>
+          </box>
+        )
+      }}
     </Show>
   )
 }

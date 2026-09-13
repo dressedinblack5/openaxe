@@ -6,6 +6,7 @@ export async function readText(filePath: string) {
 }
 
 export async function readJson<T>(filePath: string) {
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- JSON content is trusted project state
   return Bun.file(filePath).json() as Promise<T>
 }
 

@@ -1,6 +1,7 @@
 import { Prompt, type PromptRef } from "../component/prompt"
-import { createEffect, createMemo, createSignal, onMount } from "solid-js"
+import { createEffect, createMemo, createSignal, onMount, Show } from "solid-js"
 import { Logo } from "../component/logo"
+import { Spinner } from "../component/spinner"
 import { useSync } from "../context/sync"
 
 import { useArgs } from "../context/args"
@@ -15,7 +16,12 @@ import { HomeSessionDestinationProvider } from "./home/session-destination"
 
 let once = false
 const placeholder = {
-  normal: ["Fix a TODO in the codebase", "What is the tech stack of this project?", "Fix broken tests"],
+  normal: [
+    "Fix a TODO in the codebase",
+    "What is the tech stack of this project?",
+    "Fix broken tests",
+    "Shape this function until it's clean",
+  ],
   shell: ["ls -la", "git status", "pwd"],
 }
 
@@ -84,6 +90,11 @@ export function Home() {
           </pluginRuntime.Slot>
         </box>
         <pluginRuntime.Slot name="home_bottom" />
+        <Show when={sync.status === "loading"}>
+          <box flexShrink={0} alignItems="center">
+            <Spinner>Loading...</Spinner>
+          </box>
+        </Show>
         <box flexGrow={1} minHeight={0} />
       </box>
       <box width="100%" flexShrink={0}>

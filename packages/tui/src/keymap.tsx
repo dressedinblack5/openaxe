@@ -121,14 +121,14 @@ function expandKeyAliases(input: string) {
     (acc, [alias, key]) => acc.replace(new RegExp(`(^|[+,\\s>])${alias}(?=$|[+,\\s<])`, "gi"), `$1${key}`),
     input,
   )
-  if (result === input) return
+  if (result === input) return undefined
   return result
 }
 
 function registerKeyAliases(keymap: OpenTuiKeymap) {
   return keymap.appendBindingExpander((ctx) => {
     const key = expandKeyAliases(ctx.input)
-    if (!key) return
+    if (!key) return undefined
     return [{ key, displays: ctx.displays }]
   })
 }
@@ -172,7 +172,7 @@ const inputCommands = [
   "input.submit",
 ] as const
 
-function hasManagedTextareaFocus(renderer: CliRenderer) {
+function hasManagedTextareaFocus(renderer: CliRenderer): boolean {
   const editor = renderer.currentFocusedEditor
   return editor instanceof TextareaRenderable && !(editor instanceof InputRenderable)
 }

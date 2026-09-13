@@ -20,7 +20,7 @@ export interface CardTitleProps extends ComponentProps<"div"> {
   icon?: IconProps["name"] | false | null
 }
 
-function pick(variant: Variant): string | undefined {
+function pick(variant: Variant): IconProps["name"] | undefined {
   if (variant === "error") return "circle-ban-sign"
   if (variant === "warning") return "warning"
   if (variant === "success") return "circle-check"
@@ -68,7 +68,7 @@ export function CardTitle(props: CardTitleProps) {
   const name = () => {
     if (split.icon === false || split.icon === null) return undefined
     if (typeof split.icon === "string") return split.icon
-    return pick(split.variant ?? "normal") as IconProps["name"] | undefined
+    return pick(split.variant ?? "normal")
   }
   const placeholder = () => !name()
   return (

@@ -26,8 +26,9 @@ export function DialogForkFromTimeline(props: { sessionID: string; onMove: (mess
       value: undefined,
       onSelect: async (dialog: DialogContext) => {
         const forked = await sdk.client.session.fork({ sessionID: props.sessionID })
+        if (!forked.data) return
         route.navigate({
-          sessionID: forked.data!.id,
+          sessionID: forked.data.id,
           type: "session",
         })
         dialog.clear()
@@ -37,8 +38,8 @@ export function DialogForkFromTimeline(props: { sessionID: string; onMove: (mess
     for (const message of messages) {
       if (message.role !== "user") continue
       const part = (sync.data.part[message.id] ?? []).find(
-        (x) => x.type === "text" && !x.synthetic && !x.ignored,
-      ) as TextPart
+        (x): x is TextPart => x.type === "text" && !x.synthetic && !x.ignored,
+      )
       if (!part) continue
       result.push({
         title: part.text.replace(/\n/g, " "),
@@ -49,6 +50,7 @@ export function DialogForkFromTimeline(props: { sessionID: string; onMove: (mess
             sessionID: props.sessionID,
             messageID: message.id,
           })
+          if (!forked.data) return
           const parts = sync.data.part[message.id] ?? []
           const prompt = parts.reduce(
             (agg, part) => {
@@ -61,7 +63,7 @@ export function DialogForkFromTimeline(props: { sessionID: string; onMove: (mess
             { input: "", parts: [] as PromptInfo["parts"] },
           )
           route.navigate({
-            sessionID: forked.data!.id,
+            sessionID: forked.data.id,
             type: "session",
             prompt,
           })

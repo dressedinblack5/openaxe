@@ -41,6 +41,23 @@ const tryParseJson = (text: string) =>
     Effect.mapError(() => new HttpApiError.BadRequest({})),
   )
 
+// Must mirror SessionPrompt.runLoop's exit condition: a turn is pending unless
+// terminally finished (non tool-calls/unknown) with no unsettled tool calls.
+function hasPendingWork(message: SessionV1.WithParts): boolean {
+  if (message.info.role !== "assistant") return false
+  const finish = message.info.finish
+  if (finish && !["tool-calls", "unknown"].includes(finish)) {
+    const hasToolCalls = message.parts.some(
+      (part) =>
+        part.type === "tool" &&
+        !part.metadata?.providerExecuted &&
+        !(part.state.status === "error" && part.state.metadata?.interrupted === true),
+    )
+    if (!hasToolCalls) return false
+  }
+  return true
+}
+
 export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", (handlers) =>
   Effect.gen(function* () {
     const session = yield* Session.Service
@@ -226,6 +243,14 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
 
     const abort = Effect.fn("SessionHttpApi.abort")(function* (ctx: { params: { sessionID: SessionID } }) {
       yield* promptSvc.cancel(ctx.params.sessionID)
+      return true
+    })
+
+    const resume = Effect.fn("SessionHttpApi.resume")(function* (ctx: { params: { sessionID: SessionID } }) {
+      yield* requireSession(ctx.params.sessionID)
+      const [last] = yield* mapStorageNotFound(session.messages({ sessionID: ctx.params.sessionID, limit: 1 }))
+      if (!last || !hasPendingWork(last)) return false
+      yield* promptSvc.loop({ sessionID: ctx.params.sessionID })
       return true
     })
 
@@ -422,6 +447,7 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       .handle("update", update)
       .handleRaw("fork", forkRaw)
       .handle("abort", abort)
+      .handle("resume", resume)
       .handle("init", init)
       .handle("share", share)
       .handle("unshare", unshare)

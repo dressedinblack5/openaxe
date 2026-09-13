@@ -76,38 +76,46 @@ function loadContext(dir: string) {
   )
 }
 
-testIf("ContextPrepper reports recent git changes", async () => {
-  const dir = await createTempRepo()
-  try {
-    await fs.writeFile(path.join(dir, "main.ts"), "console.log('modified')\n")
-    await fs.writeFile(path.join(dir, "new.ts"), "export const x = 1\n")
-    await fs.unlink(path.join(dir, "README.md"))
-    git(dir, "add", "new.ts")
+testIf(
+  "ContextPrepper reports recent git changes",
+  async () => {
+    const dir = await createTempRepo()
+    try {
+      await fs.writeFile(path.join(dir, "main.ts"), "console.log('modified')\n")
+      await fs.writeFile(path.join(dir, "new.ts"), "export const x = 1\n")
+      await fs.unlink(path.join(dir, "README.md"))
+      git(dir, "add", "new.ts")
 
-    const ctx = await Effect.runPromise(loadContext(dir))
+      const ctx = await Effect.runPromise(loadContext(dir))
 
-    expect(ctx.baseline).toContain("<recent_changes>")
-    expect(ctx.baseline).toContain("main.ts")
-    expect(ctx.baseline).toContain("modified")
-    expect(ctx.baseline).toContain("new.ts")
-    expect(ctx.baseline).toContain("added")
-    expect(ctx.baseline).toContain("README.md")
-    expect(ctx.baseline).toContain("deleted")
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true })
-  }
-}, 10_000)
+      expect(ctx.baseline).toContain("<recent_changes>")
+      expect(ctx.baseline).toContain("main.ts")
+      expect(ctx.baseline).toContain("modified")
+      expect(ctx.baseline).toContain("new.ts")
+      expect(ctx.baseline).toContain("added")
+      expect(ctx.baseline).toContain("README.md")
+      expect(ctx.baseline).toContain("deleted")
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  },
+  10_000,
+)
 
-testIf("ContextPrepper returns empty when repo has no changes", async () => {
-  const dir = await createTempRepo()
-  try {
-    const ctx = await Effect.runPromise(loadContext(dir))
+testIf(
+  "ContextPrepper returns empty when repo has no changes",
+  async () => {
+    const dir = await createTempRepo()
+    try {
+      const ctx = await Effect.runPromise(loadContext(dir))
 
-    expect(ctx.baseline).not.toContain("<recent_changes>")
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true })
-  }
-}, 10_000)
+      expect(ctx.baseline).not.toContain("<recent_changes>")
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  },
+  10_000,
+)
 
 test("ContextPrepper returns empty outside a git repo", async () => {
   const dir = await tempDir()
@@ -120,18 +128,22 @@ test("ContextPrepper returns empty outside a git repo", async () => {
   }
 }, 10_000)
 
-testIf("ContextPrepper handles renamed files as modified", async () => {
-  const dir = await createTempRepo()
-  try {
-    git(dir, "mv", "main.ts", "lib.ts")
-    git(dir, "mv", "README.md", "README-renamed.md")
+testIf(
+  "ContextPrepper handles renamed files as modified",
+  async () => {
+    const dir = await createTempRepo()
+    try {
+      git(dir, "mv", "main.ts", "lib.ts")
+      git(dir, "mv", "README.md", "README-renamed.md")
 
-    const ctx = await Effect.runPromise(loadContext(dir))
+      const ctx = await Effect.runPromise(loadContext(dir))
 
-    expect(ctx.baseline).toContain("lib.ts")
-    expect(ctx.baseline).toContain("modified")
-    expect(ctx.baseline).toContain("README-renamed.md")
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true })
-  }
-}, 10_000)
+      expect(ctx.baseline).toContain("lib.ts")
+      expect(ctx.baseline).toContain("modified")
+      expect(ctx.baseline).toContain("README-renamed.md")
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  },
+  10_000,
+)

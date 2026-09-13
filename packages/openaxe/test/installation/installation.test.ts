@@ -7,6 +7,7 @@ import { AppProcess } from "@opencode-ai/core/process"
 import { testEffect } from "../lib/effect"
 
 const encoder = new TextEncoder()
+const isWindows = process.platform === "win32"
 
 function mockHttpClient(handler: (request: HttpClientRequest.HttpClientRequest) => Response) {
   const client = HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, handler(request))))
@@ -75,40 +76,32 @@ describe("installation", () => {
         }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.5.0" }))).effect(
-      "reads npm version via GitHub API",
-      () =>
-        Effect.gen(function* () {
-          const result = yield* Installation.use.latest("npm")
-          expect(result).toBe("1.5.0")
-        }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.5.0" }))).effect("reads npm version via GitHub API", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.use.latest("npm")
+        expect(result).toBe("1.5.0")
+      }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.6.0" }))).effect(
-      "reads bun version via GitHub API",
-      () =>
-        Effect.gen(function* () {
-          const result = yield* Installation.use.latest("bun")
-          expect(result).toBe("1.6.0")
-        }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.6.0" }))).effect("reads bun version via GitHub API", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.use.latest("bun")
+        expect(result).toBe("1.6.0")
+      }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.7.0" }))).effect(
-      "reads pnpm version via GitHub API",
-      () =>
-        Effect.gen(function* () {
-          const result = yield* Installation.use.latest("pnpm")
-          expect(result).toBe("1.7.0")
-        }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.7.0" }))).effect("reads pnpm version via GitHub API", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.use.latest("pnpm")
+        expect(result).toBe("1.7.0")
+      }),
     )
 
-    testEffect(testLayer(() => jsonResponse({ tag_name: "v2.3.4" }))).effect(
-      "reads scoop version via GitHub API",
-      () =>
-        Effect.gen(function* () {
-          const result = yield* Installation.use.latest("scoop")
-          expect(result).toBe("2.3.4")
-        }),
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v2.3.4" }))).effect("reads scoop version via GitHub API", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.use.latest("scoop")
+        expect(result).toBe("2.3.4")
+      }),
     )
 
     testEffect(testLayer(() => jsonResponse({ tag_name: "v3.4.5" }))).effect(
@@ -144,7 +137,8 @@ describe("installation", () => {
       testLayer(
         () => jsonResponse({}), // HTTP not used for tap formula
         (cmd, args) => {
-          if (cmd === "brew" && args.includes("dressedinblack5/tap/openaxe") && args.includes("--formula")) return "openaxe"
+          if (cmd === "brew" && args.includes("dressedinblack5/tap/openaxe") && args.includes("--formula"))
+            return "openaxe"
           if (cmd === "brew" && args.includes("--json=v2")) return brewInfoJson
           return ""
         },
@@ -181,6 +175,12 @@ describe("installation", () => {
       testLayer(
         () => new Response("install script with token=secret", { status: 200 }),
         (cmd, args) => {
+          if (isWindows) {
+            if (cmd === "cmd" && args[0] === "/c" && args[1]?.endsWith(".bat")) {
+              return { code: 1, stderr: "script output with token=secret" }
+            }
+            return ""
+          }
           if (cmd === "bash" && args[0] === "--version") return "GNU bash"
           if (cmd === "bash" || cmd === "sh") return { code: 1, stderr: "script output with token=secret" }
           return ""
@@ -197,20 +197,22 @@ describe("installation", () => {
       }),
     )
 
-    testEffect(
-      testLayer(
-        () => new Response("install script", { status: 200 }),
-        (cmd, args) => {
-          if (cmd === "bash" && args[0] === "--version") return { code: 1, stderr: "missing" }
-          if (cmd === "bash") return { code: 1, stderr: "should not execute installer with bash" }
-          if (cmd === "sh") return "ok"
-          return ""
-        },
-      ),
-    ).effect("falls back to sh when bash is unavailable during curl upgrade", () =>
-      Effect.gen(function* () {
-        yield* Installation.use.upgrade("curl", "9.9.9")
-      }),
-    )
+    if (!isWindows) {
+      testEffect(
+        testLayer(
+          () => new Response("install script", { status: 200 }),
+          (cmd, args) => {
+            if (cmd === "bash" && args[0] === "--version") return { code: 1, stderr: "missing" }
+            if (cmd === "bash") return { code: 1, stderr: "should not execute installer with bash" }
+            if (cmd === "sh") return "ok"
+            return ""
+          },
+        ),
+      ).effect("falls back to sh when bash is unavailable during curl upgrade", () =>
+        Effect.gen(function* () {
+          yield* Installation.use.upgrade("curl", "9.9.9")
+        }),
+      )
+    }
   })
 })

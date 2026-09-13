@@ -1,8 +1,8 @@
 import { AuthOptions, type ProviderAuthOption } from "../route/auth-options"
 import type { RouteDefaultsInput } from "../route/client"
 import { ProviderID, type ModelID } from "../schema"
-import { route as chatRouteImport } from "../protocols/openai-chat";
-import { route } from "../protocols/openai-responses";
+import { route as chatRouteImport } from "../protocols/openai-chat"
+import { route } from "../protocols/openai-responses"
 import { withOpenAIOptions, type OpenAIProviderOptionsInput } from "./openai-options"
 
 export const id = ProviderID.make("github-copilot")

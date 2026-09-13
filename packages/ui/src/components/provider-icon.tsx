@@ -8,7 +8,7 @@ export type ProviderIconProps = JSX.SVGElementTags["svg"] & {
 }
 
 function isIconName(id: string): id is IconName {
-  return iconNames.includes(id as IconName)
+  return (iconNames as readonly string[]).includes(id)
 }
 
 export const ProviderIcon: Component<ProviderIconProps> = (props) => {

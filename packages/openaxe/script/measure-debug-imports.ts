@@ -8,10 +8,10 @@ async function time(label: string, fn: () => Promise<unknown>) {
 
 async function measure() {
   console.log("\n=== debug sub-imports ===\n")
-  
+
   // debug.ts had no import lines match... let me check if it uses effectCmd
   await time(`@/cli/cmd/debug`, () => import("@/cli/cmd/debug"))
-  
+
   // session/session breakdown
   console.log("\n--- session ---\n")
   await time(`@/session/session`, () => import("@/session/session"))

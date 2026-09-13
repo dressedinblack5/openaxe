@@ -49,6 +49,21 @@ const targets = singleFlag
     })
   : allTargets
 
+function compileTarget(item: (typeof allTargets)[number]): Bun.Build.CompileTarget {
+  const arch = item.arch
+  if (item.os === "win32") {
+    if (arch === "arm64") return "bun-windows-arm64"
+    return item.avx2 === false ? "bun-windows-x64-baseline" : "bun-windows-x64"
+  }
+  if (item.os === "darwin") {
+    return item.avx2 === false ? `bun-darwin-${arch}-baseline` : `bun-darwin-${arch}`
+  }
+  if (item.abi === "musl") {
+    return item.avx2 === false ? `bun-linux-${arch}-baseline-musl` : `bun-linux-${arch}-musl`
+  }
+  return item.avx2 === false ? `bun-linux-${arch}-baseline` : `bun-linux-${arch}`
+}
+
 if (!skipInstall) await $`bun install --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
 
 const localParserWorker = path.resolve(dir, "node_modules/@opentui/core/parser.worker.js")
@@ -81,7 +96,7 @@ for (const item of targets) {
       autoloadDotenv: false,
       autoloadTsconfig: true,
       autoloadPackageJson: true,
-      target: target.replace(binary, "bun") as Bun.Build.CompileTarget,
+      target: compileTarget(item),
       outfile: `./dist/${name}/bin/${binary}`,
       execArgv: [`--user-agent=${binary}/${Script.version}`, "--use-system-ca", "--"],
       windows: { icon: path.resolve(dir, "resources/icon.ico") },
@@ -122,4 +137,17 @@ for (const item of targets) {
       2,
     ),
   )
+
+  // Copy vec0 native extension next to binary for sqlite-vec embeddings; the
+  // compiled binary resolves it via process.execPath (see core vec.ts).
+  try {
+    const vec0Name = item.os === "win32" ? "vec0.dll" : item.os === "darwin" ? "vec0.dylib" : "vec0.so"
+    const platformPkg = `sqlite-vec-${item.os === "win32" ? "windows" : item.os}-${item.arch}`
+    const localVec = path.resolve(dir, `node_modules/${platformPkg}/${vec0Name}`)
+    const rootVec = path.resolve(dir, `../../node_modules/${platformPkg}/${vec0Name}`)
+    const src = fs.realpathSync(fs.existsSync(localVec) ? localVec : rootVec)
+    await $`cp ${src} ./dist/${name}/bin/${vec0Name}`
+  } catch {
+    console.warn(`  warning: could not copy vec0 for ${name}`)
+  }
 }

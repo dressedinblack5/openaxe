@@ -50,10 +50,16 @@ describe("ServerAuth", () => {
   })
 
   test("validates decoded credentials against effect config", () => {
-    const config = { password: Option.some("secret"), username: "alice" }
+    const config = { password: Option.some("secret"), username: "alice", noAuth: false }
 
     expect(ServerAuth.required(config)).toBe(true)
     expect(ServerAuth.authorized({ username: "alice", password: Redacted.make("secret") }, config)).toBe(true)
     expect(ServerAuth.authorized({ username: "opencode", password: Redacted.make("secret") }, config)).toBe(false)
+  })
+
+  test("required returns false when noAuth is true", () => {
+    const config = { password: Option.none(), username: "alice", noAuth: true }
+
+    expect(ServerAuth.required(config)).toBe(false)
   })
 })

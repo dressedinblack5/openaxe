@@ -21,158 +21,201 @@ const it = testEffect(
   Layer.mergeAll(Provider.defaultLayer, Env.defaultLayer, Plugin.defaultLayer, CrossSpawnSpawner.defaultLayer),
 )
 
-it.live("headerTimeout does not abort delayed SSE body after headers arrive", () =>
-  Effect.gen(function* () {
-    const server = yield* Effect.acquireRelease(
-      Effect.promise(() => delayedBodyServer(1_000)),
-      (server) => Effect.sync(() => server.server.close()),
-    )
+it.live(
+  "headerTimeout does not abort delayed SSE body after headers arrive",
+  () =>
+    Effect.gen(function* () {
+      const server = yield* Effect.acquireRelease(
+        Effect.promise(() => delayedBodyServer(1_000)),
+        (server) => Effect.sync(() => server.server.close()),
+      )
 
-    yield* provideTmpdirInstance(
-      () =>
-        Effect.gen(function* () {
-          const provider = yield* Provider.Service
-          const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
-          const result = streamText({
-            model: yield* provider.getLanguage(model),
-            messages: [{ role: "user", content: "hello" }],
-          })
+      yield* provideTmpdirInstance(
+        () =>
+          Effect.gen(function* () {
+            const provider = yield* Provider.Service
+            const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
+            const result = streamText({
+              model: yield* provider.getLanguage(model),
+              messages: [{ role: "user", content: "hello" }],
+            })
 
-          expect(yield* Effect.promise(() => result.text)).toBe("late")
-        }),
-      { config: providerConfig(server.url, { headerTimeout: 500 }) },
-    )
-  }),
+            expect(yield* Effect.promise(() => result.text)).toBe("late")
+          }),
+        { config: providerConfig(server.url, { headerTimeout: 500 }) },
+      )
+    }),
   30000,
 )
 
-it.live("chunkTimeout raises a response stream error when SSE body stalls", () =>
-  Effect.gen(function* () {
-    const server = yield* Effect.acquireRelease(
-      Effect.promise(() => delayedBodyServer(500)),
-      (server) => Effect.sync(() => server.server.close()),
-    )
+it.live(
+  "chunkTimeout raises a response stream error when SSE body stalls",
+  () =>
+    Effect.gen(function* () {
+      const server = yield* Effect.acquireRelease(
+        Effect.promise(() => delayedBodyServer(500)),
+        (server) => Effect.sync(() => server.server.close()),
+      )
 
-    yield* provideTmpdirInstance(
-      () =>
-        Effect.gen(function* () {
-          const provider = yield* Provider.Service
-          const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
-          const result = streamText({
-            model: yield* provider.getLanguage(model),
-            onError() {},
-            messages: [{ role: "user", content: "hello" }],
-          })
+      yield* provideTmpdirInstance(
+        () =>
+          Effect.gen(function* () {
+            const provider = yield* Provider.Service
+            const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
+            const result = streamText({
+              model: yield* provider.getLanguage(model),
+              onError() {},
+              messages: [{ role: "user", content: "hello" }],
+            })
 
-          const error = yield* Effect.promise(async () => {
-            try {
-              for await (const part of result.fullStream) {
-                if (part.type === "error") return part.error
+            const error = yield* Effect.promise(async () => {
+              try {
+                for await (const part of result.fullStream) {
+                  if (part.type === "error") return part.error
+                }
+              } catch (error) {
+                return error
               }
-            } catch (error) {
-              return error
-            }
-          })
-          expect(error).toBeInstanceOf(ProviderError.ResponseStreamError)
-        }),
-      { config: providerConfig(server.url, { chunkTimeout: 200 }) },
-    )
-  }),
+            })
+            expect(error).toBeInstanceOf(ProviderError.ResponseStreamError)
+          }),
+        { config: providerConfig(server.url, { chunkTimeout: 200 }) },
+      )
+    }),
   30000,
 )
 
-it.live("headerTimeout aborts when response headers do not arrive", () =>
-  Effect.gen(function* () {
-    const server = yield* Effect.acquireRelease(
-      Effect.promise(() => delayedHeaderServer(500)),
-      (server) => Effect.sync(() => server.server.close()),
-    )
+it.live(
+  "chunkTimeout does not abort an actively streaming body",
+  () =>
+    Effect.gen(function* () {
+      const server = yield* Effect.acquireRelease(
+        Effect.promise(() => activeStreamServer(4, 100)),
+        (server) => Effect.sync(() => server.server.close()),
+      )
 
-    yield* provideTmpdirInstance(
-      () =>
+      yield* provideTmpdirInstance(
+        () =>
+          Effect.gen(function* () {
+            const provider = yield* Provider.Service
+            const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
+            const result = streamText({
+              model: yield* provider.getLanguage(model),
+              onError() {},
+              messages: [{ role: "user", content: "hello" }],
+            })
+
+            // Total stream is 400ms > chunkTimeout 200ms, but chunks arrive every
+            // 100ms < 200ms so the per-chunk idle timer never trips. A timer armed
+            // once at response arrival would abort this mid-generation.
+            expect(yield* Effect.promise(() => result.text)).toBe("abcd")
+          }),
+        { config: providerConfig(server.url, { chunkTimeout: 200 }) },
+      )
+    }),
+  30000,
+)
+
+it.live(
+  "headerTimeout aborts when response headers do not arrive",
+  () =>
+    Effect.gen(function* () {
+      const server = yield* Effect.acquireRelease(
+        Effect.promise(() => delayedHeaderServer(500)),
+        (server) => Effect.sync(() => server.server.close()),
+      )
+
+      yield* provideTmpdirInstance(
+        () =>
+          Effect.gen(function* () {
+            const provider = yield* Provider.Service
+            const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
+            const result = streamText({
+              model: yield* provider.getLanguage(model),
+              onError() {},
+              messages: [{ role: "user", content: "hello" }],
+            })
+
+            const errors = yield* Effect.promise(async () => {
+              const errors: string[] = []
+              for await (const part of result.fullStream) {
+                if (part.type === "error") errors.push(String(part.error))
+              }
+              return errors
+            })
+            expect(errors.join("\n")).toContain("response headers timed out")
+          }),
+        { config: providerConfig(server.url, { headerTimeout: 200 }) },
+      )
+    }),
+  30000,
+)
+
+it.live(
+  "headerTimeout is opt-in for non-OpenAI providers",
+  () =>
+    Effect.gen(function* () {
+      const server = yield* Effect.acquireRelease(
+        Effect.promise(() => delayedHeaderServer(200)),
+        (server) => Effect.sync(() => server.server.close()),
+      )
+
+      yield* provideTmpdirInstance(
+        () =>
+          Effect.gen(function* () {
+            const provider = yield* Provider.Service
+            const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
+            const result = streamText({
+              model: yield* provider.getLanguage(model),
+              messages: [{ role: "user", content: "hello" }],
+            })
+
+            expect(yield* Effect.promise(() => result.text)).toBe("ok")
+          }),
+        { config: providerConfig(server.url) },
+      )
+    }),
+  30000,
+)
+
+it.live(
+  "OpenAI Codex headerTimeout default can be disabled by config",
+  () =>
+    Effect.gen(function* () {
+      yield* withAuthContent(
         Effect.gen(function* () {
-          const provider = yield* Provider.Service
-          const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
-          const result = streamText({
-            model: yield* provider.getLanguage(model),
-            onError() {},
-            messages: [{ role: "user", content: "hello" }],
-          })
-
-          const errors = yield* Effect.promise(async () => {
-            const errors: string[] = []
-            for await (const part of result.fullStream) {
-              if (part.type === "error") errors.push(String(part.error))
-            }
-            return errors
-          })
-          expect(errors.join("\n")).toContain("response headers timed out")
+          yield* provideTmpdirInstance(
+            () =>
+              Effect.gen(function* () {
+                const provider = yield* Provider.Service
+                const openai = yield* provider.getProvider(ProviderV2.ID.openai)
+                expect(openai.options.headerTimeout).toBe(false)
+              }),
+            { config: { provider: { openai: { options: { headerTimeout: false } } } } },
+          )
         }),
-      { config: providerConfig(server.url, { headerTimeout: 200 }) },
-    )
-  }),
+      )
+    }),
   30000,
 )
 
-it.live("headerTimeout is opt-in for non-OpenAI providers", () =>
-  Effect.gen(function* () {
-    const server = yield* Effect.acquireRelease(
-      Effect.promise(() => delayedHeaderServer(200)),
-      (server) => Effect.sync(() => server.server.close()),
-    )
-
-    yield* provideTmpdirInstance(
-      () =>
+it.live(
+  "OpenAI API auth gets default headerTimeout",
+  () =>
+    Effect.gen(function* () {
+      yield* withAuthContent(
         Effect.gen(function* () {
-          const provider = yield* Provider.Service
-          const model = yield* provider.getModel(ProviderV2.ID.make("test"), ModelV2.ID.make("test-model"))
-          const result = streamText({
-            model: yield* provider.getLanguage(model),
-            messages: [{ role: "user", content: "hello" }],
-          })
-
-          expect(yield* Effect.promise(() => result.text)).toBe("ok")
-        }),
-      { config: providerConfig(server.url) },
-    )
-  }),
-  30000,
-)
-
-it.live("OpenAI Codex headerTimeout default can be disabled by config", () =>
-  Effect.gen(function* () {
-    yield* withAuthContent(
-      Effect.gen(function* () {
-        yield* provideTmpdirInstance(
-          () =>
+          yield* provideTmpdirInstance(() =>
             Effect.gen(function* () {
               const provider = yield* Provider.Service
               const openai = yield* provider.getProvider(ProviderV2.ID.openai)
-              expect(openai.options.headerTimeout).toBe(false)
+              expect(openai.options.headerTimeout).toBe(10_000)
             }),
-          { config: { provider: { openai: { options: { headerTimeout: false } } } } },
-        )
-      }),
-    )
-  }),
-  30000,
-)
-
-it.live("OpenAI API auth gets default headerTimeout", () =>
-  Effect.gen(function* () {
-    yield* withAuthContent(
-      Effect.gen(function* () {
-        yield* provideTmpdirInstance(() =>
-          Effect.gen(function* () {
-            const provider = yield* Provider.Service
-            const openai = yield* provider.getProvider(ProviderV2.ID.openai)
-            expect(openai.options.headerTimeout).toBe(10_000)
-          }),
-        )
-      }),
-      { openai: { type: "api", key: "sk-test" } },
-    )
-  }),
+          )
+        }),
+        { openai: { type: "api", key: "sk-test" } },
+      )
+    }),
   30000,
 )
 
@@ -209,6 +252,28 @@ async function delayedBodyServer(delay: number): Promise<{ server: Server; url: 
     setTimeout(() => {
       res.end('data: {"choices":[{"delta":{"content":"late"}}]}\n\ndata: [DONE]\n\n')
     }, delay)
+  })
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+  const address = server.address()
+  if (!address || typeof address === "string") throw new Error("server did not bind to a TCP port")
+  return { server, url: `http://127.0.0.1:${address.port}` }
+}
+
+async function activeStreamServer(chunks: number, interval: number): Promise<{ server: Server; url: string }> {
+  const server = createServer((_, res) => {
+    res.writeHead(200, { "content-type": "text/event-stream" })
+    res.flushHeaders()
+    let i = 0
+    const send = () => {
+      if (i >= chunks) {
+        res.end("data: [DONE]\n\n")
+        return
+      }
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: String.fromCharCode(97 + i) } }] })}\n\n`)
+      i++
+      setTimeout(send, interval)
+    }
+    send()
   })
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
   const address = server.address()

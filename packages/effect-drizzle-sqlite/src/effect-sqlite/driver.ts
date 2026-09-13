@@ -1,6 +1,6 @@
 /* oxlint-disable */
-import { fn, provide } from "effect/Effect";
-import { merge } from "effect/Layer";
+import { fn, provide } from "effect/Effect"
+import { merge } from "effect/Layer"
 import { SqlClient } from "effect/unstable/sql/SqlClient"
 import { EffectCache } from "drizzle-orm/cache/core/cache-effect"
 import { EffectLogger } from "drizzle-orm/effect-core"

@@ -11,13 +11,16 @@ import { Agent } from "@/agent/agent"
 import { Skill } from "@/skill"
 import { Plugin } from "@/plugin"
 import { Compressor } from "./compressor/compressor"
+import { BackgroundCompaction } from "./compaction/background"
 import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
+import { Global } from "@opencode-ai/core/global"
+import { FSUtil } from "@opencode-ai/core/fs-util"
 
 import { Effect, Layer, Context, Option } from "effect"
 import { makeUnsafe } from "effect/DateTime"
 import { InstanceState } from "@/effect/instance-state"
-import { isOverflow as overflow, usable } from "./overflow" // renamed to avoid conflict with local isOverflow
+import { isOverBudget, usable } from "./overflow"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { EventV2Bridge } from "@/event-v2-bridge"
@@ -33,10 +36,13 @@ export const Event = SessionCompactionEvent
 export const PRUNE_MINIMUM = 20_000
 export const PRUNE_PROTECT = 40_000
 const TOOL_OUTPUT_MAX_CHARS = 2_000
+const TOOL_OUTPUT_PROTECT = 50_000
+const TOOL_OUTPUT_PREVIEW = 2_000
 const PRUNE_PROTECTED_TOOLS = ["skill"]
 const DEFAULT_TAIL_TURNS = 2
 const MIN_PRESERVE_RECENT_TOKENS = 2_000
 const MAX_PRESERVE_RECENT_TOKENS = 8_000
+
 type Turn = {
   start: number
   end: number
@@ -136,6 +142,7 @@ export interface Interface {
   readonly isOverflow: (input: {
     tokens: SessionV1.Assistant["tokens"]
     model: Provider.Model
+    sessionID?: SessionID
   }) => Effect.Effect<boolean>
   readonly prune: (input: { sessionID: SessionID }) => Effect.Effect<void>
   readonly process: (input: {
@@ -152,6 +159,7 @@ export interface Interface {
     auto: boolean
     overflow?: boolean
   }) => Effect.Effect<void>
+  readonly checkpoint: (input: { sessionID: SessionID; messages: SessionV1.WithParts[] }) => Effect.Effect<void>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/SessionCompaction") {}
@@ -170,16 +178,22 @@ export const layer = Layer.effect(
     const events = yield* EventV2Bridge.Service
     const flags = yield* RuntimeFlags.Service
     const skill = yield* Skill.Service
+    const fs = yield* FSUtil.Service
+    const background = yield* BackgroundCompaction.Service
+
+    const outputTokenMax = (yield* RuntimeFlags.Service).outputTokenMax
 
     const isOverflow = Effect.fn("SessionCompaction.isOverflow")(function* (input: {
       tokens: SessionV1.Assistant["tokens"]
       model: Provider.Model
+      sessionID?: SessionID
     }) {
-      return overflow({
-        cfg: yield* config.get(),
+      const cfg = yield* config.get()
+      return isOverBudget({
+        cfg,
         tokens: input.tokens,
         model: input.model,
-        outputTokenMax: flags.outputTokenMax,
+        outputTokenMax,
       })
     })
 
@@ -209,7 +223,7 @@ export const layer = Layer.effect(
             messages: input.messages.slice(turn.start, turn.end),
             model: input.model,
           }),
-        { concurrency: 1 },
+        { concurrency: "unbounded" },
       )
 
       let total = 0
@@ -251,9 +265,12 @@ export const layer = Layer.effect(
       if (!cfg.compaction?.prune) return
       yield* Effect.logInfo("pruning")
 
-      const msgs = yield* session
-        .messages({ sessionID: input.sessionID })
-        .pipe(Effect.catchIf(NotFoundError.isInstance, () => Effect.void))
+      const msgs = yield* session.messages({ sessionID: input.sessionID }).pipe(
+        Effect.catchIf(
+          (error): error is NotFoundError => NotFoundError.isInstance(error),
+          () => Effect.void,
+        ),
+      )
       if (!msgs) return
 
       let total = 0
@@ -289,6 +306,63 @@ export const layer = Layer.effect(
           }
         }
         yield* Effect.logInfo("pruned", { count: toPrune.length })
+      }
+    })
+
+    // Tool output budgeting: persist large tool outputs to disk, keep preview in context
+    const budgetToolOutputs = Effect.fn("SessionCompaction.budgetToolOutputs")(function* (input: {
+      sessionID: SessionID
+    }) {
+      const cfg = yield* config.get()
+      if (!cfg.compaction?.toolBudgeting?.enabled) return
+      const msgs = yield* session.messages({ sessionID: input.sessionID }).pipe(
+        Effect.catchIf(
+          (error): error is NotFoundError => NotFoundError.isInstance(error),
+          () => Effect.void,
+        ),
+      )
+      if (!msgs) return
+
+      const protectChars = cfg.compaction?.toolBudgeting?.protectChars ?? TOOL_OUTPUT_PROTECT
+      const previewChars = cfg.compaction?.toolBudgeting?.previewChars ?? TOOL_OUTPUT_PREVIEW
+      const outputDir = `${Global.Path.data}/compaction/tool-outputs/${input.sessionID}`
+
+      yield* fs.makeDirectory(outputDir, { recursive: true })
+
+      let processed = 0
+      for (const msg of msgs) {
+        if (msg.info.role !== "assistant") continue
+        for (const part of msg.parts) {
+          if (part.type !== "tool") continue
+          if (part.state.status !== "completed") continue
+          if (PRUNE_PROTECTED_TOOLS.includes(part.tool)) continue
+          if (part.state.time.compacted) continue
+
+          const output = part.state.output
+          if (typeof output !== "string") continue
+          if (output.length <= protectChars) continue
+
+          const filename = `${msg.info.id}_${part.id}.json`
+          const filepath = `${outputDir}/${filename}`
+          const data = JSON.stringify({
+            messageID: msg.info.id,
+            partID: part.id,
+            tool: part.tool,
+            output,
+            timestamp: Date.now(),
+          })
+
+          yield* fs.writeFileString(filepath, data)
+
+          part.state.output =
+            output.slice(0, previewChars) + `\n... [output truncated, full output saved to ${filepath}]`
+          yield* session.updatePart(part)
+          processed++
+        }
+      }
+
+      if (processed > 0) {
+        yield* Effect.logInfo("budgeted tool outputs", { count: processed, outputDir })
       }
     })
 
@@ -337,6 +411,9 @@ export const layer = Layer.effect(
         ? yield* provider.getModel(agent.model.providerID, agent.model.modelID).pipe(Effect.orDie)
         : yield* provider.getModel(userMessage.model.providerID, userMessage.model.modelID).pipe(Effect.orDie)
       const cfg = yield* config.get()
+
+      yield* budgetToolOutputs({ sessionID: input.sessionID }).pipe(Effect.catch(() => Effect.void))
+
       const history = compactionPart && messages.at(-1)?.info.id === input.parentID ? messages.slice(0, -1) : messages
       const prior = completedCompactions(history)
       const hidden = new Set(prior.flatMap((item) => [item.userIndex, item.assistantIndex]))
@@ -355,31 +432,47 @@ export const layer = Layer.effect(
       const nextPrompt = compacting.prompt ?? buildPrompt({ previousSummary, context: compacting.context })
 
       const allSkillNames = yield* skill.all().pipe(Effect.map((skills) => skills.map((s) => s.name)))
-      const compressedPrompt = Option.isSome(compressor)
-        ? yield* compressor.value.compress({
-            sessionID: input.sessionID,
-            messages: JSON.stringify(selected.head.map((m) => ({
-              role: m.info.role,
-              parts: m.parts.map((p) => p.type === "text" ? p.text : `[${p.type}]`),
-            }))),
-            skills: allSkillNames,
-            providerID: model.providerID,
-            modelID: model.id,
-          }).pipe(
-            Effect.map((compressed) => {
-              const allSections = [...compressed.sections]
-              if (compressed.ghostSkills.length > 0) {
-                allSections.push({
-                  title: "Detected Skills",
-                  content: compressed.ghostSkills.map((s) => `- ${s}`).join("\n"),
-                })
-              }
-              return allSections.length > 0
+      const useStructuredSummary = cfg.compaction?.structuredSummary ?? true
+      const useBreadcrumb = cfg.compaction?.breadcrumb ?? true
+
+      const transcriptPath = `${Global.Path.data}/sessions/${input.sessionID}/transcript.jsonl`
+      const breadcrumb = useBreadcrumb
+        ? `\n---\n[Transcript archived at: ${transcriptPath}]\n[Use ReadFile tool to retrieve full history]\n---`
+        : ""
+
+      const compressInput = {
+        sessionID: input.sessionID,
+        messages: JSON.stringify(
+          selected.head.map((m) => ({
+            role: m.info.role,
+            parts: m.parts.map((p) => (p.type === "text" ? p.text : `[${p.type}]`)),
+          })),
+        ),
+        skills: allSkillNames,
+        providerID: model.providerID,
+        modelID: model.id,
+      }
+      const build = Option.isSome(compressor) ? yield* background.getOrBuild(compressInput) : undefined
+      const source = build?.source ?? "fresh"
+      const compressedPrompt = build
+        ? (() => {
+            const compressed = build.result
+            const allSections = [...compressed.sections]
+            if (compressed.ghostSkills.length > 0) {
+              allSections.push({
+                title: "Detected Skills",
+                content: compressed.ghostSkills.map((s) => `- ${s}`).join("\n"),
+              })
+            }
+            const basePrompt =
+              allSections.length > 0
                 ? `${nextPrompt}\n\n<structured_summary>\n${allSections.map((s) => `<section title="${s.title}">\n${s.content}\n</section>`).join("\n")}\n</structured_summary>`
                 : nextPrompt
-            }),
-          )
-        : nextPrompt
+            return useStructuredSummary && compressed.structuredSummary
+              ? `${basePrompt}\n\n<compaction_summary>\n${JSON.stringify(compressed.structuredSummary, null, 2)}\n</compaction_summary>${breadcrumb}`
+              : `${basePrompt}${breadcrumb}`
+          })()
+        : `${nextPrompt}${breadcrumb}`
 
       const msgs = structuredClone(selected.head)
       yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
@@ -571,7 +664,15 @@ export const layer = Layer.effect(
               recent,
             })
         }
-        yield* events.publish(Event.Compacted, { sessionID: input.sessionID })
+        yield* events.publish(Event.Compacted, {
+          sessionID: input.sessionID,
+          source,
+          timestamp: Date.now(),
+          tokensBefore: Token.estimate(compressInput.messages),
+          tokensAfter: Token.estimate(recent || ""),
+          summary: summary ?? "",
+          transcriptPath,
+        })
       }
       return result
     })
@@ -583,6 +684,14 @@ export const layer = Layer.effect(
       auto: boolean
       overflow?: boolean
     }) {
+      const cfg = yield* config.get()
+      const useBreadcrumb = cfg.compaction?.breadcrumb ?? true
+
+      const transcriptPath = `${Global.Path.data}/sessions/${input.sessionID}/transcript.jsonl`
+      const breadcrumb = useBreadcrumb
+        ? `\n---\n[Transcript archived at: ${transcriptPath}]\n[Use ReadFile tool to retrieve full history]\n---`
+        : ""
+
       const msg = yield* session.updateMessage({
         id: MessageID.ascending(),
         role: "user",
@@ -598,6 +707,7 @@ export const layer = Layer.effect(
         type: "compaction",
         auto: input.auto,
         overflow: input.overflow,
+        text: breadcrumb,
       })
       if (flags.experimentalEventSystem) {
         yield* events.publish(SessionEvent.Compaction.Started, {
@@ -609,11 +719,55 @@ export const layer = Layer.effect(
       }
     })
 
+    const checkpoint = Effect.fn("SessionCompaction.checkpoint")(function* (input: {
+      sessionID: SessionID
+      messages: SessionV1.WithParts[]
+    }) {
+      const cfg = yield* config.get()
+      if (!cfg.compaction?.background?.enabled) return
+
+      const agent = yield* agents.get("compaction")
+      const fallback = input.messages.findLast((m) => m.info.role === "user")
+      const fallbackModel = fallback && fallback.info.role === "user" ? fallback.info.model : undefined
+      const model = agent.model
+        ? yield* provider.getModel(agent.model.providerID, agent.model.modelID).pipe(Effect.orDie)
+        : fallbackModel
+          ? yield* provider.getModel(fallbackModel.providerID, fallbackModel.modelID).pipe(Effect.orDie)
+          : null
+      if (!model) return
+
+      const current = yield* estimate({ messages: input.messages, model })
+      const usableTokens = usable({ cfg, model, outputTokenMax: flags.outputTokenMax })
+      const utilization = usableTokens > 0 ? current / usableTokens : 0
+      const checkpointThreshold = cfg.compaction.background.checkpointThreshold ?? 0.6
+      const swapThreshold = cfg.compaction.background.swapThreshold ?? 0.85
+
+      // Precompute a checkpoint behind the trigger threshold, stop once compaction is imminent.
+      if (utilization < checkpointThreshold || utilization >= swapThreshold) return
+
+      const allSkillNames = yield* skill.all().pipe(Effect.map((skills) => skills.map((s) => s.name)))
+      const selected = yield* select({ messages: input.messages, cfg, model })
+
+      yield* background.checkpoint({
+        sessionID: input.sessionID,
+        messages: JSON.stringify(
+          selected.head.map((m) => ({
+            role: m.info.role,
+            parts: m.parts.map((p) => (p.type === "text" ? p.text : `[${p.type}]`)),
+          })),
+        ),
+        skills: allSkillNames,
+        providerID: model.providerID,
+        modelID: model.id,
+      })
+    })
+
     return Service.of({
       isOverflow,
       prune,
       process: processCompaction,
       create,
+      checkpoint,
     })
   }),
 )
@@ -630,6 +784,8 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(EventV2Bridge.defaultLayer),
     Layer.provide(Compressor.defaultLayer),
     Layer.provide(Skill.defaultLayer),
+    Layer.provide(FSUtil.defaultLayer),
+    Layer.provide(BackgroundCompaction.defaultLayer),
   ),
 )
 
@@ -644,6 +800,8 @@ export const node = LayerNode.make(layer, [
   RuntimeFlags.node,
   Compressor.node,
   Skill.node,
+  FSUtil.node,
+  BackgroundCompaction.node,
 ])
 
 export * as SessionCompaction from "./compaction"

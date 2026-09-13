@@ -1,11 +1,7 @@
 export type ShellFunction = (input: Uint8Array) => Uint8Array
 
 export type ShellExpression =
-  | { toString(): string }
-  | Array<ShellExpression>
-  | string
-  | { raw: string }
-  | ReadableStream
+  { toString(): string } | Array<ShellExpression> | string | { raw: string } | ReadableStream
 
 export interface BunShell {
   (strings: TemplateStringsArray, ...expressions: ShellExpression[]): BunShellPromise
@@ -77,7 +73,7 @@ export interface BunShellPromise extends Promise<BunShellOutput> {
    * Read from stdout as a JSON object
    * Automatically calls quiet()
    */
-  json(): Promise<any>
+  json(): Promise<unknown>
 
   /**
    * Read from stdout as an ArrayBuffer
@@ -115,7 +111,7 @@ export interface BunShellOutput {
   /**
    * Read from stdout as a JSON object
    */
-  json(): any
+  json(): unknown
 
   /**
    * Read from stdout as an ArrayBuffer

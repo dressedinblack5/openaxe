@@ -18,6 +18,15 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
   return prefixes.some((prefix) => data.startsWith(prefix))
 }
 
+function openaiItemId(providerOptions: unknown): string | undefined {
+  if (typeof providerOptions !== "object" || providerOptions === null) return undefined
+  if (!("openai" in providerOptions)) return undefined
+  const openai = providerOptions.openai
+  if (typeof openai !== "object" || openai === null || !("itemId" in openai)) return undefined
+  const itemId = openai.itemId
+  return typeof itemId === "string" ? itemId : undefined
+}
+
 export async function convertToOpenAIResponsesInput({
   prompt,
   systemMessageMode,
@@ -59,7 +68,7 @@ export async function convertToOpenAIResponsesInput({
           }
           default: {
             const _exhaustiveCheck: never = systemMessageMode
-            throw new Error(`Unsupported system message mode: ${_exhaustiveCheck}`)
+            throw new Error(`Unsupported system message mode: ${String(_exhaustiveCheck)}`)
           }
         }
         break
@@ -110,6 +119,11 @@ export async function convertToOpenAIResponsesInput({
                   })
                 }
               }
+              default: {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `file part type: ${String(part)}`,
+                })
+              }
             }
           }),
         })
@@ -127,7 +141,7 @@ export async function convertToOpenAIResponsesInput({
               input.push({
                 role: "assistant",
                 content: [{ type: "output_text", text: part.text }],
-                id: (part.providerOptions?.openai?.itemId as string) ?? undefined,
+                id: openaiItemId(part.providerOptions),
               })
               break
             }
@@ -143,7 +157,7 @@ export async function convertToOpenAIResponsesInput({
                 input.push({
                   type: "local_shell_call",
                   call_id: part.toolCallId,
-                  id: (part.providerOptions?.openai?.itemId as string) ?? undefined,
+                  id: openaiItemId(part.providerOptions) ?? "",
                   action: {
                     type: "exec",
                     command: parsedInput.action.command,
@@ -162,7 +176,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
-                id: (part.providerOptions?.openai?.itemId as string) ?? undefined,
+                id: openaiItemId(part.providerOptions),
               })
               break
             }
@@ -319,7 +333,7 @@ export async function convertToOpenAIResponsesInput({
 
       default: {
         const _exhaustiveCheck: never = role
-        throw new Error(`Unsupported role: ${_exhaustiveCheck}`)
+        throw new Error(`Unsupported role: ${String(_exhaustiveCheck)}`)
       }
     }
   }

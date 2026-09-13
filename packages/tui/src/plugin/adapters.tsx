@@ -14,7 +14,7 @@ import { DialogPrompt } from "../ui/dialog-prompt"
 import { DialogSelect, type DialogSelectOption as SelectOption } from "../ui/dialog-select"
 import { Prompt } from "../component/prompt"
 import type { useToast } from "../ui/toast"
-import { formatKeyBindings, formatKeySequence, getOpencodeModeStack } from "../keymap";
+import { formatKeyBindings, formatKeySequence, getOpencodeModeStack } from "../keymap"
 import { createCommandShim } from "./command-shim"
 import type { PluginRoutes } from "./api"
 export type { RouteMap } from "./api"
@@ -91,7 +91,7 @@ function pickOption<Value>(item: SelectOption<Value>): TuiDialogSelectOption<Val
 }
 
 function mapOptionCb<Value>(cb?: (item: TuiDialogSelectOption<Value>) => void) {
-  if (!cb) return
+  if (!cb) return undefined
   return (item: SelectOption<Value>) => cb(pickOption(item))
 }
 
@@ -110,7 +110,7 @@ function stateApi(sync: ReturnType<typeof useSync>): TuiPluginApi["state"] {
       return sync.path
     },
     get vcs() {
-      if (!sync.data.vcs) return
+      if (!sync.data.vcs) return undefined
       return {
         branch: sync.data.vcs.branch,
         default_branch: sync.data.vcs.default_branch,

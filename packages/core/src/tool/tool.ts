@@ -15,10 +15,12 @@ export interface Context {
   readonly abortSignal?: AbortSignal
 }
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- tool codecs convert between arbitrary encoded representations and their schema type; the encoded form is unconstrained so typed tools stay assignable to AnyTool.
 export type SchemaType<A> = Schema.Codec<A, any>
 
 declare const TypeId: unique symbol
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal any-schema constraint marker; no narrower bound exists.
 export interface Definition<Input extends SchemaType<any>, Output extends SchemaType<any>> {
   readonly [TypeId]: {
     readonly _Input: Input
@@ -26,6 +28,7 @@ export interface Definition<Input extends SchemaType<any>, Output extends Schema
   }
 }
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal "any tool" marker: only `any` type args (bivariant) make every typed tool assignable; no narrower bound exists.
 export type AnyTool = Definition<any, any>
 export const Failure = ToolFailure
 export type Failure = ToolFailure
@@ -65,6 +68,7 @@ export function extractFilePaths(call: ToolCall, output: unknown): readonly stri
   return Array.from(paths)
 }
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal any-schema constraint marker; no narrower bound exists.
 type Config<Input extends SchemaType<any>, Output extends SchemaType<any>> = {
   readonly description: string
   readonly input: Input
@@ -77,16 +81,19 @@ type Config<Input extends SchemaType<any>, Output extends SchemaType<any>> = {
     readonly input: Schema.Schema.Type<Input>
     readonly output: Output["Encoded"]
   }) => ReadonlyArray<Content>
+  readonly maxResultSizeChars?: number
 }
 
 type Runtime = {
   readonly permission?: string
+  readonly maxResultSizeChars?: number
   readonly definition: (name: string) => ToolDefinition
   readonly settle: (call: ToolCall, context: Context) => Effect.Effect<ToolOutput, ToolFailure>
 }
 
 const runtimes = new WeakMap<AnyTool, Runtime>()
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal any-schema constraint marker; no narrower bound exists.
 export function make<Input extends SchemaType<any>, Output extends SchemaType<any>>(
   config: Config<Input, Output>,
 ): Definition<Input, Output> {
@@ -94,6 +101,7 @@ export function make<Input extends SchemaType<any>, Output extends SchemaType<an
   const tool = Object.freeze({}) as Definition<Input, Output>
   const definitions = new Map<string, ToolDefinition>()
   runtimes.set(tool, {
+    maxResultSizeChars: config.maxResultSizeChars,
     definition: (name) => {
       const cached = definitions.get(name)
       if (cached) return cached
@@ -141,18 +149,23 @@ export function make<Input extends SchemaType<any>, Output extends SchemaType<an
               return Effect.serviceOption(Guardrail.Service).pipe(
                 Effect.flatMap((option) => {
                   if (option._tag === "None") return Effect.succeed(toOutput())
-                  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- verifyProject returns VerificationResult[]
-                  return (option.value.verifyProject(files) as Effect.Effect<readonly Guardrail.VerificationResult[]>).pipe(
+                  const guardrail = option.value
+                  // The guardrail.verifyProject effect requires ChildProcessSpawner, but the tool execution
+                  // context may not provide it. The catchCause handles missing service errors at runtime.
+                  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+                  return guardrail.verifyProject(files).pipe(
                     Effect.flatMap((results) => {
                       const failed = results.filter((r) => !r.passed)
                       if (failed.length === 0) return Effect.succeed(toOutput())
                       const details = failed
-                        .flatMap((r) => r.diagnostics.map((d) => `${d.file}:${d.line}:${d.column}: ${d.severity}: ${d.message}`))
+                        .flatMap((r) =>
+                          r.diagnostics.map((d) => `${d.file}:${d.line}:${d.column}: ${d.severity}: ${d.message}`),
+                        )
                         .join("\n")
                       return Effect.fail(new ToolFailure({ message: `Auto-verification failed:\n${details}` }))
                     }),
                     Effect.catchCause(() => Effect.succeed(toOutput())),
-                  )
+                  ) as unknown as Effect.Effect<ToolOutput, ToolFailure>
                 }),
               )
             }),
@@ -168,6 +181,7 @@ export const validateName = (name: string) =>
     ? Effect.void
     : Effect.fail(new RegistrationError({ name, message: `Invalid tool name: ${name}` }))
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- universal any-schema constraint marker; no narrower bound exists.
 export const withPermission = <Input extends SchemaType<any>, Output extends SchemaType<any>>(
   tool: Definition<Input, Output>,
   permission: string,
@@ -181,6 +195,7 @@ export const withPermission = <Input extends SchemaType<any>, Output extends Sch
 export const permission = (tool: AnyTool, name: string) => runtimeOf(tool).permission ?? name
 export const definition = (name: string, tool: AnyTool) => runtimeOf(tool).definition(name)
 export const settle = (tool: AnyTool, call: ToolCall, context: Context) => runtimeOf(tool).settle(call, context)
+export const maxResultSizeChars = (tool: AnyTool) => runtimeOf(tool).maxResultSizeChars
 
 function runtimeOf(tool: AnyTool) {
   const runtime = runtimes.get(tool)

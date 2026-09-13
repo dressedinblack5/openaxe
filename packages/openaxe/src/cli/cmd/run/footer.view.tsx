@@ -170,12 +170,12 @@ export function RunFooterView(props: RunFooterViewProps) {
     const detail = currentRoute.type === "subagent" ? currentSubagent.details[currentRoute.sessionID] : undefined
 
     const leaderKey = currentTuiConfig.keybinds.get("leader")?.[0]?.key ?? "ctrl+x"
-    const leaderStr = String(leaderKey)
+    const leaderStr = typeof leaderKey === "string" ? leaderKey : JSON.stringify(leaderKey)
     const resolveKey = (key: string) => key.replace(/<leader>/gi, leaderStr + " ")
     const formatKey = (name: string) => {
       const entry = currentTuiConfig.keybinds.get(name)?.[0]
       if (!entry?.key) return ""
-      const keyStr = typeof entry.key === "string" ? entry.key : String(entry.key)
+      const keyStr = typeof entry.key === "string" ? entry.key : JSON.stringify(entry.key)
       return resolveKey(keyStr)
     }
 
@@ -285,8 +285,6 @@ export function RunFooterView(props: RunFooterViewProps) {
   const permission = () => derived().permission
   const question = () => derived().question
   const promptView = () => derived().promptView
-
-
 
   const openModel = () => {
     setRoute({ type: "model" })

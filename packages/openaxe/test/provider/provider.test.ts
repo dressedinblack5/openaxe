@@ -101,16 +101,18 @@ const alphaProviderConfig = {
   },
 }
 
-it.instance("provider loaded from env variable", () =>
-  Effect.gen(function* () {
-    yield* setProcessEnv("ANTHROPIC_API_KEY", "test-api-key")
-    const providers = yield* list
-    expect(providers[ProviderV2.ID.anthropic]).toBeDefined()
-    // Provider should retain its connection source even if custom loaders
-    // merge additional options.
-    expect(providers[ProviderV2.ID.anthropic].source).toBe("env")
-    expect(providers[ProviderV2.ID.anthropic].options.headers["anthropic-beta"]).toBeDefined()
-  }),
+it.instance(
+  "provider loaded from env variable",
+  () =>
+    Effect.gen(function* () {
+      yield* setProcessEnv("ANTHROPIC_API_KEY", "test-api-key")
+      const providers = yield* list
+      expect(providers[ProviderV2.ID.anthropic]).toBeDefined()
+      // Provider should retain its connection source even if custom loaders
+      // merge additional options.
+      expect(providers[ProviderV2.ID.anthropic].source).toBe("env")
+      expect(providers[ProviderV2.ID.anthropic].options.headers["anthropic-beta"]).toBeDefined()
+    }),
   30000,
 )
 

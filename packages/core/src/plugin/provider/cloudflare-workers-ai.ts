@@ -29,8 +29,9 @@ export const CloudflareWorkersAIPlugin = define({
 
         const accountId = resolveAccountId(evt.options)
         if (!hasWorkersEndpoint(evt.model.api) && !accountId) return
-        const mod = yield* Effect.promise( async () => import("@ai-sdk/openai-compatible"))
+        const mod = yield* Effect.promise(async () => import("@ai-sdk/openai-compatible"))
         evt.sdk = mod.createOpenAICompatible(
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- evt.options is the catalog-derived settings record; the runtime guarantees the OpenAICompatibleProviderSettings shape.
           sdkOptions({
             ...evt.options,
             baseURL: evt.options.baseURL ?? (accountId ? workersEndpoint(accountId) : undefined),
@@ -59,14 +60,15 @@ function hasWorkersEndpoint(api: ProviderV2.Api) {
   return api.type === "aisdk" && Boolean(api.url)
 }
 
-function sdkOptions(options: Record<string, any>) {
+function sdkOptions(options: Record<string, unknown>) {
+  const headers = typeof options.headers === "object" && options.headers !== null ? options.headers : undefined
   return {
     ...options,
     baseURL: expandAccountId(options.baseURL),
     apiKey: process.env.CLOUDFLARE_API_KEY ?? options.apiKey,
     headers: {
       "User-Agent": `opencode/${InstallationVersion} cloudflare-workers-ai (${os.platform()} ${os.release()}; ${os.arch()})`,
-      ...options.headers,
+      ...headers,
     },
     name: providerID,
   }

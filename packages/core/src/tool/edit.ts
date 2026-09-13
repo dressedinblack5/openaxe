@@ -12,6 +12,7 @@ import { FileMutation } from "../file-mutation"
 import { FSUtil } from "../fs-util"
 import { LocationMutation } from "../location-mutation"
 import { PermissionV2 } from "../permission"
+import { EditFuzzy } from "./edit-fuzzy"
 import { Tool } from "./tool"
 import { Tools } from "./tools"
 
@@ -79,7 +80,7 @@ export const toModelOutput = (output: Output, oldString: string, newString: stri
     "```",
   ].join("\n")
 
-// TODO: Port V1 fuzzy correction strategies only after exact-edit behavior is established: line-trimmed matching, block-anchor fallback, indentation correction, and similarity-threshold review.
+// Fuzzy correction strategies (line-trimmed matching, block-anchor fallback, indentation correction) are implemented in edit-fuzzy.ts and retried only when the exact oldString is absent.
 // TODO: Add formatter integration after V2 formatter runtime exists.
 // TODO: Publish watcher/file-edit events after V2 watcher integration exists.
 // TODO: Add snapshots / undo after design exists.
@@ -160,24 +161,43 @@ export const layer = Layer.effectDiscard(
                 const ending = detectLineEnding(source.text)
                 const oldString = convertToLineEnding(input.oldString, ending)
                 const newString = convertToLineEnding(input.newString, ending)
-                const replacements = countOccurrences(source.text, oldString)
-                if (replacements === 0) {
-                  return yield* new ToolFailure({
-                    message:
-                      "Could not find oldString in the file. It must match exactly, including whitespace and indentation.",
-                  })
+                const exactReplacements = countOccurrences(source.text, oldString)
+                let replacements = exactReplacements
+                let replaced: string
+                if (exactReplacements === 0) {
+                  const fuzzy = EditFuzzy.fuzzyReplace(source.text, oldString, newString, input.replaceAll === true)
+                  if (fuzzy.tag === "not-found") {
+                    return yield* new ToolFailure({
+                      message:
+                        "Could not find oldString in the file. It must match exactly, including whitespace and indentation.",
+                    })
+                  }
+                  if (fuzzy.tag === "disproportionate") {
+                    return yield* new ToolFailure({
+                      message:
+                        "Refusing replacement because the matched span is much larger than oldString. Re-read the file and provide the full exact oldString for the intended replacement.",
+                    })
+                  }
+                  if (fuzzy.tag === "ambiguous") {
+                    return yield* new ToolFailure({
+                      message:
+                        "Found multiple fuzzy matches for oldString. Provide more surrounding context or set replaceAll to true.",
+                    })
+                  }
+                  replacements = fuzzy.replacements
+                  replaced = fuzzy.text
+                } else {
+                  if (replacements > 1 && input.replaceAll !== true) {
+                    return yield* new ToolFailure({
+                      message:
+                        "Found multiple exact matches for oldString. Provide more surrounding context or set replaceAll to true.",
+                    })
+                  }
+                  replaced =
+                    input.replaceAll === true
+                      ? source.text.replaceAll(oldString, newString)
+                      : source.text.replace(oldString, newString)
                 }
-                if (replacements > 1 && input.replaceAll !== true) {
-                  return yield* new ToolFailure({
-                    message:
-                      "Found multiple exact matches for oldString. Provide more surrounding context or set replaceAll to true.",
-                  })
-                }
-
-                const replaced =
-                  input.replaceAll === true
-                    ? source.text.replaceAll(oldString, newString)
-                    : source.text.replace(oldString, newString)
                 const next = splitBom(replaced)
                 const result = yield* unableToEdit(
                   files.writeIfUnchanged({

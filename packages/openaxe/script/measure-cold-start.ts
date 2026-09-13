@@ -10,10 +10,10 @@ async function measure() {
   const start = performance.now()
   console.log("\n=== Full cold start imports (aligned to index.ts) ===\n")
 
-  // 1. First the yargs + helpers  
+  // 1. First the yargs + helpers
   await time(`yargs`, () => import("yargs"))
   await time(`yargs/helpers`, () => import("yargs/helpers"))
-  
+
   // 2. CLI UI + error
   await time(`@/cli/ui`, () => import("@/cli/ui"))
   await time(`@/cli/error`, () => import("@/cli/error"))

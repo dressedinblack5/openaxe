@@ -35,6 +35,7 @@ export type AcpClient = {
 
 export function createAcpClient(acp: AcpHandle): AcpClient {
   const state = { nextId: 1 }
+  const pending: unknown[] = []
 
   const request = <T>(method: string, params?: unknown) =>
     Effect.gen(function* () {
@@ -44,17 +45,36 @@ export function createAcpClient(acp: AcpHandle): AcpClient {
       yield* acp.send(message)
 
       while (true) {
+        const pendingIdx = pending.findIndex(
+          (item) => isJsonRpcResponse<T>(item) && (item as JsonRpcResponse).id === id,
+        )
+        if (pendingIdx !== -1) {
+          return pending.splice(pendingIdx, 1)[0] as JsonRpcResponse<T>
+        }
+
         const received = yield* acp.receive.pipe(Effect.timeout(Duration.seconds(300)))
         if (isJsonRpcResponse<T>(received) && received.id === id) return received
+        pending.push(received)
       }
     })
 
   const waitForNotification = <T>(method: string, predicate: (params: T) => boolean, timeoutMs = 15_000) =>
     Effect.gen(function* () {
       while (true) {
+        const pendingIdx = pending.findIndex(
+          (item) =>
+            isJsonRpcNotification<T>(item) &&
+            (item as JsonRpcNotification).method === method &&
+            predicate((item as JsonRpcNotification).params as T),
+        )
+        if (pendingIdx !== -1) {
+          return pending.splice(pendingIdx, 1)[0] as JsonRpcNotification<T>
+        }
+
         const received = yield* acp.receive.pipe(Effect.timeout(Duration.millis(timeoutMs)))
-        if (!isJsonRpcNotification<T>(received)) continue
-        if (received.method === method && predicate(received.params as T)) return received
+        if (isJsonRpcNotification<T>(received) && received.method === method && predicate(received.params as T))
+          return received
+        pending.push(received)
       }
     })
 

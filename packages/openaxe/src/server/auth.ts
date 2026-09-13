@@ -2,6 +2,7 @@ export * as ServerAuth from "./auth"
 
 import { ConfigService } from "@/effect/config-service"
 import { Flag } from "@opencode-ai/core/flag/flag"
+import { timingSafeStringEqual } from "@opencode-ai/core/util/timing-safe-equal"
 import { Config as EffectConfig, Context, Option, Redacted } from "effect"
 
 export type Credentials = {
@@ -17,19 +18,24 @@ export type DecodedCredentials = {
 export class Config extends ConfigService.Service<Config>()("@opencode/ServerAuthConfig", {
   password: EffectConfig.string("OPENCODE_SERVER_PASSWORD").pipe(EffectConfig.option),
   username: EffectConfig.string("OPENCODE_SERVER_USERNAME").pipe(EffectConfig.withDefault("opencode")),
+  noAuth: EffectConfig.string("OPENCODE_SERVER_NO_AUTH").pipe(
+    EffectConfig.map((v) => v === "1"),
+    EffectConfig.withDefault(false),
+  ),
 }) {}
 
 export type Info = Context.Service.Shape<typeof Config>
 
 export function required(config: Info) {
+  if (config.noAuth) return false
   return Option.isSome(config.password) && config.password.value !== ""
 }
 
 export function authorized(credentials: DecodedCredentials, config: Info) {
   return (
     Option.isSome(config.password) &&
-    credentials.username === config.username &&
-    Redacted.value(credentials.password) === config.password.value
+    timingSafeStringEqual(credentials.username, config.username) &&
+    timingSafeStringEqual(Redacted.value(credentials.password), config.password.value)
   )
 }
 

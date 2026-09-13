@@ -6,7 +6,7 @@ import { promisify } from "node:util"
 
 const exec = promisify(execFile)
 
- async function command(command: string, args: string[] = [], input?: string) {
+async function command(command: string, args: string[] = [], input?: string) {
   return new Promise<Buffer>((resolve, reject) => {
     const child = spawn(command, args, { stdio: [input === undefined ? "ignore" : "pipe", "pipe", "ignore"] })
     const output: Buffer[] = []
@@ -58,7 +58,12 @@ export async function read() {
     )
     if (image.length) return { data: image.toString().trim(), mime: "image/png" }
     // ponytail: direct PowerShell read before clipboardy fallback — clipboardy silently fails on Windows
-    const text = await command("powershell.exe", ["-NonInteractive", "-NoProfile", "-command", "Get-Clipboard -Raw"]).catch(() => Buffer.alloc(0))
+    const text = await command("powershell.exe", [
+      "-NonInteractive",
+      "-NoProfile",
+      "-command",
+      "Get-Clipboard -Raw",
+    ]).catch(() => Buffer.alloc(0))
     if (text.length) return { data: text.toString().trim(), mime: "text/plain" }
   }
 
@@ -74,6 +79,7 @@ export async function read() {
   const { default: clipboardy } = await import("clipboardy")
   const text = await clipboardy.read().catch(() => undefined)
   if (text) return { data: text, mime: "text/plain" }
+  return undefined
 }
 
 export function copyCommand(
@@ -94,11 +100,12 @@ export function copyCommand(
       "[Console]::InputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value ([Console]::In.ReadToEnd())",
     ]
   }
+  return undefined
 }
 
 let copyMethod: Promise<(text: string) => Promise<void>> | undefined
 
- async function getCopyMethod() {
+async function getCopyMethod() {
   return (copyMethod ??= (async () => {
     const { which } = await import("@opencode-ai/core/util/which")
     const native = copyCommand(platform(), Boolean(process.env.WAYLAND_DISPLAY), (name) => Boolean(which(name)))

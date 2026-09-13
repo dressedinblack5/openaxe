@@ -18,7 +18,7 @@ export function DialogSkill(props: DialogSkillProps) {
 
   const [loadError, setLoadError] = createSignal<unknown>()
 
-  const [skills] = createResource( async () =>
+  const [skills] = createResource(async () =>
     sdk.client.app
       .skills({}, { throwOnError: true })
       .then((result) => result.data ?? [])
@@ -35,9 +35,9 @@ export function DialogSkill(props: DialogSkillProps) {
   const options = createMemo<DialogSelectOption<string>[]>(() => {
     if (showError()) return []
     const list = skills() ?? []
-    const maxWidth = Math.max(0, ...list.map((s) => s.name.length))
+    const maxWidth = Math.max(0, ...list.map((s) => Bun.stringWidth(s.name)))
     return list.map((skill) => ({
-      title: skill.name.padEnd(maxWidth),
+      title: skill.name + " ".repeat(Math.max(0, maxWidth - Bun.stringWidth(skill.name))),
       description: skill.description?.replace(/\s+/g, " ").trim(),
       value: skill.name,
       category: "Skills",

@@ -203,7 +203,7 @@ const skillGuidance = Layer.mock(SkillGuidance.Service, {
         ? SystemContext.make({
             key: SystemContext.Key.make("test/skill-guidance"),
             codec: Schema.toCodecJson(Schema.String),
-            load: Effect.succeed(skillBaselines.get(agent.id)!),
+            load: Effect.succeed(skillBaselines.get(agent.id) ?? ""),
             baseline: String,
             update: (_previous, current) => current,
             removed: () => "Skill guidance removed",
@@ -1302,7 +1302,9 @@ describe("SessionRunnerLLM", () => {
       yield* session.resume(sessionID)
 
       expect(requests.at(-1)?.system.map((part) => part.text)).toEqual(["Initial context"])
-      expect(systemTexts(requests.at(-1)!)).toContain("Changed context")
+      const lastRequest = requests.at(-1)
+      if (!lastRequest) throw new Error("no requests captured")
+      expect(systemTexts(lastRequest)).toContain("Changed context")
     }),
   )
 

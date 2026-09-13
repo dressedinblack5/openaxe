@@ -242,8 +242,8 @@ describe("SessionV2.create", () => {
       }))
 
       const tmp = yield* Effect.acquireRelease(
-        Effect.promise( async () => tmpdir()),
-        (tmp) => Effect.promise( async () => tmp[Symbol.asyncDispose]()),
+        Effect.promise(async () => tmpdir()),
+        (tmp) => Effect.promise(async () => tmp[Symbol.asyncDispose]()),
       )
       const targetDatabase = Database.layerFromPath(path.join(tmp.path, "target.sqlite"))
       const targetEvents = EventV2.layer.pipe(Layer.provide(targetDatabase))

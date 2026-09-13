@@ -14,7 +14,7 @@ const dim = "\x1b[90m"
 
 function wordmark(pad = "") {
   const draw = (line: string, fg: string, shadow: string, bg: string) =>
-    [...line]
+    Array.from(line)
       .map((char) => {
         if (char === "_") return `${bg} ${reset}`
         if (char === "^") return `${fg}${bg}▀${reset}`

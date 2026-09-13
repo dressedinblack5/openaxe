@@ -81,7 +81,9 @@ export const layer = Layer.effect(
     const runFork = Effect.runForkWith(context)
     const subscriptions: ParcelWatcher.AsyncSubscription[] = []
     yield* Effect.addFinalizer(() =>
-      Effect.promise( async () => Promise.allSettled(subscriptions.map( async (subscription) => subscription.unsubscribe()))),
+      Effect.promise(async () =>
+        Promise.allSettled(subscriptions.map(async (subscription) => subscription.unsubscribe())),
+      ),
     )
 
     const callback: ParcelWatcher.SubscribeCallback = (_error, updates) => {
@@ -94,11 +96,11 @@ export const layer = Layer.effect(
 
     const subscribe = (directory: string, ignore: string[]) => {
       const pending = w.subscribe(directory, callback, { ignore, backend })
-      return Effect.promise( async () => pending).pipe(
+      return Effect.promise(async () => pending).pipe(
         Effect.tap((subscription) => Effect.sync(() => subscriptions.push(subscription))),
         Effect.timeout(SUBSCRIBE_TIMEOUT_MS),
         Effect.catchCause((cause) => {
-          pending.then( async (subscription) => subscription.unsubscribe()).catch(() => {})
+          pending.then(async (subscription) => subscription.unsubscribe()).catch(() => {})
           const limit =
             process.platform === "linux"
               ? Effect.sync(() => {

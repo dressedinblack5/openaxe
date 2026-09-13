@@ -6,11 +6,13 @@ import { ModelV2 } from "./model"
 import { ProviderV2 } from "./provider"
 import { State } from "./state"
 
+// oxlint-disable-next-line typescript-eslint/no-explicit-any -- dynamic provider SDK instance; arbitrary AI-SDK methods are invoked on it.
 type SDK = any
 
 export interface SDKEvent {
   readonly model: ModelV2.Info
   readonly package: string
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- dynamic provider options forwarded to the AI SDK.
   readonly options: Record<string, any>
   sdk?: SDK
 }
@@ -18,6 +20,7 @@ export interface SDKEvent {
 export interface LanguageEvent {
   readonly model: ModelV2.Info
   readonly sdk: SDK
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- dynamic provider options forwarded to the AI SDK.
   readonly options: Record<string, any>
   language?: LanguageModelV3
 }
@@ -28,38 +31,35 @@ function wrapSSE(res: Response, ms: number, ctl: AbortController) {
   if (!res.headers.get("content-type")?.includes("text/event-stream")) return res
 
   const reader = res.body.getReader()
+  let id: ReturnType<typeof setTimeout> | undefined
+
+  const arm = () => {
+    clearTimeout(id)
+    id = setTimeout(() => {
+      ctl.abort(new Error("SSE read timed out"))
+    }, ms)
+  }
+  arm()
+
   const body = new ReadableStream<Uint8Array>({
     async pull(ctrl) {
-      const part = await new Promise<Awaited<ReturnType<typeof reader.read>>>((resolve, reject) => {
-        const id = setTimeout(() => {
-          const err = new Error("SSE read timed out")
-          ctl.abort(err)
-          void reader.cancel(err)
-          reject(err)
-        }, ms)
-
-        reader.read().then(
-          (part) => {
-            clearTimeout(id)
-            resolve(part)
-          },
-          (err) => {
-            clearTimeout(id)
-            reject(err)
-          },
-        )
-      })
-
-      if (part.done) {
-        ctrl.close()
-        return
+      try {
+        const part = await reader.read()
+        if (part.done) {
+          clearTimeout(id)
+          ctrl.close()
+          return
+        }
+        ctrl.enqueue(part.value)
+        arm()
+      } catch (err) {
+        clearTimeout(id)
+        ctrl.error(err)
       }
-
-      ctrl.enqueue(part.value)
     },
-    async cancel(reason) {
-      ctl.abort(reason)
-      await reader.cancel(reason)
+    cancel() {
+      clearTimeout(id)
+      void reader.cancel()
     },
   })
 
@@ -71,6 +71,7 @@ function wrapSSE(res: Response, ms: number, ctl: AbortController) {
 }
 
 function prepareOptions(model: ModelV2.Info, pkg: string) {
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- dynamic provider options forwarded to the AI SDK.
   const options: Record<string, any> = {
     name: model.providerID,
     ...(model.api.type === "aisdk" ? (model.api.settings ?? {}) : {}),
@@ -100,6 +101,7 @@ function prepareOptions(model: ModelV2.Info, pkg: string) {
       opts.body &&
       opts.method === "POST"
     ) {
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- the pkg + opts.body + method guards guarantee a JSON string body.
       const body = JSON.parse(opts.body as string)
       if (body.store !== true && Array.isArray(body.input)) {
         for (const item of body.input) {

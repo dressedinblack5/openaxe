@@ -3,9 +3,105 @@ import { fileURLToPath, pathToFileURL } from "url"
 import { Filesystem } from "@/util/filesystem"
 import { isRecord } from "@/util/record"
 import { Npm } from "@opencode-ai/core/npm"
+import { createHash } from "node:crypto"
+import { Glob } from "@opencode-ai/core/util/glob"
+import type { PluginAllowlistEntry } from "@opencode-ai/core/v1/config/config"
+
+export type { PluginAllowlistEntry } from "@opencode-ai/core/v1/config/config"
 
 // Old npm package names for plugins that are now built-in
 export const DEPRECATED_PLUGIN_PACKAGES = ["opencode-openai-codex-auth", "opencode-copilot-auth"]
+
+export { isRecord }
+
+// Plugin allowlist configuration
+export type PluginAllowlist = ReadonlyArray<PluginAllowlistEntry>
+
+// Tool allowlist configuration
+export interface ToolAllowlistEntry {
+  id: string // format: "namespace_toolId" or "toolId"
+  integrity?: string // sha512-<base64> or sha256-<base64>
+}
+
+export type ToolAllowlist = ReadonlyArray<ToolAllowlistEntry>
+
+export function validatePluginSpec(spec: string, allowlist?: PluginAllowlist): void {
+  if (!allowlist || allowlist.length === 0) return // No allowlist configured = allow all (legacy behavior)
+
+  const parsed = parsePluginSpecifier(spec)
+
+  // Require exact version (no semver ranges)
+  if (parsed.version === "latest" || parsed.version.startsWith("^") || parsed.version.startsWith("~") || parsed.version.startsWith(">") || parsed.version.startsWith("<")) {
+    throw new Error(`Plugin ${spec} must use an exact version pin. Semver ranges (latest, ^, ~, >, <) are not allowed.`)
+  }
+
+  // Check allowlist
+  const entry = allowlist.find((e) => e.pkg === parsed.pkg && e.version === parsed.version)
+  if (!entry) {
+    const allowed = allowlist.map((e) => `${e.pkg}@${e.version}`).join(", ")
+    throw new Error(`Plugin ${spec} is not in the allowlist. Allowed plugins: ${allowed}`)
+  }
+}
+
+export function validateToolSpec(id: string, allowlist?: ToolAllowlist): void {
+  if (!allowlist || allowlist.length === 0) return // No allowlist configured = allow all (legacy behavior)
+
+  // Check allowlist
+  const entry = allowlist.find((e) => e.id === id)
+  if (!entry) {
+    const allowed = allowlist.map((e) => e.id).join(", ")
+    throw new Error(`Tool ${id} is not in the allowlist. Allowed tools: ${allowed}`)
+  }
+}
+
+export async function verifyPluginIntegrity(target: string, expectedIntegrity?: string): Promise<void> {
+  if (!expectedIntegrity) return
+
+  const [algo, expectedHash] = expectedIntegrity.split("-")
+  if (!algo || !expectedHash || !["sha256", "sha512"].includes(algo)) {
+    throw new Error(`Invalid integrity format: ${expectedIntegrity}. Expected sha256-<base64> or sha512-<base64>`)
+  }
+
+  const file = target.startsWith("file://") ? fileURLToPath(target) : target
+  const stat = await Filesystem.statAsync(file)
+  const dir = stat?.isDirectory() ? file : path.dirname(file)
+
+  // Calculate hash of the entire package directory
+  const hasher = createHash(algo)
+  const files = await Glob.scan("**/*", { cwd: dir, include: "file", absolute: true, dot: true })
+  const contents = await Promise.all(files.sort().map((f) => Filesystem.readBytes(f)))
+  contents.forEach((content: Buffer) => hasher.update(content))
+  const actualHash = hasher.digest("base64")
+
+  if (actualHash !== expectedHash) {
+    throw new Error(`Plugin integrity check failed: expected ${algo}-${expectedHash}, got ${algo}-${actualHash}`)
+  }
+}
+
+export async function verifyToolIntegrity(target: string, expectedIntegrity?: string): Promise<void> {
+  if (!expectedIntegrity) return
+
+  const [algo, expectedHash] = expectedIntegrity.split("-")
+  if (!algo || !expectedHash || !["sha256", "sha512"].includes(algo)) {
+    throw new Error(`Invalid integrity format: ${expectedIntegrity}. Expected sha256-<base64> or sha512-<base64>`)
+  }
+
+  const file = target.startsWith("file://") ? fileURLToPath(target) : target
+  const stat = await Filesystem.statAsync(file)
+  if (!stat?.isFile()) {
+    throw new Error(`Tool target ${target} is not a file`)
+  }
+
+  // Calculate hash of the tool file
+  const hasher = createHash(algo)
+  const content = await Filesystem.readBytes(file)
+  hasher.update(content)
+  const actualHash = hasher.digest("base64")
+
+  if (actualHash !== expectedHash) {
+    throw new Error(`Tool integrity check failed: expected ${algo}-${expectedHash}, got ${algo}-${actualHash}`)
+  }
+}
 
 export function isDeprecatedPlugin(spec: string) {
   return DEPRECATED_PLUGIN_PACKAGES.some((pkg) => spec.includes(pkg))
@@ -238,6 +334,19 @@ export async function resolvePathPluginTarget(spec: string) {
     return pathToFileURL(file).href
   }
 
+  // Jail to project/global directories for security
+  const projectDir = path.resolve(process.cwd())
+  const globalDir = path.join(process.env.HOME || "", ".config", "openaxe")
+  const resolvedPath = path.resolve(file)
+  if (
+    resolvedPath !== projectDir &&
+    !resolvedPath.startsWith(projectDir + path.sep) &&
+    resolvedPath !== globalDir &&
+    !resolvedPath.startsWith(globalDir + path.sep)
+  ) {
+    throw new Error(`Plugin path ${file} must be within project or global config directory`)
+  }
+
   if (await Filesystem.exists(path.join(file, "package.json"))) {
     return pathToFileURL(file).href
   }
@@ -280,11 +389,22 @@ export async function checkPluginCompatibility(target: string, opencodeVersion: 
   }
 }
 
-export async function resolvePluginTarget(spec: string) {
+export async function resolvePluginTarget(spec: string, allowlist?: PluginAllowlist): Promise<string> {
   if (isPathPluginSpec(spec)) return resolvePathPluginTarget(spec)
+
+  // Validate against allowlist before installation
+  validatePluginSpec(spec, allowlist)
+
   const parsed = parsePluginSpecifier(spec)
   const pkg = `${parsed.pkg}@${parsed.version}`
   const result = await Npm.add(pkg)
+
+  // Verify integrity after installation if specified in allowlist
+  const entry = allowlist?.find((e) => e.pkg === parsed.pkg && e.version === parsed.version)
+  if (entry?.integrity) {
+    await verifyPluginIntegrity(result.directory, entry.integrity)
+  }
+
   return result.directory
 }
 
@@ -354,38 +474,44 @@ export async function resolveToolsEntrypoint(spec: string, pkg: PluginPackage): 
   return pathToFileURL(file).href
 }
 
+export type ReadV1PluginResult =
+  | { ok: true; value: Record<string, unknown> }
+  | { ok: false; error: TypeError }
+
 export function readV1Plugin(
   mod: Record<string, unknown>,
   spec: string,
   kind: PluginKind,
   mode: PluginMode = "strict",
-) {
+): ReadV1PluginResult {
   const value = mod.default
   if (!isRecord(value)) {
-    if (mode === "detect") return
-    throw new TypeError(`Plugin ${spec} must default export an object with ${kind}()`)
+    if (mode === "detect") return { ok: false, error: new TypeError(`Plugin ${spec} must default export an object with ${kind}()`) }
+    return { ok: false, error: new TypeError(`Plugin ${spec} must default export an object with ${kind}()`) }
   }
-  if (mode === "detect" && !("id" in value) && !("server" in value) && !("tui" in value)) return
+  if (mode === "detect" && !("id" in value) && !("server" in value) && !("tui" in value)) {
+    return { ok: false, error: new TypeError(`Plugin ${spec} has no valid exports`) }
+  }
 
   const server = "server" in value ? value.server : undefined
   const tui = "tui" in value ? value.tui : undefined
   if (server !== undefined && typeof server !== "function") {
-    throw new TypeError(`Plugin ${spec} has invalid server export`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} has invalid server export`) }
   }
   if (tui !== undefined && typeof tui !== "function") {
-    throw new TypeError(`Plugin ${spec} has invalid tui export`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} has invalid tui export`) }
   }
   if (server !== undefined && tui !== undefined) {
-    throw new TypeError(`Plugin ${spec} must default export either server() or tui(), not both`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} must default export either server() or tui(), not both`) }
   }
   if (kind === "server" && server === undefined) {
-    throw new TypeError(`Plugin ${spec} must default export an object with server()`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} must default export an object with server()`) }
   }
   if (kind === "tui" && tui === undefined) {
-    throw new TypeError(`Plugin ${spec} must default export an object with tui()`)
+    return { ok: false, error: new TypeError(`Plugin ${spec} must default export an object with tui()`) }
   }
 
-  return value
+  return { ok: true, value }
 }
 
 export async function resolvePluginId(

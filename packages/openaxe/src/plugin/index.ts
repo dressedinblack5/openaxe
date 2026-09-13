@@ -9,10 +9,11 @@ import type {
 } from "@opencode-ai/plugin"
 import { Config } from "@/config/config"
 import { createOpencodeClient } from "@opencode-ai/sdk"
+import type { Event } from "@opencode-ai/sdk"
 import { ServerAuth } from "@/server/auth"
 import { CodexAuthPlugin } from "./openai/codex"
 import { Session } from "@/session/session"
-import { NamedError } from "@opencode-ai/core/util/error"
+import { EventError } from "@/session/event-error"
 import { CopilotAuthPlugin } from "./github-copilot/copilot"
 import { gitlabAuthPlugin } from "opencode-gitlab-auth"
 import { PoeAuthPlugin } from "opencode-poe-auth"
@@ -20,6 +21,7 @@ import { CloudflareAIGatewayAuthPlugin, CloudflareWorkersAuthPlugin } from "./cl
 import { AzureAuthPlugin } from "./azure"
 import { DigitalOceanAuthPlugin } from "./digitalocean"
 import { XaiAuthPlugin } from "./xai"
+import { PiiGatePlugin } from "./pii-gate"
 import { SnowflakeCortexAuthPlugin } from "./snowflake-cortex"
 import { Effect, Layer, Context } from "effect"
 import { HttpRouter } from "effect/unstable/http"
@@ -27,7 +29,7 @@ import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { errorMessage } from "@/util/error"
 import { PluginLoader } from "./loader"
-import { parsePluginSpecifier, readPluginId, readV1Plugin, resolvePluginId, resolveToolsEntrypoint } from "./shared"
+import { parsePluginSpecifier, readPluginId, readV1Plugin, resolvePluginId, resolveToolsEntrypoint, isRecord } from "./shared"
 import { registerAdapter } from "@/control-plane/adapters"
 import type { WorkspaceAdapter } from "@/control-plane/types"
 import { RuntimeFlags } from "@/effect/runtime-flags"
@@ -78,6 +80,7 @@ function internalPlugins(flags: RuntimeFlags.Info): PluginInstance[] {
     DigitalOceanAuthPlugin,
     SnowflakeCortexAuthPlugin,
     XaiAuthPlugin,
+    PiiGatePlugin,
   ]
 }
 
@@ -93,24 +96,22 @@ function getServerPlugin(value: unknown) {
 }
 
 function getLegacyPlugins(mod: Record<string, unknown>) {
-  const seen = new Set<PluginInstance>()
-  const result: PluginInstance[] = []
-
-  for (const entry of Object.values(mod)) {
-    const plugin = getServerPlugin(entry)
-    if (!plugin || seen.has(plugin)) continue
-    seen.add(plugin)
-    result.push(plugin)
-  }
-
-  return result
+  const plugin = getServerPlugin(mod.default)
+  return plugin ? [plugin] : []
 }
 
 async function applyPlugin(load: PluginLoader.Loaded, input: PluginInput, hooks: Hooks[]) {
-  const plugin = readV1Plugin(load.mod, load.spec, "server", "detect")
-  if (plugin) {
+  const pluginResult = readV1Plugin(load.mod, load.spec, "server", "detect")
+  if (pluginResult.ok) {
+    const plugin = pluginResult.value
     await resolvePluginId(load.source, load.spec, load.target, readPluginId(plugin.id, load.spec), load.pkg)
     hooks.push(await (plugin as PluginModule).server(input, load.options))
+    return
+  }
+
+  // If the plugin explicitly exports both server and tui, it's invalid - don't fall through to legacy
+  const value = load.mod.default
+  if (isRecord(value) && "server" in value && "tui" in value) {
     return
   }
 
@@ -132,7 +133,7 @@ export const layer = Layer.effect(
         const bridge = yield* EffectBridge.make()
 
         function publishPluginError(message: string) {
-          bridge.fork(events.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() }))
+          bridge.fork(events.publish(Session.Event.Error, { error: EventError.unknown(message) }))
         }
 
         const { Server } = yield* Effect.promise(() => import("../server/server"))
@@ -188,7 +189,7 @@ export const layer = Layer.effect(
         // Notify internal plugins of current config eagerly
         for (const hook of hooks) {
           yield* Effect.tryPromise({
-            try: () => Promise.resolve((hook as any).config?.(cfg)),
+            try: () => Promise.resolve(hook.config?.(cfg as Record<string, unknown>)),
             catch: errorMessage,
           }).pipe(
             Effect.tapError((error) => Effect.logError("plugin config hook failed", { error })),
@@ -207,20 +208,13 @@ export const layer = Layer.effect(
             }
             if (plugins.length) yield* config.waitForDependencies()
 
-            // Point vibeguard at openaxe's config dir if present
-            if (!process.env.OPENCODE_VIBEGUARD_CONFIG) {
-              const homeDir = process.env.HOME
-              if (homeDir) {
-                const vbPath = `${homeDir}/.config/openaxe/vibeguard.config.json`
-                const vbExists = yield* Effect.promise(() => Bun.file(vbPath).exists())
-                if (vbExists) process.env.OPENCODE_VIBEGUARD_CONFIG = vbPath
-              }
-            }
+            const allowlist = cfg.pluginAllowlist
 
             const loaded = yield* Effect.promise(() =>
               PluginLoader.loadExternal({
                 items: plugins,
                 kind: "server",
+                allowlist,
                 report: {
                   start(_candidate) {},
                   missing(_candidate, _retry, _message) {},
@@ -278,9 +272,13 @@ export const layer = Layer.effect(
                     const toolDefs: Record<string, ToolDefinition> = {}
                     for (const [id, def] of Object.entries(toolsMod)) {
                       if (def && typeof def === "object" && "args" in def && "description" in def && "execute" in def) {
-                        const toolId = id === "default"
-                          ? new URL(entry).pathname.split("/").pop()?.replace(/\.[^/.]+$/, "") ?? "unknown"
-                          : id
+                        const toolId =
+                          id === "default"
+                            ? (new URL(entry).pathname
+                                .split("/")
+                                .pop()
+                                ?.replace(/\.[^/.]+$/, "") ?? "unknown")
+                            : id
                         toolDefs[toolId] = def as unknown as ToolDefinition
                       }
                     }
@@ -290,7 +288,9 @@ export const layer = Layer.effect(
                   },
                   catch: errorMessage,
                 }).pipe(
-                  Effect.tapError((error) => Effect.logError("failed to load plugin tools", { spec: load.spec, error })),
+                  Effect.tapError((error) =>
+                    Effect.logError("failed to load plugin tools", { spec: load.spec, error }),
+                  ),
                   Effect.ignore,
                 )
               }
@@ -299,7 +299,7 @@ export const layer = Layer.effect(
             // Notify all plugins (internal + newly loaded external) of current config
             for (const hook of hooks) {
               yield* Effect.tryPromise({
-                try: () => Promise.resolve((hook as any).config?.(cfg)),
+                try: () => Promise.resolve(hook.config?.(cfg as Record<string, unknown>)),
                 catch: errorMessage,
               }).pipe(
                 Effect.tapError((error) => Effect.logError("plugin config hook failed", { error })),
@@ -311,10 +311,13 @@ export const layer = Layer.effect(
             hookMap.clear()
             for (const hook of hooks) {
               for (const key in hook) {
-                const fn = (hook as any)[key]
+                const fn = (hook as Record<string, unknown>)[key]
                 if (typeof fn !== "function") continue
                 let list = hookMap.get(key)
-                if (!list) { list = []; hookMap.set(key, list) }
+                if (!list) {
+                  list = []
+                  hookMap.set(key, list)
+                }
                 list.push(fn)
               }
             }
@@ -326,7 +329,7 @@ export const layer = Layer.effect(
           if (event.location?.directory !== ctx.directory) return Effect.void
           return Effect.sync(() => {
             for (const hook of hooks) {
-              void hook["event"]?.({ event: { id: event.id, type: event.type, properties: event.data } as any })
+              void hook["event"]?.({ event: { id: event.id, type: event.type, properties: event.data } as Event })
             }
           })
         })

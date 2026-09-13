@@ -51,13 +51,7 @@ const testServer = servedRoutes.pipe(
   Layer.provideMerge(NodeServices.layer),
 )
 
-const effectIt = testEffect(
-  Layer.mergeAll(
-    testStateLayer,
-    Socket.layerWebSocketConstructorGlobal,
-    testServer,
-  ),
-)
+const effectIt = testEffect(Layer.mergeAll(testStateLayer, Socket.layerWebSocketConstructorGlobal, testServer))
 
 function app() {
   return Server.Default().app
@@ -245,14 +239,15 @@ describe("pty HttpApi bridge", () => {
     const headers = { "x-opencode-directory": tmp.path }
     const missingID = String(PtyID.ascending())
 
-    const forbidden = await app().request(PtyPaths.connectToken.replace(":ptyID", missingID), {
+    const noHeader = await app().request(PtyPaths.connectToken.replace(":ptyID", missingID), {
       method: "POST",
       headers,
     })
-    expect(forbidden.status).toBe(403)
-    expect(await forbidden.json()).toEqual({
-      _tag: "PtyForbiddenError",
-      message: "Invalid PTY connect token request",
+    expect(noHeader.status).toBe(404)
+    expect(await noHeader.json()).toEqual({
+      _tag: "PtyNotFoundError",
+      ptyID: missingID,
+      message: `PTY session not found: ${missingID}`,
     })
 
     const missing = await app().request(PtyPaths.connectToken.replace(":ptyID", missingID), {
@@ -268,6 +263,27 @@ describe("pty HttpApi bridge", () => {
       ptyID: missingID,
       message: `PTY session not found: ${missingID}`,
     })
+
+    // Real PTY spawn is unavailable on Windows CI — 404 assertions above still run there.
+    if (process.platform === "win32") return
+
+    const created = await app().request(PtyPaths.create, {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ command: "/usr/bin/env", args: ["sh", "-c", "sleep 5"], title: "token" }),
+    })
+    expect(created.status).toBe(200)
+    const info = await created.json()
+    try {
+      const token = await app().request(PtyPaths.connectToken.replace(":ptyID", info.id), {
+        method: "POST",
+        headers,
+      })
+      expect(token.status).toBe(200)
+      expect(await token.json()).toMatchObject({ ticket: expect.any(String) })
+    } finally {
+      await app().request(PtyPaths.remove.replace(":ptyID", info.id), { method: "DELETE", headers })
+    }
   })
   ;(process.platform === "win32" ? effectIt.live.skip : effectIt.live.skip)(
     "serves PTY websocket output and input through Effect routes",
@@ -279,7 +295,7 @@ describe("pty HttpApi bridge", () => {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ command: "/bin/cat", title: "websocket" }),
-          })
+          }),
         )
         expect(created.status).toBe(200)
         const json = yield* Effect.promise(() => created.json())
@@ -310,7 +326,9 @@ describe("pty HttpApi bridge", () => {
         yield* write(new Socket.CloseEvent(1000, "done")).pipe(Effect.catch(() => Effect.void))
 
         yield* Effect.promise(() =>
-          request(PtyPaths.remove.replace(":ptyID", info.id), dir, { method: "DELETE" }).then((r) => expect(r.status).toBe(200))
+          request(PtyPaths.remove.replace(":ptyID", info.id), dir, { method: "DELETE" }).then((r) =>
+            expect(r.status).toBe(200),
+          ),
         )
       }),
   )

@@ -21,6 +21,7 @@
     "no-control-regex": "off",
     "triple-slash-reference": "off",
     "no-shadow": "off",
+    "no-underscore-dangle": "off",
     "unicorn/consistent-function-scoping": "off",
     "unicorn/no-array-sort": "off",
     "unicorn/no-array-reverse": "off",
@@ -29,7 +30,16 @@
     "unicorn/require-post-message-target-origin": "off",
     "no-new": "off"
   },
-  "ignorePatterns": ["**/node_modules", "**/dist", "**/.build", "**/.sst", "**/*.d.ts", "**/sdk.gen.ts", "**/v2/gen", "**/src/gen/**"],
+  "ignorePatterns": [
+    "**/node_modules",
+    "**/dist",
+    "**/.build",
+    "**/.sst",
+    "**/*.d.ts",
+    "**/sdk.gen.ts",
+    "**/v2/gen",
+    "**/src/gen/**"
+  ],
   "overrides": [
     {
       "files": ["**/test/**", "**/*.test.ts"],

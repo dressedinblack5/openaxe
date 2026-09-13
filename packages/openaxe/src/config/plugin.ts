@@ -1,10 +1,15 @@
 import { Glob } from "@opencode-ai/core/util/glob"
 import { ConfigPluginV1 } from "@opencode-ai/core/v1/config/plugin"
 import { pathToFileURL } from "url"
-import { isPathPluginSpec, parsePluginSpecifier, resolvePathPluginTarget } from "@/plugin/shared"
+import { isPathPluginSpec, parsePluginSpecifier, resolvePathPluginTarget, type PluginAllowlist, type ToolAllowlist } from "@/plugin/shared"
 import path from "path"
 
 export type Scope = "global" | "local"
+
+export interface PluginConfig {
+  allowlist?: PluginAllowlist
+  toolAllowlist?: ToolAllowlist
+}
 
 // Origin keeps the original config provenance attached to a spec.
 // After multiple config files are merged, callers still need to know which file declared the plugin

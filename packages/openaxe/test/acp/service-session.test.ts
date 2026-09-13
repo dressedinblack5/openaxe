@@ -142,7 +142,7 @@ const provider: Provider.Info = {
 }
 
 describe("ACP service sessions", () => {
-  const makeService = (
+  const makeService = async (
     messages: readonly { info: unknown; parts: readonly unknown[] }[] = [],
     options?: { abort?: (input: { sessionID: string }) => Promise<{ data: boolean }> },
   ) => {
@@ -259,7 +259,7 @@ describe("ACP service sessions", () => {
     })
 
     return {
-      service: ACPService.make({ sdk, connection, usage }),
+      service: await ACPService.make({ sdk, connection, usage }),
       updates,
       mcpAdds,
       aborts,
@@ -272,7 +272,7 @@ describe("ACP service sessions", () => {
   }
 
   it("creates a backed session with config options and command update", async () => {
-    const { service, updates, mcpAdds } = makeService()
+    const { service, updates, mcpAdds } = await makeService()
     const result = await Effect.runPromise(
       service.newSession({
         cwd: "/workspace",
@@ -296,7 +296,7 @@ describe("ACP service sessions", () => {
   })
 
   it("loads a session and restores model variant and mode from messages", async () => {
-    const { service } = makeService([
+    const { service } = await makeService([
       {
         info: {
           role: "assistant",
@@ -317,7 +317,7 @@ describe("ACP service sessions", () => {
   })
 
   it("replays loaded session transcript chunks", async () => {
-    const { service, updates } = makeService([
+    const { service, updates } = await makeService([
       {
         info: { id: "msg_user", sessionID: "ses_loaded", role: "user" },
         parts: [{ id: "part_user", sessionID: "ses_loaded", messageID: "msg_user", type: "text", text: "hello" }],
@@ -357,7 +357,7 @@ describe("ACP service sessions", () => {
   })
 
   it("lists sessions sorted by updated time with cursor support", async () => {
-    const { service } = makeService()
+    const { service } = await makeService()
     const first = await Effect.runPromise(service.listSessions({ cwd: "/workspace" }))
     const second = await Effect.runPromise(service.listSessions({ cwd: "/workspace", cursor: first.nextCursor }))
 
@@ -369,7 +369,7 @@ describe("ACP service sessions", () => {
   })
 
   it("includes live ACP sessions before they appear in server-backed session list", async () => {
-    const { service } = makeService()
+    const { service } = await makeService()
     const created = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
     const listed = await Effect.runPromise(service.listSessions({ cwd: "/workspace" }))
 
@@ -378,7 +378,7 @@ describe("ACP service sessions", () => {
   })
 
   it("lists all sessions with next cursor when the first page is full", async () => {
-    const { service } = makeService()
+    const { service } = await makeService()
     const first = await Effect.runPromise(service.listSessions({}))
     const second = await Effect.runPromise(service.listSessions({ cursor: first.nextCursor }))
 
@@ -390,7 +390,7 @@ describe("ACP service sessions", () => {
   })
 
   it("resumes a session and stores restored state", async () => {
-    const { service } = makeService([
+    const { service } = await makeService([
       {
         info: {
           role: "user",
@@ -412,7 +412,7 @@ describe("ACP service sessions", () => {
   })
 
   it("closes local ACP state and aborts the backing session best-effort", async () => {
-    const { service, aborts } = makeService()
+    const { service, aborts } = await makeService()
     const created = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
     expect(await Effect.runPromise(service.closeSession({ sessionId: created.sessionId }))).toEqual({})
@@ -427,7 +427,7 @@ describe("ACP service sessions", () => {
   })
 
   it("cancel aborts the backing session and keeps the ACP session", async () => {
-    const { service, aborts } = makeService()
+    const { service, aborts } = await makeService()
     const created = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
     await Effect.runPromise(service.cancel({ sessionId: created.sessionId }))
@@ -443,7 +443,7 @@ describe("ACP service sessions", () => {
   })
 
   it("does not fail cancel or close when the backing abort fails", async () => {
-    const { service } = makeService([], { abort: () => Promise.reject(new Error("nope")) })
+    const { service } = await makeService([], { abort: () => Promise.reject(new Error("nope")) })
     const created = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
     await Effect.runPromise(service.cancel({ sessionId: created.sessionId }))
@@ -452,7 +452,7 @@ describe("ACP service sessions", () => {
   })
 
   it("forks a session, loads fork state, and returns config options", async () => {
-    const { service, forks } = makeService([
+    const { service, forks } = await makeService([
       {
         info: {
           role: "assistant",
@@ -479,7 +479,7 @@ describe("ACP service sessions", () => {
   })
 
   it("restores model variant and mode from the latest user message", async () => {
-    const { service } = makeService([
+    const { service } = await makeService([
       {
         info: {
           role: "user",
@@ -506,7 +506,7 @@ describe("ACP service sessions", () => {
   })
 
   it("maps provider auth failures to auth-required request errors", async () => {
-    const service = ACPService.make({
+    const service = await ACPService.make({
       sdk: {
         config: {
           providers: () => Promise.reject({ name: "ProviderAuthError", data: { providerID: "test" } }),
@@ -558,7 +558,7 @@ describe("ACP service sessions", () => {
         add: () => Promise.resolve({ data: {} }),
       },
     } as unknown as OpencodeClient
-    const service = ACPService.make({ sdk })
+    const service = await ACPService.make({ sdk })
 
     const first = await Effect.runPromise(
       service
@@ -601,7 +601,7 @@ describe("ACP service sessions", () => {
         },
       },
     } as unknown as OpencodeClient
-    const service = ACPService.make({ sdk })
+    const service = await ACPService.make({ sdk })
 
     await Effect.runPromise(
       service.newSession({
@@ -642,7 +642,7 @@ describe("ACP service sessions", () => {
         add: () => Promise.resolve({ data: {} }),
       },
     } as unknown as OpencodeClient
-    const service = ACPService.make({ sdk })
+    const service = await ACPService.make({ sdk })
 
     const result = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
@@ -681,7 +681,7 @@ describe("ACP service sessions", () => {
         add: () => Promise.resolve({ data: {} }),
       },
     } as unknown as OpencodeClient
-    const service = ACPService.make({ sdk })
+    const service = await ACPService.make({ sdk })
 
     const result = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
@@ -691,7 +691,7 @@ describe("ACP service sessions", () => {
   })
 
   it("switches model and returns updated model and effort options", async () => {
-    const { service } = makeService()
+    const { service } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
     const updated = await Effect.runPromise(
       service.setSessionConfigOption({
@@ -707,7 +707,7 @@ describe("ACP service sessions", () => {
   })
 
   it("switches effort and returns the updated effort current value", async () => {
-    const { service } = makeService()
+    const { service } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
     const updated = await Effect.runPromise(
       service.setSessionConfigOption({
@@ -721,7 +721,7 @@ describe("ACP service sessions", () => {
   })
 
   it("switches mode and returns the updated mode current value", async () => {
-    const { service } = makeService()
+    const { service } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
     const updated = await Effect.runPromise(
       service.setSessionConfigOption({
@@ -735,7 +735,7 @@ describe("ACP service sessions", () => {
   })
 
   it("maps invalid model effort mode and config id to invalid params", async () => {
-    const { service } = makeService()
+    const { service } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
     const results = await Promise.all(
@@ -798,7 +798,7 @@ describe("ACP service sessions", () => {
         },
       },
     } as unknown as OpencodeClient
-    const service = ACPService.make({ sdk })
+    const service = await ACPService.make({ sdk })
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
     expect(calls).toEqual({ providers: 1, agents: 1, commands: 1, skills: 1, mcpAdds: 0 })
@@ -853,7 +853,7 @@ describe("ACP service sessions", () => {
         add: () => Promise.resolve({ data: {} }),
       },
     } as unknown as OpencodeClient
-    const service = ACPService.make({ sdk })
+    const service = await ACPService.make({ sdk })
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
     const updated = await Effect.runPromise(
       service.setSessionConfigOption({
@@ -923,7 +923,7 @@ describe("ACP service sessions", () => {
         add: () => Promise.resolve({ data: {} }),
       },
     } as unknown as OpencodeClient
-    const service = ACPService.make({ sdk })
+    const service = await ACPService.make({ sdk })
 
     const first = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
     const second = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
@@ -943,7 +943,7 @@ describe("ACP service sessions", () => {
   })
 
   it("normal text prompt sends model variant mode and converted parts", async () => {
-    const { service, prompts, usageUpdates } = makeService()
+    const { service, prompts, usageUpdates } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
     await Effect.runPromise(
       service.setSessionConfigOption({
@@ -995,7 +995,7 @@ describe("ACP service sessions", () => {
   })
 
   it("prompt maps assistant and user audience annotations", async () => {
-    const { service, prompts } = makeService()
+    const { service, prompts } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
     await Effect.runPromise(
@@ -1022,7 +1022,7 @@ describe("ACP service sessions", () => {
   })
 
   it("prompt sends image and resource parts", async () => {
-    const { service, prompts } = makeService()
+    const { service, prompts } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
     await Effect.runPromise(
@@ -1059,7 +1059,7 @@ describe("ACP service sessions", () => {
   })
 
   it("slash command prompt calls session command", async () => {
-    const { service, prompts, commands } = makeService()
+    const { service, prompts, commands } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
     const result = await Effect.runPromise(
@@ -1082,7 +1082,7 @@ describe("ACP service sessions", () => {
   })
 
   it("compact slash command calls summarize path", async () => {
-    const { service, prompts, commands, summarizes } = makeService()
+    const { service, prompts, commands, summarizes } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
 
     await Effect.runPromise(
@@ -1102,9 +1102,9 @@ describe("ACP service sessions", () => {
   })
 
   it("maps prompt auth failures to auth-required request errors", async () => {
-    const { service } = makeService()
+    const { service } = await makeService()
     const session = await Effect.runPromise(service.newSession({ cwd: "/workspace", mcpServers: [] }))
-    const failing = ACPService.make({
+    const failing = await ACPService.make({
       sdk: {
         config: {
           providers: () => Promise.resolve({ data: { providers: [provider], default: { test: modelID } } }),

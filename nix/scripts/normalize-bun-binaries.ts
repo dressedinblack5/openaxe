@@ -78,7 +78,7 @@ async function readManifest(dir: string) {
   if (!(await file.exists())) {
     return null
   }
-  const data = (await file.json()) as PackageManifest
+  const data: PackageManifest = await file.json()
   return data
 }
 

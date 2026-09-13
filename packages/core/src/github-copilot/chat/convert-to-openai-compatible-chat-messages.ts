@@ -62,6 +62,9 @@ export function convertToOpenAICompatibleChatMessages(prompt: LanguageModelV3Pro
                   })
                 }
               }
+              default: {
+                throw new Error(`Unsupported part type: ${String(part)}`)
+              }
             }
           }),
           ...metadata,
@@ -83,8 +86,14 @@ export function convertToOpenAICompatibleChatMessages(prompt: LanguageModelV3Pro
         for (const part of content) {
           const partMetadata = getOpenAIMetadata(part)
           // Check for reasoningOpaque on any part (may be attached to text/tool-call)
-          const partOpaque = (part.providerOptions as { copilot?: { reasoningOpaque?: string } })?.copilot
-            ?.reasoningOpaque
+          const copilot = part.providerOptions?.copilot
+          const partOpaque =
+            typeof copilot === "object" &&
+            copilot !== null &&
+            "reasoningOpaque" in copilot &&
+            typeof copilot.reasoningOpaque === "string"
+              ? copilot.reasoningOpaque
+              : undefined
           if (partOpaque && !reasoningOpaque) {
             reasoningOpaque = partOpaque
           }
@@ -161,7 +170,7 @@ export function convertToOpenAICompatibleChatMessages(prompt: LanguageModelV3Pro
 
       default: {
         const _exhaustiveCheck: never = role
-        throw new Error(`Unsupported role: ${_exhaustiveCheck}`)
+        throw new Error(`Unsupported role: ${String(_exhaustiveCheck)}`)
       }
     }
   }

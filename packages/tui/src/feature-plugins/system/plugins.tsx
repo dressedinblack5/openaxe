@@ -21,7 +21,7 @@ function state(api: TuiPluginApi, item: TuiPluginStatus) {
 }
 
 function source(spec: string) {
-  if (!spec.startsWith("file://")) return
+  if (!spec.startsWith("file://")) return undefined
   return fileURLToPath(spec)
 }
 
@@ -88,7 +88,7 @@ function Install(props: { api: TuiPluginApi }) {
                 })
               }
               show(props.api)
-              return
+              return undefined
             }
 
             props.api.ui.toast({
@@ -101,7 +101,7 @@ function Install(props: { api: TuiPluginApi }) {
                 message: "Package has no TUI target to load in this app.",
               })
               show(props.api)
-              return
+              return undefined
             }
 
             return props.api.plugins.add(mod).then((ok) => {

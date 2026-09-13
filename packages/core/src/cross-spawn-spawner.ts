@@ -1,8 +1,8 @@
-import type { NonEmptyReadonlyArray } from "effect/Array";
+import type { NonEmptyReadonlyArray } from "effect/Array"
 import { NodeFileSystem, NodeSink, NodeStream, NodePath } from "@effect/platform-node"
 import { Deferred, Effect, FileSystem, Layer, Path, PlatformError, Sink, Stream } from "effect"
-import { succeed } from "effect/Exit";
-import { isNotNull, isNotUndefined, isUndefined } from "effect/Predicate";
+import { succeed } from "effect/Exit"
+import { isNotNull, isNotUndefined, isUndefined } from "effect/Predicate"
 import type { Scope } from "effect"
 import {
   type Command,
@@ -84,11 +84,7 @@ const flatten = (command: Command) => {
   }
 }
 
-const toPlatformError = (
-  method: string,
-  err: NodeJS.ErrnoException,
-  command: Command,
-): PlatformError.PlatformError => {
+const toPlatformError = (method: string, err: NodeJS.ErrnoException, command: Command): PlatformError.PlatformError => {
   const cmd = flatten(command)
     .commands.map((x) => `${x.command} ${x.args.join(" ")}`)
     .join(" | ")
@@ -114,14 +110,11 @@ export const make = Effect.gen(function* () {
     return path.resolve(opts.cwd)
   })
 
-  const env = (opts: CommandOptions) =>
-    opts.extendEnv ? { ...globalThis.process.env, ...opts.env } : opts.env
+  const env = (opts: CommandOptions) => (opts.extendEnv ? { ...globalThis.process.env, ...opts.env } : opts.env)
 
-  const input = (x: CommandInput | undefined): IOType | undefined =>
-    Stream.isStream(x) ? "pipe" : x
+  const input = (x: CommandInput | undefined): IOType | undefined => (Stream.isStream(x) ? "pipe" : x)
 
-  const output = (x: CommandOutput | undefined): IOType | undefined =>
-    Sink.isSink(x) ? "pipe" : x
+  const output = (x: CommandOutput | undefined): IOType | undefined => (Sink.isSink(x) ? "pipe" : x)
 
   const stdin = (opts: CommandOptions): StdinConfig => {
     const cfg: StdinConfig = { stream: "pipe", encoding: "utf-8", endOnDone: true }
@@ -159,8 +152,7 @@ export const make = Effect.gen(function* () {
     serr: StderrConfig,
     extra: ReadonlyArray<{ fd: number; config: AdditionalFdConfig }>,
   ): StdioOptions => {
-    const pipe = (x: IOType | undefined) =>
-      process.platform === "win32" && x === "pipe" ? "overlapped" : x
+    const pipe = (x: IOType | undefined) => (process.platform === "win32" && x === "pipe" ? "overlapped" : x)
     const arr: Array<IOType | undefined> = [
       pipe(input(sin.stream)),
       pipe(output(sout.stream)),
@@ -228,15 +220,12 @@ export const make = Effect.gen(function* () {
     }
   })
 
-  const setupStdin = (
-    command: StandardCommand,
-    proc: ChildProcess,
-    cfg: StdinConfig,
-  ) =>
+  const setupStdin = (command: StandardCommand, proc: ChildProcess, cfg: StdinConfig) =>
     Effect.suspend(() => {
       let sink: Sink.Sink<void, unknown, never, PlatformError.PlatformError> = Sink.drain
       if (isNotNull(proc.stdin)) {
         sink = NodeSink.fromWritable({
+          // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- guarded by isNotNull(proc.stdin) above.
           evaluate: () => proc.stdin!,
           onError: (err) => toPlatformError("fromWritable(stdin)", toError(err), command),
           endOnDone: cfg.endOnDone,
@@ -247,20 +236,17 @@ export const make = Effect.gen(function* () {
       return Effect.succeed(sink)
     })
 
-  const setupOutput = (
-    command: StandardCommand,
-    proc: ChildProcess,
-    out: StdoutConfig,
-    err: StderrConfig,
-  ) => {
+  const setupOutput = (command: StandardCommand, proc: ChildProcess, out: StdoutConfig, err: StderrConfig) => {
     let stdout = proc.stdout
       ? NodeStream.fromReadable({
+          // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- guarded by the proc.stdout check above.
           evaluate: () => proc.stdout!,
           onError: (cause) => toPlatformError("fromReadable(stdout)", toError(cause), command),
         })
       : Stream.empty
     let stderr = proc.stderr
       ? NodeStream.fromReadable({
+          // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- guarded by the proc.stderr check above.
           evaluate: () => proc.stderr!,
           onError: (cause) => toPlatformError("fromReadable(stderr)", toError(cause), command),
         })
@@ -297,11 +283,7 @@ export const make = Effect.gen(function* () {
       })
     })
 
-  const killGroup = (
-    command: StandardCommand,
-    proc: ChildProcess,
-    signal: NodeJS.Signals,
-  ) => {
+  const killGroup = (command: StandardCommand, proc: ChildProcess, signal: NodeJS.Signals) => {
     if (globalThis.process.platform === "win32") {
       return Effect.callback<void, PlatformError.PlatformError>((resume) => {
         exec(`taskkill /pid ${proc.pid} /T /F`, { windowsHide: true }, (err) => {
@@ -311,37 +293,25 @@ export const make = Effect.gen(function* () {
       })
     }
 
+    const pid = proc.pid
+    if (pid === undefined) return Effect.void
     return Effect.try({
       try: () => {
-        globalThis.process.kill(-proc.pid!, signal)
+        globalThis.process.kill(-pid, signal)
       },
       catch: (err) => toPlatformError("kill", toError(err), command),
     })
   }
 
-  const killOne = (
-    command: StandardCommand,
-    proc: ChildProcess,
-    signal: NodeJS.Signals,
-  ) =>
+  const killOne = (command: StandardCommand, proc: ChildProcess, signal: NodeJS.Signals) =>
     Effect.suspend(() => {
       if (proc.kill(signal)) return Effect.void
       return Effect.fail(toPlatformError("kill", new Error("Failed to kill child process"), command))
     })
 
   const timeout =
-    (
-      proc: ChildProcess,
-      command: StandardCommand,
-      opts: KillOptions | undefined,
-    ) =>
-    <A, E, R>(
-      f: (
-        command: StandardCommand,
-        proc: ChildProcess,
-        signal: NodeJS.Signals,
-      ) => Effect.Effect<A, E, R>,
-    ) => {
+    (proc: ChildProcess, command: StandardCommand, opts: KillOptions | undefined) =>
+    <A, E, R>(f: (command: StandardCommand, proc: ChildProcess, signal: NodeJS.Signals) => Effect.Effect<A, E, R>) => {
       const signal = opts?.killSignal ?? "SIGTERM"
       if (isUndefined(opts?.forceKillAfter)) return f(command, proc, signal)
       return Effect.timeoutOrElse(f(command, proc, signal), {
@@ -413,8 +383,10 @@ export const make = Effect.gen(function* () {
           const fd = yield* setupFds(command, proc, extra)
           const out = setupOutput(command, proc, sout, serr)
           let ref = true
+          const pid = proc.pid
+          if (pid === undefined) return yield* Effect.die("spawned process has no pid")
           return makeHandle({
-            pid: ProcessId(proc.pid!),
+            pid: ProcessId(pid),
             stdin: yield* setupStdin(command, proc, sin),
             stdout: out.stdout,
             stderr: out.stderr,
@@ -491,6 +463,7 @@ export const make = Effect.gen(function* () {
                 ...next.options,
                 additionalFds: {
                   ...next.options.additionalFds,
+                  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- fdName returns a string; additionalFds keys must be fdN literals.
                   [fdName(fd) as `fd${number}`]: { type: "input", stream },
                 },
               }),
@@ -499,6 +472,7 @@ export const make = Effect.gen(function* () {
           return yield* handle
         }
       }
+      return yield* Effect.die(`Unsupported command: ${JSON.stringify(command)}`)
     },
   )
 

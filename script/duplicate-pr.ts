@@ -59,9 +59,11 @@ Examples:
     parts.push({ type: "text", text: message })
 
     const session = await opencode.client.session.create()
+    const id = session.data?.id
+    if (id === undefined) throw new Error("Failed to create session")
     const result = await opencode.client.session
       .prompt({
-        path: { id: session.data!.id },
+        path: { id },
         body: {
           agent: "duplicate-pr",
           parts,

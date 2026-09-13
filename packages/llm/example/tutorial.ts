@@ -41,18 +41,14 @@ const model = OpenAI.configure({
 //
 // Route/provider options are defaults. Request options override them for this call.
 
-
 // `http` is intentionally not needed for normal calls. This shows the shape for
 // newly released provider fields before they deserve a typed provider option.
-
 
 // 3. `generate` sends the request and collects the event stream into one
 // response object. `response.text` is the collected text output.
 
-
 // 4. `stream` exposes provider output as common `LLMEvent`s for UIs that want
 // incremental text, reasoning, tool input, usage, or finish events.
-
 
 // 5. Tools are typed with Effect Schema. Provider turns remain explicit:
 // advertise definitions on the request, stream one turn, dispatch local calls,
@@ -98,12 +94,8 @@ const streamWithTools = Effect.gen(function* () {
 // tool call internally, so the same call site works across providers instead of
 // depending on provider-specific JSON mode flags.
 
-
-
-
 // If the shape is only known at runtime, pass raw JSON Schema instead. The
 // `.object` type is `unknown`; callers that need static types should validate it.
-
 
 // -----------------------------------------------------------------------------
 // Part 2: provider composition with a fake provider
@@ -142,15 +134,12 @@ const _FakeProtocol: Protocol<FakeBody, string, string, void> = {
   },
 }
 
-
 // A provider module exports a configured facade. Configuration happens before
 // model selection; model selectors accept ids only.
-
 
 // `LLMClient.prepare` is the lower-level inspection hook: it compiles through
 // body conversion, validation, endpoint, auth, and HTTP construction without
 // sending anything over the network.
-
 
 // Provide the LLM runtime and the HTTP request executor once. Keep one path
 // enabled at a time so the tutorial can demonstrate generate, prepare, stream,

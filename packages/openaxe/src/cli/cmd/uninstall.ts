@@ -6,6 +6,7 @@ import { Global } from "@opencode-ai/core/global"
 import fs from "fs/promises"
 import path from "path"
 import os from "os"
+import { fileURLToPath } from "url"
 import { Filesystem } from "@/util/filesystem"
 import { Process } from "@/util/process"
 
@@ -20,6 +21,8 @@ interface RemovalTargets {
   directories: Array<{ path: string; label: string; keep: boolean }>
   shellConfig: string | null
   binary: string | null
+  sourceCheckout: string | null
+  wrapper: string | null
 }
 
 export const UninstallCommand = {
@@ -97,8 +100,10 @@ async function collectRemovalTargets(args: UninstallArgs, method: Installation.M
 
   const shellConfig = method === "curl" ? await getShellConfigFile() : null
   const binary = method === "curl" ? process.execPath : null
+  const sourceCheckout = method === "git" ? await getSourceCheckout() : null
+  const wrapper = method === "git" ? await getWrapperScript() : null
 
-  return { directories, shellConfig, binary }
+  return { directories, shellConfig, binary, sourceCheckout, wrapper }
 }
 
 async function showRemovalSummary(targets: RemovalTargets, method: Installation.Method) {
@@ -127,7 +132,15 @@ async function showRemovalSummary(targets: RemovalTargets, method: Installation.
     log.info(`  ✓ Shell PATH in ${shortenPath(targets.shellConfig)}`)
   }
 
-  if (method !== "curl" && method !== "unknown") {
+  if (targets.sourceCheckout) {
+    log.info(`  ✓ Source checkout: ${shortenPath(targets.sourceCheckout)}`)
+  }
+
+  if (targets.wrapper) {
+    log.info(`  ✓ Wrapper: ${shortenPath(targets.wrapper)}`)
+  }
+
+  if (method !== "curl" && method !== "git" && method !== "unknown") {
     const cmds: Record<string, string> = {
       npm: "npm uninstall -g openaxe",
       pnpm: "pnpm uninstall -g openaxe",
@@ -178,7 +191,7 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
     }
   }
 
-  if (method !== "curl" && method !== "unknown") {
+  if (method !== "curl" && method !== "git" && method !== "unknown") {
     const cmds: Record<string, string[]> = {
       npm: ["npm", "uninstall", "-g", "openaxe"],
       pnpm: ["pnpm", "uninstall", "-g", "openaxe"],
@@ -217,6 +230,17 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
     const binDir = path.dirname(targets.binary)
     if (binDir.includes(".openaxe")) {
       log.info(`  rmdir "${binDir}" 2>/dev/null`)
+    }
+  }
+
+  if (method === "git") {
+    UI.empty()
+    log.message("Source installs are managed via git — remove the checkout and wrapper manually:")
+    if (targets.sourceCheckout) {
+      log.info(`  rm -rf "${targets.sourceCheckout}"`)
+    }
+    if (targets.wrapper) {
+      log.info(`  rm "${targets.wrapper}"`)
     }
   }
 
@@ -312,6 +336,29 @@ async function cleanShellConfig(file: string) {
 
   const output = filtered.join("\n") + "\n"
   await Filesystem.write(file, output)
+}
+
+async function getSourceCheckout(): Promise<string | null> {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url))
+  const result = await Process.run(["git", "rev-parse", "--show-toplevel"], { cwd: moduleDir, nothrow: true })
+  if (result.code !== 0) return null
+  const root = result.stdout.toString("utf8").trim()
+  return root || null
+}
+
+async function getWrapperScript(): Promise<string | null> {
+  const candidates = [
+    path.join(os.homedir(), ".local", "bin", "openaxe"),
+    path.join(os.homedir(), ".openaxe", "bin", "openaxe"),
+  ]
+  for (const candidate of candidates) {
+    const exists = await fs
+      .access(candidate)
+      .then(() => true)
+      .catch(() => false)
+    if (exists) return candidate
+  }
+  return null
 }
 
 async function getDirectorySize(dir: string): Promise<number> {

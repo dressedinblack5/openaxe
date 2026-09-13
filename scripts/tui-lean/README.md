@@ -5,20 +5,25 @@ This directory contains scripts and configurations optimized for TUI/CLI-only op
 ## Scripts
 
 ### install-lean.sh
+
 Minimal installation focusing only on TUI/CLI components
 
 ### profile-openaxe.sh
+
 Performance profiling and optimization for terminal operation
 
 ### verify-lean.sh
+
 Verifies the installation remains pure TUI/CLI
 
 ## Configuration
 
 ### tui-only-config.json
+
 Core configuration optimized for terminal operation
 
 ### lean-startup.sh
+
 Optimized startup for maximum performance
 
 ## Usage
@@ -40,8 +45,9 @@ Optimized startup for maximum performance
 ## Architecture Focus
 
 This installation ensures:
+
 - **No web components**: No web apps, docs sites, or console interfaces
-- **No desktop GUI**: Minimal Electron/desktop dependencies  
+- **No desktop GUI**: Minimal Electron/desktop dependencies
 - **No cloud infrastructure**: Pure local TUI operation
 - **Performance first**: <6s installation, <5s startup, <1.2GB dependencies
 - **Plugin focused**: Essential plugins maintained for TUI/CLI functionality

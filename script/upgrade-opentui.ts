@@ -52,9 +52,13 @@ const setVersion = (cur: string, kind: "dep" | "peer") => {
   return ver
 }
 
+function isDepsRecord(obj: unknown): obj is Record<string, unknown> {
+  return typeof obj === "object" && obj !== null
+}
+
 const editDeps = (obj: unknown, kind: "dep" | "peer") => {
-  if (!obj || typeof obj !== "object") return false
-  const map = obj as Record<string, unknown>
+  if (!isDepsRecord(obj)) return false
+  const map = obj
   return keys
     .map((key) => {
       const cur = map[key]
@@ -68,8 +72,8 @@ const editDeps = (obj: unknown, kind: "dep" | "peer") => {
 }
 
 const editCatalog = (obj: unknown) => {
-  if (!obj || typeof obj !== "object") return false
-  const map = obj as Record<string, unknown>
+  if (!isDepsRecord(obj)) return false
+  const map = obj
   return keys
     .map((key) => {
       const cur = map[key]
@@ -81,8 +85,8 @@ const editCatalog = (obj: unknown) => {
 }
 
 const editOverrides = (obj: unknown) => {
-  if (!obj || typeof obj !== "object") return false
-  const map = obj as Record<string, unknown>
+  if (!isDepsRecord(obj)) return false
+  const map = obj
   return keys
     .map((key) => {
       const cur = map[key]
@@ -182,11 +186,13 @@ async function findStaleLockfileEntries() {
 }
 
 function findStaleLockfileEntriesInText(txt: string) {
-  return Array.from(txt.matchAll(/^ {4}"([^"]+)": \["(@opentui\/(?:core(?:-[^@"]+)?|keymap|solid))@([^"]+)"/gm))
-    .map((match) => ({
-      entry: match[1]!,
-      pkg: match[2]!,
-      version: match[3]!,
-    }))
-    .filter((item) => item.version !== ver)
+  const matches: Array<{ entry: string; pkg: string; version: string }> = []
+  for (const match of txt.matchAll(/^ {4}"([^"]+)": \["(@opentui\/(?:core(?:-[^@"]+)?|keymap|solid))@([^"]+)"/gm)) {
+    const entry = match[1]
+    const pkg = match[2]
+    const version = match[3]
+    if (entry === undefined || pkg === undefined || version === undefined) continue
+    matches.push({ entry, pkg, version })
+  }
+  return matches.filter((item) => item.version !== ver)
 }

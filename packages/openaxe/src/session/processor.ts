@@ -13,13 +13,13 @@ import { Learning } from "./learning/learning"
 import { Session } from "./session"
 import { LLM } from "./llm"
 import { MessageV2 } from "./message-v2"
-import { isOverflow } from "./overflow"
+import { isOverBudget } from "./overflow"
 import { PartID } from "./schema"
 import type { SessionID } from "./schema"
 import { SessionRetry } from "./retry"
 import { SessionStatus } from "./status"
 import { SessionSummary } from "./summary"
-import type { Provider } from "@/provider/provider"
+import { Provider } from "@/provider/provider"
 import { Question } from "@/question"
 import { errorMessage } from "@/util/error"
 import { isRecord } from "@/util/record"
@@ -35,13 +35,18 @@ import { Usage, type LLMEvent } from "@opencode-ai/llm"
 import type { ModelMessage } from "ai"
 
 const DOOM_LOOP_THRESHOLD = 3
+const MAX_FALLBACK_ATTEMPTS = 3
 
 function lastUserText(messages: ModelMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i]
     if (m.role !== "user") continue
     if (typeof m.content === "string") return m.content
-    if (Array.isArray(m.content)) return m.content.filter(p => p.type === "text").map(p => p.text ?? "").join("\n")
+    if (Array.isArray(m.content))
+      return m.content
+        .filter((p) => p.type === "text")
+        .map((p) => p.text ?? "")
+        .join("\n")
     return ""
   }
   return ""
@@ -109,6 +114,7 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const session = yield* Session.Service
     const config = yield* Config.Service
+    const provider = yield* Provider.Service
     const snapshot = yield* Snapshot.Service
     const agents = yield* Agent.Service
     const llm = yield* LLM.Service
@@ -755,7 +761,12 @@ export const layer = Layer.effect(
               .pipe(Effect.ignore, Effect.forkIn(scope))
             if (
               !ctx.assistantMessage.summary &&
-              isOverflow({ cfg: yield* config.get(), tokens: usage.tokens, model: ctx.model })
+              isOverBudget({
+                cfg: yield* config.get(),
+                tokens: usage.tokens,
+                model: ctx.model,
+                outputTokenMax: flags.outputTokenMax,
+              })
             ) {
               ctx.needsCompaction = true
             }
@@ -975,90 +986,198 @@ export const layer = Layer.effect(
         ctx.needsCompaction = false
         ctx.shouldBreak = (yield* config.get()).experimental?.continue_loop_on_deny !== true
 
+        let currentStreamInput = streamInput
+        let fallbackAttempts = 0
+        let didFallback = false
+
         return yield* Effect.gen(function* () {
-          yield* Effect.gen(function* () {
+          while (true) {
             ctx.currentText = undefined
             ctx.currentTextID = undefined
             ctx.fullAssistantText = ""
             ctx.reasoningMap = {}
             yield* status.set(ctx.sessionID, { type: "busy" })
-            const stream = llm.stream(streamInput)
 
-            yield* stream.pipe(
-              tap((event) => handleEvent(event)),
-              takeUntil(() => ctx.needsCompaction),
-              runDrain,
-            )
-          }).pipe(
-            Effect.onInterrupt(() =>
-              Effect.gen(function* () {
-                aborted = true
-                if (!ctx.assistantMessage.error) {
-                  yield* halt(new DOMException("Aborted", "AbortError"))
-                }
-              }),
-            ),
-            Effect.catchCauseIf(
-              (cause) => !Cause.hasInterruptsOnly(cause),
-              (cause) => Effect.fail(Cause.squash(cause)),
-            ),
-            Effect.retry(
-              SessionRetry.policy({
-                provider: input.model.providerID,
-                parse,
-                set: (info) => {
-                  const event = mirrorAssistant
-                    ? events.publish(SessionEvent.Retried, {
-                        sessionID: ctx.sessionID,
-                        attempt: info.attempt,
-                        error: {
+            didFallback = false
+
+            const stream = llm.stream(currentStreamInput)
+
+            // Execute stream and handle errors at Effect level for fallback support
+            yield* Effect.gen(function* () {
+              yield* stream.pipe(
+                tap((event) => handleEvent(event)),
+                takeUntil(() => ctx.needsCompaction),
+                runDrain,
+              )
+            }).pipe(
+              Effect.onInterrupt(() =>
+                Effect.gen(function* () {
+                  aborted = true
+                  if (!ctx.assistantMessage.error) {
+                    yield* halt(new DOMException("Aborted", "AbortError"))
+                  }
+                }),
+              ),
+              Effect.catchCauseIf(
+                (cause) => !Cause.hasInterruptsOnly(cause),
+                (cause) => Effect.fail(Cause.squash(cause)),
+              ),
+              Effect.retry(
+                SessionRetry.policy({
+                  provider: currentStreamInput.model.providerID,
+                  parse,
+                  set: (info) => {
+                    const event = mirrorAssistant
+                      ? events.publish(SessionEvent.Retried, {
+                          sessionID: ctx.sessionID,
+                          attempt: info.attempt,
+                          error: {
+                            message: info.message,
+                            isRetryable: true,
+                          },
+                          timestamp: makeUnsafe(Date.now()),
+                        })
+                      : Effect.void
+                    return flushV2Fragments().pipe(
+                      Effect.andThen(event),
+                      Effect.andThen(
+                        status.set(ctx.sessionID, {
+                          type: "retry",
+                          attempt: info.attempt,
                           message: info.message,
-                          isRetryable: true,
-                        },
-                        timestamp: makeUnsafe(Date.now()),
-                      })
-                    : Effect.void
-                  return flushV2Fragments().pipe(
-                    Effect.andThen(event),
-                    Effect.andThen(
-                      status.set(ctx.sessionID, {
-                        type: "retry",
-                        attempt: info.attempt,
-                        message: info.message,
-                        action: info.action,
-                        next: info.next,
-                      }),
-                    ),
-                  )
-                },
-              }),
-            ),
-            Effect.catch(halt),
-            Effect.ensuring(cleanup()),
-          )
+                          action: info.action,
+                          next: info.next,
+                        }),
+                      ),
+                    )
+                  },
+                }),
+              ),
+              Effect.catch((error: unknown) => handleStreamError(error)),
+              Effect.catch(halt),
+              Effect.ensuring(cleanup()),
+            )
 
-          if (ctx.needsCompaction) return "compact"
-          if (ctx.blocked || ctx.assistantMessage.error) return "stop"
+            if (ctx.needsCompaction) return "compact"
+            if (ctx.blocked || ctx.assistantMessage.error) return "stop"
+            if (didFallback) continue
 
-          // ponytail: fire-and-forget learning review
-          if (Option.isSome(learning)) {
-            const userMessage = lastUserText(streamInput.messages)
-            const assistantMessage = ctx.fullAssistantText
+            // ponytail: fire-and-forget learning review. The fiber outlives the
+            // turn (it is forked into the processor layer scope, not the turn
+            // scope), but a process exit before the ~30s review finishes still
+            // drops it silently — acceptable: reviews are best-effort.
+            if (Option.isSome(learning)) {
+              const userMessage = lastUserText(currentStreamInput.messages)
+              const assistantMessage = ctx.fullAssistantText
 
-            yield* Effect.forkIn(scope)(
-              learning.value.review({
-                sessionID: ctx.sessionID,
-                trigger: "turn_complete",
-                userMessage,
-                assistantMessage,
-                agent: input.assistantMessage.agent ?? input.assistantMessage.agent,
-                providerID: input.model.providerID,
-                modelID: input.model.id,
-              }),
-            ).pipe(Effect.ignore)
+              yield* Effect.forkIn(scope)(
+                learning.value.review({
+                  sessionID: ctx.sessionID,
+                  trigger: "turn_complete",
+                  userMessage,
+                  assistantMessage,
+                  agent: input.assistantMessage.agent ?? input.assistantMessage.agent,
+                  providerID: currentStreamInput.model.providerID,
+                  modelID: currentStreamInput.model.id,
+                }),
+              ).pipe(Effect.ignore)
+            }
+
+            return "continue"
           }
 
-          return "continue"
+          function handleStreamError(error: unknown): Effect.Effect<void, unknown> {
+            // AI SDK errors carry message + responseBody (no _tag), so inspect both
+            const text = errorText(error)
+            const isQuotaError =
+              text.includes("insufficient balance") ||
+              text.includes("insufficient_credits") ||
+              text.includes("quota exceeded") ||
+              text.includes("quota_exceeded") ||
+              (text.includes("billing") && text.includes("exceeded")) ||
+              text.includes("out of credits")
+
+            if (isQuotaError && fallbackAttempts < MAX_FALLBACK_ATTEMPTS) {
+              fallbackAttempts++
+              didFallback = true
+              return handleQuotaFallback(currentStreamInput.model.providerID, text)
+            }
+
+            // Not a quota error or max fallbacks reached, re-throw to be handled by halt
+            return Effect.fail(error)
+          }
+
+          function errorText(error: unknown): string {
+            const record = error as { message?: unknown; responseBody?: unknown }
+            const message = typeof record.message === "string" ? record.message : ""
+            const responseBody = typeof record.responseBody === "string" ? record.responseBody : ""
+            return `${message} ${responseBody}`.toLowerCase()
+          }
+
+          function handleQuotaFallback(providerID: string, errorMessage: string): Effect.Effect<void, unknown> {
+            return Effect.gen(function* () {
+              yield* Effect.logInfo("Model quota exceeded, attempting fallback", {
+                sessionID: ctx.sessionID,
+                providerID,
+                attempt: fallbackAttempts,
+                maxAttempts: MAX_FALLBACK_ATTEMPTS,
+                error: errorMessage,
+              })
+
+              // Notify user about fallback
+              yield* events.publish(SessionEvent.Retried, {
+                sessionID: ctx.sessionID,
+                attempt: fallbackAttempts,
+                error: {
+                  message: `Quota exceeded for ${currentStreamInput.model.providerID}/${currentStreamInput.model.id}. Falling back to alternative model...`,
+                  isRetryable: true,
+                },
+                timestamp: makeUnsafe(Date.now()),
+              })
+
+              // getSmallModel never fails, returns undefined if no model found
+              const fallbackModel = yield* provider.getSmallModel(ProviderV2.ID.make(providerID))
+
+              if (!fallbackModel) {
+                yield* Effect.logError("No fallback model available for provider", { providerID })
+                // Try to get default model as last resort - can fail with NoProvidersError/NoModelsError
+                const defaultModelResult = yield* provider.defaultModel().pipe(
+                  Effect.catchTag("ProviderNoProvidersError", () => Effect.succeed(undefined)),
+                  Effect.catchTag("ProviderNoModelsError", () => Effect.succeed(undefined)),
+                )
+                if (!defaultModelResult) {
+                  yield* Effect.fail(new Error("No fallback model available"))
+                } else {
+                  // Get the full model from the default model result
+                  const defaultModel = yield* provider.getModel(
+                    defaultModelResult.providerID,
+                    defaultModelResult.modelID,
+                  )
+                  // Use default model as fallback
+                  currentStreamInput = {
+                    ...currentStreamInput,
+                    model: defaultModel,
+                  }
+                }
+              } else {
+                yield* Effect.logInfo("Selected fallback model", {
+                  sessionID: ctx.sessionID,
+                  fallbackProviderID: fallbackModel.providerID,
+                  fallbackModelID: fallbackModel.id,
+                })
+
+                // Create new streamInput with fallback model
+                currentStreamInput = {
+                  ...currentStreamInput,
+                  model: fallbackModel,
+                }
+
+                // Reset error state for retry
+                ctx.assistantMessage.error = undefined
+                ctx.blocked = false
+              }
+            })
+          }
         })
       })
 
@@ -1082,6 +1201,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Snapshot.defaultLayer),
     Layer.provide(Agent.defaultLayer),
     Layer.provide(LLM.defaultLayer),
+    Layer.provide(Provider.defaultLayer),
     Layer.provide(Permission.defaultLayer),
     Layer.provide(Plugin.defaultLayer),
     Layer.provide(SessionSummary.defaultLayer),
@@ -1101,6 +1221,7 @@ export const node = LayerNode.make(layer, [
   Snapshot.node,
   Agent.node,
   LLM.node,
+  Provider.node,
   Permission.node,
   Plugin.node,
   SessionSummary.node,

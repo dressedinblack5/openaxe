@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, index, primaryKey, real, uniqueIndex } from "drizzle-orm/sqlite-core"
-import { directoryColumn, pathColumn } from "../database/path";
+import { sqliteTable, text, integer, index, primaryKey, real, uniqueIndex, blob } from "drizzle-orm/sqlite-core"
+import { directoryColumn, pathColumn } from "../database/path"
 import { ProjectTable } from "../project/sql"
 import type { SessionMessage } from "./message"
 import type { Prompt } from "./prompt"
@@ -33,6 +33,7 @@ export const SessionTable = sqliteTable(
     title: text().notNull(),
     version: text().notNull(),
     share_url: text(),
+    fork_point_message_id: text(),
     summary_additions: integer(),
     summary_deletions: integer(),
     summary_files: integer(),
@@ -125,6 +126,7 @@ export const SessionMessageTable = sqliteTable(
       .references(() => SessionTable.id, { onDelete: "cascade" }),
     type: text().$type<SessionMessage.Type>().notNull(),
     seq: integer().notNull(),
+    vector: blob({ mode: "buffer" }),
     ...Timestamps,
     data: text({ mode: "json" }).notNull().$type<SessionMessageData>(),
   },
@@ -133,6 +135,7 @@ export const SessionMessageTable = sqliteTable(
     index("session_message_session_type_seq_idx").on(table.session_id, table.type, table.seq),
     index("session_message_session_time_created_id_idx").on(table.session_id, table.time_created, table.id),
     index("session_message_time_created_idx").on(table.time_created),
+    index("session_message_time_updated_idx").on(table.time_updated),
   ],
 )
 

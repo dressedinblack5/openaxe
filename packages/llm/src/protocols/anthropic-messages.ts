@@ -19,7 +19,7 @@ import {
 } from "../schema"
 import { JsonObject, optionalArray, optionalNull, ProviderShared } from "./shared"
 import { isContextOverflow } from "../provider-error"
-import { type Breakpoints, newBreakpoints, ttlBucket } from "./utils/cache";
+import { type Breakpoints, newBreakpoints, ttlBucket } from "./utils/cache"
 import { Lifecycle } from "./utils/lifecycle"
 import { ToolStream } from "./utils/tool-stream"
 

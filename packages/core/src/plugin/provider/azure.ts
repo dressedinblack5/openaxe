@@ -1,8 +1,9 @@
 import { Effect } from "effect"
 import { define } from "../internal"
 import { ProviderV2 } from "../../provider"
+import type { SDKEvent } from "../../aisdk"
 
-function selectLanguage(sdk: any, modelID: string, useChat: boolean) {
+function selectLanguage(sdk: SDKEvent["sdk"], modelID: string, useChat: boolean) {
   if (useChat && sdk.chat) return sdk.chat(modelID)
   if (sdk.responses) return sdk.responses(modelID)
   if (sdk.messages) return sdk.messages(modelID)
@@ -42,7 +43,7 @@ export const AzurePlugin = define({
             )
           }
         }
-        const mod = yield* Effect.promise( async () => import("@ai-sdk/azure"))
+        const mod = yield* Effect.promise(async () => import("@ai-sdk/azure"))
         evt.sdk = mod.createAzure(evt.options)
       }),
     )

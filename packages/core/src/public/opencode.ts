@@ -11,6 +11,7 @@ import { SessionProjector } from "../session/projector"
 import { SessionStore } from "../session/store"
 import { ApplicationTools } from "../tool/application-tools"
 import { Session } from "./session"
+import { SessionMessage } from "../session/message"
 import { Tool } from "./tool"
 
 export interface Interface {
@@ -66,7 +67,9 @@ export const layer = Layer.effect(
             cursor: input.cursor,
           }),
         message: (input) => sessions.message({ sessionID: input.sessionID, messageID: input.messageID }),
-        context: sessions.context,
+        context: (sessionID: SessionV2.ID) =>
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- the public API bridges the persisted session-message shape.
+          sessions.context(sessionID).pipe(Effect.map((msgs) => msgs as SessionMessage.Message[])),
         events: (input) => sessions.events({ sessionID: input.sessionID, after: input.after }),
       },
     })

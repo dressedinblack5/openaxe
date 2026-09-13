@@ -28,7 +28,7 @@ import { SessionProjector } from "@opencode-ai/core/session/projector"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { tmpdir } from "./fixture/tmpdir"
 
-const run =  async <A, E>(effect: Effect.Effect<A, E, SqlClientService>) =>
+const run = async <A, E>(effect: Effect.Effect<A, E, SqlClientService>) =>
   Effect.runPromise(
     effect.pipe(Effect.provide(SqliteClient.layer({ filename: ":memory:", disableWAL: true })), Effect.scoped),
   )
@@ -98,7 +98,7 @@ describe("DatabaseMigration", () => {
   })
 
   test("rejects a non-empty database without a session table", async () => {
-     expect(
+    expect(
       run(
         Effect.gen(function* () {
           const db = yield* makeDb

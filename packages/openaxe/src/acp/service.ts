@@ -80,16 +80,16 @@ export type Interface = {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/ACP/Service") {}
 
-export function make(input: {
+export async function make(input: {
   sdk: OpencodeClient
   connection?: ServiceConnection
   directory?: Directory.Interface
   session?: ACPSession.Interface
   usage?: UsageService.Interface
   eventSubscription?: (subscription: ACPEvent.Subscription) => void
-}): Interface {
-  const session = input.session ?? makeSessionService()
-  const directoryService = input.directory ?? makeDirectoryService(input.sdk)
+}): Promise<Interface> {
+  const session = input.session ?? (await makeSessionService())
+  const directoryService = input.directory ?? (await makeDirectoryService(input.sdk))
   const registeredMcp = new Map<string, Set<string>>()
   const sessionSnapshots = new Map<string, Directory.Snapshot>()
   const events = input.connection
@@ -263,23 +263,19 @@ export function make(input: {
         ),
       "session",
     )
-    const serverEntries = sessions.map(
-      (item): SessionInfo => ({
-        sessionId: item.id,
-        cwd: item.directory,
-        title: item.title,
-        updatedAt: new Date(item.time.updated).toISOString(),
-      }),
-    )
+    const serverEntries = sessions.map((item): SessionInfo => ({
+      sessionId: item.id,
+      cwd: item.directory,
+      title: item.title,
+      updatedAt: new Date(item.time.updated).toISOString(),
+    }))
     const liveEntries = (yield* session.list(params.cwd ?? undefined))
       .filter((item) => !serverEntries.some((entry) => entry.sessionId === item.id))
-      .map(
-        (item): SessionInfo => ({
-          sessionId: item.id,
-          cwd: item.cwd,
-          updatedAt: item.createdAt.toISOString(),
-        }),
-      )
+      .map((item): SessionInfo => ({
+        sessionId: item.id,
+        cwd: item.cwd,
+        updatedAt: item.createdAt.toISOString(),
+      }))
     const sorted = [...liveEntries, ...serverEntries].sort(
       (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime(),
     )
@@ -579,7 +575,7 @@ export function make(input: {
 }
 
 function makeSessionService() {
-  return ManagedRuntime.make(ACPSession.defaultLayer).runSync(
+  return ManagedRuntime.make(ACPSession.defaultLayer).runPromise(
     ACPSession.Service.use((service) => Effect.succeed(service)),
   )
 }
@@ -596,7 +592,7 @@ function makeDirectoryService(sdk: OpencodeClient) {
         ),
       ),
     ),
-  ).runSync(Directory.Service.use((service) => Effect.succeed(service)))
+  ).runPromise(Directory.Service.use((service) => Effect.succeed(service)))
 }
 
 function makeUsageService(sdk: OpencodeClient) {
@@ -678,7 +674,7 @@ function replayMessages(subscription: ACPEvent.Subscription | undefined, message
   if (!subscription) return Effect.void
   return Effect.promise(async () => {
     for (const message of messages) {
-      await subscription.replayMessage(message).catch(() => {})
+      await subscription.replayMessage(message).catch((err) => console.error("[acp] message replay failed", err))
     }
   })
 }
@@ -891,20 +887,24 @@ function sendAvailableCommands(
   snapshot: Directory.Snapshot,
 ) {
   if (!connection) return Effect.void
-  return Effect.sync(() => {
-    setTimeout(() => {
-      void connection.sessionUpdate({
-        sessionId,
-        update: {
-          sessionUpdate: "available_commands_update",
-          availableCommands: snapshot.availableCommands.map((command) => ({
-            name: command.name,
-            description: command.description ?? "",
-          })),
-        },
-      })
-    }, 0)
-  })
+  return Effect.promise(
+    () =>
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          void connection.sessionUpdate({
+            sessionId,
+            update: {
+              sessionUpdate: "available_commands_update",
+              availableCommands: snapshot.availableCommands.map((command) => ({
+                name: command.name,
+                description: command.description ?? "",
+              })),
+            },
+          })
+          resolve()
+        }, 0)
+      }),
+  )
 }
 
 function registerMcpServers(
@@ -945,7 +945,7 @@ function registerMcpServers(
           Effect.ignore,
         ),
       ),
-    { concurrency: "unbounded" },
+    { concurrency: 5 },
   ).pipe(
     Effect.tap(() =>
       Effect.sync(() =>
@@ -1019,7 +1019,8 @@ function extractErrorDetail(error: unknown): string | undefined {
   const data = (error as Record<string, unknown>).data
   if (typeof data === "object" && data !== null && typeof (data as Record<string, unknown>).message === "string") {
     const msg = (data as Record<string, unknown>).message as string
-    const ref = "ref" in data ? ` (${(data as Record<string, unknown>).ref})` : ""
+    const refVal = (data as Record<string, unknown>).ref
+    const ref = typeof refVal === "string" ? ` (${refVal})` : ""
     return msg + ref
   }
   if (typeof (error as Record<string, unknown>).message === "string") {

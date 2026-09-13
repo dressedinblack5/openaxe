@@ -132,7 +132,7 @@ export const RunCommand = effectCmd({
   // For --dir without --attach, load instance for the resolved target dir.
   // The handler also chdirs (preserving the legacy order: chdir → file resolution).
   directory: (args) => {
-    const cwd = process.env.PWD ?? process.cwd()
+    const cwd = process.env.OPENAXE_DIRECTORY ?? process.env.PWD ?? process.cwd()
     return args.dir && !args.attach ? path.resolve(cwd, args.dir) : cwd
   },
   builder: (yargs: Argv) =>
@@ -316,16 +316,16 @@ export const RunCommand = effectCmd({
 
       const replay = !args.replay ? false : args.replay || args["replay-limit"] !== undefined
 
-      const root = Filesystem.resolve(process.env.PWD ?? process.cwd())
+      const root = Filesystem.resolve(process.env.OPENAXE_DIRECTORY ?? process.env.PWD ?? process.cwd())
       const directory = (() => {
-        if (!args.dir) return args.attach ? undefined : root
         if (args.attach) return args.dir
 
+        const target = path.resolve(root, args.dir ?? ".")
         try {
-          process.chdir(path.isAbsolute(args.dir) ? args.dir : path.join(root, args.dir))
+          process.chdir(target)
           return process.cwd()
         } catch {
-          UI.error("Failed to change directory to " + args.dir)
+          UI.error("Failed to change directory to " + target)
           process.exit(1)
         }
       })()
@@ -403,7 +403,11 @@ export const RunCommand = effectCmd({
       message = resolveRunInput(message, piped) ?? ""
       const initialInput = resolveRunInput(rawMessage, piped)
 
-      if (message.trim().length === 0 && !args.command && !interactive) {
+      // An empty message is allowed when resuming: the server resumes pending
+      // interrupted work, otherwise the requirement below still applies.
+      const resuming = (args.continue || args.session) && !args.fork
+
+      if (message.trim().length === 0 && !args.command && !interactive && !resuming) {
         UI.error("You must provide a message or a command")
         process.exit(1)
       }
@@ -661,7 +665,12 @@ export const RunCommand = effectCmd({
         }
         const sessionID = sess.id
 
+        let errorEmitted = false
         function emit(type: string, data: Record<string, unknown>) {
+          if (type === "error") {
+            if (errorEmitted) return true
+            errorEmitted = true
+          }
           if (args.format === "json") {
             process.stdout.write(
               JSON.stringify({
@@ -819,8 +828,16 @@ export const RunCommand = effectCmd({
           })
           async function finish() {
             if (args.attach) return
-            const error = await completed
-            if (error) process.exitCode = 1
+            let timer: ReturnType<typeof setTimeout> | undefined
+            const timeout = new Promise<undefined>((resolve) => {
+              timer = setTimeout(() => resolve(undefined), 3000)
+            })
+            try {
+              const error = await Promise.race([completed, timeout])
+              if (error) process.exitCode = 1
+            } finally {
+              if (timer !== undefined) clearTimeout(timer)
+            }
           }
 
           if (args.command) {
@@ -841,6 +858,22 @@ export const RunCommand = effectCmd({
             return
           }
 
+          if (resuming && message.trim().length === 0) {
+            const resumed = await client.session.resume({ sessionID })
+            if (resumed.error) {
+              if (!emit("error", { error: resumed.error })) UI.error(formatRunError(resumed.error))
+              process.exit(1)
+              return
+            }
+            if (resumed.data) {
+              await finish()
+              return
+            }
+            UI.error("You must provide a message or a command")
+            process.exit(1)
+            return
+          }
+
           const model = pick(args.model)
           const result = await client.session.prompt({
             sessionID,
@@ -850,10 +883,7 @@ export const RunCommand = effectCmd({
             parts: [...files, { type: "text", text: message }],
           })
           if (result.error) {
-            // Wait for the SSE event loop to process the session.error and
-            // session.status.idle events before we exit.  Without this await
-            // the process may terminate before the error event is emitted to
-            // stdout (--format json) or surfaced in the UI (default format).
+            if (!emit("error", { error: result.error })) UI.error(formatRunError(result.error))
             await finish()
             process.exitCode = 1
             return

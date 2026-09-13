@@ -6,8 +6,7 @@ import { useI18n } from "../context/i18n"
 import { IconButton } from "./icon-button"
 
 export interface PopoverProps<T extends ValidComponent = "div">
-  extends ParentProps,
-    Omit<ComponentProps<typeof Kobalte>, "children"> {
+  extends ParentProps, Omit<ComponentProps<typeof Kobalte>, "children"> {
   trigger?: JSXElement
   triggerAs?: T
   triggerProps?: ComponentProps<T>
@@ -141,7 +140,7 @@ export function Popover<T extends ValidComponent = "div">(props: PopoverProps<T>
         ref={(el: HTMLElement) => setState("triggerRef", el)}
         as={local.triggerAs ?? "div"}
         data-slot="popover-trigger"
-        {...(local.triggerProps as any)}
+        {...local.triggerProps}
       >
         {local.trigger}
       </Kobalte.Trigger>

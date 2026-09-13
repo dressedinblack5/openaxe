@@ -42,9 +42,9 @@ test/
 
 ## COMMANDS
 
-| Command | Action |
-|---------|--------|
-| `bun test` | Run tests (`--only-failures`) |
-| `bun typecheck` | `tsgo --noEmit` |
-| `bun run build` | Build dist/ |
-| `bun run verify:package` | Check package readiness |
+| Command                  | Action                        |
+| ------------------------ | ----------------------------- |
+| `bun test`               | Run tests (`--only-failures`) |
+| `bun typecheck`          | `tsgo --noEmit`               |
+| `bun run build`          | Build dist/                   |
+| `bun run verify:package` | Check package readiness       |

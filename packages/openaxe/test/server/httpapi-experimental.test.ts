@@ -94,10 +94,7 @@ function setSessionUpdated(session: Session.Info, updated: number) {
   })
 }
 
-function withCreatedWorktree<R>(
-  directory: string,
-  use: (info: Worktree.Info) => Effect.Effect<void, unknown, R>,
-) {
+function withCreatedWorktree<R>(directory: string, use: (info: Worktree.Info) => Effect.Effect<void, unknown, R>) {
   const name = "api-test"
   const headers = { "content-type": "application/json" }
   return Effect.acquireUseRelease(

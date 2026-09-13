@@ -9,17 +9,19 @@ import { SessionRevert } from "./revert"
 import { Session } from "./session"
 import { Agent } from "../agent/agent"
 import { Provider } from "@/provider/provider"
+import { EventError } from "./event-error"
 
 import { type Tool as AITool, tool, jsonSchema } from "ai"
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import { SessionCompaction } from "./compaction"
+import { isOverBudget } from "./overflow"
 import { SystemPrompt } from "./system"
 import { Instruction } from "./instruction"
 import { Plugin } from "../plugin"
 import { MAX_STEPS_PROMPT } from "@opencode-ai/core/session/runner/max-steps"
 import { ToolRegistry } from "@/tool/registry"
 import { MCP } from "../mcp"
-import { LSP } from "@/lsp/lsp"
+import { LSP, type Range as LSPRange } from "@/lsp/lsp"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { decodeText, filter, map, mkString, runForEach } from "effect/Stream"
@@ -105,7 +107,7 @@ export interface Interface {
   readonly prompt: (input: PromptInput) => Effect.Effect<SessionV1.WithParts, Image.Error>
   readonly loop: (input: LoopInput) => Effect.Effect<SessionV1.WithParts>
   readonly shell: (input: ShellInput) => Effect.Effect<SessionV1.WithParts, Session.BusyError>
-  readonly command: (input: CommandInput) => Effect.Effect<SessionV1.WithParts, Image.Error>
+  readonly command: (input: CommandInput) => Effect.Effect<SessionV1.WithParts, Image.Error | PermissionV1.Error>
   readonly resolvePromptParts: (template: string) => Effect.Effect<PromptInput["parts"]>
 }
 
@@ -171,6 +173,14 @@ export const layer = Layer.effect(
           const filepath = name.startsWith("~/")
             ? path.join(os.homedir(), name.slice(2))
             : path.resolve(ctx.worktree, name)
+
+          // Containment check: ensure file is within worktree
+          const resolvedPath = path.resolve(filepath)
+          const worktreePath = path.resolve(ctx.worktree)
+          if (!resolvedPath.startsWith(worktreePath + path.sep) && resolvedPath !== worktreePath) {
+            // File escapes worktree - skip or handle as error
+            return
+          }
 
           const info = yield* fsys.stat(filepath).pipe(Effect.option)
           if (Option.isNone(info)) {
@@ -315,8 +325,8 @@ export const layer = Layer.effect(
       if (!taskAgent) {
         const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-        const error = new NamedError.Unknown({ message: `Agent not found: "${task.agent}".${hint}` })
-        yield* events.publish(Session.Event.Error, { sessionID, error: error.toObject() })
+        const error = EventError.unknown(`Agent not found: "${task.agent}".${hint}`)
+        yield* events.publish(Session.Event.Error, { sessionID, error })
         throw error
       }
 
@@ -463,8 +473,8 @@ export const layer = Layer.effect(
             if (!agent) {
               const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
               const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-              const error = new NamedError.Unknown({ message: `Agent not found: "${input.agent}".${hint}` })
-              yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error: error.toObject() })
+              const error = EventError.unknown(`Agent not found: "${input.agent}".${hint}`)
+              yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
               throw error
             }
             const model = input.model ?? agent.model ?? (yield* currentModel(input.sessionID))
@@ -656,8 +666,8 @@ export const layer = Layer.effect(
       if (!ag) {
         const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-        const error = new NamedError.Unknown({ message: `Agent not found: "${agentName}".${hint}` })
-        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error: error.toObject() })
+        const error = EventError.unknown(`Agent not found: "${agentName}".${hint}`)
+        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
         throw error
       }
 
@@ -673,6 +683,7 @@ export const layer = Layer.effect(
         !input.variant && ag.variant && same
           ? yield* provider
               .getModel(model.providerID, model.modelID)
+              // eslint-disable-next-line @typescript-eslint/unbound-method
               .pipe(Effect.catchIf(Provider.ModelNotFoundError.isInstance, () => Effect.void))
           : undefined
       const variant = input.variant ?? (ag.variant && full?.variants?.[ag.variant] ? ag.variant : undefined)
@@ -868,7 +879,7 @@ export const layer = Layer.effect(
                   if (start === end) {
                     const symbols = yield* lsp.documentSymbol(filePathURI).pipe(Effect.catch(() => Effect.succeed([])))
                     for (const symbol of symbols) {
-                      let r: LSP.Range | undefined
+                      let r: LSPRange | undefined
                       if ("range" in symbol) r = symbol.range
                       else if ("location" in symbol) r = symbol.location.range
                       if (r?.start?.line && r?.start?.line === start) {
@@ -1042,11 +1053,7 @@ export const layer = Layer.effect(
         resolvedParts,
         (part) =>
           part.type === "file" && part.mime.startsWith("image/")
-            ? image.normalize(part).pipe(
-                Effect.catch(
-                  () => Effect.succeed(part),
-                ),
-              )
+            ? image.normalize(part).pipe(Effect.catch(() => Effect.succeed(part)))
             : Effect.succeed(part),
         { concurrency: "unbounded" },
       )
@@ -1185,14 +1192,16 @@ export const layer = Layer.effect(
         let step = 0
         const session = yield* sessions.get(sessionID).pipe(Effect.orDie)
         // ponytail: cache system prompt parts per (agent, model) — stable across ticks
-        let sysCache: {
-          agentName: string
-          modelId: string
-          skills: string | undefined
-          env: string[]
-          instructions: string[]
-          mcpInstructions: string | undefined
-        } | undefined
+        let sysCache:
+          | {
+              agentName: string
+              modelId: string
+              skills: string | undefined
+              env: string[]
+              instructions: string[]
+              mcpInstructions: string | undefined
+            }
+          | undefined
 
         while (true) {
           yield* status.set(sessionID, { type: "busy" })
@@ -1270,7 +1279,12 @@ export const layer = Layer.effect(
           if (
             lastFinished &&
             lastFinished.summary !== true &&
-            (yield* compaction.isOverflow({ tokens: lastFinished.tokens, model }))
+            isOverBudget({
+              cfg: yield* config.get(),
+              tokens: lastFinished.tokens,
+              model,
+              outputTokenMax: flags.outputTokenMax,
+            })
           ) {
             yield* compaction.create({ sessionID, agent: lastUser.agent, model: lastUser.model, auto: true })
             continue
@@ -1280,8 +1294,8 @@ export const layer = Layer.effect(
           if (!agent) {
             const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
             const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-            const error = new NamedError.Unknown({ message: `Agent not found: "${lastUser.agent}".${hint}` })
-            yield* events.publish(Session.Event.Error, { sessionID, error: error.toObject() })
+            const error = EventError.unknown(`Agent not found: "${lastUser.agent}".${hint}`)
+            yield* events.publish(Session.Event.Error, { sessionID, error })
             throw error
           }
           const maxSteps = agent.steps ?? Infinity
@@ -1362,19 +1376,32 @@ export const layer = Layer.effect(
 
             yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
-            const sysEffect = sysCache?.agentName === agent.name && sysCache?.modelId === model.id
-              ? Effect.succeed([sysCache.skills, sysCache.env, sysCache.instructions, sysCache.mcpInstructions] as const)
-              : Effect.all([
-                  sys.skills(agent),
-                  sys.environment(model),
-                  instruction.system().pipe(Effect.orDie),
-                  sys.mcp(agent, session.permission),
-                ]).pipe(
-                  Effect.map(([skills, env, instructions, mcpInstructions]) => {
-                    sysCache = { agentName: agent.name, modelId: model.id, skills, env, instructions, mcpInstructions }
-                    return [skills, env, instructions, mcpInstructions] as const
-                  }),
-                )
+            const sysEffect =
+              sysCache?.agentName === agent.name && sysCache?.modelId === model.id
+                ? Effect.succeed([
+                    sysCache.skills,
+                    sysCache.env,
+                    sysCache.instructions,
+                    sysCache.mcpInstructions,
+                  ] as const)
+                : Effect.all([
+                    sys.skills(agent),
+                    sys.environment(model),
+                    instruction.system().pipe(Effect.orDie),
+                    sys.mcp(agent, session.permission),
+                  ]).pipe(
+                    Effect.map(([skills, env, instructions, mcpInstructions]) => {
+                      sysCache = {
+                        agentName: agent.name,
+                        modelId: model.id,
+                        skills,
+                        env,
+                        instructions,
+                        mcpInstructions,
+                      }
+                      return [skills, env, instructions, mcpInstructions] as const
+                    }),
+                  )
             const [skills, env, instructions, mcpInstructions] = yield* sysEffect
             const modelMsgs = yield* MessageV2.toModelMessagesEffect(msgs, model)
             const system = [
@@ -1452,6 +1479,12 @@ export const layer = Layer.effect(
         }
 
         yield* compaction.prune({ sessionID }).pipe(Effect.ignore, Effect.forkIn(scope))
+        yield* MessageV2.filterCompactedEffect(sessionID).pipe(
+          Effect.provideService(Database.Service, database),
+          Effect.flatMap((messages) => compaction.checkpoint({ sessionID, messages })),
+          Effect.ignore,
+          Effect.forkIn(scope),
+        )
         return yield* lastAssistant(sessionID)
       },
     )
@@ -1479,8 +1512,8 @@ export const layer = Layer.effect(
       if (!cmd) {
         const available = (yield* commands.list()).map((c) => c.name)
         const hint = available.length ? ` Available commands: ${available.join(", ")}` : ""
-        const error = new NamedError.Unknown({ message: `Command not found: "${input.command}".${hint}` })
-        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error: error.toObject() })
+        const error = EventError.unknown(`Command not found: "${input.command}".${hint}`)
+        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
         throw error
       }
       const agentName = cmd.agent ?? input.agent
@@ -1514,9 +1547,33 @@ export const layer = Layer.effect(
       if (shellMatches.length > 0) {
         const cfg = yield* config.get()
         const sh = Shell.preferred(cfg.shell)
-        const results = yield* Effect.promise(() =>
-          Promise.all(
-            shellMatches.map(async ([, cmd]) => (await Process.text([cmd], { shell: sh, nothrow: true })).text),
+        
+        // Request permission for shell command execution in custom commands
+        const shellCmds = shellMatches.map(([, shellCmd]) => shellCmd)
+        const permissionResult = yield* Effect.all(
+          shellCmds.map((shellCmd) =>
+            permission.ask({
+              id: PermissionV1.ID.ascending(),
+              sessionID: input.sessionID,
+              permission: "shell",
+              patterns: [shellCmd],
+              always: [],
+              metadata: {},
+              tool: undefined,
+              ruleset: [],
+            }).pipe(
+              Effect.as(true),
+              Effect.catchTag("PermissionRejectedError", () => Effect.succeed(false)),
+              Effect.catchTag("PermissionDeniedError", () => Effect.succeed(false)),
+            )
+          ),
+        )
+        
+        const results = yield* Effect.all(
+          shellMatches.map(([, shellCmd], i) =>
+            permissionResult[i]
+              ? Effect.promise(() => Process.text([shellCmd], { shell: sh, nothrow: true }).then((r) => r.text))
+              : Effect.succeed(`[Shell command denied: ${shellCmd}]`),
           ),
         )
         let index = 0
@@ -1540,8 +1597,8 @@ export const layer = Layer.effect(
       if (!agent) {
         const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
         const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
-        const error = new NamedError.Unknown({ message: `Agent not found: "${agentName}".${hint}` })
-        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error: error.toObject() })
+        const error = EventError.unknown(`Agent not found: "${agentName}".${hint}`)
+        yield* events.publish(Session.Event.Error, { sessionID: input.sessionID, error })
         throw error
       }
 

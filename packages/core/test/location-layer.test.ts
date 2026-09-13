@@ -35,7 +35,13 @@ import { NodeFileSystem } from "@effect/platform-node"
 const applicationTools = ApplicationTools.layer
 const it = testEffect(
   Layer.merge(
-    Layer.mergeAll(applicationTools, Database.defaultLayer, EventV2.defaultLayer, Memory.defaultLayer, NodeFileSystem.layer),
+    Layer.mergeAll(
+      applicationTools,
+      Database.defaultLayer,
+      EventV2.defaultLayer,
+      Memory.defaultLayer,
+      NodeFileSystem.layer,
+    ),
     LocationServiceMap.layer.pipe(
       Layer.provide(applicationTools),
       Layer.provide(
@@ -56,8 +62,8 @@ const it = testEffect(
 describe("LocationServiceMap", () => {
   it.live("reuses cached services for constructed and decoded location refs", () =>
     Effect.acquireRelease(
-      Effect.promise( async () => tmpdir()),
-      (dir) => Effect.promise( async () => dir[Symbol.asyncDispose]()),
+      Effect.promise(async () => tmpdir()),
+      (dir) => Effect.promise(async () => dir[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((dir) =>
         Effect.scoped(
@@ -80,8 +86,11 @@ describe("LocationServiceMap", () => {
 
   it.live("isolates location state while sharing location policy with catalog", () =>
     Effect.acquireRelease(
-      Effect.promise( async () => Promise.all([tmpdir(), tmpdir()])),
-      (dirs) => Effect.promise( async () => Promise.all(dirs.map( async (dir) => dir[Symbol.asyncDispose]())).then(() => undefined)),
+      Effect.promise(async () => Promise.all([tmpdir(), tmpdir()])),
+      (dirs) =>
+        Effect.promise(async () =>
+          Promise.all(dirs.map(async (dir) => dir[Symbol.asyncDispose]())).then(() => undefined),
+        ),
     ).pipe(
       Effect.flatMap(([blocked, allowed]) =>
         Effect.gen(function* () {
@@ -93,7 +102,7 @@ describe("LocationServiceMap", () => {
               execute: () => Effect.succeed({ ok: true }),
             }),
           })
-          yield* Effect.promise( async () =>
+          yield* Effect.promise(async () =>
             fs.writeFile(
               path.join(blocked.path, "openaxe.json"),
               JSON.stringify({
@@ -125,10 +134,16 @@ describe("LocationServiceMap", () => {
             "edit",
             "glob",
             "grep",
+            "kanban",
+            "memory",
+            "plan_exit",
             "question",
             "read",
+            "session_search",
             "skill",
+            "skill_write",
             "todowrite",
+            "tool_search",
             "webfetch",
             "websearch",
             "write",
@@ -142,10 +157,16 @@ describe("LocationServiceMap", () => {
             "edit",
             "glob",
             "grep",
+            "kanban",
+            "memory",
+            "plan_exit",
             "question",
             "read",
+            "session_search",
             "skill",
+            "skill_write",
             "todowrite",
+            "tool_search",
             "webfetch",
             "websearch",
             "write",
@@ -157,13 +178,13 @@ describe("LocationServiceMap", () => {
 
   it.live("rejects an unavailable selected model during location model resolution", () =>
     Effect.acquireRelease(
-      Effect.promise( async () => tmpdir()),
-      (dir) => Effect.promise( async () => dir[Symbol.asyncDispose]()),
+      Effect.promise(async () => tmpdir()),
+      (dir) => Effect.promise(async () => dir[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((dir) =>
         Effect.gen(function* () {
           const location = Location.Ref.make({ directory: AbsolutePath.make(dir.path) })
-          yield* Effect.promise( async () =>
+          yield* Effect.promise(async () =>
             fs.writeFile(
               path.join(dir.path, "openaxe.json"),
               JSON.stringify({
@@ -207,8 +228,8 @@ describe("LocationServiceMap", () => {
 
   it.live("installs public plugins into a location", () =>
     Effect.acquireRelease(
-      Effect.promise( async () => tmpdir()),
-      (dir) => Effect.promise( async () => dir[Symbol.asyncDispose]()),
+      Effect.promise(async () => tmpdir()),
+      (dir) => Effect.promise(async () => dir[Symbol.asyncDispose]()),
     ).pipe(
       Effect.flatMap((dir) =>
         Effect.gen(function* () {

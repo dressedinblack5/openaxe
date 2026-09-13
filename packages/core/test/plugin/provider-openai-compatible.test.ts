@@ -13,7 +13,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  
+
   const host = yield* PluginHost.make(plugin)
   yield* OpenAICompatiblePlugin.effect(host)
 })
@@ -21,7 +21,6 @@ const addPlugin = Effect.fn(function* () {
 describe("OpenAICompatiblePlugin", () => {
   it.effect("preserves explicit includeUsage false and defaults it to true", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const defaulted = yield* aisdk.runSDK({
@@ -47,7 +46,6 @@ describe("OpenAICompatiblePlugin", () => {
 
   it.effect("defaults includeUsage for OpenAI-compatible package matches", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -64,7 +62,6 @@ describe("OpenAICompatiblePlugin", () => {
 
   it.effect("uses the provider ID as the OpenAI-compatible provider name", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const observed: string[] = []
       yield* addPlugin()

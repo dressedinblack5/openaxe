@@ -1,4 +1,5 @@
 import { Effect, Layer, Context, Schema, Option } from "effect"
+import { generateText } from "ai"
 import { Config } from "@/config/config"
 import { SessionID } from "@/session/schema"
 import { Provider } from "@/provider/provider"
@@ -7,6 +8,7 @@ import { ModelV2 } from "@opencode-ai/core/model"
 import fs from "fs"
 import path from "path"
 import { Global } from "@opencode-ai/core/global"
+import { GateService, GateServiceStub, decideLearnable, DEFAULT_GATE_MODEL_PATH } from "./gate"
 
 export type ReviewTrigger = "turn_complete" | "tool_complete" | "error_recovery"
 
@@ -40,24 +42,27 @@ export interface Interface {
   readonly read: () => Effect.Effect<readonly ReviewEntry[]>
 }
 
+/**
+ * Extract the JSON payload from an LLM response. Models routinely wrap JSON
+ * in markdown fences despite "output ONLY valid JSON" — without this, every
+ * fenced response dies at `JSON.parse` and nothing is ever learned (observed
+ * live: `learning: response not valid JSON, nothing learned`).
+ */
+export const extractJsonPayload = (text: string): string => {
+  const trimmed = text.trim()
+  const fenced = /^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/.exec(trimmed)
+  const inner = fenced?.[1]
+  return (inner ?? trimmed).trim()
+}
+
 export class Service extends Context.Service<Service, Interface>()("@opencode/LearningReview") {}
-
-function chatCompletionsURL(url: string): string {
-  const base = (url || "").replace(/\/+$/, "")
-  if (base.includes("/chat/completions")) return base
-  return `${base.replace(/\/v1\/?$/i, "")}/v1/chat/completions`
-}
-
-function getApiKey(info: Provider.Info): string | undefined {
-  return typeof info.options.apiKey === "string" ? info.options.apiKey : info.key
-}
 
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const review = Effect.fn("LearningReview.review")(function* (input: ReviewInput) {
       const config = yield* Effect.serviceOption(Config.Service)
-      const cfg = Option.isSome(config) ? yield* config.value.get() : ({ experimental: undefined } as any)
+      const cfg = Option.isSome(config) ? yield* config.value.get() : { experimental: undefined }
       const learning = cfg.experimental?.learning
       if (!learning?.review) return
 
@@ -67,27 +72,6 @@ export const layer = Layer.effect(
         return
       }
       const provider = providerOpt.value
-
-      const model = yield* provider.getModel(ProviderV2.ID.make(input.providerID), ModelV2.ID.make(input.modelID)).pipe(
-        Effect.tapError(() => Effect.logWarning("learning: model not found", { providerID: input.providerID, modelID: input.modelID })),
-        Effect.catch(() => Effect.succeed(undefined as any)),
-      )
-      if (!model) return
-
-      const info = yield* provider.getProvider(ProviderV2.ID.make(input.providerID)).pipe(
-        Effect.tapError(() => Effect.logWarning("learning: provider not found", { providerID: input.providerID })),
-        Effect.catch(() => Effect.succeed(undefined as any)),
-      )
-      if (!info) return
-
-      const key = getApiKey(info)
-      if (!key) {
-        yield* Effect.logWarning("learning: no API key for provider", { providerID: input.providerID })
-        return
-      }
-
-      const url = chatCompletionsURL(model.api.url)
-      const modelID = learning.model ?? model.api.id
 
       const systemPrompt = `You are a learning agent. Analyze the conversation turn below and identify if anything should be remembered for future interactions.
 
@@ -104,39 +88,103 @@ Output ONLY valid JSON:
 
 If nothing worth learning, return empty arrays.`
 
-      const body = JSON.stringify({
-        model: modelID,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `User:\n${input.userMessage}\n\nAssistant:\n${input.assistantMessage}` },
-        ],
-        temperature: 0.1,
+      // TF learning gate: skip the LLM review only when the gate confidently
+      // decides the turn is NOT learnable. Uncertainty (low confidence, missing
+      // model, timeout) always falls through to the LLM path — the gate must
+      // never silently suppress learning. Disabled by default.
+      const gate = learning.gate
+      if (gate?.enabled) {
+        const threshold = gate.threshold ?? 0.5
+        const gateOpt = yield* Effect.serviceOption(GateService)
+        if (Option.isSome(gateOpt)) {
+          const decision = yield* decideLearnable(
+            input.userMessage,
+            input.assistantMessage,
+            gate.modelPath ?? DEFAULT_GATE_MODEL_PATH,
+          ).pipe(
+            Effect.provideService(GateService, gateOpt.value),
+            Effect.timeout("500 millis"),
+            Effect.catch(() => Effect.succeed(undefined)),
+          )
+          if (decision) {
+            yield* Effect.logInfo("learning: gate decision", {
+              learnable: decision.learnable,
+              confidence: decision.confidence,
+              threshold,
+            })
+            if (!decision.learnable && decision.confidence >= threshold) {
+              yield* Effect.logInfo("learning: gate skipped LLM review", {
+                learnable: decision.learnable,
+                confidence: decision.confidence,
+                threshold,
+              })
+              return
+            }
+          }
+        }
+      }
+
+      const result = yield* Effect.gen(function* () {
+        const candidates = [
+          { provider: learning.provider ?? input.providerID, model: learning.model ?? input.modelID },
+          ...(learning.fallback ?? []),
+        ]
+        for (const candidate of candidates) {
+          const providerID = ProviderV2.ID.make(candidate.provider)
+          const modelID = ModelV2.ID.make(candidate.model)
+          yield* Effect.logInfo("learning: review started", { providerID, modelID })
+
+          const model = yield* provider.getModel(providerID, modelID).pipe(
+            Effect.tapError(() => Effect.logWarning("learning: model not found", { providerID, modelID })),
+            Effect.catch(() => Effect.succeed(undefined)),
+          )
+          if (!model) continue
+
+          const language = yield* provider.getLanguage(model).pipe(
+            Effect.tapError(() => Effect.logWarning("learning: language model init failed", { providerID, modelID })),
+            Effect.catch(() => Effect.succeed(undefined)),
+          )
+          if (!language) continue
+
+          const attempt = yield* Effect.tryPromise(() =>
+            generateText({
+              model: language,
+              system: systemPrompt,
+              prompt: `User:\n${input.userMessage}\n\nAssistant:\n${input.assistantMessage}`,
+              temperature: 0.1,
+            }),
+          ).pipe(
+            Effect.timeout("30 seconds"),
+            Effect.catch((err) =>
+              Effect.logWarning("learning: review failed", {
+                error:
+                  err instanceof Error
+                    ? err.cause instanceof Error
+                      ? err.cause.message
+                      : typeof err.cause === "string"
+                        ? err.cause
+                        : err.message
+                    : JSON.stringify(err),
+                providerID,
+                modelID,
+              }).pipe(Effect.as(undefined)),
+            ),
+          )
+          if (attempt) return attempt
+        }
+        return undefined
       })
+      if (!result) return
 
-      const response = yield* Effect.tryPromise<Response>(() =>
-        fetch(url, {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-          body,
-        }),
-      ).pipe(Effect.catch(() => Effect.succeed(undefined as any)))
-
-      if (!response) return
-
-      const data = yield* Effect.tryPromise<any>(() => response.json()).pipe(
-        Effect.catch(() => Effect.succeed(undefined as any)),
-      )
-      if (!data) return
-
-      const text: string | undefined = data.choices?.[0]?.message?.content ?? data.content
+      const text = result.text
       if (!text) {
-        yield* Effect.logInfo("learning: unexpected response format")
+        yield* Effect.logInfo("learning: unexpected empty response")
         return
       }
 
       let parsed: any
       try {
-        parsed = JSON.parse(text)
+        parsed = JSON.parse(extractJsonPayload(text))
       } catch {
         yield* Effect.logInfo("learning: response not valid JSON, nothing learned")
         return
@@ -144,6 +192,10 @@ If nothing worth learning, return empty arrays.`
 
       const updates = Array.isArray(parsed.skillUpdates) ? parsed.skillUpdates : []
       const observations = Array.isArray(parsed.observations) ? parsed.observations : []
+      yield* Effect.logInfo("learning: review done", {
+        skillUpdateCount: updates.length,
+        observationCount: observations.length,
+      })
 
       // ponytail: persist to JSONL, add read API when consumed
       if (updates.length > 0 || observations.length > 0) {
@@ -180,11 +232,19 @@ If nothing worth learning, return empty arrays.`
       const file = path.join(dir, "reviews.jsonl")
       if (!fs.existsSync(file)) return []
       let content: string
-      try { content = fs.readFileSync(file, "utf-8") } catch { return [] }
+      try {
+        content = fs.readFileSync(file, "utf-8")
+      } catch {
+        return []
+      }
       if (!content) return []
       const entries: ReviewEntry[] = []
       for (const line of content.split("\n").filter(Boolean)) {
-        try { entries.push(JSON.parse(line)) } catch { continue }
+        try {
+          entries.push(JSON.parse(line))
+        } catch {
+          continue
+        }
       }
       return entries
     })
@@ -195,8 +255,8 @@ If nothing worth learning, return empty arrays.`
 
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 
-export const defaultLayer = layer
+export const defaultLayer = Layer.provideMerge(layer, GateServiceStub)
 
-export const node = LayerNode.make(layer, [])
+export const node = LayerNode.make(defaultLayer, [])
 
 export * as Learning from "./learning"

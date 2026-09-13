@@ -12,11 +12,11 @@ async function published(name: string, version: string) {
 }
 
 const originalText = await Bun.file("package.json").text()
-const pkg = JSON.parse(originalText) as {
+const pkg: {
   name: string
   version: string
   exports: Record<string, unknown>
-}
+} = JSON.parse(originalText)
 function transformExports(exports: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(exports).map(([key, value]) => {

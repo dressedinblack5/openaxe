@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-async function sendToPostHog(event: string, properties: Record<string, any>) {
+async function sendToPostHog(event: string, properties: Record<string, unknown>) {
   const key = process.env["POSTHOG_API_KEY"]
 
   if (!key) {

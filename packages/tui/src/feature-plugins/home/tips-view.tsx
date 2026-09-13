@@ -280,6 +280,12 @@ const TIPS: Tip[] = [
   "Use {highlight}/review{/highlight} to review uncommitted changes, branches, or PRs",
   (shortcuts) => `Use ${commandText("/help", shortcuts.helpShow())} to show the help dialog`,
   "Use {highlight}/rename{/highlight} to rename the current session",
+  "Measure twice, cut once — {highlight}/undo{/highlight} reverts your last change",
+  "A sharp axe makes clean work — keep your prompts precise and the model follows",
+  "Every craftsperson keeps a tidy bench — {highlight}/sessions{/highlight} to find your place again",
+  "A dull edge makes slow work — {highlight}/compact{/highlight} keeps long sessions sharp",
+  "A craftsman knows his steel — {highlight}/models{/highlight} to pick the right blade for the job",
+  "The wheel is turned, not rushed — {highlight}/fork{/highlight} to branch off the work without disturbing the original",
 ]
 
 const INPUT_UNDO_TIP: Tip = (shortcuts) => press(shortcuts.inputUndo(), "to undo changes in your prompt")

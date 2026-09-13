@@ -27,9 +27,9 @@ export function usePromptMove(input: { projectID: () => string | undefined; sess
   const [creatingDots, setCreatingDots] = createSignal(3)
   const [progress, setProgress] = createSignal<string>()
 
-  async function create(context?: string) {
+  async function create(context?: string): Promise<string | undefined> {
     const projectID = input.projectID()
-    if (!projectID) return
+    if (!projectID) return undefined
     setCreating(true)
     setProgress("Creating copy")
     try {
@@ -61,7 +61,7 @@ export function usePromptMove(input: { projectID: () => string | undefined; sess
       setProgress(undefined)
       setCreating(false)
       toast.show({ title: "Creating workspace failed", message: errorMessage(err), variant: "error" })
-      return
+      return undefined
     }
   }
 
@@ -163,9 +163,9 @@ export function usePromptMove(input: { projectID: () => string | undefined; sess
   const pending = createMemo(() => Boolean(homeDestination?.destination()))
   const pendingNew = createMemo(() => homeDestination?.destination()?.type === "new")
 
-  async function getDirectory(context?: string) {
+  async function getDirectory(context?: string): Promise<string | undefined> {
     const value = homeDestination?.destination()
-    if (!value) return
+    if (!value) return undefined
     if (value.type === "directory") {
       return value.directory
     }

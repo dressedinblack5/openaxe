@@ -1,4 +1,4 @@
-import type { ModelMessage, ToolResultPart } from "ai"
+import type { AssistantContent, ModelMessage, ToolContent, ToolResultPart } from "ai"
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import type { Model as ProviderModel } from "./provider"
 import type { Model as ModelsDevModel } from "@opencode-ai/core/models-dev"
@@ -157,7 +157,7 @@ const filterEmptyMessages = (msgs: ModelMessage[], provider: "anthropic" | "bedr
         return true
       })
       if (filtered.length === 0) return undefined
-      return { ...msg, content: filtered as any } as ModelMessage
+      return { ...msg, content: filtered as ModelMessage["content"] } as ModelMessage
     })
     .filter((msg): msg is ModelMessage => msg !== undefined && msg.content !== "")
 }
@@ -171,7 +171,7 @@ const scrubClaudeToolCallIds = (msgs: ModelMessage[]) => {
           return { ...part, toolCallId: scrub(part.toolCallId) }
         }
         return part
-      }) as any
+      }) as AssistantContent | ToolContent
     }
   })
   return msgs
@@ -341,6 +341,11 @@ function applyCaching(msgs: ModelMessage[], model: ProviderModel): ModelMessage[
   return msgs
 }
 
+function getImageString(part: { image: unknown }): string {
+  if (typeof part.image === "string") return part.image
+  return JSON.stringify(part.image)
+}
+
 function unsupportedParts(msgs: ModelMessage[], model: ProviderModel): ModelMessage[] {
   return msgs.map((msg) => {
     if (msg.role !== "user" || !Array.isArray(msg.content)) return msg
@@ -350,7 +355,7 @@ function unsupportedParts(msgs: ModelMessage[], model: ProviderModel): ModelMess
 
       // Check for empty base64 image data
       if (part.type === "image") {
-        const imageStr = String(part.image)
+        const imageStr = getImageString(part)
         if (imageStr.startsWith("data:")) {
           const match = imageStr.match(/^data:([^;]+);base64,(.*)$/)
           if (match && (!match[2] || match[2].length === 0)) {
@@ -362,7 +367,7 @@ function unsupportedParts(msgs: ModelMessage[], model: ProviderModel): ModelMess
         }
       }
 
-      const mime = part.type === "image" ? String(part.image).split(";")[0].replace("data:", "") : part.mediaType
+      const mime = part.type === "image" ? getImageString(part).split(";")[0].replace("data:", "") : part.mediaType
       const filename = part.type === "file" ? part.filename : undefined
       const modality = mimeToModality(mime)
       if (!modality) return part
@@ -1368,7 +1373,20 @@ function sanitizeOpenAISchema(value: unknown): unknown {
   return result
 }
 
+// schema() is a pure function of (model, schema) called per provider turn for
+// every tool. The input schema object from ToolJsonSchema.fromTool is stable
+// (WeakMap-cached by parameters Schema), and the output depends only on three
+// model fields — cache by (input identity, model key). Consumers treat the
+// result as immutable (ai's jsonSchema wraps it), so sharing across turns is
+// safe; callers that pass fresh literal schemas simply miss and recompute.
+const schemaCache = new WeakMap<JSONSchema7, Map<string, JSONSchema7>>()
+
 export function schema(model: ProviderModel, schema: JSONSchema7): JSONSchema7 {
+  const modelKey = `${model.api.npm}|${model.providerID}|${model.api.id.toLowerCase()}`
+  const cached = schemaCache.get(schema)?.get(modelKey)
+  if (cached) return cached
+  const inputSchema = schema
+
   /*
   if (["openai", "azure"].includes(providerID)) {
     if (schema.type === "object" && schema.properties) {
@@ -1506,6 +1524,13 @@ export function schema(model: ProviderModel, schema: JSONSchema7): JSONSchema7 {
 
     schema = sanitizeGemini(schema)
   }
+
+  let byModel = schemaCache.get(inputSchema)
+  if (!byModel) {
+    byModel = new Map()
+    schemaCache.set(inputSchema, byModel)
+  }
+  byModel.set(modelKey, schema)
 
   return schema
 }

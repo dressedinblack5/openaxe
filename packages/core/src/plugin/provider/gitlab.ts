@@ -10,7 +10,7 @@ export const GitLabPlugin = define({
     yield* ctx.aisdk.sdk(
       Effect.fn(function* (evt) {
         if (evt.package !== "gitlab-ai-provider") return
-        const mod = yield* Effect.promise( async () => import("gitlab-ai-provider"))
+        const mod = yield* Effect.promise(async () => import("gitlab-ai-provider"))
         evt.sdk = mod.createGitLab({
           ...evt.options,
           instanceUrl:
@@ -37,7 +37,7 @@ export const GitLabPlugin = define({
         const featureFlags =
           typeof evt.options.featureFlags === "object" && evt.options.featureFlags ? evt.options.featureFlags : {}
         if (evt.model.api.id.startsWith("duo-workflow-")) {
-          const gitlab = yield* Effect.promise( async () => import("gitlab-ai-provider")).pipe(Effect.orDie)
+          const gitlab = yield* Effect.promise(async () => import("gitlab-ai-provider")).pipe(Effect.orDie)
           const workflowRef =
             typeof evt.model.request.body.workflowRef === "string" ? evt.model.request.body.workflowRef : undefined
           const workflowDefinition =

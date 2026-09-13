@@ -8,11 +8,14 @@ import { errorMessage } from "@/util/error"
 import { ChildProcess } from "effect/unstable/process"
 import { AppProcess } from "@opencode-ai/core/process"
 import path from "path"
+import { fileURLToPath } from "url"
+import os from "node:os"
+import { randomUUID } from "node:crypto"
 import { makeRuntime } from "@opencode-ai/core/effect/runtime"
 import { InstallationChannel, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { InstallationEvent } from "@opencode-ai/schema/installation-event"
 
-export type Method = "curl" | "npm" | "yarn" | "pnpm" | "bun" | "brew" | "scoop" | "choco" | "unknown"
+export type Method = "curl" | "npm" | "yarn" | "pnpm" | "bun" | "brew" | "scoop" | "choco" | "git" | "unknown"
 
 export type ReleaseType = "patch" | "minor" | "major"
 
@@ -136,6 +139,14 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
       return `Upgrade failed for ${method}.`
     }
 
+    const sourceRoot = Effect.fnUntraced(function* () {
+      // resolve the repo root from the module location, not process.cwd()
+      const moduleDir = path.dirname(fileURLToPath(import.meta.url))
+      const root = yield* text(["git", "rev-parse", "--show-toplevel"], { cwd: moduleDir })
+      const dir = root.trim()
+      return dir || undefined
+    })
+
     const upgradeScriptShell = Effect.fnUntraced(function* () {
       const bashVersion = yield* text(["bash", "--version"])
       if (bashVersion) return "bash"
@@ -144,11 +155,32 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
 
     const upgradeCurl = Effect.fnUntraced(
       function* (target: string) {
+        const isWindows = process.platform === "win32"
+        const scriptName = isWindows ? "install.bat" : "install"
         const response = yield* httpOk.execute(
-          HttpClientRequest.get("https://raw.githubusercontent.com/dressedinblack5/openaxe/main/install"),
+          HttpClientRequest.get(`https://raw.githubusercontent.com/dressedinblack5/openaxe/dev/${scriptName}`),
         )
         const body = yield* response.text
         const bodyBytes = new TextEncoder().encode(body)
+
+        if (isWindows) {
+          // .bat is cmd-only syntax; write a temp file since `cmd /c echo` can't emit multi-line content.
+          const tempPath = path.join(os.tmpdir(), `openaxe-upgrade-${randomUUID()}.bat`)
+          yield* Effect.tryPromise(() => Bun.write(tempPath, body))
+          const result = yield* appProcess.run(
+            ChildProcess.make("cmd", ["/c", tempPath], {
+              env: { VERSION: target },
+              extendEnv: true,
+            }),
+          )
+          yield* Effect.tryPromise(() => Bun.file(tempPath).delete()).pipe(Effect.orElseSucceed(() => undefined))
+          return {
+            code: result.exitCode,
+            stdout: result.stdout.toString("utf8"),
+            stderr: result.stderr.toString("utf8"),
+          }
+        }
+
         const shell = yield* upgradeScriptShell()
         const result = yield* appProcess.run(
           ChildProcess.make(shell, [], {
@@ -174,6 +206,7 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
         }
       }),
       method: Effect.fn("Installation.method")(function* () {
+        if (isLocal()) return "git" as Method
         if (process.execPath.includes(path.join(".openaxe", "bin"))) return "curl" as Method
         if (process.execPath.includes(path.join(".local", "bin"))) return "curl" as Method
         const exec = process.execPath.toLowerCase()
@@ -241,6 +274,21 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
       upgrade: Effect.fn("Installation.upgrade")(function* (m: Method, target: string) {
         let upgradeResult: { code: number; stdout: string; stderr: string } | undefined
         switch (m) {
+          case "git": {
+            const root = yield* sourceRoot()
+            if (!root) {
+              return yield* new UpgradeFailedError({
+                stderr: "Source checkout not found — install openaxe from source first",
+              })
+            }
+            const pull = yield* run(["git", "pull", "--ff-only"], { cwd: root })
+            if (pull.code !== 0) {
+              upgradeResult = pull
+              break
+            }
+            upgradeResult = yield* run(["bun", "install"], { cwd: root })
+            break
+          }
           case "curl":
             upgradeResult = yield* upgradeCurl(target)
             break

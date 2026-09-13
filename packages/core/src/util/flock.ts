@@ -72,30 +72,17 @@ function code(err: unknown) {
   return value
 }
 
- async function sleep(ms: number, signal?: AbortSignal) {
-  return new Promise<void>((resolve, reject) => {
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(signal.reason ?? new Error("Aborted"))
       return
     }
-
-    let timer: NodeJS.Timeout | undefined
-
-    const done = () => {
-      signal?.removeEventListener("abort", abort)
-      resolve()
-    }
-
-    const abort = () => {
-      if (timer) {
-        clearTimeout(timer)
-      }
-      signal?.removeEventListener("abort", abort)
-      reject(signal?.reason ?? new Error("Aborted"))
-    }
-
-    signal?.addEventListener("abort", abort, { once: true })
-    timer = setTimeout(done, ms)
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer)
+      reject(signal.reason ?? new Error("Aborted"))
+    }, { once: true })
   })
 }
 
@@ -329,10 +316,10 @@ export async function acquire(key: string, input: Options = {}): Promise<Lease> 
   )
   lock.startHeartbeat()
 
-  const release =  async () => lock.release()
+  const release = async () => lock.release()
   return {
     release,
-     async [Symbol.asyncDispose]() {
+    async [Symbol.asyncDispose]() {
       return release()
     },
   }
@@ -346,12 +333,12 @@ export async function withLock<T>(key: string, fn: () => Promise<T>, input: Opti
 
 export const effect = Effect.fn("Flock.effect")(function* (key: string, input: Options = {}) {
   return yield* Effect.acquireRelease(
-    Effect.promise( async (signal) => acquire(key, { ...input, signal })).pipe(
+    Effect.promise(async (signal) => acquire(key, { ...input, signal })).pipe(
       Effect.withSpan("Flock.acquire", {
         attributes: { key },
       }),
     ),
-    (lock) => Effect.promise( async () => lock.release()).pipe(Effect.withSpan("Flock.release")),
+    (lock) => Effect.promise(async () => lock.release()).pipe(Effect.withSpan("Flock.release")),
   ).pipe(Effect.asVoid)
 })
 

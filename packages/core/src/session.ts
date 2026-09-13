@@ -116,7 +116,7 @@ export interface Interface {
   }) => Effect.Effect<SessionMessage.Message | undefined>
   readonly context: (
     sessionID: SessionSchema.ID,
-  ) => Effect.Effect<SessionMessage.Message[], NotFoundError | MessageDecodeError>
+  ) => Effect.Effect<readonly SessionMessage.Message[], NotFoundError | MessageDecodeError>
   readonly events: (input: {
     sessionID: SessionSchema.ID
     after?: number
@@ -246,17 +246,17 @@ export const layer = Layer.effect(
         if ("project" in input) conditions.push(eq(SessionTable.project_id, input.project))
         if (input.search) conditions.push(like(SessionTable.title, `%${input.search}%`))
         if (input.anchor) {
-          conditions.push(
+          const anchorCond =
             order === "asc"
               ? or(
                   gt(sortColumn, input.anchor.time),
                   and(eq(sortColumn, input.anchor.time), gt(SessionTable.id, input.anchor.id)),
-                )!
+                )
               : or(
                   lt(sortColumn, input.anchor.time),
                   and(eq(sortColumn, input.anchor.time), lt(SessionTable.id, input.anchor.id)),
-                )!,
-          )
+                )
+          if (anchorCond) conditions.push(anchorCond)
         }
         const query = db
           .select()

@@ -169,7 +169,7 @@ describe("ModelsDev Service", () => {
           }),
       )
       expect(result).toEqual(fixture2)
-      expect(yield* Effect.promise( async () => readFile(cacheFile, "utf8"))).toBe(JSON.stringify(fixture2))
+      expect(yield* Effect.promise(async () => readFile(cacheFile, "utf8"))).toBe(JSON.stringify(fixture2))
       const final = yield* Ref.get(state)
       expect(final.calls.length).toBe(1)
     }),

@@ -1,4 +1,5 @@
 import { SyntaxStyle, RGBA, type TerminalColors } from "@opentui/core"
+import { ansiToRgba, tint } from "./color"
 import aura from "./assets/aura.json" with { type: "json" }
 import ayu from "./assets/ayu.json" with { type: "json" }
 import carbonfox from "./assets/carbonfox.json" with { type: "json" }
@@ -21,7 +22,7 @@ import monokai from "./assets/monokai.json" with { type: "json" }
 import nightowl from "./assets/nightowl.json" with { type: "json" }
 import nord from "./assets/nord.json" with { type: "json" }
 import onedark from "./assets/one-dark.json" with { type: "json" }
-import openaxe from "./assets/opencode.json" with { type: "json" }
+import openaxe from "./assets/openaxe.json" with { type: "json" }
 import orng from "./assets/orng.json" with { type: "json" }
 import osakaJade from "./assets/osaka-jade.json" with { type: "json" }
 import palenight from "./assets/palenight.json" with { type: "json" }
@@ -250,6 +251,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
         throw new Error(`Circular color reference: ${[...chain, c].join(" -> ")}`)
       }
 
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- dynamic theme color key lookup; keys originate from Object.entries over ThemeColor
       const next = defs[c] ?? theme.theme[c as ThemeColor]
       if (next === undefined) {
         throw new Error(`Color reference "${c}" not found in defs or theme`)
@@ -266,6 +268,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
     Object.entries(theme.theme)
       .filter(([key]) => key !== "selectedListItemText" && key !== "backgroundMenu" && key !== "thinkingOpacity")
       .map(([key, value]) => {
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- values come from theme.theme and are resolved by their key
         return [key, resolveColor(value as ColorValue)]
       }),
   ) as Partial<Record<ThemeColor, RGBA>>
@@ -273,6 +276,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
   // Handle selectedListItemText separately since it's optional
   const hasSelectedListItemText = theme.theme.selectedListItemText !== undefined
   if (hasSelectedListItemText) {
+    // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- guarded by hasSelectedListItemText above
     resolved.selectedListItemText = resolveColor(theme.theme.selectedListItemText!)
   } else {
     // Backward compatibility: if selectedListItemText is not defined, use background color
@@ -290,6 +294,7 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
   // Handle thinkingOpacity - optional with default of 0.6
   const thinkingOpacity = theme.theme.thinkingOpacity ?? 0.6
 
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- assembled Theme carries optional resolved fields; cast keeps the contract type
   return {
     ...resolved,
     _hasSelectedListItemText: hasSelectedListItemText,
@@ -297,67 +302,12 @@ export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
   } as Theme
 }
 
-function ansiToRgba(code: number): RGBA {
-  // Standard ANSI colors (0-15)
-  if (code < 16) {
-    const ansiColors = [
-      "#000000", // Black
-      "#800000", // Red
-      "#008000", // Green
-      "#808000", // Yellow
-      "#000080", // Blue
-      "#800080", // Magenta
-      "#008080", // Cyan
-      "#c0c0c0", // White
-      "#808080", // Bright Black
-      "#ff0000", // Bright Red
-      "#00ff00", // Bright Green
-      "#ffff00", // Bright Yellow
-      "#0000ff", // Bright Blue
-      "#ff00ff", // Bright Magenta
-      "#00ffff", // Bright Cyan
-      "#ffffff", // Bright White
-    ]
-    return RGBA.fromHex(ansiColors[code] ?? "#000000")
-  }
-
-  // 6x6x6 Color Cube (16-231)
-  if (code < 232) {
-    const index = code - 16
-    const b = index % 6
-    const g = Math.floor(index / 6) % 6
-    const r = Math.floor(index / 36)
-
-    const val = (x: number) => (x === 0 ? 0 : x * 40 + 55)
-    return RGBA.fromInts(val(r), val(g), val(b))
-  }
-
-  // Grayscale Ramp (232-255)
-  if (code < 256) {
-    const gray = (code - 232) * 10 + 8
-    return RGBA.fromInts(gray, gray, gray)
-  }
-
-  // Fallback for invalid codes
-  return RGBA.fromInts(0, 0, 0)
-}
-
-export function tint(base: RGBA, overlay: RGBA, alpha: number): RGBA {
-  const r = base.r + (overlay.r - base.r) * alpha
-  const g = base.g + (overlay.g - base.g) * alpha
-  const b = base.b + (overlay.b - base.b) * alpha
-  return RGBA.fromInts(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255))
-}
-
-export function terminalMode(colors: TerminalColors): "dark" | "light" | undefined {
-  const bg = colors.defaultBackground
-  if (!bg) return
-  const { r, g, b } = RGBA.fromHex(bg)
-  return 0.299 * r + 0.587 * g + 0.114 * b > 0.5 ? "light" : "dark"
-}
+export { ansiToRgba, terminalMode, tint } from "./color"
 
 export function generateSystem(colors: TerminalColors, mode: "dark" | "light"): ThemeJson {
+  // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- generateSystem palette always carries the 16 ANSI entries
   const bg = RGBA.fromHex(colors.defaultBackground ?? colors.palette[0]!)
+  // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- generateSystem palette always carries the 16 ANSI entries
   const fg = RGBA.fromHex(colors.defaultForeground ?? colors.palette[7]!)
   const transparent = RGBA.fromValues(bg.r, bg.g, bg.b, 0)
   const isDark = mode == "dark"

@@ -9,7 +9,9 @@ export interface Args {
   fork?: boolean
 }
 
-export const { use: useArgs, provider: ArgsProvider } = createSimpleContext({
+const Args = createSimpleContext({
   name: "Args",
   init: (props: Args) => props,
 })
+export const useArgs = Args.use
+export const ArgsProvider = Args.provider

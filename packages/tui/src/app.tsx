@@ -6,9 +6,10 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { ClipboardProvider, useClipboard } from "./context/clipboard"
 import { ExitProvider, useExit } from "./context/exit"
+import { tuiMark } from "./startup-timing"
 import { EpilogueProvider } from "./context/epilogue"
-import { copy, handleSelectionKey } from "./util/selection";
-import { createCliRenderer, MouseButton } from "@opentui/core"
+import { copy, handleSelectionKey } from "./util/selection"
+import { createCliRenderer } from "@opentui/core"
 import { RouteProvider, useRoute } from "./context/route"
 import {
   Switch,
@@ -23,7 +24,7 @@ import {
   Show,
   on,
 } from "solid-js"
-import { TuiPathsProvider, TuiStartupProvider, TuiTerminalEnvironmentProvider, useTuiStartup } from "./context/runtime"
+import { TuiPathsProvider, TuiStartupProvider, TuiTerminalEnvironmentProvider } from "./context/runtime"
 import { DialogProvider, useDialog } from "./ui/dialog"
 import { DialogProvider as DialogProviderList } from "./component/dialog-provider"
 import { ErrorComponent } from "./component/error-component"
@@ -82,8 +83,13 @@ import { DialogVariant } from "./component/dialog-variant"
 import { ArtifactPreview } from "./component/artifact-preview"
 import { MemoryBrowser } from "./component/memory-browser"
 import { createTuiAttention } from "./attention"
-import { dispose } from "./audio";
-import { win32DisableProcessedInput, win32FlushInputBuffer } from "./terminal-win32"
+import { getDiffViewerFocus } from "./feature-plugins/system/diff-viewer-focus"
+import { dispose } from "./audio"
+import {
+  win32DisableProcessedInput,
+  win32EnableVirtualTerminalProcessing,
+  win32FlushInputBuffer,
+} from "./terminal-win32"
 import { destroyRenderer } from "./util/renderer"
 import { cliErrorMessage, errorFormat } from "./util/error"
 
@@ -188,7 +194,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
   const result = yield* Effect.scoped(
     Effect.gen(function* () {
       const renderer = yield* Effect.acquireRelease(
-        Effect.tryPromise( async () =>
+        Effect.tryPromise(async () =>
           createCliRenderer({
             externalOutputMode: "passthrough",
             targetFps: 60,
@@ -208,6 +214,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
             destroyRenderer(renderer)
           }),
       )
+      win32EnableVirtualTerminalProcessing()
       win32DisableProcessedInput()
       const keymap = createDefaultOpenTuiKeymap(renderer)
       yield* Effect.acquireRelease(
@@ -236,7 +243,9 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
       yield* Effect.tryPromise(async () => {
         // Prewarm palette before ThemeProvider mounts so `system` theme avoids a first-paint fallback flash.
         void renderer.getPalette({ size: 16 }).catch(() => undefined)
-        const mode = (await renderer.waitForThemeMode(1000)) ?? "dark"
+        // Render immediately with the synchronously-known mode; ThemeProvider
+        // resolves the system theme async via getPalette + THEME_MODE events.
+        const mode = renderer.themeMode ?? "dark"
         if (renderer.isDestroyed) return
 
         await render(() => {
@@ -358,7 +367,6 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
 })
 
 function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPluginHost }) {
-  const startup = useTuiStartup()
   const tuiConfig = useTuiConfig()
   const route = useRoute()
   const dimensions = useTerminalDimensions()
@@ -379,6 +387,31 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
   const pluginRuntime = usePluginRuntime()
   const attention = createTuiAttention({ renderer, config: tuiConfig, kv })
   const clipboard = useClipboard()
+
+  const onWindowFocus = () => {
+    if (dialog.stack.length > 0) return
+    if (getDiffViewerFocus() === "files") return
+    if (renderer.currentFocusedEditor) return
+    promptRef.current?.focus()
+  }
+
+  renderer.on("focus", onWindowFocus)
+  onCleanup(() => renderer.off("focus", onWindowFocus))
+
+  createEffect(
+    on(
+      () => dialog.stack.length,
+      (len, prev) => {
+        if (len !== 0) return
+        if (prev === undefined || prev === 0) return
+        setTimeout(() => {
+          if (dialog.stack.length !== 0) return
+          if (renderer.currentFocusedEditor !== null) return
+          promptRef.current?.focus()
+        }, 1)
+      },
+    ),
+  )
 
   const api = createTuiApi(
     createTuiApiAdapters({
@@ -411,6 +444,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       console.error("Failed to load TUI plugins", error)
     })
     .finally(() => {
+      tuiMark("ready")
       setReady(true)
     })
 
@@ -565,9 +599,9 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
   const connected = useConnected()
   const currentWorktreeWorkspace = createMemo(() => {
     const workspaceID = project.workspace.current()
-    if (!workspaceID) return
+    if (!workspaceID) return undefined
     const workspace = project.workspace.get(workspaceID)
-    if (workspace?.type !== "worktree" || !workspace.directory) return
+    if (workspace?.type !== "worktree" || !workspace.directory) return undefined
     return workspace
   })
   const appCommands = createMemo(() =>
@@ -1021,6 +1055,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
   }))
 
   useBindings(() => ({
+    mode: OPENCODE_BASE_MODE,
     bindings: tuiConfig.keybinds.gather("app.global", appGlobalBindingCommands),
   }))
 
@@ -1084,7 +1119,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
     console.log("installation.update-available", evt)
     const version = evt.properties.version
 
-    const skipped = kv.get("skipped_version")
+    const skipped = kv.get<string>("skipped_version")
     if (skipped && !isVersionGreater(version, skipped)) return
 
     const choice = await DialogConfirm.show(
@@ -1134,12 +1169,12 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       `Successfully updated to OpenAxe v${result.data.version}. Please restart the application.`,
     )
 
-      exit()
+    exit()
   })
 
   const plugin = createMemo(() => {
-    if (!ready()) return
-    if (route.data.type !== "plugin") return
+    if (!ready()) return undefined
+    if (route.data.type !== "plugin") return undefined
     const render = pluginRuntime.routes.get(route.data.id)
     if (!render) return <PluginRouteMissing id={route.data.id} onHome={() => route.navigate({ type: "home" })} />
     return render({ params: route.data.data })
@@ -1153,16 +1188,14 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       backgroundColor={theme.background}
       onMouseDown={(evt) => {
         if (!Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
-        if (evt.button !== MouseButton.RIGHT) return
+        if (evt.button !== 2) return
 
         if (!copy(renderer, toast, clipboard)) return
         evt.preventDefault()
         evt.stopPropagation()
       }}
       onMouseUp={
-        !Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT
-          ? () => copy(renderer, toast, clipboard)
-          : undefined
+        !Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT ? () => copy(renderer, toast, clipboard) : undefined
       }
     >
       <Toast />
@@ -1188,9 +1221,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         </box>
         <pluginRuntime.Slot name="app" />
       </Show>
-      <Show when={!startup.skipInitialLoading}>
-        <StartupLoading ready={ready} />
-      </Show>
+      <StartupLoading ready={ready} />
     </box>
   )
 }

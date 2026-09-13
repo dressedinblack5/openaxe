@@ -15,7 +15,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  
+
   const host = yield* PluginHost.make(plugin)
   yield* AzureCognitiveServicesPlugin.effect(host)
 })
@@ -115,7 +115,6 @@ describe("AzureCognitiveServicesPlugin", () => {
 
   it.effect("selects chat only for completion URLs", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()
@@ -133,7 +132,6 @@ describe("AzureCognitiveServicesPlugin", () => {
 
   it.effect("uses the legacy Azure selector order and provider guard", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       yield* addPlugin()
@@ -160,7 +158,6 @@ describe("AzureCognitiveServicesPlugin", () => {
 
   it.effect("falls back from responses to messages, chat, then languageModel", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const calls: string[] = []
       const sdk = fakeSelectorSdk(calls)

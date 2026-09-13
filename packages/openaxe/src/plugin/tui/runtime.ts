@@ -21,7 +21,9 @@ import {
   readPackageThemes,
   readPluginId,
   readV1Plugin,
+  type ReadV1PluginResult,
   resolvePluginId,
+  type PluginAllowlist,
   type PluginPackage,
   type PluginSource,
 } from "@/plugin/shared"
@@ -241,12 +243,7 @@ function resolveRoot(root: string) {
   return path.resolve(process.cwd(), root)
 }
 
-function createThemeInstaller(
-  meta: ConfigPlugin.Origin,
-  root: string,
-  spec: string,
-  plugin: PluginEntry,
-): TuiTheme["install"] {
+function createThemeInstaller(meta: ConfigPlugin.Origin, root: string, plugin: PluginEntry): TuiTheme["install"] {
   return async (file) => {
     const src = Filesystem.resolveFilePath(root, file)
     const name = path.basename(src, path.extname(src))
@@ -376,7 +373,7 @@ async function readThemeFiles(spec: string, pkg?: PluginPackage) {
 async function syncPluginThemes(plugin: PluginEntry) {
   if (!plugin.load.theme_files.length) return
   if (plugin.meta.state === "same") return
-  const install = createThemeInstaller(plugin.load.origin, plugin.load.plugin_root, plugin.load.spec, plugin)
+  const install = createThemeInstaller(plugin.load.origin, plugin.load.plugin_root, plugin)
   for (const file of plugin.load.theme_files) {
     await install(file).catch((error) => {
       warn("failed to sync tui plugin oc-themes", { path: plugin.load.spec, id: plugin.id, theme: file, error })
@@ -587,7 +584,7 @@ function pluginApi(runtime: RuntimeState, plugin: PluginEntry, scope: PluginScop
   }
 
   const theme: TuiPluginApi["theme"] = Object.assign(Object.create(api.theme), {
-    install: createThemeInstaller(load.origin, load.plugin_root, load.spec, plugin),
+    install: createThemeInstaller(load.origin, load.plugin_root, plugin),
   })
 
   const event: TuiPluginApi["event"] = {
@@ -673,16 +670,17 @@ function applyInitialPluginEnabledState(state: RuntimeState, config: TuiConfig.R
   }
 }
 
-async function resolveExternalPlugins(list: ConfigPlugin.Origin[], wait: () => Promise<void>) {
+async function resolveExternalPlugins(list: ConfigPlugin.Origin[], wait: () => Promise<void>, allowlist?: PluginAllowlist) {
   return PluginLoader.loadExternal({
     items: list,
     kind: "tui",
+    allowlist,
     wait: async () => {
       await wait().catch(() => {})
     },
     finish: async (loaded, origin, retry) => {
-      const mod = await Promise.resolve()
-        .then(() => readV1Plugin(loaded.mod, loaded.spec, "tui") as TuiPluginModule)
+      const modResult = await Promise.resolve()
+        .then(() => readV1Plugin(loaded.mod, loaded.spec, "tui") as ReadV1PluginResult)
         .catch((error) => {
           fail("failed to load tui plugin", {
             path: loaded.spec,
@@ -690,9 +688,10 @@ async function resolveExternalPlugins(list: ConfigPlugin.Origin[], wait: () => P
             retry,
             error,
           })
-          return
+          return { ok: false as const, error: new TypeError(String(error)) }
         })
-      if (!mod) return
+      if (!modResult.ok) return
+      const mod = modResult.value as TuiPluginModule
 
       const id = await resolvePluginId(
         loaded.source,
@@ -1105,7 +1104,7 @@ async function load(input: {
       })
     }
 
-    const ready = await resolveExternalPlugins(records, () => TuiConfig.waitForDependencies())
+    const ready = await resolveExternalPlugins(records, () => TuiConfig.waitForDependencies(), config.plugin_allowlist)
     await addExternalPluginEntries(next, ready)
 
     applyInitialPluginEnabledState(next, config)

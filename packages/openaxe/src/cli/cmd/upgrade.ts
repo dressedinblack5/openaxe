@@ -1,4 +1,5 @@
 import type { Argv } from "yargs"
+import type { Method } from "../../installation"
 import { UI } from "../ui"
 
 export const UpgradeCommand = {
@@ -14,7 +15,7 @@ export const UpgradeCommand = {
         alias: "m",
         describe: "installation method to use",
         type: "string",
-        choices: ["curl", "npm", "pnpm", "bun", "brew", "choco", "scoop"],
+        choices: ["curl", "npm", "pnpm", "bun", "brew", "choco", "scoop", "git"],
       })
   },
   handler: async (args: { target?: string; method?: string }) => {
@@ -67,7 +68,7 @@ export const UpgradeCommand = {
     log.info(`From ${InstallationVersion} → ${target}`)
     const spinner = createSpinner()
     spinner.start("Upgrading...")
-    const err = await Installation.upgrade(method as any, target).catch((err) => err)
+    const err = await Installation.upgrade(method as Method, target).catch((err) => err)
     if (err) {
       spinner.stop("Upgrade failed", 1)
       if (err instanceof Installation.UpgradeFailedError) {

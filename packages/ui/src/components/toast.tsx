@@ -124,9 +124,7 @@ export function showToast(options: ToastOptions | string) {
       persistent={opts.persistent}
       data-variant={opts.variant ?? "default"}
     >
-      <Show when={opts.icon}>
-        <Toast.Icon name={opts.icon!} />
-      </Show>
+      {opts.icon && <Toast.Icon name={opts.icon} />}
       <Toast.Content>
         <Show when={opts.title}>
           <Toast.Title>{opts.title}</Toast.Title>
@@ -136,7 +134,7 @@ export function showToast(options: ToastOptions | string) {
         </Show>
         <Show when={opts.actions?.length}>
           <Toast.Actions>
-            {opts.actions!.map((action) => (
+            {opts.actions?.map((action) => (
               <button
                 data-slot="toast-action"
                 onClick={() => {
@@ -175,7 +173,7 @@ export function showPromiseToast<T, U = unknown>(
       <Toast.Content>
         <Toast.Description>
           {props.state === "pending" && options.loading}
-          {props.state === "fulfilled" && options.success?.(props.data!)}
+          {props.state === "fulfilled" && props.data !== undefined && options.success?.(props.data)}
           {props.state === "rejected" && options.error?.(props.error)}
         </Toast.Description>
       </Toast.Content>

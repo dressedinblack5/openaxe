@@ -11,7 +11,7 @@ test("abbreviates paths within home boundaries", () => {
 })
 
 test("provides focused immutable runtime inputs", async () => {
-  let paths: ReturnType<typeof useTuiPaths>
+  let paths: ReturnType<typeof useTuiPaths> | undefined
 
   function Runtime() {
     paths = useTuiPaths()
@@ -30,7 +30,8 @@ test("provides focused immutable runtime inputs", async () => {
   try {
     await app.renderOnce()
     expect(app.captureCharFrame()).toContain("/work")
-    expect(Object.isFrozen(paths!)).toBe(true)
+    if (!paths) throw new Error("paths not captured")
+    expect(Object.isFrozen(paths)).toBe(true)
   } finally {
     app.renderer.destroy()
   }

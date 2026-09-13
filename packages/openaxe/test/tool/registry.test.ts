@@ -494,4 +494,34 @@ describe("tool.registry", () => {
       expect(ids).toContain("cowsay")
     }),
   )
+
+  it.instance("pins builtin tool order", () =>
+    Effect.gen(function* () {
+      const registry = yield* ToolRegistry.Service
+      const ids = yield* registry.ids()
+
+      expect(ids).toEqual([
+        "invalid",
+        "question",
+        "read",
+        "glob",
+        "grep",
+        "edit",
+        "write",
+        "task",
+        "webfetch",
+        "todowrite",
+        "websearch",
+        "skill",
+        "apply_patch",
+        "lsp",
+        "bash",
+        "kanban",
+        "kanban-swarm",
+        "session_search",
+        "skill_write",
+        "tool_search",
+      ])
+    }),
+  )
 })

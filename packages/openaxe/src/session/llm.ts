@@ -11,7 +11,7 @@ import { streamText, wrapLanguageModel, type ModelMessage, type Tool } from "ai"
 import type { LLMEvent } from "@opencode-ai/llm"
 import { LLMClient, RequestExecutor, WebSocketExecutor } from "@opencode-ai/llm/route"
 import type { LLMClientService } from "@opencode-ai/llm/route"
-import { GitLabWorkflowLanguageModel } from "gitlab-ai-provider"
+import type { GitLabWorkflowLanguageModel } from "gitlab-ai-provider"
 import { ProviderTransform } from "@/provider/transform"
 import { Config } from "@/config/config"
 import type { Agent } from "@/agent/agent"
@@ -102,7 +102,15 @@ const live: Layer.Layer<
         { concurrency: "unbounded" },
       )
 
-      const isWorkflow = language instanceof GitLabWorkflowLanguageModel
+      // Workflow models only exist under the gitlab provider (custom() factory
+      // registers gitlab exclusively), so the 1.7MB gitlab-ai-provider module is
+      // loaded lazily only for gitlab sessions instead of at startup.
+      const GitLabWorkflowLanguageModelClass =
+        input.model.providerID === "gitlab"
+          ? (yield* Effect.promise(() => import("gitlab-ai-provider"))).GitLabWorkflowLanguageModel
+          : undefined
+      const isWorkflow =
+        GitLabWorkflowLanguageModelClass !== undefined && language instanceof GitLabWorkflowLanguageModelClass
       const prepared = yield* LLMRequestPrep.prepare({
         ...input,
         provider: item,
@@ -116,7 +124,7 @@ const live: Layer.Layer<
       // from the workflow service are executed via opencode's tool system
       // and results sent back over the WebSocket.
       const bridge = yield* EffectBridge.make()
-      if (language instanceof GitLabWorkflowLanguageModel) {
+      if (GitLabWorkflowLanguageModelClass !== undefined && language instanceof GitLabWorkflowLanguageModelClass) {
         const workflowModel = language as GitLabWorkflowLanguageModel & {
           sessionID?: string
           sessionPreapprovedTools?: string[]

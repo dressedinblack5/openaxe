@@ -41,7 +41,7 @@ function tempEntrypoint(source: string) {
       await Bun.write(entrypoint, source)
       return { directory, entrypoint }
     }),
-    (tmp) => Effect.promise( async () => fs.rm(tmp.directory, { recursive: true, force: true })),
+    (tmp) => Effect.promise(async () => fs.rm(tmp.directory, { recursive: true, force: true })),
   )
 }
 
@@ -149,7 +149,6 @@ describe("DynamicProviderPlugin", () => {
 
   itWithAISDK.live("wraps missing provider factory exports as AISDK init errors", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       const tmp = yield* tempEntrypoint("export const notAProviderFactory = true\n")
       yield* addPlugin(npmEntrypoint(tmp.entrypoint))
@@ -168,7 +167,6 @@ describe("DynamicProviderPlugin", () => {
 
   itWithAISDK.effect("uses the model api.id for the default language model", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const language = yield* aisdk.language(

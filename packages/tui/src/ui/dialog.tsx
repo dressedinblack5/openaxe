@@ -1,7 +1,7 @@
 import { useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { batch, createContext, createEffect, onCleanup, Show, useContext, type JSX, type ParentProps } from "solid-js"
 import { useTheme } from "../context/theme"
-import { MouseButton, Renderable, RGBA } from "@opentui/core"
+import { RGBA } from "@opentui/core"
 import { createStore } from "solid-js/store"
 import { useToast } from "./toast"
 import { Flag } from "@opencode-ai/core/flag/flag"
@@ -81,24 +81,6 @@ function init() {
     onCleanup(popMode)
   })
 
-  let focus: Renderable | null
-  function refocus() {
-    setTimeout(() => {
-      if (!focus) return
-      if (focus.isDestroyed) return
-      function find(item: Renderable) {
-        for (const child of item.getChildren()) {
-          if (child === focus) return true
-          if (find(child)) return true
-        }
-        return false
-      }
-      const found = find(renderer.root)
-      if (!found) return
-      focus.focus()
-    }, 1)
-  }
-
   useBindings(() => ({
     enabled: store.stack.length > 0 && !renderer.getSelection()?.getSelectedText(),
     bindings: [
@@ -113,7 +95,6 @@ function init() {
           const current = store.stack.at(-1)
           current?.onClose?.()
           setStore("stack", store.stack.slice(0, -1))
-          refocus()
         },
       },
       {
@@ -127,7 +108,6 @@ function init() {
           const current = store.stack.at(-1)
           current?.onClose?.()
           setStore("stack", store.stack.slice(0, -1))
-          refocus()
         },
       },
     ],
@@ -142,13 +122,9 @@ function init() {
         setStore("size", "medium")
         setStore("stack", [])
       })
-      refocus()
     },
+    // oxlint-disable-next-line typescript-eslint/no-explicit-any -- replace accepts arbitrary render inputs from plugins
     replace(input: any, onClose?: () => void) {
-      if (store.stack.length === 0) {
-        focus = renderer.currentFocusedRenderable
-        focus?.blur()
-      }
       for (const item of store.stack) {
         if (item.onClose) item.onClose()
       }
@@ -201,7 +177,7 @@ export function DialogProvider(props: ParentProps) {
         zIndex={3000}
         onMouseDown={(evt: { button: number; preventDefault(): void; stopPropagation(): void }) => {
           if (!Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
-          if (evt.button !== MouseButton.RIGHT) return
+          if (evt.button !== 2) return
 
           if (!copySelection()) return
           evt.preventDefault()
@@ -211,7 +187,7 @@ export function DialogProvider(props: ParentProps) {
       >
         <Show when={value.stack.length}>
           <Dialog onClose={() => value.clear()} size={value.size}>
-            {value.stack.at(-1)!.element}
+            {value.stack.at(-1)?.element}
           </Dialog>
         </Show>
       </box>

@@ -14,7 +14,7 @@ type Msg = {
   done?: string
 }
 
- async function sleep(ms: number) {
+async function sleep(ms: number) {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, ms)
   })
@@ -56,7 +56,7 @@ async function job(input: Msg) {
 async function main() {
   const msg = input()
 
-  await Flock.withLock(msg.key,  async () => job(msg), {
+  await Flock.withLock(msg.key, async () => job(msg), {
     dir: msg.dir,
     staleMs: msg.staleMs,
     timeoutMs: msg.timeoutMs,

@@ -1,9 +1,9 @@
 import { NodeFileSystem } from "@effect/platform-node"
 import type { Layer } from "effect/Layer"
-import { provide } from "effect/Layer";
+import { provide } from "effect/Layer"
 import { FetchHttpClient } from "effect/unstable/http"
-import type { HttpClient } from "effect/unstable/http/HttpClient";
-import { fileSystem } from "./cassette.js";
+import type { HttpClient } from "effect/unstable/http/HttpClient"
+import { fileSystem } from "./cassette.js"
 import { recordingLayer } from "./internal-effect.js"
 import { make } from "./redactor.js"
 import type { RecorderOptions } from "./types.js"

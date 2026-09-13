@@ -54,11 +54,7 @@ const testServerLayer = Layer.mergeAll(
 )
 
 const effectIt = testEffect(
-  Layer.mergeAll(
-    testStateLayer,
-    testServerLayer,
-    HttpServer.layerTestClient.pipe(Layer.provide(testHttpServer)),
-  ),
+  Layer.mergeAll(testStateLayer, testServerLayer, HttpServer.layerTestClient.pipe(Layer.provide(testHttpServer))),
 )
 
 const _directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
@@ -153,7 +149,7 @@ describe("v2 pty HttpApi", () => {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ command: "/bin/cat", title: "v2-websocket" }),
-          })
+          }),
         )
         expect(created.status).toBe(200)
         const json = yield* Effect.promise(() => created.json())
@@ -185,7 +181,7 @@ describe("v2 pty HttpApi", () => {
         yield* write(new Socket.CloseEvent(1000, "done")).pipe(Effect.catch(() => Effect.void))
 
         yield* Effect.promise(() =>
-          request(`/api/pty/${info.id}`, dir, { method: "DELETE" }).then((r) => expect(r.status).toBe(204))
+          request(`/api/pty/${info.id}`, dir, { method: "DELETE" }).then((r) => expect(r.status).toBe(204)),
         )
       }),
   )
@@ -230,7 +226,7 @@ describe("v2 pty HttpApi", () => {
               cwd,
               env: { CALLER: "caller", SHARED: "caller", TERM: "caller" },
             }),
-          })
+          }),
         )
         expect(created.status).toBe(200)
         const json = yield* Effect.promise(() => created.json())
@@ -263,7 +259,7 @@ describe("v2 pty HttpApi", () => {
         )
         yield* write(new Socket.CloseEvent(1000, "done")).pipe(Effect.catch(() => Effect.void))
         yield* Effect.promise(() =>
-          request(`/api/pty/${info.id}`, dir, { method: "DELETE" }).then((r) => expect(r.status).toBe(204))
+          request(`/api/pty/${info.id}`, dir, { method: "DELETE" }).then((r) => expect(r.status).toBe(204)),
         )
       }),
   )

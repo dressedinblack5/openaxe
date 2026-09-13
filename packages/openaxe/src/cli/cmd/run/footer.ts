@@ -194,7 +194,6 @@ export class RunFooter implements FooterApi {
   private setQueuedPrompts: Setter<FooterQueuedPrompt[]>
   private promptRoute: FooterPromptRoute = { type: "composer" }
   private subagentMenuRows = SUBAGENT_ROWS
-  private autocomplete = false
   private interruptTimeout: NodeJS.Timeout | undefined
   private exitTimeout: NodeJS.Timeout | undefined
   private noticeTimeout: NodeJS.Timeout | undefined
@@ -211,7 +210,6 @@ export class RunFooter implements FooterApi {
     return new RunScrollbackStream(this.renderer, this.theme(), {
       diffStyle: this.options.diffStyle,
       wrote,
-      sessionID: this.options.sessionID,
       treeSitterClient: this.options.treeSitterClient,
       onThemeRelease: (theme) => {
         void this.renderer
@@ -450,7 +448,6 @@ export class RunFooter implements FooterApi {
       }
 
       default: {
-        const _exhaustive: never = next
         return
       }
     }
@@ -721,7 +718,6 @@ export class RunFooter implements FooterApi {
 
   private syncLayout = (next: { route: FooterPromptRoute; autocomplete: boolean; subagentRows: number }): void => {
     this.promptRoute = next.route
-    this.autocomplete = next.autocomplete
     this.subagentMenuRows = next.subagentRows
     if (this.view().type === "prompt") {
       this.applyHeight()

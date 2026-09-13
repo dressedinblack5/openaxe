@@ -27,18 +27,13 @@ const instanceRefLayer = Layer.succeed(InstanceRef, {
 })
 
 const instanceStoreLayer = InstanceStore.defaultLayer.pipe(
-  Layer.provide(
-    Layer.succeed(InstanceBootstrap.Service, InstanceBootstrap.Service.of({ run: Effect.void })),
-  ),
+  Layer.provide(Layer.succeed(InstanceBootstrap.Service, InstanceBootstrap.Service.of({ run: Effect.void }))),
 )
 
-const servedRoutes = HttpRouter.serve(
-  HttpApiApp.routes,
-  {
-    disableListenLog: true,
-    disableLogger: true,
-  },
-)
+const servedRoutes = HttpRouter.serve(HttpApiApp.routes, {
+  disableListenLog: true,
+  disableLogger: true,
+})
 
 export const httpApiLayer = servedRoutes.pipe(
   Layer.provideMerge(layerWebSocketConstructorGlobal),
@@ -51,18 +46,28 @@ export const httpApiLayer = servedRoutes.pipe(
   Layer.provideMerge(instanceRefLayer),
   Layer.provideMerge(Path.layer),
   Layer.provideMerge(Database.defaultLayer),
-  Layer.provideMerge(ServerAuth.Config.layer({ username: "test", password: Option.some("test") })),
+  Layer.provideMerge(ServerAuth.Config.layer({ username: "test", password: Option.some("test"), noAuth: false })),
   Layer.provideMerge(Workspace.defaultLayer),
   Layer.provideMerge(Ripgrep.defaultLayer),
 )
 
-export function makeTestUrl(server: { readonly address: { readonly _tag: string; readonly hostname?: string; readonly port?: number; readonly path?: string }; readonly serve: (...args: any[]) => any }, path: string): string {
+export function makeTestUrl(
+  server: {
+    readonly address: {
+      readonly _tag: string
+      readonly hostname?: string
+      readonly port?: number
+      readonly path?: string
+    }
+    readonly serve: (...args: any[]) => any
+  },
+  path: string,
+): string {
   const address = server.address
   if (address._tag === "UnixAddress") throw new Error("UnixAddress not supported")
   const host = address.hostname === "0.0.0.0" ? "127.0.0.1" : address.hostname
-  const reqUrl = path.startsWith("http://") || path.startsWith("https://")
-    ? new URL(path)
-    : new URL(path, "http://localhost")
+  const reqUrl =
+    path.startsWith("http://") || path.startsWith("https://") ? new URL(path) : new URL(path, "http://localhost")
   return `http://${host}:${address.port}${reqUrl.pathname}${reqUrl.search}`
 }
 

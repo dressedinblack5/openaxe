@@ -38,6 +38,7 @@ const decodeAndExecute = (tool: AnyTool, call: ToolCallPart): Effect.Effect<Tool
   tool._decode(call.input).pipe(
     Effect.mapError((error) => new ToolFailure({ message: `Invalid tool input: ${error.message}` })),
     Effect.flatMap((decoded) =>
+      // oxlint-disable-next-line typescript-eslint/no-non-null-assertion -- dispatch() guards tool.execute before delegating to decodeAndExecute
       tool.execute!(decoded, { id: call.id, name: call.name }).pipe(
         Effect.flatMap((value) =>
           tool._encode(value).pipe(
@@ -60,6 +61,7 @@ const decodeAndExecute = (tool: AnyTool, call: ToolCallPart): Effect.Effect<Tool
     ),
   )
 
+// oxlint-disable-next-line typescript-eslint/no-redundant-type-constituents -- ToolResultValueType resolves to any through the circular Object.assign schema reference; the union is intentional (plain results OR settlements).
 const result = (call: ToolCallPart, value: ToolResultValueType | ToolSettlement, error?: unknown): DispatchResult => {
   const settlement = ToolResultValue.is(value) ? { result: value } : value
   return {

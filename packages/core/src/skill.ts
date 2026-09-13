@@ -48,6 +48,7 @@ export type Draft = {
 export interface Interface extends State.Transformable<Draft> {
   readonly sources: () => Effect.Effect<Source[]>
   readonly list: () => Effect.Effect<Info[]>
+  readonly invalidate: () => Effect.Effect<void>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/v2/Skill") {}
@@ -78,7 +79,9 @@ export const layer = Layer.effect(
         // we run two separate globs and merge the results.
         const globOptions = { cwd: directory, absolute: true, include: "file" as const, symlink: true, dot: true }
         const mdFiles = yield* fs.glob("*.md", globOptions).pipe(Effect.catch(() => Effect.succeed([] as string[])))
-        const skillFiles = yield* fs.glob("**/SKILL.md", globOptions).pipe(Effect.catch(() => Effect.succeed([] as string[])))
+        const skillFiles = yield* fs
+          .glob("**/SKILL.md", globOptions)
+          .pipe(Effect.catch(() => Effect.succeed([] as string[])))
         const files = [...new Set([...mdFiles, ...skillFiles])].toSorted()
         for (const filepath of files) {
           const content = yield* fs.readFileStringSafe(filepath).pipe(Effect.catch(() => Effect.void))
@@ -127,6 +130,7 @@ export const layer = Layer.effect(
         return state.get().sources
       }),
       list,
+      invalidate: () => Effect.sync(() => cache.clear()),
     })
   }),
 )

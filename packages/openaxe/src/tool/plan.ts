@@ -76,4 +76,7 @@ export const PlanExitTool = define(
         }).pipe(Effect.orDie),
     }
   }),
+  {
+    available: ({ flags }) => flags.experimentalPlanMode && flags.client === "cli",
+  },
 )

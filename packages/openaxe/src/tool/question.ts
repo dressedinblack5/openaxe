@@ -16,7 +16,6 @@ export const QuestionTool = define<typeof Parameters, Metadata, Question.Service
   "question",
   Effect.gen(function* () {
     const question = yield* Question.Service
-
     return {
       description: DESCRIPTION,
       parameters: Parameters,
@@ -42,4 +41,7 @@ export const QuestionTool = define<typeof Parameters, Metadata, Question.Service
         }).pipe(Effect.orDie),
     }
   }),
+  {
+    available: ({ flags }) => ["app", "cli", "desktop"].includes(flags.client) || flags.enableQuestionTool,
+  },
 )

@@ -7,6 +7,11 @@ import DESCRIPTION from "./websearch.txt"
 import { checksum } from "@opencode-ai/core/util/encode"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { RuntimeFlags } from "@/effect/runtime-flags"
+import { ProviderV2 } from "@opencode-ai/core/provider"
+
+export function webSearchEnabled(providerID: ProviderV2.ID, flags = { exa: false, parallel: false }) {
+  return providerID === ProviderV2.ID.opencode || flags.exa || flags.parallel
+}
 
 export const Parameters = Schema.Struct({
   query: Schema.String.annotate({ description: "Websearch query" }),
@@ -102,7 +107,6 @@ export const WebSearchTool = define(
   Effect.gen(function* () {
     const http = yield* HttpClient.HttpClient
     const flags = yield* RuntimeFlags.Service
-
     return {
       get description() {
         return DESCRIPTION.replace("{{year}}", new Date().getFullYear().toString())
@@ -141,4 +145,9 @@ export const WebSearchTool = define(
         }).pipe(Effect.orDie),
     }
   }),
+  {
+    available: ({ providerID, flags }) =>
+      providerID === undefined ||
+      webSearchEnabled(providerID, { exa: flags.enableExa, parallel: flags.enableParallel }),
+  },
 )

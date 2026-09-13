@@ -14,7 +14,7 @@ const it = testEffect(PluginTestLayer)
 
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* PluginV2.Service
-  
+
   const host = yield* PluginHost.make(plugin)
   yield* GroqPlugin.effect(host)
 })
@@ -22,7 +22,6 @@ const addPlugin = Effect.fn(function* () {
 describe("GroqPlugin", () => {
   it.effect("creates a Groq SDK for @ai-sdk/groq", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -39,7 +38,6 @@ describe("GroqPlugin", () => {
 
   it.effect("ignores non-Groq SDK packages", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -56,7 +54,6 @@ describe("GroqPlugin", () => {
 
   it.effect("only matches the bundled @ai-sdk/groq package exactly", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -73,7 +70,6 @@ describe("GroqPlugin", () => {
 
   it.effect("matches the old bundled Groq SDK provider naming", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const result = yield* aisdk.runSDK({
@@ -95,7 +91,6 @@ describe("GroqPlugin", () => {
 
   it.effect("uses the default languageModel(api.id) behavior", () =>
     Effect.gen(function* () {
-      
       const aisdk = yield* AISDK.Service
       yield* addPlugin()
       const sdk = createGroq({ name: "groq", apiKey: "test" } as Parameters<typeof createGroq>[0] & {

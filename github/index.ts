@@ -147,8 +147,8 @@ try {
   session = await client.session.create<true>().then((r) => r.data)
   await subscribeSessionEvents()
   shareId = await (async () => {
-    if (useEnvShare() === false) return
-    if (!useEnvShare() && repoData.data.private) return
+    if (useEnvShare() === false) return undefined
+    if (!useEnvShare() && repoData.data.private) return undefined
     await client.session.share<true>({ path: session })
     return session.id.slice(-8)
   })()
@@ -208,15 +208,10 @@ try {
       await updateComment(`${response}${footer({ image: true })}`)
     }
   }
-} catch (e: any) {
+} catch (e) {
   exitCode = 1
   console.error(e)
-  let msg = e
-  if (e instanceof $.ShellError) {
-    msg = e.stderr.toString()
-  } else if (e instanceof Error) {
-    msg = e.message
-  }
+  const msg = e instanceof Error ? e.message : String(e)
   await updateComment(`${msg}${footer()}`)
   core.setFailed(msg)
   // Also output the clean error message for the action to capture
@@ -249,13 +244,32 @@ function assertPayloadKeyword() {
   }
 }
 
+function isIssueCommentEvent(payload: unknown): payload is IssueCommentEvent {
+  return typeof payload === "object" && payload !== null && "issue" in payload && "comment" in payload
+}
+
+function isReviewCommentEvent(payload: unknown): payload is PullRequestReviewCommentEvent {
+  return typeof payload === "object" && payload !== null && "comment" in payload
+}
+
+function useIssueCommentPayload(): IssueCommentEvent {
+  const payload: unknown = useContext().payload
+  if (!isIssueCommentEvent(payload)) {
+    throw new Error("Unexpected payload: expected issue_comment event")
+  }
+  return payload
+}
+
 function getReviewCommentContext() {
   const context = useContext()
   if (context.eventName !== "pull_request_review_comment") {
     return null
   }
 
-  const payload = context.payload as PullRequestReviewCommentEvent
+  const payload = context.payload
+  if (!isReviewCommentEvent(payload)) {
+    return null
+  }
   return {
     file: payload.comment.path,
     diffHunk: payload.comment.diff_hunk,
@@ -348,18 +362,20 @@ function isMock() {
 }
 
 function isPullRequest() {
-  const context = useContext()
-  const payload = context.payload as IssueCommentEvent
-  return Boolean(payload.issue.pull_request)
+  const payload: unknown = useContext().payload
+  return isIssueCommentEvent(payload) && Boolean(payload.issue.pull_request)
 }
 
 function useContext() {
-  return isMock() ? (JSON.parse(useEnvMock().mockEvent) as GitHubContext) : github.context
+  if (isMock()) {
+    const parsed: GitHubContext = JSON.parse(useEnvMock().mockEvent)
+    return parsed
+  }
+  return github.context
 }
 
 function useIssueId() {
-  const payload = useContext().payload as IssueCommentEvent
-  return payload.issue.number
+  return useIssueCommentPayload().issue.number
 }
 
 function useShareUrl() {
@@ -392,11 +408,11 @@ async function getAccessToken() {
   }
 
   if (!response.ok) {
-    const responseJson = (await response.json()) as { error?: string }
+    const responseJson: { error?: string } = await response.json()
     throw new Error(`App token exchange failed: ${response.status} ${response.statusText} - ${responseJson.error}`)
   }
 
-  const responseJson = (await response.json()) as { token: string }
+  const responseJson: { token: string } = await response.json()
   return responseJson.token
 }
 
@@ -580,8 +596,7 @@ async function summarize(response: string) {
     if (isScheduleEvent()) {
       return "Scheduled task changes"
     }
-    const payload = useContext().payload as IssueCommentEvent
-    return `Fix issue: ${payload.issue.title}`
+    return `Fix issue: ${useIssueCommentPayload().issue.title}`
   }
 }
 
@@ -785,15 +800,15 @@ async function assertPermissions() {
     permission = response.data.permission
     console.log(`  permission: ${permission}`)
   } catch (error) {
-    console.error(`Failed to check permissions: ${error}`)
-    throw new Error(`Failed to check permissions for user ${actor}: ${error}`, { cause: error })
+    console.error(`Failed to check permissions: ${String(error)}`)
+    throw new Error(`Failed to check permissions for user ${actor}: ${String(error)}`, { cause: error })
   }
 
   if (!["admin", "write"].includes(permission)) throw new Error(`User ${actor} does not have write permissions`)
 }
 
 async function updateComment(body: string) {
-  if (!commentId) return
+  if (!commentId) return undefined
 
   console.log("Updating comment...")
 
@@ -885,7 +900,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
 }
 
 function buildPromptDataForIssue(issue: GitHubIssue) {
-  const payload = useContext().payload as IssueCommentEvent
+  const payload = useIssueCommentPayload()
 
   const comments = (issue.comments?.nodes || [])
     .filter((c) => {
@@ -1012,7 +1027,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
 }
 
 function buildPromptDataForPR(pr: GitHubPullRequest) {
-  const payload = useContext().payload as IssueCommentEvent
+  const payload = useIssueCommentPayload()
 
   const comments = (pr.comments?.nodes || [])
     .filter((c) => {

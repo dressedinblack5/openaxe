@@ -160,6 +160,7 @@ export const layer = Layer.effect(
     const register = Effect.fn("ProjectCopy.register")(function* (strategy: Strategy) {
       if (registry.has(strategy.id)) return yield* new DuplicateStrategyError({ strategy: strategy.id })
       registry.set(strategy.id, strategy)
+      return undefined
     })
 
     // Register default strategies
@@ -221,6 +222,7 @@ export const layer = Layer.effect(
         input.projectID,
         yield* directories.remove({ projectID: input.projectID, directory: copyDirectory }),
       )
+      return undefined
     })
 
     const refresh = Effect.fn("ProjectCopy.refresh")(function* (input: RefreshInput) {

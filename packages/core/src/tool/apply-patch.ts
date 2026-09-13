@@ -3,7 +3,7 @@ export * as ApplyPatchTool from "./apply-patch"
 import { ToolFailure } from "@opencode-ai/llm"
 import { Effect, Layer, Schema } from "effect"
 import type { Diagnostic } from "typescript"
-import { DiagnosticCategory, ScriptTarget, createSourceFile, flattenDiagnosticMessageText } from "typescript";
+import { DiagnosticCategory, ScriptTarget, createSourceFile, flattenDiagnosticMessageText } from "typescript"
 import { Config } from "../config"
 import { FileMutation } from "../file-mutation"
 import { FSUtil } from "../fs-util"
@@ -138,9 +138,10 @@ export const layer = Layer.effectDiscard(
 
                     if (validatePatchTS && (hunk.path.endsWith(".ts") || hunk.path.endsWith(".tsx"))) {
                       const errors = validateTSContent(hunk.path, content)
-                      if (errors.length > 0) yield* new ToolFailure({
-                        message: `Patch introduces TypeScript syntax errors in ${hunk.path}:\n${errors.join("\n")}`,
-                      })
+                      if (errors.length > 0)
+                        yield* new ToolFailure({
+                          message: `Patch introduces TypeScript syntax errors in ${hunk.path}:\n${errors.join("\n")}`,
+                        })
                     }
 
                     prepared.push({
@@ -149,7 +150,7 @@ export const layer = Layer.effectDiscard(
                       source,
                       content,
                     })
-                  }).pipe(Effect.mapError((cause) => cause instanceof ToolFailure ? cause : fail(hunk.path)))
+                  }).pipe(Effect.mapError((cause) => (cause instanceof ToolFailure ? cause : fail(hunk.path))))
                 }
 
                 yield* Effect.forEach(
@@ -194,11 +195,18 @@ export const layer = Layer.effectDiscard(
 
 function validateTSContent(path: string, content: string): string[] {
   const sourceFile = createSourceFile(path, content, ScriptTarget.Latest, true)
-  const diagnostics: readonly Diagnostic[] = (sourceFile as unknown as { diagnostics?: readonly Diagnostic[] }).diagnostics ?? []
+  // The sourceFile diagnostics field is not part of the public TS AST API; check existence at runtime
+  const diagnostics: readonly Diagnostic[] = hasDiagnostics(sourceFile) ? sourceFile.diagnostics ?? [] : []
   return diagnostics
     .filter((d) => d.category === DiagnosticCategory.Error)
     .map((d) => {
       const pos = d.start !== undefined ? sourceFile.getLineAndCharacterOfPosition(d.start) : { line: 0, character: 0 }
       return `${flattenDiagnosticMessageText(d.messageText, "\n")} (${pos.line + 1}:${pos.character + 1})`
     })
+}
+
+function hasDiagnostics(
+  sf: ReturnType<typeof createSourceFile>,
+): sf is ReturnType<typeof createSourceFile> & { diagnostics?: readonly Diagnostic[] } {
+  return "diagnostics" in sf
 }

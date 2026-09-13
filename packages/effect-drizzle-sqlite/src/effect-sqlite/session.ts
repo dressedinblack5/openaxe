@@ -1,9 +1,9 @@
 /* oxlint-disable */
-import { add, getOption } from "effect/Context";
+import { add, getOption } from "effect/Context"
 import { Effect } from "effect"
-import { fail, isSuccess } from "effect/Exit";
+import { fail, isSuccess } from "effect/Exit"
 import type { Closeable } from "effect/Scope"
-import { close, make, provide } from "effect/Scope";
+import { close, make, provide } from "effect/Scope"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
 import type { SqlError } from "effect/unstable/sql/SqlError"
 import type { EffectCacheShape } from "drizzle-orm/cache/core/cache-effect"
@@ -131,9 +131,7 @@ export class EffectSQLiteSession<TRelations extends AnyRelations> extends SQLite
                 Effect.flatMap((scope) =>
                   provide(this.client.reserve, scope).pipe(
                     Effect.map((connection) => [scope, connection] as const),
-                    Effect.catch((error) =>
-                      close(scope, fail(error)).pipe(Effect.andThen(Effect.fail(error))),
-                    ),
+                    Effect.catch((error) => close(scope, fail(error)).pipe(Effect.andThen(Effect.fail(error)))),
                   ),
                 ),
               )
@@ -178,9 +176,7 @@ export class EffectSQLiteSession<TRelations extends AnyRelations> extends SQLite
               ),
             )
 
-            return scope === undefined
-              ? transaction
-              : transaction.pipe(Effect.onExit((exit) => close(scope, exit)))
+            return scope === undefined ? transaction : transaction.pipe(Effect.onExit((exit) => close(scope, exit)))
           }),
         )
       }),

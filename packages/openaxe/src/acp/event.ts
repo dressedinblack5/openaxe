@@ -122,7 +122,7 @@ export class Subscription {
       for await (const event of events.stream) {
         if (this.abort.signal.aborted) return
         if (!event.payload) continue
-        await this.handle(event.payload).catch(() => {})
+        await this.handle(event.payload).catch((err) => console.error("[acp] event handler failed", err))
       }
       if (!this.abort.signal.aborted) await new Promise((resolve) => setTimeout(resolve, 1000))
     }

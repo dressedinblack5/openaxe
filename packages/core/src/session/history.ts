@@ -9,6 +9,7 @@ import { SessionContextEpochTable, SessionMessageTable } from "./sql"
 type DatabaseService = Database.Interface["db"]
 
 const decode = Schema.decodeUnknownEffect(SessionMessage.Message)
+const decodeBatch = Schema.decodeUnknownEffect(Schema.Array(SessionMessage.Message))
 
 const latestCompaction = Effect.fnUntraced(function* (db: DatabaseService, sessionID: SessionSchema.ID) {
   return yield* db
@@ -21,33 +22,28 @@ const latestCompaction = Effect.fnUntraced(function* (db: DatabaseService, sessi
     .pipe(Effect.orDie)
 })
 
-const epochQuery = (sessionID: SessionSchema.ID) =>
-  (db: DatabaseService) =>
-    db
-      .select({ baselineSeq: SessionContextEpochTable.baseline_seq })
-      .from(SessionContextEpochTable)
-      .where(eq(SessionContextEpochTable.session_id, sessionID))
-      .get()
+const epochQuery = (sessionID: SessionSchema.ID) => (db: DatabaseService) =>
+  db
+    .select({ baselineSeq: SessionContextEpochTable.baseline_seq })
+    .from(SessionContextEpochTable)
+    .where(eq(SessionContextEpochTable.session_id, sessionID))
+    .get()
 
-const compactionQuery = (sessionID: SessionSchema.ID) =>
-  (db: DatabaseService) =>
-    db
-      .select({ seq: SessionMessageTable.seq })
-      .from(SessionMessageTable)
-      .where(and(eq(SessionMessageTable.session_id, sessionID), eq(SessionMessageTable.type, "compaction")))
-      .orderBy(desc(SessionMessageTable.seq))
-      .limit(1)
-      .get()
+const compactionQuery = (sessionID: SessionSchema.ID) => (db: DatabaseService) =>
+  db
+    .select({ seq: SessionMessageTable.seq })
+    .from(SessionMessageTable)
+    .where(and(eq(SessionMessageTable.session_id, sessionID), eq(SessionMessageTable.type, "compaction")))
+    .orderBy(desc(SessionMessageTable.seq))
+    .limit(1)
+    .get()
 
 // Single query with subqueries to eliminate N+1 pattern
-const messageRowsOptimized = Effect.fnUntraced(function* (
-  db: DatabaseService,
-  sessionID: SessionSchema.ID,
-) {
-  const [epochResult, compactionResult] = yield* Effect.all([
-    epochQuery(sessionID)(db),
-    compactionQuery(sessionID)(db),
-  ], { concurrency: "unbounded" })
+const messageRowsOptimized = Effect.fnUntraced(function* (db: DatabaseService, sessionID: SessionSchema.ID) {
+  const [epochResult, compactionResult] = yield* Effect.all(
+    [epochQuery(sessionID)(db), compactionQuery(sessionID)(db)],
+    { concurrency: "unbounded" },
+  )
 
   const baselineSeq = epochResult?.baselineSeq
   const compactionSeq = compactionResult?.seq
@@ -73,9 +69,7 @@ const messageRows = Effect.fnUntraced(function* (
   const rows = yield* db
     .select()
     .from(SessionMessageTable)
-    .where(
-      sessionMessageFilter(sessionID, compaction?.seq, baselineSeq),
-    )
+    .where(sessionMessageFilter(sessionID, compaction?.seq, baselineSeq))
     .orderBy(asc(SessionMessageTable.seq))
     .all()
     .pipe(Effect.orDie)
@@ -93,11 +87,20 @@ const decodeMessageRow = (row: typeof SessionMessageTable.$inferSelect) =>
     ),
   )
 
+const decodeMessageRowsBatch = (rows: (typeof SessionMessageTable.$inferSelect)[]) =>
+  decodeBatch(rows.map((row) => ({ ...row.data, id: row.id, type: row.type }))).pipe(
+    Effect.mapError(
+      () =>
+        new MessageDecodeError({
+          sessionID: SessionSchema.ID.make(rows[0]?.session_id ?? ""),
+          messageID: SessionMessage.ID.make("unknown"),
+        }),
+    ),
+  )
+
 export const load = Effect.fn("SessionHistory.load")(function* (db: DatabaseService, sessionID: SessionSchema.ID) {
   const rows = yield* messageRowsOptimized(db, sessionID).pipe(Effect.orDie)
-  const messages = yield* Effect.forEach(rows, decodeMessageRow, {
-    concurrency: "unbounded",
-  }).pipe(Effect.mapError(() => new MessageDecodeError({ sessionID, messageID: SessionMessage.ID.make("unknown") })))
+  const messages = yield* decodeMessageRowsBatch(rows)
   return messages
 })
 

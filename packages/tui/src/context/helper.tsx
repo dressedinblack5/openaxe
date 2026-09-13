@@ -1,6 +1,6 @@
 import { createContext, Show, useContext, type ParentProps } from "solid-js"
 
-export function createSimpleContext<T, Props extends Record<string, any>>(input: {
+export function createSimpleContext<T, Props extends Record<string, unknown>>(input: {
   name: string
   init: ((input: Props) => T) | (() => T)
 }) {
@@ -17,7 +17,7 @@ export function createSimpleContext<T, Props extends Record<string, any>>(input:
         </Show>
       )
     },
-    use() {
+    use: () => {
       const value = useContext(ctx)
       if (!value) throw new Error(`${input.name} context must be used within a context provider`)
       return value

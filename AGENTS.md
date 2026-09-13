@@ -12,7 +12,7 @@ Monorepo for **openaxe** — a lean TUI/CLI AI coding assistant built on Effect 
 
 ## STRUCTURE
 
-```
+````
 ./
 ├── packages/
 │   ├── openaxe/           CLI orchestrator — yargs entry, lazy-loaded commands [AGENTS.md]
@@ -100,7 +100,7 @@ const journal = await Bun.file(path.join(dir, "journal.json")).json()
 // Bad
 const journalPath = path.join(dir, "journal.json")
 const journal = await Bun.file(journalPath).json()
-```
+````
 
 ### Destructuring
 
@@ -222,11 +222,13 @@ const table = sqliteTable("session", {
 ## Arch Linux / KDE
 
 Required system packages:
+
 ```
 sudo pacman -S base-devel cmake wl-clipboard ripgrep
 ```
 
 Inotify limit (prevents file watcher from silently failing on large repos):
+
 ```
 echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/99-inotify.conf
 sudo sysctl --system
@@ -268,16 +270,16 @@ bun run typecheck
 
 **Package path mapping** (upstream → openaxe):
 
-| Upstream | openaxe | Notes |
-|---|---|---|
-| `packages/opencode/` | `packages/openaxe/` | CLI orchestrator |
-| `packages/opencode/src/` (TUI) | `packages/tui/` | Separated into own package |
-| `packages/opencode/src/` (core) | `packages/core/` | Core engine |
-| `packages/opencode/src/` (LLM) | `packages/llm/` | LLM integrations |
-| `packages/opencode/src/` (server) | `packages/server/` | HTTP server |
-| `packages/opencode/src/` (plugins) | `packages/plugin/` | Plugin system |
-| `packages/opencode/src/` (schema) | `packages/schema/` | Validation schemas |
-| `packages/opencode/src/` (CLI v2) | `packages/cli/` | Effect-runtime CLI |
+| Upstream                           | openaxe             | Notes                      |
+| ---------------------------------- | ------------------- | -------------------------- |
+| `packages/opencode/`               | `packages/openaxe/` | CLI orchestrator           |
+| `packages/opencode/src/` (TUI)     | `packages/tui/`     | Separated into own package |
+| `packages/opencode/src/` (core)    | `packages/core/`    | Core engine                |
+| `packages/opencode/src/` (LLM)     | `packages/llm/`     | LLM integrations           |
+| `packages/opencode/src/` (server)  | `packages/server/`  | HTTP server                |
+| `packages/opencode/src/` (plugins) | `packages/plugin/`  | Plugin system              |
+| `packages/opencode/src/` (schema)  | `packages/schema/`  | Validation schemas         |
+| `packages/opencode/src/` (CLI v2)  | `packages/cli/`     | Effect-runtime CLI         |
 
 ### Release — build and publish a new version
 
@@ -311,19 +313,33 @@ bun run script/stats.ts
 
 **Available script tools** (`script/`):
 
-| Script | Purpose |
-|---|---|
-| `script/raw-changelog.ts` | Generate raw changelog from git + `gh` CLI |
-| `script/changelog.ts` | Finalize and format changelog |
-| `script/version.ts` | Bump version across packages |
-| `script/publish.ts` | Create GitHub release |
-| `script/stats.ts` | Fetch & save download stats to STATS.md |
-| `script/duplicate-pr.ts` | Duplicate PR across repos |
-| `script/github/close-issues.ts` | Auto-close stale issues |
-| `script/beta.ts` | Manage beta release process |
-| `script/format.ts` | Format source files |
-| `script/generate.ts` | Generate models data |
-| `scripts/hooks` | Git hooks |
-| `scripts/release` | Release shell script |
-| `packages/cli/script/build.ts` | Build lildax binaries |
-| `packages/cli/script/publish.ts` | Publish npm packages |
+| Script                           | Purpose                                    |
+| -------------------------------- | ------------------------------------------ |
+| `script/raw-changelog.ts`        | Generate raw changelog from git + `gh` CLI |
+| `script/changelog.ts`            | Finalize and format changelog              |
+| `script/version.ts`              | Bump version across packages               |
+| `script/publish.ts`              | Create GitHub release                      |
+| `script/stats.ts`                | Fetch & save download stats to STATS.md    |
+| `script/duplicate-pr.ts`         | Duplicate PR across repos                  |
+| `script/github/close-issues.ts`  | Auto-close stale issues                    |
+| `script/beta.ts`                 | Manage beta release process                |
+| `script/format.ts`               | Format source files                        |
+| `script/generate.ts`             | Generate models data                       |
+| `scripts/hooks`                  | Git hooks                                  |
+| `scripts/release`                | Release shell script                       |
+| `packages/cli/script/build.ts`   | Build lildax binaries                      |
+| `packages/cli/script/publish.ts` | Publish npm packages                       |
+
+## Agent skills
+
+### Issue tracker
+
+GitHub issues on dressedinblack5/openaxe via `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.

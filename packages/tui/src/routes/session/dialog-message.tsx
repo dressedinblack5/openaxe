@@ -95,8 +95,9 @@ export function DialogMessage(props: {
                   { input: "", parts: [] as PromptInfo["parts"] },
                 )
               : undefined
+            if (!result.data) return
             route.navigate({
-              sessionID: result.data!.id,
+              sessionID: result.data.id,
               type: "session",
               prompt,
             })

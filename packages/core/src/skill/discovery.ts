@@ -137,10 +137,9 @@ export const layer = Layer.effect(
                 destination,
               }
             })
-            if (files.some((file) => file === undefined)) {
-              return []
-            }
-            return [{ skill, root, files: files as { url: string; destination: string }[] }]
+            const defined = files.filter((file): file is { url: string; destination: string } => file !== undefined)
+            if (defined.length !== files.length) return []
+            return [{ skill, root, files: defined }]
           }),
           ({ skill, root, files }) =>
             Effect.gen(function* () {

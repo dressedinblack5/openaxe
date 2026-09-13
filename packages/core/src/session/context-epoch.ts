@@ -81,7 +81,7 @@ const initializeOnce = Effect.fnUntraced(function* (
   context: Effect.Effect<SystemContext.SystemContext>,
   sessionID: SessionSchema.ID,
 ) {
-  if (yield* exists(db, sessionID)) return
+  if (yield* exists(db, sessionID)) return undefined
   const generation = yield* context.pipe(Effect.flatMap(SystemContext.initialize))
   const baselineSeq = yield* insert(db, sessionID, generation)
   return { baseline: generation.baseline, baselineSeq }
@@ -155,6 +155,7 @@ const replace = Effect.fnUntraced(function* (
     .get()
     .pipe(Effect.orDie)
   if (!updated) return yield* Effect.die("Context Epoch not found")
+  return undefined
 })
 
 const advance = Effect.fnUntraced(function* (
@@ -170,4 +171,5 @@ const advance = Effect.fnUntraced(function* (
     .get()
     .pipe(Effect.orDie)
   if (!updated) return yield* Effect.die("Context Epoch not found")
+  return undefined
 })

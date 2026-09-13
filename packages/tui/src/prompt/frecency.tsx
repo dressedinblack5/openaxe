@@ -15,6 +15,7 @@ export function parseFrecency(text: string) {
     .filter(Boolean)
     .map((line) => {
       try {
+        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- durable frecency lines written by this app
         return JSON.parse(line) as FrecencyEntry
       } catch {
         return undefined

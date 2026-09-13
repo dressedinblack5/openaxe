@@ -154,8 +154,7 @@ const runImport = Effect.fn("Cli.import.body")(function* (file: string, ctx: Ins
     exportData = transformed
   } else {
     exportData = (yield* fs.readJson(file).pipe(Effect.orElseSucceed(() => undefined))) as
-      | NonNullable<typeof exportData>
-      | undefined
+      NonNullable<typeof exportData> | undefined
     if (!exportData) {
       process.stdout.write(`File not found: ${file}`)
       process.stdout.write(EOL)

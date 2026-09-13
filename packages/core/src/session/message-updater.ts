@@ -1,10 +1,16 @@
 import { castDraft, produce, type WritableDraft } from "immer"
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
+import { Embedding } from "../embedding/embedding"
+import { Vector } from "../vector/vector"
 import { SessionEvent } from "./event"
 import { SessionMessage } from "./message"
 
 export type MemoryState = {
   messages: SessionMessage.Message[]
+  // Reverse indexes for O(1) lookups
+  assistantIndex: Map<SessionMessage.ID, number>
+  shellIndex: Map<string, number>
+  latestAssistantIndex: number
 }
 
 export interface Adapter {
@@ -16,52 +22,108 @@ export interface Adapter {
   readonly appendMessage: (message: SessionMessage.Message) => Effect.Effect<void>
 }
 
+function rebuildIndexes(state: MemoryState) {
+  state.assistantIndex.clear()
+  state.shellIndex.clear()
+  state.latestAssistantIndex = -1
+
+  for (let i = 0; i < state.messages.length; i++) {
+    const message = state.messages[i]
+    if (message.type === "assistant") {
+      state.assistantIndex.set(message.id, i)
+      if (!message.time.completed) {
+        state.latestAssistantIndex = i
+      }
+    } else if (message.type === "shell") {
+      state.shellIndex.set(message.callID, i)
+    }
+  }
+
+  // If we have a completed assistant after the latest incomplete,
+  // we should not return the incomplete one - find the actual latest
+  if (state.latestAssistantIndex >= 0) {
+    // Check if there's any assistant message after this one
+    for (let i = state.latestAssistantIndex + 1; i < state.messages.length; i++) {
+      const msg = state.messages[i]
+      if (msg.type === "assistant") {
+        // There's a later assistant (completed or not), so don't use the incomplete one
+        state.latestAssistantIndex = -1
+        break
+      }
+    }
+  }
+}
+
 export function memory(state: MemoryState): Adapter {
-  const assistantIndex = (messageID: SessionMessage.ID) =>
-    state.messages.findLastIndex((message) => message.id === messageID)
-  // A newer turn supersedes stale incomplete rows; never resume an older assistant projection.
-  const latestAssistantIndex = () => state.messages.findLastIndex((message) => message.type === "assistant")
-  const activeShellIndex = (callID: string) =>
-    state.messages.findLastIndex((message) => message.type === "shell" && message.callID === callID)
+  // Initialize indexes if not present
+  if (!state.assistantIndex) {
+    state.assistantIndex = new Map()
+    state.shellIndex = new Map()
+    state.latestAssistantIndex = -1
+    rebuildIndexes(state)
+  }
+
+  const getAssistantIndex = (messageID: SessionMessage.ID): number | undefined => {
+    return state.assistantIndex.get(messageID)
+  }
+
+  const getLatestAssistantIndex = (): number => {
+    return state.latestAssistantIndex
+  }
+
+  const getShellIndex = (callID: string): number | undefined => {
+    return state.shellIndex.get(callID)
+  }
 
   return {
     getCurrentAssistant() {
       return Effect.sync(() => {
-        const index = latestAssistantIndex()
-        if (index < 0) return
+        const index = getLatestAssistantIndex()
+        if (index < 0) return undefined
         const assistant = state.messages[index]
         return assistant?.type === "assistant" && !assistant.time.completed ? assistant : undefined
       })
     },
     getAssistant(messageID) {
       return Effect.sync(() => {
-        const index = assistantIndex(messageID)
-        if (index < 0) return
+        const index = getAssistantIndex(messageID)
+        if (index === undefined) return undefined
         const assistant = state.messages[index]
         return assistant?.type === "assistant" ? assistant : undefined
       })
     },
     getCurrentShell(callID) {
       return Effect.sync(() => {
-        const index = activeShellIndex(callID)
-        if (index < 0) return
+        const index = getShellIndex(callID)
+        if (index === undefined) return undefined
         const shell = state.messages[index]
         return shell?.type === "shell" ? shell : undefined
       })
     },
     updateAssistant(assistant) {
       return Effect.sync(() => {
-        const index = assistantIndex(assistant.id)
-        if (index < 0) return
+        const index = getAssistantIndex(assistant.id)
+        if (index === undefined) return
         const current = state.messages[index]
         if (current?.type !== "assistant") return
         state.messages[index] = assistant
+        // Update indexes if completion status changed
+        if (assistant.time.completed && state.latestAssistantIndex === index) {
+          state.latestAssistantIndex = -1
+          for (let i = state.messages.length - 1; i >= 0; i--) {
+            const msg = state.messages[i]
+            if (msg.type === "assistant" && !msg.time.completed) {
+              state.latestAssistantIndex = i
+              break
+            }
+          }
+        }
       })
     },
     updateShell(shell) {
       return Effect.sync(() => {
-        const index = activeShellIndex(shell.callID)
-        if (index < 0) return
+        const index = getShellIndex(shell.callID)
+        if (index === undefined) return
         const current = state.messages[index]
         if (current?.type !== "shell") return
         state.messages[index] = shell
@@ -69,7 +131,17 @@ export function memory(state: MemoryState): Adapter {
     },
     appendMessage(message) {
       return Effect.sync(() => {
+        const index = state.messages.length
         state.messages.push(message)
+        // Update indexes
+        if (message.type === "assistant") {
+          state.assistantIndex.set(message.id, index)
+          if (!message.time.completed) {
+            state.latestAssistantIndex = index
+          }
+        } else if (message.type === "shell") {
+          state.shellIndex.set(message.callID, index)
+        }
       })
     },
   }
@@ -99,9 +171,15 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
     })
 
   return Effect.gen(function* () {
+    const append = (message: SessionMessage.Message) =>
+      Effect.gen(function* () {
+        yield* adapter.appendMessage(message)
+        // Async, detached: embedding never blocks or fails the message write.
+        yield* forkEmbedding(message, event.data.sessionID)
+      })
     yield* SessionEvent.All.match(event, {
       "session.next.agent.switched": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.AgentSwitched.make({
             id: event.data.messageID,
             type: "agent-switched",
@@ -112,7 +190,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
         )
       },
       "session.next.model.switched": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.ModelSwitched.make({
             id: event.data.messageID,
             type: "model-switched",
@@ -124,7 +202,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
       },
       "session.next.moved": () => Effect.void,
       "session.next.prompted": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.User.make({
             id: event.data.messageID,
             type: "user",
@@ -138,7 +216,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
       },
       "session.next.prompt.admitted": () => Effect.void,
       "session.next.context.updated": (event) =>
-        adapter.appendMessage(
+        append(
           SessionMessage.System.make({
             id: event.data.messageID,
             type: "system",
@@ -147,7 +225,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
           }),
         ),
       "session.next.synthetic": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.Synthetic.make({
             sessionID: event.data.sessionID,
             text: event.data.text,
@@ -158,7 +236,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
         )
       },
       "session.next.shell.started": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.Shell.make({
             id: event.data.messageID,
             type: "shell",
@@ -193,7 +271,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
               }),
             )
           }
-          yield* adapter.appendMessage(
+          yield* append(
             SessionMessage.Assistant.make({
               id: event.data.assistantMessageID,
               type: "assistant",
@@ -368,7 +446,7 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
       "session.next.compaction.started": () => Effect.void,
       "session.next.compaction.delta": () => Effect.void,
       "session.next.compaction.ended": (event) => {
-        return adapter.appendMessage(
+        return append(
           SessionMessage.Compaction.make({
             id: event.data.messageID,
             type: "compaction",
@@ -383,5 +461,48 @@ export function update(adapter: Adapter, event: SessionEvent.Event) {
     })
   })
 }
+
+const embeddableText = (message: SessionMessage.Message): string | undefined => {
+  switch (message.type) {
+    case "user":
+    case "system":
+    case "synthetic":
+      return message.text
+    case "compaction":
+      return message.summary
+    case "shell":
+      return message.command
+    default:
+      // Assistant content is streamed via updates; embedding per delta would
+      // duplicate vec rows, so it is left to the T16 backfill.
+      return undefined
+  }
+}
+
+/**
+ * Fork a detached embed of a just-persisted message into session_message_vec.
+ * No-op when the embedding/vector services are absent from the runtime context.
+ */
+export const forkEmbedding: (message: SessionMessage.Message, sessionID: string) => Effect.Effect<void> = (
+  message,
+  sessionID,
+) =>
+  Effect.gen(function* () {
+    const text = embeddableText(message)
+    if (text === undefined) return
+    const embedding = yield* Effect.serviceOption(Embedding.Service)
+    const vector = yield* Effect.serviceOption(Vector.Service)
+    if (Option.isNone(embedding) || Option.isNone(vector)) return
+    yield* Effect.gen(function* () {
+      const vec = yield* embedding.value.embed([text])
+      const vectorValue = vec.vectors[0]
+      if (vectorValue) yield* vector.value.insert("session_message", message.id, vectorValue, { sessionId: sessionID })
+    }).pipe(
+      // catchCause, not catch: SQLite/vec0 defects surface as causes, not typed errors.
+      Effect.catchCause((cause) => Effect.logWarning(`embedding session message ${message.id} failed`, { cause })),
+      Effect.forkDetach({ startImmediately: true }),
+      Effect.asVoid,
+    )
+  })
 
 export * as SessionMessageUpdater from "./message-updater"

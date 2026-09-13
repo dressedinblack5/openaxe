@@ -24,6 +24,33 @@ export default {
         );
       `)
       yield* tx.run(`
+        CREATE TABLE \`kanban_board\` (
+          \`id\` text PRIMARY KEY,
+          \`root_session_id\` text NOT NULL,
+          \`title\` text NOT NULL,
+          \`status\` text DEFAULT 'active' NOT NULL,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
+        CREATE TABLE \`kanban_card\` (
+          \`id\` text PRIMARY KEY,
+          \`board_id\` text NOT NULL,
+          \`root_session_id\` text NOT NULL,
+          \`title\` text NOT NULL,
+          \`description\` text,
+          \`status\` text DEFAULT 'backlog' NOT NULL,
+          \`priority\` integer DEFAULT 0 NOT NULL,
+          \`position\` integer DEFAULT 0 NOT NULL,
+          \`worker_session_id\` text,
+          \`parent_id\` text,
+          \`verification\` text,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`memory\` (
           \`key\` text PRIMARY KEY,
           \`value\` text,
@@ -32,6 +59,28 @@ export default {
           \`source\` text DEFAULT 'agent' NOT NULL,
           \`time_created\` integer NOT NULL,
           \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
+        CREATE TABLE \`workspace_memory\` (
+          \`project_id\` text NOT NULL,
+          \`key\` text NOT NULL,
+          \`value\` text NOT NULL,
+          \`vector\` blob,
+          \`created_at\` integer NOT NULL,
+          \`updated_at\` integer NOT NULL,
+          CONSTRAINT \`workspace_memory_pk\` PRIMARY KEY(\`project_id\`, \`key\`)
+        );
+      `)
+      yield* tx.run(`
+        CREATE TABLE \`retry_policy_overrides\` (
+          \`retry_reason\` text PRIMARY KEY,
+          \`max_attempts\` integer NOT NULL,
+          \`base_delay_ms\` integer NOT NULL,
+          \`max_delay_ms\` integer NOT NULL,
+          \`backoff_multiplier\` real NOT NULL,
+          \`jitter\` real NOT NULL,
+          \`updated_at\` integer NOT NULL
         );
       `)
       yield* tx.run(`
@@ -136,6 +185,16 @@ export default {
         );
       `)
       yield* tx.run(`
+        CREATE TABLE \`session_schedule\` (
+          \`session_id\` text PRIMARY KEY,
+          \`cron\` text NOT NULL,
+          \`next_run\` integer,
+          \`enabled\` integer NOT NULL,
+          \`created_at\` integer NOT NULL,
+          \`updated_at\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`message\` (
           \`id\` text PRIMARY KEY,
           \`session_id\` text NOT NULL,
@@ -183,6 +242,7 @@ export default {
           \`session_id\` text NOT NULL,
           \`type\` text NOT NULL,
           \`seq\` integer NOT NULL,
+          \`vector\` blob,
           \`time_created\` integer NOT NULL,
           \`time_updated\` integer NOT NULL,
           \`data\` text NOT NULL,
@@ -201,6 +261,7 @@ export default {
           \`title\` text NOT NULL,
           \`version\` text NOT NULL,
           \`share_url\` text,
+          \`fork_point_message_id\` text,
           \`summary_additions\` integer,
           \`summary_deletions\` integer,
           \`summary_files\` integer,
@@ -276,6 +337,7 @@ export default {
         `CREATE INDEX \`session_message_session_time_created_id_idx\` ON \`session_message\` (\`session_id\`,\`time_created\`,\`id\`);`,
       )
       yield* tx.run(`CREATE INDEX \`session_message_time_created_idx\` ON \`session_message\` (\`time_created\`);`)
+      yield* tx.run(`CREATE INDEX \`session_message_time_updated_idx\` ON \`session_message\` (\`time_updated\`);`)
       yield* tx.run(`CREATE INDEX \`session_project_idx\` ON \`session\` (\`project_id\`);`)
       yield* tx.run(`CREATE INDEX \`session_workspace_idx\` ON \`session\` (\`workspace_id\`);`)
       yield* tx.run(`CREATE INDEX \`session_parent_idx\` ON \`session\` (\`parent_id\`);`)

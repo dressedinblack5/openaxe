@@ -106,10 +106,10 @@ const icons = {
 }
 
 const spriteID = "opencode-icon-sprite"
-const symbol = (name: keyof typeof icons) => `opencode-icon-${name}`
+const symbol = (name: string) => `opencode-icon-${name}`
 let spriteInserted = false
 
-function viewBox(name: keyof typeof icons) {
+function viewBox(name: string) {
   return name === "magnifying-glass" || name === "arrow-undo-down" ? "0 0 16 16" : "0 0 20 20"
 }
 
@@ -132,8 +132,7 @@ function ensureSprite() {
   svg.style.overflow = "hidden"
   svg.innerHTML = Object.entries(icons)
     .map(([name, path]) => {
-      const key = name as keyof typeof icons
-      return `<symbol id="${symbol(key)}" viewBox="${viewBox(key)}">${path}</symbol>`
+      return `<symbol id="${symbol(name)}" viewBox="${viewBox(name)}">${path}</symbol>`
     })
     .join("")
   body.insertBefore(svg, body.firstChild)
